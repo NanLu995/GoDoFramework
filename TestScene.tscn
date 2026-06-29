@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://oeorxao7qtdc"]
+
+[ext_resource type="Script" uid="uid://dpvhqqmb0141e" path="res://Script/TestScene.cs" id="1_cguwc"]
+[ext_resource type="Script" uid="uid://5s4ynuhrebpn" path="res://Script/Test.cs" id="2_wicfy"]
+
+[node name="TestScene" type="Node2D" unique_id=305823362]
+script = ExtResource("1_cguwc")
+
+[node name="Test" type="Node2D" parent="." unique_id=81440052]
+script = ExtResource("2_wicfy")
+
+[node name="Button" type="Button" parent="Test" unique_id=1353734543]
+offset_left = 532.0
+offset_top = 296.0
+offset_right = 641.0
+offset_bottom = 348.0
+
+[connection signal="button_up" from="Test/Button" to="Test" method="OnButton"]

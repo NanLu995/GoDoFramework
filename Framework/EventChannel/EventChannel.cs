@@ -169,14 +169,24 @@ namespace GoDo
             public void Add(Action<T> handler, int priority, bool once)
             {
 #if GODOT_DEBUG
-                // R3: 重复注册同一个 handler 时警告
+                // R3: 同时检查 _handlers 和 _pendingAdd，覆盖派发中途注册的情况
+                // 发现重复直接 return，阻止注册，而不只是打警告
                 for (int i = 0; i < _handlers.Count; i++)
                 {
                     if (_handlers[i].Handler == handler)
                     {
                         GD.PrintErr($"[EventChannel] 重复注册同一个 handler，事件类型: {typeof(T).Name}。" +
-                                    $"该 handler 将被触发两次，请检查是否误用。");
-                        break;
+                                    $"已阻止本次注册，请检查是否在 _Ready 或循环中重复调用了 On/Bind。");
+                        return;
+                    }
+                }
+                for (int i = 0; i < _pendingAdd.Count; i++)
+                {
+                    if (_pendingAdd[i].Handler == handler)
+                    {
+                        GD.PrintErr($"[EventChannel] 在派发过程中重复注册同一个 handler，事件类型: {typeof(T).Name}。" +
+                                    $"已阻止本次注册。");
+                        return;
                     }
                 }
 #endif
