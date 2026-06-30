@@ -69,7 +69,7 @@ namespace GoDo
         public static void Bind<T>(Node node, Action<T> handler, int priority = 0)
             where T : struct, IGameEvent
         {
-            if (node == null)    throw new ArgumentNullException(nameof(node));
+            if (node == null) throw new ArgumentNullException(nameof(node));
             if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 #if GODOT_DEBUG
@@ -78,6 +78,7 @@ namespace GoDo
             {
                 GD.PrintErr($"[EventChannel] Bind called on node '{node.Name}' that is not inside the tree. " +
                             $"Event: {typeof(T).Name} — 已跳过，防止监听泄漏。");
+                ErrorHandler.Debug("Bind 目标节点不在场景树中，监听未注册", "EventChannel", context: $"Bind<{typeof(T).Name}> node={node?.Name}");
                 return;
             }
 #endif
@@ -158,10 +159,10 @@ namespace GoDo
 #endif
         {
             // P3: 预设初始容量，大多数事件监听者在 4 个以内，避免首次扩容
-            private readonly List<HandlerEntry> _handlers      = new(4);
-            private readonly List<HandlerEntry> _pendingAdd    = new(2);
-            private readonly List<Action<T>>    _pendingRemove = new(2);
-            private readonly List<Action<T>>    _onceRemove    = new(2);
+            private readonly List<HandlerEntry> _handlers = new(4);
+            private readonly List<HandlerEntry> _pendingAdd = new(2);
+            private readonly List<Action<T>> _pendingRemove = new(2);
+            private readonly List<Action<T>> _onceRemove = new(2);
             private bool _isDispatching;
 
             public int Count => _handlers.Count;
@@ -177,6 +178,7 @@ namespace GoDo
                     {
                         GD.PrintErr($"[EventChannel] 重复注册同一个 handler，事件类型: {typeof(T).Name}。" +
                                     $"已阻止本次注册，请检查是否在 _Ready 或循环中重复调用了 On/Bind。");
+                        ErrorHandler.Warn("重复注册 handler，已跳过", "EventChannel", context: $"On<{typeof(T).Name}>");
                         return;
                     }
                 }
@@ -225,6 +227,7 @@ namespace GoDo
                         {
                             // R1: 打完整异常信息含调用栈，方便定位 bug
                             GD.PrintErr($"[EventChannel] Handler 抛出异常，事件类型: {typeof(T).Name}\n{ex}");
+                            ErrorHandler.Report(ex, "EventChannel", context: $"Emit<{typeof(T).Name}>");
                         }
 
                         if (entry.Once) _onceRemove.Add(entry.Handler);
@@ -236,9 +239,9 @@ namespace GoDo
                 }
 
                 // 统一处理延迟操作，四个列表同一套模式
-                for (int i = 0; i < _onceRemove.Count; i++)    RemoveFromList(_handlers, _onceRemove[i]);
+                for (int i = 0; i < _onceRemove.Count; i++) RemoveFromList(_handlers, _onceRemove[i]);
                 for (int i = 0; i < _pendingRemove.Count; i++) RemoveFromList(_handlers, _pendingRemove[i]);
-                for (int i = 0; i < _pendingAdd.Count; i++)    InsertSorted(_pendingAdd[i]);
+                for (int i = 0; i < _pendingAdd.Count; i++) InsertSorted(_pendingAdd[i]);
 
                 _onceRemove.Clear();
                 _pendingRemove.Clear();
@@ -269,14 +272,14 @@ namespace GoDo
             private struct HandlerEntry
             {
                 public readonly Action<T> Handler;
-                public readonly int       Priority;
-                public readonly bool      Once;
+                public readonly int Priority;
+                public readonly bool Once;
 
                 public HandlerEntry(Action<T> handler, int priority, bool once)
                 {
-                    Handler  = handler;
+                    Handler = handler;
                     Priority = priority;
-                    Once     = once;
+                    Once = once;
                 }
             }
         }
