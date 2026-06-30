@@ -21,9 +21,60 @@
 
 - 命名：类名/方法名用 PascalCase，私有字段用 _camelCase，常量用 PascalCase。
 - 节点引用统一通过 `[Export]` 字段暴露，不要在代码里写死 `GetNode("路径/写死")`。
-- 信号（Signal）命名用动词过去式或描述性短语（如 `HealthChanged`、`Died`），订阅方法用 `On前缀`（如 `OnHealthChanged`）。
 - 避免在 `_Process` / `_PhysicsProcess` 里做高开销操作（比如频繁 GetNode、字符串拼接、LINQ查询），有疑问就提出来问我，不要默认这样写。
 - 异步操作优先用 Godot 的信号/协程方式（`await ToSignal(...)`），不要随意引入 `Task.Run` 除非我明确要求。
+
+### 信号（Signal）写法 —— 必须严格遵守，这是最容易出错的地方
+
+本项目是 **Godot 4.x**，信号系统和 Godot 3.x 完全不同。绝对不要用 Godot 3.x 的字符串写法。
+
+**正确写法（C# 事件风格，优先用这个）：**
+```csharp
+[Signal]
+public delegate void HealthChangedEventHandler(int newHealth);
+
+// 订阅
+someNode.HealthChanged += OnHealthChanged;
+
+// 取消订阅
+someNode.HealthChanged -= OnHealthChanged;
+
+// 触发
+EmitSignal(SignalName.HealthChanged, newHealth);
+
+private void OnHealthChanged(int newHealth) { ... }
+```
+
+**正确写法（Callable方式，需要更细粒度控制时用）：**
+```csharp
+someNode.Connect(SignalName.HealthChanged, Callable.From<int>(OnHealthChanged));
+```
+
+**绝对禁止（Godot 3.x 旧语法，会直接报错或静默失效）：**
+```csharp
+// 禁止 —— 这是Godot 3.x写法
+Connect("health_changed", this, "OnHealthChanged");
+```
+
+**生命周期规则（必须遵守，否则会导致内存泄漏或"在已释放对象上调用方法"的报错）：**
+- 信号订阅写在 `_EnterTree()` 或 `_Ready()`，取消订阅必须写在对应的 `_ExitTree()`，两者要对称出现。
+- 取消订阅前，先用 `IsInstanceValid(目标对象)` 判断对象是否还存在，再执行 `-=`。
+- 不要用匿名 lambda 订阅信号（`node.Signal += () => {...}`），这样无法手动取消订阅，容易内存泄漏。优先用具名方法。
+- 信号命名用动词过去式或描述性短语（如 `HealthChanged`、`Died`），订阅方法用 `On` 前缀（如 `OnHealthChanged`）。
+
+如果不确定某个内置信号（比如 Tween、AnimationPlayer 自带的信号）叫什么名字，明确说"我不确定这个信号名，需要你确认"，不要凭记忆编。
+
+### 节点引用与空安全
+
+- 优先用 `[Export]` 字段在编辑器里手动拖拽赋值，而不是代码里 `GetNode<T>("路径")` 硬编码路径——路径一旦改场景结构就会失效，且失效时往往没有编译期报错。
+- 如果必须用 `GetNode`，要加判空处理或者用 `GetNodeOrNull<T>()`，不要假设节点一定存在。
+- 涉及 `QueueFree()` 释放节点后，不要在同一帧内继续访问该节点的属性或方法；如果不确定时序，提出来问我。
+
+### 性能相关的具体规则
+
+- `_Process` / `_PhysicsProcess` 里禁止每帧 `new` 大对象（数组、List、字符串拼接），改为成员变量复用。
+- 禁止在 `_Process` / `_PhysicsProcess` 里用 `GetNode` / `FindChild` 这类查找类API，应在 `_Ready()` 里缓存好引用。
+- 大量重复创建/销毁的对象（子弹、特效粒子等）优先考虑对象池模式，不要默认每次 `Instantiate()` + `QueueFree()`。如果我没要求做对象池，先实现最简单版本，但可以提醒我后续可以优化。
 
 ## 禁止事项
 
@@ -41,3 +92,18 @@
 
 - 缺少上下文（比如不知道某个节点在场景里怎么挂的）就直接问我，不要假设。
 - 如果你判断某个需求实现方式有更好的做法，可以提出建议，但默认还是先做我要求的最小实现。
+
+## 给本地小模型的额外提醒
+
+如果你是本地运行的中小型模型（参数量低于30B），请特别注意：
+
+- 你对 Godot 4.x 相对较新的API（4.2+引入的特性）记忆可能不准确或停留在 Godot 3.x，涉及具体类名、方法签名时，优先参考项目里已有的同类代码作为范例，而不是凭训练记忆直接写。
+- 不要在一次回复里同时改动超过2个文件，除非任务明确要求跨文件改动（比如新增一个类同时要在场景里挂载）。
+- 长任务（预计改动较多）请先分解成步骤列表展示给我，不要直接开始大段编辑。
+- 如果生成的代码里出现了你自己也不确定是否存在的API（比如不常见的内置类、方法），用注释标注 `// TODO: 请确认此API是否存在`，不要假装自己很确定。
+
+## 回复格式
+
+- 默认用简体中文回复说明性文字，代码注释也用中文（除非项目已有英文注释习惯，保持一致）。
+- 不要输出大段的"我理解了""好的我来帮你"这类开场白，直接进入实质内容。
+- 改动完成后的总结控制在3句话以内：改了什么、为什么、有什么需要我注意的。
