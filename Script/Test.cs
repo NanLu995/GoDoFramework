@@ -1,6 +1,6 @@
 using Godot;
 using System;
-using GoDo.Events;
+using GoDoFramework.Example.Events;
 
 public partial class Test : Node
 {

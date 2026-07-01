@@ -7,6 +7,14 @@ using Godot;
 
 namespace GoDo
 {
+    /// <summary>
+    /// GoDo 的进程内事件通道，用于跨系统的一对多通知。
+    /// <para>仅允许在 Godot 主线程调用；本类型不提供线程安全保证。</para>
+    /// <para>
+    /// 需要返回结果时使用直接方法调用；场景树内关系明确的对象优先使用 Godot Signal；
+    /// 发送者不应感知接收者的一对多通知才使用本类型。
+    /// </para>
+    /// </summary>
     public static class EventChannel
     {
         // ── 注册表 ────────────────────────────────
@@ -72,20 +80,22 @@ namespace GoDo
             if (node == null) throw new ArgumentNullException(nameof(node));
             if (handler == null) throw new ArgumentNullException(nameof(handler));
 
-#if GODOT_DEBUG
-            // R2: 节点不在树里时直接 return，防止 TreeExiting 永远不触发导致泄漏
+            // 节点不在树里时直接 return，防止 TreeExiting 永远不触发导致泄漏。
+            // 这是生命周期正确性检查，所有构建配置必须保持相同行为。
             if (!node.IsInsideTree())
             {
-                GD.PrintErr($"[EventChannel] Bind called on node '{node.Name}' that is not inside the tree. " +
-                            $"Event: {typeof(T).Name} — 已跳过，防止监听泄漏。");
-                ErrorHandler.Debug("Bind 目标节点不在场景树中，监听未注册", "EventChannel", context: $"Bind<{typeof(T).Name}> node={node?.Name}");
+                ErrorHandler.Warn(
+                    "Bind 目标节点不在场景树中，监听未注册",
+                    "EventChannel",
+                    context: $"Bind<{typeof(T).Name}> node={node.Name}");
                 return;
             }
-#endif
 
-            On<T>(handler, priority);
+            // 注册与生命周期连接必须是一个整体。重复注册被拒绝时，不能再挂接
+            // TreeExiting，否则节点退出时会误删之前已经存在的监听。
+            if (!GetOrCreate<T>().Add(handler, priority, once: false))
+                return;
 
-            // 用具名本地函数而非 lambda，避免匿名委托重复累积
             void AutoOff()
             {
                 Off<T>(handler);
@@ -162,90 +172,106 @@ namespace GoDo
             private readonly List<HandlerEntry> _handlers = new(4);
             private readonly List<HandlerEntry> _pendingAdd = new(2);
             private readonly List<Action<T>> _pendingRemove = new(2);
-            private readonly List<Action<T>> _onceRemove = new(2);
-            private bool _isDispatching;
+            private int _dispatchDepth;
 
             public int Count => _handlers.Count;
 
-            public void Add(Action<T> handler, int priority, bool once)
+            public bool Add(Action<T> handler, int priority, bool once)
             {
-#if GODOT_DEBUG
-                // R3: 同时检查 _handlers 和 _pendingAdd，覆盖派发中途注册的情况
-                // 发现重复直接 return，阻止注册，而不只是打警告
+                // 重复注册会改变事件语义，因此所有构建配置必须保持相同行为。
                 for (int i = 0; i < _handlers.Count; i++)
                 {
-                    if (_handlers[i].Handler == handler)
+                    if (_handlers[i].Handler == handler && !Contains(_pendingRemove, handler))
                     {
-                        GD.PrintErr($"[EventChannel] 重复注册同一个 handler，事件类型: {typeof(T).Name}。" +
-                                    $"已阻止本次注册，请检查是否在 _Ready 或循环中重复调用了 On/Bind。");
                         ErrorHandler.Warn("重复注册 handler，已跳过", "EventChannel", context: $"On<{typeof(T).Name}>");
-                        return;
+                        return false;
                     }
                 }
                 for (int i = 0; i < _pendingAdd.Count; i++)
                 {
                     if (_pendingAdd[i].Handler == handler)
                     {
-                        GD.PrintErr($"[EventChannel] 在派发过程中重复注册同一个 handler，事件类型: {typeof(T).Name}。" +
-                                    $"已阻止本次注册。");
-                        return;
+                        ErrorHandler.Warn("派发期间重复注册 handler，已跳过", "EventChannel", context: $"On<{typeof(T).Name}>");
+                        return false;
                     }
                 }
-#endif
+
                 // P2: HandlerEntry 改为 struct，避免堆分配
                 var entry = new HandlerEntry(handler, priority, once);
-                if (_isDispatching)
+                if (_dispatchDepth > 0)
                     _pendingAdd.Add(entry);
                 else
                     InsertSorted(entry);
+                return true;
             }
 
             public void Remove(Action<T> handler)
             {
-                if (_isDispatching)
-                    _pendingRemove.Add(handler);
+                if (_dispatchDepth > 0)
+                {
+                    if (!Contains(_pendingRemove, handler))
+                        _pendingRemove.Add(handler);
+                }
                 else
                     RemoveFromList(_handlers, handler);
             }
 
             public void Dispatch(T evt)
             {
-                _isDispatching = true;
+                _dispatchDepth++;
 
-                // R4: 用 try/finally 保证 _isDispatching 一定被重置
                 try
                 {
                     // P4: for 循环代替 foreach，JIT 更友好，无枚举器开销
                     for (int i = 0; i < _handlers.Count; i++)
                     {
                         var entry = _handlers[i];
+
+                        // Off 在派发期间立即影响尚未执行的 handler；Once 在调用前
+                        // 先标记移除，确保同类型事件重入时也只执行一次。
+                        if (Contains(_pendingRemove, entry.Handler))
+                            continue;
+                        if (entry.Once)
+                            _pendingRemove.Add(entry.Handler);
+
                         try
                         {
                             entry.Handler(evt);
                         }
                         catch (Exception ex)
                         {
-                            // R1: 打完整异常信息含调用栈，方便定位 bug
-                            GD.PrintErr($"[EventChannel] Handler 抛出异常，事件类型: {typeof(T).Name}\n{ex}");
                             ErrorHandler.Report(ex, "EventChannel", context: $"Emit<{typeof(T).Name}>");
                         }
-
-                        if (entry.Once) _onceRemove.Add(entry.Handler);
                     }
                 }
                 finally
                 {
-                    _isDispatching = false;
-                }
+                    _dispatchDepth--;
 
-                // 统一处理延迟操作，四个列表同一套模式
-                for (int i = 0; i < _onceRemove.Count; i++) RemoveFromList(_handlers, _onceRemove[i]);
+                    // 同类型事件可以重入。只有最外层派发结束后才能修改主列表，
+                    // 否则内层派发会破坏外层正在使用的索引和顺序。
+                    if (_dispatchDepth == 0)
+                        ApplyPendingChanges();
+                }
+            }
+
+            private void ApplyPendingChanges()
+            {
                 for (int i = 0; i < _pendingRemove.Count; i++) RemoveFromList(_handlers, _pendingRemove[i]);
                 for (int i = 0; i < _pendingAdd.Count; i++) InsertSorted(_pendingAdd[i]);
 
-                _onceRemove.Clear();
                 _pendingRemove.Clear();
                 _pendingAdd.Clear();
+            }
+
+            private static bool Contains(List<Action<T>> list, Action<T> handler)
+            {
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (list[i] == handler)
+                        return true;
+                }
+                return false;
             }
 
             // 反向遍历删除，零 lambda 分配，且删除后不影响未遍历的索引
