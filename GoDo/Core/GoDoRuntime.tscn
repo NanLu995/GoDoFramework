@@ -1,7 +1,12 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" uid="uid://2y8nge3y4gp0" path="res://GoDo/Core/GoDoRuntime.cs" id="1_runtime"]
+[ext_resource type="Script" path="res://GoDo/Runtime/Scene/SceneService.cs" id="2_scene_service"]
 
 [node name="GoDoRuntime" type="Node"]
 process_mode = 3
 script = ExtResource("1_runtime")
+SceneServicePath = NodePath("SceneService")
+
+[node name="SceneService" type="Node" parent="."]
+script = ExtResource("2_scene_service")

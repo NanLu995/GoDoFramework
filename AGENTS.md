@@ -108,6 +108,9 @@ Connect("health_changed", this, "OnHealthChanged");
 - Core 层模块之间禁止通过 `ServiceLocator` 或直接持有引用进行横向依赖；模块通信遵循 `ARCHITECTURE.md`，使用 `EventChannel`。`ErrorHub` 是文档明确规定的例外。
 - 新增模块或公共 API 前，先检查现有模块是否已经提供同类能力，不要重复实现事件、日志、错误处理、对象池等基础设施。
 - 不要删除、重命名或改变现有 public API 和信号语义，除非我明确同意；新增 public API 时说明它的职责、依赖方向和兼容性影响。
+- Scene、Audio、UI、Config 等运行时模块加载 Godot Resource 时统一使用 `ResourceHub`，不要各自重复封装 `Godot.ResourceLoader`。
+- ResourceHub 只包装 Godot 资源加载机制：公共 API 使用 `ResourceKey` 和 `T : Resource`，失败抛出 `ResourceLoadException`；禁止返回 null、重复上报后再 throw，或自行维护第二套引用计数与缓存。
+- 远程下载、PCK/DLC、热更新、目录批量加载和自定义缓存属于未来独立扩展，不得混入 ResourceHub 首版核心。
 
 ## 测试与验证
 

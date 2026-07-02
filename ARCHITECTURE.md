@@ -18,25 +18,28 @@
 
 ## 分层架构与依赖规则
 
-框架内部分为两层，业务层在框架之上：
+框架内部按依赖方向分为三层，业务层在框架之上：
 
 ```
-业务层（你的游戏代码，不在本文档管辖范围内，遵循自己的 AGENTS.md 规则）
-        ↓ 通过 ServiceLocator 获取框架服务
-────────────────────────────────────────
-GoDo 框架内部
+业务层（游戏代码）
         ↓
-Core 层（框架地基，模块间横向通信走 EventChannel，禁止互相 Get）
+Runtime Services（Scene / Audio / UI / Config 等）
         ↓
-（无更底层，Core 层是最底层，不依赖任何其他模块）
+Runtime Foundation（Resources / Pool 等通用运行时能力）
+        ↓
+Core（ErrorHub / EventChannel / GoDoRuntime）
+        ↓
+Godot 4.7 C# / .NET
 ```
 
 ### 硬性规则（写代码前必须确认自己没违反）
 
 1. **Core 层内部模块之间禁止互相持有引用、互相 Get**。如果 A 模块需要在某个时机通知 B 模块，走 EventChannel 发事件，不要直接调用对方的方法。
 2. **唯一例外是 ErrorHub**。任何模块（包括 Core 层之间、业务层）都可以直接调用 `GoDo.ErrorHub.Report(...)` 报错，不需要绕事件系统。ErrorHub 只接收调用，不会反过来依赖任何其他模块——它的 `OnError` 用原始 C# event 委托实现，不经过 EventChannel，避免循环依赖。
-3. **ServiceLocator 专门给业务层访问框架服务用**，Core 层内部模块之间不允许通过 ServiceLocator 互相访问。
+3. **Services 注册表专门给业务层访问框架服务用**，Core 层内部模块之间不允许通过 Services 互相访问。
 4. 任何新模块开工前，先确认：这个模块要用到的能力，是不是已经有别的模块提供了？不要重复造轮子（比如不要给自己模块单独写一套日志逻辑，统一走 Log）。
+5. Scene、Audio、UI、Config 等模块统一通过 ResourceHub 加载 Godot Resource，不允许各自复制线程化加载、进度轮询和类型检查。
+6. ResourceHub 依赖 Godot ResourceLoader 与 Core，不反向依赖任何上层 Runtime Service。
 
 ---
 
@@ -170,45 +173,78 @@ GoDo.ErrorHub.AddReporter(new MyServerReporter("https://errors.mygame.com"));
 
 ---
 
-#### ServiceLocator —— 服务定位器（仅供业务层使用）
+#### Services —— 服务注册表（仅供业务层使用）
 
-**状态：暂缓开发。等 Scene、Audio 等首个真实全局服务出现后，再根据实际调用方式设计。**
+**状态：首版稳定基线完成。**
 
 **职责**
-- 业务层访问框架服务的统一入口，替代业务代码里到处 GetNode 的硬编码
+- 业务层按接口访问少量长期框架服务，替代业务代码里到处 GetNode 的硬编码
 - 接口与实现分离，方便测试时替换 Mock
 
 **架构约束（重要）**
-- **Core 层内部模块之间禁止通过 ServiceLocator 互相访问**，模块间通信走 EventChannel。
-- ServiceLocator 的注册对象应该是面向业务层暴露的服务接口（比如 `IAudioService`），不是 Core 层模块互相调用的手段。
+- **Core 层内部模块之间禁止通过 Services 互相访问**，模块间通信走 EventChannel。
+- 只允许按接口注册；重复注册和缺失查询明确失败，注销时必须匹配原注册实例。
+- Services 不负责自动构造、依赖注入、生命周期推断或任意具体类型的全局化。
 
-**计划 API**
+**当前 API**
 ```csharp
-GoDo.Service.Register<IAudioService>(new AudioService());
-GoDo.Service.Get<IAudioService>().PlaySfx("jump");
-GoDo.Service.Unregister<IAudioService>();
+GoDo.Services.Register<IAudioService>(audioService);
+GoDo.Services.Get<IAudioService>().PlaySfx("jump");
+GoDo.Services.Unregister<IAudioService>(audioService);
 ```
+
+已通过缺失查询、重复注册、接口约束、错误实例注销、正常注销和 `TryGet` 运行时验证。
 
 ---
 
 ### 优先级 2（核心游戏功能）
 
-#### Scene —— 场景管理
+#### ResourceHub —— 统一资源加载
+
+**状态：首版稳定基线完成，首次线程加载、类型检查、并发合并、进度、主线程完成和 Shutdown 已通过 Godot 运行时验证。**
 
 **职责**
-- 类型安全的场景切换，告别字符串路径
-- 异步加载 + 进度回调
-- 切换过渡动画（淡入淡出等）
-- 场景栈管理（push/pop，适合 UI 弹窗场景）
+- `ResourceKey` 统一验证和规范化 `res://` 资源路径，为未来 Resource UID 留出 API 边界
+- `Load<T>` 同步加载与类型检查，`T` 必须继承 Godot `Resource`
+- `LoadAsync<T>` 包装 Godot 线程化加载，跨帧提供状态、进度和 Completion
+- 相同 ResourceKey 的并发请求合并；同路径不同类型冲突会明确失败
+- 由 GoDoRuntime 在主线程 Update 和 Shutdown，完成回调不跨线程操作业务场景树
+- 复用 Godot CacheMode.Reuse，不建立自定义引用计数、递归释放或第二套缓存
 
-**计划 API**
+**当前 API**
 ```csharp
-await GoDo.Scene.Load<GameScene>();
-GoDo.Scene.Push<PauseMenuScene>();
-GoDo.Scene.Pop();
+ResourceKey key = ResourceKey.Create("res://Scenes/Level01.tscn");
+PackedScene syncScene = ResourceHub.Load<PackedScene>(key);
+ResourceLoadOperation<PackedScene> operation = ResourceHub.LoadAsync<PackedScene>(key);
+PackedScene asyncScene = await operation.Completion;
 ```
 
-**待补充设计决策（实现前需要先想清楚）**：过渡动画是写死几种内置效果还是开放自定义？场景栈的最大深度有没有限制？
+**明确边界**
+- 失败抛出 `ResourceLoadException`，由 Scene、Audio 等业务边界捕获并交给 ErrorHub 补充上下文
+- 首版不支持远程 URL、PCK/DLC、热更新、目录批量加载、手动 Unload、LRU 或下载重试
+- Shutdown 只停止 GoDo 调用方等待；Godot 已启动的底层线程加载可能继续完成
+
+---
+
+#### Scene —— 场景管理
+
+**状态：首版稳定基线完成。**
+
+**职责**
+- 使用 `ResourceKey` 与 ResourceHub 异步加载 `PackedScene`
+- 加载和实例化成功后替换主内容场景，失败保留旧场景
+- 提供切换状态与加载进度，切换期间拒绝第二个请求
+- SceneService 由 GoDoRuntime Autoload 持有，并以 `ISceneService` 注册到 Services
+- 服务离树或重新入树时取消尚未提交的切换，事件订阅对称解绑
+- UI 弹窗、返回栈、过渡动画和统一错误场景不属于首版
+
+**当前 API**
+```csharp
+ResourceKey levelKey = ResourceKey.Create("res://Scenes/Level01.tscn");
+Node scene = await Services.Get<ISceneService>().ChangeAsync(levelKey);
+```
+
+已通过加载失败回滚、并发拒绝、服务离树取消、Autoload 注册、100 次缓存场景切换和旧节点释放验证；本次 Debug 结果为 608 ms、当前线程累计分配 136864 bytes、残留旧场景 0。
 
 ---
 
@@ -287,7 +323,6 @@ GoDo.Audio.SetVolume(AudioGroup.SFX, 0.8f);
 ### 暂未排期
 
 - StateMachine —— 通用状态机（行为管理，注意：框架只提供通用状态机机制，具体状态如"Idle/Walking/Jumping"属于业务层）
-- ResourceMgr —— 统一资源加载
 - TimerMgr —— 时间管理
 - InputMgr —— 输入映射
 - i18n —— 本地化系统(多语言)
@@ -312,13 +347,19 @@ GoDo/
 │   ├── Tick/
 │   ├── GoDoRuntime.cs       ← 框架运行时与生命周期入口
 │   ├── GoDoRuntime.tscn     ← Autoload 场景
-│   └── ServiceLocator/      ← 暂缓，尚未创建
+│   └── Services/            ← 首版稳定基线完成
 │
 ├── Runtime/
+│   ├── Resources/           ← 首版稳定基线完成
+│   │   ├── ResourceHub.cs
+│   │   ├── ResourceKey.cs
+│   │   ├── ResourceLoadOperation.cs
+│   │   ├── ResourceLoadStatus.cs
+│   │   └── ResourceLoadException.cs
 │   ├── Pool/                ← 首版稳定基线完成
 │   │   ├── NodePool.cs
 │   │   └── IPoolable.cs
-│   ├── Scene/
+│   ├── Scene/               ← 首版稳定基线完成
 │   ├── Audio/
 │   ├── Save/
 │   └── UI/
@@ -339,7 +380,7 @@ GoDo/
 - 所有框架模块通过 `GoDo.ErrorHub` 报告错误，不直接调用 `GD.PrintErr`
 - 事件定义统一在 `GameEvents.cs`，不散落各处
 - Core 层模块之间禁止互相 Get，通信走 EventChannel（ErrorHub 除外，见上方架构约束）
-- ServiceLocator 只用于业务层访问框架服务，不用于框架内部模块互访；在真实全局服务出现前暂缓实现
+- Services 只用于业务层按接口访问长期框架服务，不用于框架内部模块互访
 - Debug 专属代码一律用 `#if GODOT_DEBUG` 包裹
 - 公开 API 必须有 XML 注释
 - 新模块开工前，先检查待补充设计决策是否已经想清楚——没想清楚的部分，先讨论再写代码，不要让 AI 自己拍板架构性决定

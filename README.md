@@ -10,6 +10,7 @@ GoDoFramework 是面向 Godot 4.7 C# / .NET 的轻量游戏开发框架，用于
 - ErrorHub：本地稳定基线完成，支持框架与业务层上报、异常分级、主线程分发、监听者隔离和可插拔 Reporter。
 - GoDoRuntime：已作为 Autoload 注册，统一负责框架初始化和退出清理；Runtime 表示游戏运行期，不特指 Release 构建。
 - NodePool：首版稳定基线完成，支持 PackedScene 节点初始化、`Acquire/Release`、空闲区容量、异常回滚和显式生命周期回调。
+- ResourceHub：首版稳定基线完成，支持类型安全同步/异步加载、进度、并发合并、主线程完成和 Shutdown 清理；首次线程加载与缓存压力测试已通过。
 - 正式远程错误上传、Scene、Audio 等模块仍在规划中；Service Registry 延后到首个真实全局服务出现时设计。
 
 ## 基础用法

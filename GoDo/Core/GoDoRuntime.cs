@@ -20,6 +20,10 @@ public sealed partial class GoDoRuntime : Node
 {
     private static GoDoRuntime? _instance;
     private bool _subscribed;
+    private SceneService? _sceneService;
+
+    [Export]
+    public NodePath SceneServicePath { get; set; } = null!;
 
     public override void _EnterTree()
     {
@@ -35,6 +39,7 @@ public sealed partial class GoDoRuntime : Node
 
         _instance = this;
         RuntimeThreadGuard.Initialize();
+        ResourceHub.Initialize();
     }
 
     public override void _Ready()
@@ -45,11 +50,18 @@ public sealed partial class GoDoRuntime : Node
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
         _subscribed = true;
 
+        _sceneService = GetNodeOrNull<SceneService>(SceneServicePath);
+        if (!IsInstanceValid(_sceneService))
+            throw new InvalidOperationException("GoDoRuntime 未配置 SceneService 子节点。");
+
+        Services.Register<ISceneService>(_sceneService);
+
         ErrorHub.Debug("GoDo 运行时初始化完成", "Runtime");
     }
 
     public override void _Process(double delta)
     {
+        ResourceHub.Update();
         ErrorHub.FlushPending();
     }
 
@@ -63,8 +75,14 @@ public sealed partial class GoDoRuntime : Node
 
         if (_instance == this)
         {
+            if (IsInstanceValid(_sceneService))
+                Services.Unregister<ISceneService>(_sceneService);
+
+            Services.Clear();
+            ResourceHub.Shutdown();
             ErrorHub.Shutdown();
             _instance = null;
+            _sceneService = null;
             RuntimeThreadGuard.Reset();
         }
     }
