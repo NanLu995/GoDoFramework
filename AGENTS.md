@@ -105,7 +105,7 @@ Connect("health_changed", this, "OnHealthChanged");
 ## 框架边界
 
 - `GoDo.*` 只提供可跨游戏复用的机制，不得引用角色、血量、子弹、关卡规则等具体玩法概念；业务代码不得放进 `GoDo.*` 命名空间。
-- Core 层模块之间禁止通过 `ServiceLocator` 或直接持有引用进行横向依赖；模块通信遵循 `ARCHITECTURE.md`，使用 `EventChannel`。`ErrorHandler` 是文档明确规定的例外。
+- Core 层模块之间禁止通过 `ServiceLocator` 或直接持有引用进行横向依赖；模块通信遵循 `ARCHITECTURE.md`，使用 `EventChannel`。`ErrorHub` 是文档明确规定的例外。
 - 新增模块或公共 API 前，先检查现有模块是否已经提供同类能力，不要重复实现事件、日志、错误处理、对象池等基础设施。
 - 不要删除、重命名或改变现有 public API 和信号语义，除非我明确同意；新增 public API 时说明它的职责、依赖方向和兼容性影响。
 

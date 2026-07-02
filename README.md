@@ -7,9 +7,9 @@ GoDoFramework 是面向 Godot 4.7 C# / .NET 的轻量游戏开发框架，用于
 ## 当前状态
 
 - EventChannel：基础实现完成，支持类型安全事件、优先级、生命周期绑定、重入派发和 `EventScope`。
-- ErrorHandler：基础实现完成，框架与业务层均可上报错误；支持分级、监听者隔离和可插拔 Reporter。
+- ErrorHub：本地稳定基线完成，支持框架与业务层上报、异常分级、主线程分发、监听者隔离和可插拔 Reporter。
 - GoDoRuntime：已作为 Autoload 注册，统一负责框架初始化和退出清理；Runtime 表示游戏运行期，不特指 Release 构建。
-- NodePool：首版基础实现完成，支持 PackedScene 节点初始化、`Acquire/Release`、空闲区容量和显式生命周期回调。
+- NodePool：首版稳定基线完成，支持 PackedScene 节点初始化、`Acquire/Release`、空闲区容量、异常回滚和显式生命周期回调。
 - 正式远程错误上传、Scene、Audio 等模块仍在规划中；Service Registry 延后到首个真实全局服务出现时设计。
 
 ## 基础用法
@@ -23,7 +23,7 @@ try
 }
 catch (Exception exception)
 {
-    GoDo.ErrorHandler.Report(exception, "Game.Save", context: "LoadSave slot=0");
+    GoDo.ErrorHub.Report(exception, "Game.Save", context: "LoadSave slot=0");
 }
 ```
 

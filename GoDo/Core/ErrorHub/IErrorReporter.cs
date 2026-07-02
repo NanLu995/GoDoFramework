@@ -2,8 +2,10 @@ namespace GoDo;
 
 /// <summary>
 /// 可插拔的错误上报器接口。
-/// 实现该接口并通过 <see cref="ErrorHandler.AddReporter"/> 注册，
+/// 实现该接口并通过 <see cref="ErrorHub.AddReporter"/> 注册，
 /// 即可将错误数据转发到任意目标（本地日志、Sentry、自建服务器等）。
+/// 如 Reporter 还实现 <see cref="System.IDisposable"/>，ErrorHub 会在运行时关闭时调用它，
+/// 可用于刷新缓冲区和释放网络资源。
 /// </summary>
 public interface IErrorReporter
 {

@@ -84,7 +84,7 @@ GoDo Runtime Services（可选、彼此独立）
                     │
                     ▼
 GoDo Core（最小稳定核心）
-  ErrorHandler / EventChannel / Service Registry / GoDoRuntime
+  ErrorHub / EventChannel / Service Registry / GoDoRuntime
                     │
                     ▼
 Godot 4.7 C# / .NET
@@ -96,7 +96,7 @@ Godot 4.7 C# / .NET
 2. Core 模块不通过 Service Registry 横向查找彼此。
 3. Runtime Service 可以依赖 Core；服务之间如需直接协作，必须在设计阶段声明接口和依赖方向，不能默认全部改走全局事件。
 4. EventChannel 用于一对多通知和解耦观察者，不用于替代所有方法调用，也不用于隐藏必须立即得到结果的请求。
-5. ErrorHandler 是底层诊断出口，不反向依赖 EventChannel，避免错误处理形成循环。
+5. ErrorHub 是底层诊断出口，不反向依赖 EventChannel，避免错误处理形成循环。
 6. Tools/Editor 工具只在编辑器中运行，不应成为运行时模块的依赖。
 
 ---
@@ -121,7 +121,7 @@ Godot 4.7 C# / .NET
 - 游戏事件由具体游戏在自己的命名空间和目录中定义。
 - 文档明确何时用直接调用、Godot Signal 或 EventChannel，避免事件总线泛滥。
 
-#### ErrorHandler
+#### ErrorHub
 
 用途：结构化错误报告、控制台输出和可插拔上报器。
 
@@ -162,7 +162,7 @@ Godot 4.7 C# / .NET
 
 #### Pool（优先）
 
-状态：首版基础实现已完成，位于 `GoDo/Runtime/Pool/`。
+状态：首版稳定基线完成，位于 `GoDo/Runtime/Pool/`。
 
 首版只支持 Godot Node/PackedScene 池：`NodePool<T>` 提供初始容量、空闲区容量、`Acquire/Release` 和 `IPoolable.OnAcquire/OnRelease` 回调。不要自动猜测需要重置的字段，重置责任由池化对象明确实现。
 
@@ -248,7 +248,7 @@ Godot 4.7 C# / .NET
 目标：得到可长期依赖的小核心。
 
 - 为 EventChannel 补齐关键派发、Once、生命周期和异常隔离测试。
-- 为 ErrorHandler 补齐 Reporter、等级过滤和异常路径测试。
+- ErrorHub 的 Reporter、等级过滤、异常隔离、递归和后台队列测试已完成。
 - Service Registry 延后到首个真实全局服务出现时设计。
 - 继续保持 GoDoRuntime 初始化与释放职责的边界，不承载游戏流程。
 
@@ -260,7 +260,7 @@ Godot 4.7 C# / .NET
 
 建议顺序：
 
-1. Pool：首版基础实现已完成，下一步需要最小场景验证和压力测试。
+1. Pool：首版稳定基线完成，功能、异常路径、Dispose 和 1 万次压力验证已通过。
 2. Scene：先完成可靠加载和错误处理，再做过渡效果。
 3. Audio：复用 Audio Bus，并以 SFX 池验证跨场景服务。
 
@@ -320,8 +320,8 @@ Godot 4.7 C# / .NET
 ### 已有基础
 
 - EventChannel 已完成边界清理与重入稳定化，可进入测试阶段。
-- ErrorHandler、Reporter 接口和 GoDoRuntime 已存在；递归保护、监听者隔离与入口注册已完成，正式远程 Reporter 待后续实现。
-- `NodePool<T>` 与 `IPoolable` 首版已实现，当前为实例级独立模块，不依赖 Service Registry。
+- ErrorHub 本地稳定基线已完成，具备递归保护、逐监听者隔离、有界后台队列、主线程分发和 Shutdown 清理；正式远程 Reporter 待后续实现。
+- `NodePool<T>` 与 `IPoolable` 首版稳定基线已完成，具备异常回滚、Dispose 强制清理和压力验证，当前为实例级独立模块，不依赖 Service Registry。
 - 已形成框架不感知具体玩法、Core 横向依赖受限的正确方向。
 
 ### 当前不一致
@@ -332,7 +332,7 @@ Godot 4.7 C# / .NET
 
 ### 推荐的下一个具体任务
 
-Pool 最小验证场景已覆盖初始化、复用、重复释放、空闲区容量和 `IPoolable` 生命周期；完成压力与异常路径测试后再进入 Scene 模块设计。
+Pool 验证场景已覆盖初始化、复用、重复释放、空闲区容量、回调异常、Dispose 和 1 万次压力循环；编辑器实测通过后再进入 Scene 模块设计。
 
 ---
 

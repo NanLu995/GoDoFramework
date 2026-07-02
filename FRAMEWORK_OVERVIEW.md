@@ -312,7 +312,7 @@ public void LoadGame()
 ```
 GoDo/
 ├── Core/                        核心层（其他模块依赖）
-│   ├── ErrorHandler/            错误捕获、格式化、上报
+│   ├── ErrorHub/            错误捕获、格式化、上报
 │   ├── EventChannel/            事件总线，解耦通信    ✅ 已完成
 │   └── ServiceLocator/          全局服务注册与获取
 │
@@ -381,7 +381,7 @@ _scope.Dispose();
 
 ---
 
-### 🔴 Core / ErrorHandler —— 错误捕获器
+### 🔴 Core / ErrorHub —— 错误捕获器
 
 **解决的问题**：框架内部各模块错误日志散乱、格式不统一、Release 下无法收集，无法做远程上报。
 
@@ -397,15 +397,15 @@ _scope.Dispose();
 **计划 API**
 ```csharp
 // 框架模块内部使用
-GoDo.ErrorHandler.Report(exception, module: "EventChannel", context: "Dispatch");
-GoDo.ErrorHandler.Warn("重复注册 handler", module: "EventChannel");
-GoDo.ErrorHandler.Fatal("ServiceLocator 未初始化", module: "ServiceLocator");
+GoDo.ErrorHub.Report(exception, module: "EventChannel", context: "Dispatch");
+GoDo.ErrorHub.Warn("重复注册 handler", module: "EventChannel");
+GoDo.ErrorHub.Fatal("ServiceLocator 未初始化", module: "ServiceLocator");
 
 // 挂载自定义上报器（游戏项目启动时配置一次）
-GoDo.ErrorHandler.AddReporter(new RemoteReporter("https://errors.mygame.com/report"));
+GoDo.ErrorHub.AddReporter(new RemoteReporter("https://errors.mygame.com/report"));
 
 // 订阅错误事件（可选，用于游戏内显示错误提示）
-GoDo.ErrorHandler.OnError += (report) => { ShowErrorToast(report.Message); };
+GoDo.ErrorHub.OnError += (report) => { ShowErrorToast(report.Message); };
 ```
 
 **错误数据结构**
@@ -425,7 +425,7 @@ public struct ErrorReport {
 ```
 框架模块 / 业务代码
        ↓
-ErrorHandler.Report()
+ErrorHub.Report()
        ↓
 ErrorFormatter（格式化）
        ↓
@@ -680,7 +680,7 @@ await GoDo.Async.NextPhysicsFrame();    // 等待下一物理帧
 ```
 阶段一（核心基础）
   ✅ EventChannel     事件系统        已完成
-  🔴 ErrorHandler     错误捕获器      下一个
+  🔴 ErrorHub     错误捕获器      下一个
   🔴 ServiceLocator   服务定位器
 
 阶段二（游戏功能）
@@ -710,7 +710,7 @@ await GoDo.Async.NextPhysicsFrame();    // 等待下一物理帧
 - 接口以 `I` 开头：`IAudioService`、`IPoolable`、`ISaveService`
 
 **错误处理**
-- 所有模块错误统一走 `GoDo.ErrorHandler`，不直接调用 `GD.PrintErr`
+- 所有模块错误统一走 `GoDo.ErrorHub`，不直接调用 `GD.PrintErr`
 - Debug 专属代码用 `#if GODOT_DEBUG` 包裹，Release 零开销
 
 **性能**

@@ -8,6 +8,7 @@ public sealed partial class PoolTestNode : Node, IPoolable
 {
     public int AcquireCount { get; private set; }
     public int ReleaseCount { get; private set; }
+    public bool ThrowOnRelease { get; set; }
 
     public void OnAcquire()
     {
@@ -17,5 +18,8 @@ public sealed partial class PoolTestNode : Node, IPoolable
     public void OnRelease()
     {
         ReleaseCount++;
+
+        if (ThrowOnRelease)
+            throw new System.InvalidOperationException("[PoolTest] 预期的 OnRelease 异常。");
     }
 }

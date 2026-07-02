@@ -25,7 +25,7 @@ public sealed partial class GoDoRuntime : Node
     {
         if (IsInstanceValid(_instance) && _instance != this)
         {
-            ErrorHandler.Warn(
+            ErrorHub.Warn(
                 "检测到重复的框架运行时入口，已释放后创建的实例",
                 "Runtime",
                 context: GetPath().ToString());
@@ -34,6 +34,7 @@ public sealed partial class GoDoRuntime : Node
         }
 
         _instance = this;
+        RuntimeThreadGuard.Initialize();
     }
 
     public override void _Ready()
@@ -44,7 +45,12 @@ public sealed partial class GoDoRuntime : Node
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
         _subscribed = true;
 
-        ErrorHandler.Debug("GoDo 运行时初始化完成", "Runtime");
+        ErrorHub.Debug("GoDo 运行时初始化完成", "Runtime");
+    }
+
+    public override void _Process(double delta)
+    {
+        ErrorHub.FlushPending();
     }
 
     public override void _ExitTree()
@@ -56,7 +62,11 @@ public sealed partial class GoDoRuntime : Node
         }
 
         if (_instance == this)
+        {
+            ErrorHub.Shutdown();
             _instance = null;
+            RuntimeThreadGuard.Reset();
+        }
     }
 
     private static void OnDomainUnhandledException(
@@ -65,14 +75,14 @@ public sealed partial class GoDoRuntime : Node
     {
         if (e.ExceptionObject is Exception exception)
         {
-            ErrorHandler.Fatal(
+            ErrorHub.Fatal(
                 exception,
                 module: "Runtime",
                 context: e.IsTerminating ? "UnhandledException; IsTerminating=true" : "UnhandledException");
             return;
         }
 
-        ErrorHandler.Fatal(
+        ErrorHub.Fatal(
             $"未知未处理异常对象: {e.ExceptionObject}",
             module: "Runtime",
             context: e.IsTerminating ? "UnhandledException; IsTerminating=true" : "UnhandledException");

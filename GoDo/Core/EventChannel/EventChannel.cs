@@ -84,7 +84,7 @@ namespace GoDo
             // 这是生命周期正确性检查，所有构建配置必须保持相同行为。
             if (!node.IsInsideTree())
             {
-                ErrorHandler.Warn(
+                ErrorHub.Warn(
                     "Bind 目标节点不在场景树中，监听未注册",
                     "EventChannel",
                     context: $"Bind<{typeof(T).Name}> node={node.Name}");
@@ -183,7 +183,7 @@ namespace GoDo
                 {
                     if (_handlers[i].Handler == handler && !Contains(_pendingRemove, handler))
                     {
-                        ErrorHandler.Warn("重复注册 handler，已跳过", "EventChannel", context: $"On<{typeof(T).Name}>");
+                        ErrorHub.Warn("重复注册 handler，已跳过", "EventChannel", context: $"On<{typeof(T).Name}>");
                         return false;
                     }
                 }
@@ -191,7 +191,7 @@ namespace GoDo
                 {
                     if (_pendingAdd[i].Handler == handler)
                     {
-                        ErrorHandler.Warn("派发期间重复注册 handler，已跳过", "EventChannel", context: $"On<{typeof(T).Name}>");
+                        ErrorHub.Warn("派发期间重复注册 handler，已跳过", "EventChannel", context: $"On<{typeof(T).Name}>");
                         return false;
                     }
                 }
@@ -240,7 +240,7 @@ namespace GoDo
                         }
                         catch (Exception ex)
                         {
-                            ErrorHandler.Report(ex, "EventChannel", context: $"Emit<{typeof(T).Name}>");
+                            ErrorHub.Report(ex, "EventChannel", context: $"Emit<{typeof(T).Name}>");
                         }
                     }
                 }

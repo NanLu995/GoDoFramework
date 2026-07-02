@@ -8,10 +8,10 @@ namespace GoDo;
 /// 远程上报器骨架：将错误异步发送到远程服务器（Sentry、自建后台等）。
 /// <para>
 /// 复制此文件、重命名类名，并在 <see cref="SendAsync"/> 中实现实际的网络请求，
-/// 然后调用 <c>GoDo.ErrorHandler.AddReporter(new MyServerReporter(url))</c> 注册。
+/// 然后调用 <c>GoDo.ErrorHub.AddReporter(new MyServerReporter(url))</c> 注册。
 /// </para>
 /// <para>
-/// ⚠️ 重要：<see cref="IErrorReporter.Report"/> 在 <c>ErrorHandler.Dispatch</c> 的调用栈上
+/// ⚠️ 重要：<see cref="IErrorReporter.Report"/> 在 <c>ErrorHub.Dispatch</c> 的调用栈上
 /// 同步执行。如果在这里直接 <c>.Wait()</c> 或 <c>.Result</c> 阻塞等待网络请求，
 /// 会让"上报一个错误"这个动作本身有阻塞主线程甚至死锁的风险
 /// （尤其是 Fatal 错误往往发生在游戏状态已经不稳定的时刻，
@@ -43,7 +43,7 @@ public sealed class RemoteReporterStub : IErrorReporter
         var context = report.Context;
         var time    = report.Timestamp;
 
-        // fire-and-forget：故意不 await，也不让异常向上传播到 ErrorHandler.Dispatch。
+        // fire-and-forget：故意不 await，也不让异常向上传播到 ErrorHub.Dispatch。
         _ = SendAsync(level, module, message, context, time);
     }
 
@@ -69,7 +69,7 @@ public sealed class RemoteReporterStub : IErrorReporter
         }
         catch (System.Exception ex)
         {
-            // 网络层失败绝不可以再抛回 ErrorHandler，否则可能死循环上报错误。
+            // 网络层失败绝不可以再抛回 ErrorHub，否则可能死循环上报错误。
             GD.PrintErr($"[RemoteReporterStub] 上报到 {_endpoint} 失败: {ex.Message}");
         }
     }

@@ -11,6 +11,8 @@ namespace GoDo;
 /// <para>
 /// 空闲节点保持在场景树外；<see cref="Acquire"/> 时加入调用方指定的父节点，
 /// <see cref="Release"/> 时从场景树移除。所有方法只能在创建本池的线程调用。
+/// 活动节点不得由外部直接 QueueFree，正常回收必须调用 <see cref="Release"/>；
+/// Pool 关闭时会强制释放仍然活动的节点。
 /// </para>
 /// </summary>
 /// <typeparam name="T">PackedScene 根节点的 C# 类型。</typeparam>
@@ -20,7 +22,6 @@ public sealed class NodePool<T> : IDisposable where T : Node
     private readonly Stack<T> _idleNodes;
     private readonly HashSet<T> _activeNodes = new(ReferenceEqualityComparer.Instance);
     private readonly int _idleCapacity;
-    private readonly int _ownerThreadId;
     private bool _disposed;
 
     /// <summary>当前位于空闲区、可直接复用的节点数量。</summary>
@@ -47,7 +48,6 @@ public sealed class NodePool<T> : IDisposable where T : Node
             throw new ArgumentException("初始数量不能大于空闲区容量。", nameof(initialSize));
 
         _idleCapacity = idleCapacity;
-        _ownerThreadId = System.Environment.CurrentManagedThreadId;
         _idleNodes = new Stack<T>(Math.Max(initialSize, 4));
 
         try
@@ -90,6 +90,7 @@ public sealed class NodePool<T> : IDisposable where T : Node
         }
         catch
         {
+            DetachFromParent(node);
             CacheOrFree(node);
             throw;
         }
@@ -139,7 +140,7 @@ public sealed class NodePool<T> : IDisposable where T : Node
 
         if (!_activeNodes.Remove(node))
         {
-            ErrorHandler.Warn(
+            ErrorHub.Warn(
                 "尝试释放不属于本池或已经释放的节点",
                 "Pool",
                 context: $"Release<{typeof(T).Name}>");
@@ -148,7 +149,7 @@ public sealed class NodePool<T> : IDisposable where T : Node
 
         if (!GodotObject.IsInstanceValid(node))
         {
-            ErrorHandler.Warn(
+            ErrorHub.Warn(
                 "活动节点已被外部释放，无法进入空闲区",
                 "Pool",
                 context: $"Release<{typeof(T).Name}>");
@@ -157,7 +158,7 @@ public sealed class NodePool<T> : IDisposable where T : Node
 
         if (node.IsQueuedForDeletion())
         {
-            ErrorHandler.Warn(
+            ErrorHub.Warn(
                 "活动节点已被外部 QueueFree，无法进入空闲区",
                 "Pool",
                 context: $"Release<{typeof(T).Name}>");
@@ -199,8 +200,8 @@ public sealed class NodePool<T> : IDisposable where T : Node
     }
 
     /// <summary>
-    /// 释放空闲区并关闭本池。调用前应先释放所有活动节点；
-    /// 仍在使用的节点不会被强制释放，但之后不能再释放回本池。
+    /// 释放空闲区并关闭本池。仍处于活动状态的节点会执行一次尽力清理，
+    /// 随后从场景树移除并释放。
     /// </summary>
     public void Dispose()
     {
@@ -212,13 +213,19 @@ public sealed class NodePool<T> : IDisposable where T : Node
 
         if (_activeNodes.Count > 0)
         {
-            ErrorHandler.Warn(
-                "对象池关闭时仍有活动节点",
+            ErrorHub.Warn(
+                "对象池关闭时仍有活动节点，将执行强制释放",
                 "Pool",
                 context: $"Dispose<{typeof(T).Name}> active={_activeNodes.Count}");
+
+            T[] activeNodes = new T[_activeNodes.Count];
+            _activeNodes.CopyTo(activeNodes);
+            _activeNodes.Clear();
+
+            for (int i = 0; i < activeNodes.Length; i++)
+                ForceFreeActiveNode(activeNodes[i]);
         }
 
-        _activeNodes.Clear();
         _disposed = true;
     }
 
@@ -262,6 +269,30 @@ public sealed class NodePool<T> : IDisposable where T : Node
             node.QueueFree();
     }
 
+    private static void ForceFreeActiveNode(T node)
+    {
+        if (!GodotObject.IsInstanceValid(node))
+            return;
+
+        if (!node.IsQueuedForDeletion() && node is IPoolable poolable)
+        {
+            try
+            {
+                poolable.OnRelease();
+            }
+            catch (Exception exception)
+            {
+                ErrorHub.Report(
+                    exception,
+                    "Pool",
+                    context: $"Dispose.OnRelease<{typeof(T).Name}>");
+            }
+        }
+
+        DetachFromParent(node);
+        FreeNode(node);
+    }
+
     private static void DetachFromParent(T node)
     {
         Node? parent = node.GetParent();
@@ -276,10 +307,6 @@ public sealed class NodePool<T> : IDisposable where T : Node
 
     private void VerifyThreadAccess()
     {
-        if (System.Environment.CurrentManagedThreadId != _ownerThreadId)
-        {
-            throw new InvalidOperationException(
-                $"NodePool<{typeof(T).Name}> 只能在创建它的 Godot 主线程调用。");
-        }
+        RuntimeThreadGuard.VerifyAccess();
     }
 }

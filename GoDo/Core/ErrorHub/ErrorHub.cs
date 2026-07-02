@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using Godot;
 
 #nullable enable
@@ -7,7 +9,7 @@ using Godot;
 namespace GoDo;
 
 /// <summary>
-/// GoDo 框架级统一错误捕获器。
+/// GoDo 框架级统一错误中心。
 /// <para>
 /// 框架内所有模块通过此类上报错误，不直接调用 <c>GD.PrintErr</c>。
 /// 外部可通过 <see cref="AddReporter"/> 挂载自定义上报逻辑（Sentry、自建服务器等）。
@@ -15,23 +17,29 @@ namespace GoDo;
 /// <example>
 /// <code>
 /// // 框架模块内部使用
-/// ErrorHandler.Report(ex, "EventChannel", context: "Dispatch");
-/// ErrorHandler.Warn("重复注册 handler", "EventChannel");
+/// ErrorHub.Report(ex, "EventChannel", context: "Dispatch");
+/// ErrorHub.Warn("重复注册 handler", "EventChannel");
 ///
 /// // 业务层挂载自定义上报器
-/// GoDo.ErrorHandler.AddReporter(new MyServerReporter("https://errors.mygame.com"));
+/// GoDo.ErrorHub.AddReporter(new MyServerReporter("https://errors.mygame.com"));
 ///
 /// // 监听所有错误事件
-/// GoDo.ErrorHandler.OnError += report => GD.Print(report);
+/// GoDo.ErrorHub.OnError += report => GD.Print(report);
 /// </code>
 /// </example>
 /// </summary>
-public static class ErrorHandler
+public static class ErrorHub
 {
+    private const int MaxPendingReports = 1024;
+    private const int MaxReportsPerFlush = 256;
+
     // ── 内部状态 ──────────────────────────────────────────────────────────────
 
     private static readonly List<IErrorReporter> _reporters = new(2);
     private static readonly object _reportersLock = new();
+    private static readonly ConcurrentQueue<ErrorReport> _pendingReports = new();
+    private static int _pendingReportCount;
+    private static int _droppedReportCount;
 
     // 错误处理链自身再次报错时必须走降级输出，不能递归进入 Reporter/OnError。
     [ThreadStatic]
@@ -115,7 +123,7 @@ public static class ErrorHandler
         if (exception == null) return;
         if (ErrorLevel.Error < MinLevel) return; // 提前过滤，避免无谓的 BuildReport 开销
 
-        Dispatch(BuildReport(
+        Submit(BuildReport(
             ErrorLevel.Error,
             module,
             exception.Message,
@@ -138,7 +146,7 @@ public static class ErrorHandler
     {
         if (level < MinLevel) return; // 提前过滤，避免无谓的 BuildReport 开销
 
-        Dispatch(BuildReport(level, module, message, context, exception: null));
+        Submit(BuildReport(level, module, message, context, exception: null));
     }
 
     /// <summary>
@@ -168,7 +176,7 @@ public static class ErrorHandler
     public static void Fatal(Exception exception, string module, string? context = null)
     {
         if (exception == null) return;
-        Dispatch(BuildReport(
+        Submit(BuildReport(
             ErrorLevel.Fatal,
             module,
             exception.Message,
@@ -177,6 +185,98 @@ public static class ErrorHandler
     }
 
     // ── 内部实现 ──────────────────────────────────────────────────────────────
+
+    /// <summary>在 Godot 主线程分发后台线程排队的报告。</summary>
+    internal static void FlushPending()
+    {
+        if (RuntimeThreadGuard.IsInitialized)
+            RuntimeThreadGuard.VerifyAccess();
+
+        int processedCount = 0;
+        while (processedCount < MaxReportsPerFlush &&
+               _pendingReports.TryDequeue(out ErrorReport report))
+        {
+            Interlocked.Decrement(ref _pendingReportCount);
+            Dispatch(in report);
+            processedCount++;
+        }
+
+        int droppedCount = Interlocked.Exchange(ref _droppedReportCount, 0);
+        if (droppedCount > 0)
+        {
+            ErrorReport droppedReport = BuildReport(
+                ErrorLevel.Warning,
+                "ErrorHub",
+                $"后台错误队列已满，丢弃 {droppedCount} 条报告。",
+                context: $"MaxPendingReports={MaxPendingReports}",
+                exception: null);
+            Dispatch(in droppedReport);
+        }
+    }
+
+    /// <summary>清理静态监听者和 Reporter，由 GoDoRuntime 退出时调用。</summary>
+    internal static void Shutdown()
+    {
+        if (RuntimeThreadGuard.IsInitialized)
+            RuntimeThreadGuard.VerifyAccess();
+
+        while (!_pendingReports.IsEmpty)
+            FlushPending();
+        OnError = null;
+
+        IErrorReporter[] reporters;
+        lock (_reportersLock)
+        {
+            reporters = _reporters.ToArray();
+            _reporters.Clear();
+        }
+
+        for (int i = 0; i < reporters.Length; i++)
+        {
+            if (reporters[i] is not IDisposable disposable)
+                continue;
+
+            try
+            {
+                disposable.Dispose();
+            }
+            catch (Exception exception)
+            {
+                Console.Error.WriteLine(
+                    $"[GoDo.ErrorHub] Reporter [{reporters[i].GetType().Name}] Dispose 失败: {exception}");
+            }
+        }
+
+        while (_pendingReports.TryDequeue(out _)) { }
+        Volatile.Write(ref _pendingReportCount, 0);
+        Volatile.Write(ref _droppedReportCount, 0);
+    }
+
+    private static void Submit(in ErrorReport report)
+    {
+        if (RuntimeThreadGuard.IsInitialized && !RuntimeThreadGuard.IsMainThread)
+        {
+            int pendingCount = Interlocked.Increment(ref _pendingReportCount);
+            if (pendingCount > MaxPendingReports)
+            {
+                Interlocked.Decrement(ref _pendingReportCount);
+                Interlocked.Increment(ref _droppedReportCount);
+
+                if (report.Level == ErrorLevel.Fatal)
+                    Console.Error.WriteLine($"[GoDo.ErrorHub] 队列已满，Fatal 报告未入队: {report}");
+                return;
+            }
+
+            _pendingReports.Enqueue(report);
+
+            // 进程终止阶段可能没有下一帧可供 FlushPending，至少保留同步降级输出。
+            if (report.Level == ErrorLevel.Fatal)
+                Console.Error.WriteLine($"[GoDo.ErrorHub] {report}");
+            return;
+        }
+
+        Dispatch(in report);
+    }
 
     private static ErrorReport BuildReport(
         ErrorLevel level,
@@ -265,7 +365,7 @@ public static class ErrorHandler
         }
         catch (Exception ex)
         {
-            // ErrorHandler 自身必须保证不把异常抛回业务流程。
+            // ErrorHub 自身必须保证不把异常抛回业务流程。
             FallbackLog($"错误分发器内部异常: {ex.Message}", in report);
         }
         finally
@@ -276,10 +376,16 @@ public static class ErrorHandler
 
     private static void FallbackLog(string reason, in ErrorReport originalReport)
     {
-        // 降级路径绝不再调用 ErrorHandler，避免形成递归。
+        // 降级路径绝不再调用 ErrorHub，避免形成递归。
+        if (RuntimeThreadGuard.IsInitialized && !RuntimeThreadGuard.IsMainThread)
+        {
+            Console.Error.WriteLine($"[GoDo.ErrorHub] {reason}; 原始报告: {originalReport}");
+            return;
+        }
+
         try
         {
-            GD.PrintErr($"[GoDo.ErrorHandler] {reason}; 原始报告: {originalReport}");
+            GD.PrintErr($"[GoDo.ErrorHub] {reason}; 原始报告: {originalReport}");
         }
         catch
         {
