@@ -21,9 +21,13 @@ public sealed partial class GoDoRuntime : Node
     private static GoDoRuntime? _instance;
     private bool _subscribed;
     private SceneService? _sceneService;
+    private AudioService? _audioService;
 
     [Export]
     public NodePath SceneServicePath { get; set; } = null!;
+
+    [Export]
+    public NodePath AudioServicePath { get; set; } = null!;
 
     public override void _EnterTree()
     {
@@ -54,7 +58,12 @@ public sealed partial class GoDoRuntime : Node
         if (!IsInstanceValid(_sceneService))
             throw new InvalidOperationException("GoDoRuntime 未配置 SceneService 子节点。");
 
+        _audioService = GetNodeOrNull<AudioService>(AudioServicePath);
+        if (!IsInstanceValid(_audioService) || !_audioService.IsInitialized)
+            throw new InvalidOperationException("GoDoRuntime 未配置或未能初始化 AudioService 子节点。");
+
         Services.Register<ISceneService>(_sceneService);
+        Services.Register<IAudioService>(_audioService);
 
         ErrorHub.Debug("GoDo 运行时初始化完成", "Runtime");
     }
@@ -77,12 +86,15 @@ public sealed partial class GoDoRuntime : Node
         {
             if (IsInstanceValid(_sceneService))
                 Services.Unregister<ISceneService>(_sceneService);
+            if (IsInstanceValid(_audioService))
+                Services.Unregister<IAudioService>(_audioService);
 
             Services.Clear();
             ResourceHub.Shutdown();
             ErrorHub.Shutdown();
             _instance = null;
             _sceneService = null;
+            _audioService = null;
             RuntimeThreadGuard.Reset();
         }
     }

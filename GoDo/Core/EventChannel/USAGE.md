@@ -1,32 +1,31 @@
-# GoDo.EventChannel 使用指南
+# EventChannel 使用指南
+
+## 定位与优势
+
+EventChannel 是 Godot 主线程内的类型安全一对多通知机制，适合发送“某件事已经发生”的消息。事件使用 `struct + IGameEvent`，支持优先级、一次性监听、派发期间安全增删、同类型重入、监听者异常隔离，以及 Node/纯 C# 对象两种生命周期管理。
+
+它不应替代所有方法调用：需要立即返回结果时直接调用接口；父子节点的局部通知优先考虑 Godot Signal；只有需要一对多广播或解耦观察者时使用 EventChannel。
 
 ## 快速上手
 
-### 1. 定义事件（在 GameEvents.cs 里统一添加）
+事件属于具体游戏，统一放在业务层 `GameEvents.cs`，不要放进 `GoDo.*`：
+
 ```csharp
-// 事件必须是 struct + IGameEvent
-public struct PlayerDiedEvent : IGameEvent
+public readonly struct PlayerDiedEvent : IGameEvent
 {
-    public int     PlayerId;
-    public Vector2 Position;
+    public int PlayerId { get; init; }
+    public Vector2 Position { get; init; }
 }
 ```
 
-### 2. 监听事件
+Node 中优先使用 `Bind`，节点退出树时自动解绑：
 
 ```csharp
-public partial class GameUI : Control
+public partial class GameHud : Control
 {
     public override void _Ready()
     {
-        // ✅ 推荐：Bind 自动跟随节点生命周期，无需手动 Off
-        GoDo.EventChannel.Bind<PlayerDiedEvent>(this, OnPlayerDied);
-
-        // 只触发一次（如教程引导）
-        GoDo.EventChannel.Once<EnemySpawnedEvent>(OnFirstEnemy);
-
-        // 带优先级（数字越小越先执行）
-        GoDo.EventChannel.Bind<GameOverEvent>(this, OnGameOver, priority: -10);
+        EventChannel.Bind<PlayerDiedEvent>(this, OnPlayerDied, priority: -10);
     }
 
     private void OnPlayerDied(PlayerDiedEvent evt)
@@ -34,88 +33,72 @@ public partial class GameUI : Control
         GD.Print($"Player {evt.PlayerId} died at {evt.Position}");
     }
 }
-```
 
-### 3. 发送事件
-
-```csharp
-public partial class Player : CharacterBody2D
+EventChannel.Emit(new PlayerDiedEvent
 {
-    private void Die()
-    {
-        GoDo.EventChannel.Emit(new PlayerDiedEvent
-        {
-            PlayerId = Id,
-            Position = GlobalPosition
-        });
-    }
-}
+    PlayerId = 1,
+    Position = Vector2.Zero,
+});
 ```
 
-## 调试（仅 Debug 模式可用）
+`Bind` 的 Node 必须已经进入场景树；未入树节点不会注册监听。
+
+## 纯 C# 对象与临时监听
+
+纯 C# 对象用 `EventScope` 批量管理，并在自身生命周期结束时 `Dispose`：
 
 ```csharp
-// 查看某事件有多少监听者
-int count = GoDo.EventChannel.GetListenerCount<PlayerDiedEvent>();
-
-// 打印所有事件注册情况
-GoDo.EventChannel.DumpRegistry();
-// 输出:
-// ── EventChannel Registry ──
-//   PlayerDiedEvent:  3 listener(s)
-//   GameOverEvent:    1 listener(s)
-// ───────────────────────────
-```
-
-## 注意事项
-
-| ✅ 应该 | ❌ 避免 |
-|---|---|
-| 用 `Bind` 代替 `On`（节点里） | 在节点里用 `On` 却忘记 `Off` |
-| 事件定义集中在 GameEvents.cs | 事件定义散落在各个文件 |
-| 事件用 `struct` | 事件用 `class`（产生 GC） |
-| 纯 C# 类里用 `On` + 手动 `Off` | 在纯 C# 类里用 `Bind` |
-
----
-
-## EventScope —— 纯 C# 类的批量管理
-
-Node 类用 `Bind`，纯 C# 类用 `EventScope`：
-
-```csharp
-public class NetworkManager
+public sealed class SessionObserver : IDisposable
 {
-    // 持有一个 Scope，统一管理所有监听
-    private readonly EventScope _scope = new();
+    private readonly EventScope _events = new();
 
-    public void Initialize()
+    public SessionObserver()
     {
-        // 链式注册，整洁
-        _scope
+        _events
             .On<PlayerDiedEvent>(OnPlayerDied)
-            .On<GameOverEvent>(OnGameOver)
-            .Once<GameStartedEvent>(OnFirstStart);
+            .Once<GameStartedEvent>(OnFirstGameStarted);
     }
 
-    // 销毁时一行清完，不用一个个 Off
-    public void Dispose() => _scope.Dispose();
+    public void Dispose() => _events.Dispose();
 
     private void OnPlayerDied(PlayerDiedEvent evt) { }
-    private void OnGameOver(GameOverEvent evt) { }
-    private void OnFirstStart(GameStartedEvent evt) { }
+    private void OnFirstGameStarted(GameStartedEvent evt) { }
 }
-
-// 也可以配合 using 语句，离开作用域自动清除
-using var scope = new EventScope();
-scope.On<PlayerDiedEvent>(handler);
-// ... scope 离开 using 块时自动 Dispose
 ```
 
-## 选哪个？
+直接使用 `On` 时必须保存具名方法并对称 `Off`；不要用无法解绑的匿名 lambda。
+`Once` 只保证事件成功派发后移除，不会自动跟随任意 Node；事件可能永远不发生时，应交给 `EventScope` 管理，或在所有者退出时手动 `Off`。
 
-| 场景 | 推荐方式 |
+## API 与派发语义
+
+| API | 用途 |
 |---|---|
-| 继承 Node 的脚本 | `EventChannel.Bind(this, handler)` |
-| 纯 C# 类（服务、管理器） | `EventScope` |
-| 只触发一次 | `EventChannel.Once` 或 `scope.Once` |
-| 临时监听一段逻辑 | `using var scope = new EventScope()` |
+| `On<T>(handler, priority)` | 持续监听，需手动解绑 |
+| `Once<T>(handler)` | 成功派发一次后自动移除；未触发前仍需管理生命周期 |
+| `Off<T>(handler)` | 移除指定监听 |
+| `Bind<T>(node, handler, priority)` | 跟随 Node 退出树自动解绑 |
+| `Emit<T>(evt)` | 同步派发事件 |
+| `EventScope` | 管理纯 C# 对象的多项订阅 |
+
+- `priority` 越小越先执行；相同优先级保持注册顺序。
+- 派发是同步的；`Emit` 返回时本轮监听已经执行完成。
+- 派发期间的注册和注销会延迟到最外层派发结束后提交。
+- 单个监听者抛出异常会交给 ErrorHub，不阻断后续监听者。
+- 相同委托不能重复注册；不要依赖重复注册制造多次回调。
+
+## 线程与性能
+
+- EventChannel 仅允许 Godot 主线程调用，不提供线程安全保证。
+- `struct` 事件避免事件对象的堆分配，但监听委托和首次容器扩容仍可能分配。
+- 不要用 EventChannel 传递超大结构体；必要时传递轻量标识或稳定引用。
+- Debug 可用 `GetListenerCount<T>()` 和 `DumpRegistry()`；Release 不应依赖这些诊断结果。
+
+## 常见误用
+
+| 应该 | 避免 |
+|---|---|
+| Node 使用 `Bind` | Node 使用 `On` 后忘记 `Off` |
+| 纯 C# 对象持有并释放 `EventScope` | 创建临时 Scope 后立即丢失引用 |
+| 事件表达已经发生的事实 | 用事件隐藏必须返回结果的请求 |
+| 使用具名回调 | 使用无法对称解绑的匿名 lambda |
+| 业务事件留在业务命名空间 | 把 Player、Enemy 等玩法概念放入 `GoDo.*` |
