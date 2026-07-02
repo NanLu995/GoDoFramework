@@ -14,6 +14,6 @@ public enum ErrorLevel
     /// <summary>运行时错误，当前操作失败但框架可恢复。</summary>
     Error = 2,
 
-    /// <summary>致命错误，框架无法继续正常运行。</summary>
+    /// <summary>最高严重等级；仅记录严重性，不主动终止游戏。</summary>
     Fatal = 3,
 }

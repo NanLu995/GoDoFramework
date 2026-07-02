@@ -12,9 +12,20 @@
 
 ## 开始工作前
 
-- 修改 `GoDo/` 下的框架代码前，必须先阅读 `ARCHITECTURE.md`；处理 Godot 已知陷阱时，同时参考 `GODOT_GOTCHAS.md`。
+- `FRAMEWORK_OVERVIEW.md` 记录框架愿景、历史痛点和早期设想，仅在讨论框架定位或重新规划时读取。
+- `FRAMEWORK_DESIGN_PLAN.md` 记录建设范围、优先级和阶段路线；新增模块或调整开发顺序前必须读取。
+- `ARCHITECTURE.md` 记录当前已经采用的架构事实与依赖规则；修改 `GoDo/` 下的框架代码前必须读取。
+- `GODOT_GOTCHAS.md` 记录项目实际遇到的 Godot/C# 坑位；处理相关问题时按需读取。
 - `AGENTS.md` 规定协作方式和通用代码规范，`ARCHITECTURE.md` 规定框架边界和模块依赖；两者都必须遵守。如有冲突或含义不清，先指出具体冲突并询问我。
+- 文档与代码状态冲突时，以代码和工程配置的实际状态为依据，同时指出需要同步的文档，不能静默沿用过期描述。
 - 搜索和分析项目文件时排除 `.godot/`、`bin/`、`obj/` 及自动生成的 `*.Generated.cs`，不要修改其中内容。
+
+## 框架入口
+
+- `GoDo/Core/GoDoRuntime.tscn` 是框架唯一 Autoload 入口，`GoDoRuntime.cs` 负责框架初始化与退出清理。
+- 不要在业务场景或测试场景中重复初始化框架；`TestScene.tscn` 仅用于测试。
+- 新增需要全局生命周期的框架服务时，先在设计计划中确认依赖和顺序，再接入 GoDoRuntime；GoDoRuntime 不承载具体游戏流程。
+- 不要自动修改其他项目的 Autoload 配置；未来由 EditorPlugin 提供显式的一键安装和卸载能力。
 
 ## 工作方式（重要）
 
@@ -124,10 +135,3 @@ Connect("health_changed", this, "OnHealthChanged");
 - 默认用简体中文回复说明性文字，代码注释也用中文（除非项目已有英文注释习惯，保持一致）。
 - 不要输出大段的"我理解了""好的我来帮你"这类开场白，直接进入实质内容。
 - 改动完成后的总结控制在3句话以内：改了什么、为什么、有什么需要我注意的。
-
-## 项目文档使用规则
-
-- `FRAMEWORK_OVERVIEW.md`：框架愿景和历史设想，仅在讨论定位或重新规划时读取。
-- `FRAMEWORK_DESIGN_PLAN.md`：整体建设路线；新增模块或调整优先级前必须读取。
-- `ARCHITECTURE.md`：当前架构事实；修改 `GoDo/` 下代码前必须读取。
-- 文档与代码状态冲突时，以代码事实为依据，并提醒更新对应文档。

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Godot;
 
+#nullable enable
+
 namespace GoDo;
 
 /// <summary>
@@ -30,6 +32,10 @@ public static class ErrorHandler
 
     private static readonly List<IErrorReporter> _reporters = new(2);
     private static readonly object _reportersLock = new();
+
+    // 错误处理链自身再次报错时必须走降级输出，不能递归进入 Reporter/OnError。
+    [ThreadStatic]
+    private static int _dispatchDepth;
 
     /// <summary>
     /// 每当有错误被上报时触发。
@@ -157,6 +163,7 @@ public static class ErrorHandler
 
     /// <summary>
     /// 上报一条带异常的 <see cref="ErrorLevel.Fatal"/> 消息。
+    /// Fatal 仅表示最高严重等级，不会主动终止游戏；是否退出由调用方决定。
     /// </summary>
     public static void Fatal(Exception exception, string module, string? context = null)
     {
@@ -203,41 +210,80 @@ public static class ErrorHandler
         // 等级过滤
         if (report.Level < MinLevel) return;
 
-        // 1. 内置 Godot 日志输出
-        GodotLog(in report);
+        if (_dispatchDepth > 0)
+        {
+            FallbackLog("检测到递归错误上报，已跳过监听者与 Reporter", in report);
+            return;
+        }
 
-        // 2. 触发事件（供业务层监听）
+        _dispatchDepth++;
         try
         {
-            OnError?.Invoke(report);
+            // 1. 内置 Godot 日志输出
+            GodotLog(in report);
+
+            // 2. 逐个触发监听者。多播委托直接 Invoke 时，一个监听者抛出异常
+            // 会阻止后续监听者，因此这里必须逐个隔离。
+            var onError = OnError;
+            if (onError != null)
+            {
+                Delegate[] listeners = onError.GetInvocationList();
+                for (int i = 0; i < listeners.Length; i++)
+                {
+                    try
+                    {
+                        ((Action<ErrorReport>)listeners[i]).Invoke(report);
+                    }
+                    catch (Exception ex)
+                    {
+                        FallbackLog($"OnError 监听者 [{listeners[i].Method.Name}] 内部异常: {ex.Message}", in report);
+                    }
+                }
+            }
+
+            // 3. 在锁内取快照，在锁外逐个调用 Reporter。
+            IErrorReporter[] reportersSnapshot;
+            lock (_reportersLock)
+            {
+                if (_reporters.Count == 0)
+                    return;
+
+                reportersSnapshot = _reporters.ToArray();
+            }
+
+            for (int i = 0; i < reportersSnapshot.Length; i++)
+            {
+                try
+                {
+                    reportersSnapshot[i].Report(in report);
+                }
+                catch (Exception ex)
+                {
+                    FallbackLog($"Reporter [{reportersSnapshot[i].GetType().Name}] 内部异常: {ex.Message}", in report);
+                }
+            }
         }
         catch (Exception ex)
         {
-            // 避免 OnError 回调崩溃淹没原始报告
-            GD.PrintErr($"[GoDo.ErrorHandler] OnError 回调内部异常: {ex.Message}");
+            // ErrorHandler 自身必须保证不把异常抛回业务流程。
+            FallbackLog($"错误分发器内部异常: {ex.Message}", in report);
         }
-
-        // 3. 分发给所有自定义上报器
-        //    先在锁内取快照，避免遍历期间其他线程 Add/Remove 导致异常，
-        //    也避免上报器执行耗时逻辑（如网络 IO）时长期占用锁。
-        IErrorReporter[] reportersSnapshot;
-        lock (_reportersLock)
+        finally
         {
-            if (_reporters.Count == 0) return;
-            reportersSnapshot = _reporters.ToArray();
+            _dispatchDepth--;
         }
+    }
 
-        for (int i = 0; i < reportersSnapshot.Length; i++)
+    private static void FallbackLog(string reason, in ErrorReport originalReport)
+    {
+        // 降级路径绝不再调用 ErrorHandler，避免形成递归。
+        try
         {
-            try
-            {
-                reportersSnapshot[i].Report(in report);
-            }
-            catch (Exception ex)
-            {
-                // 上报器自身崩溃不影响其他上报器
-                GD.PrintErr($"[GoDo.ErrorHandler] 上报器 [{reportersSnapshot[i].GetType().Name}] 内部异常: {ex.Message}");
-            }
+            GD.PrintErr($"[GoDo.ErrorHandler] {reason}; 原始报告: {originalReport}");
+        }
+        catch
+        {
+            // 错误系统的最后防线：即使 Godot 日志接口不可用，也不能继续抛出。
         }
     }
 
@@ -272,8 +318,8 @@ public static class ErrorHandler
         // 且没有额外的状态需要维护。
 
         string head = string.IsNullOrEmpty(report.Context)
-            ? $"[GoDo.{report.Module}] [{LevelLabel(report.Level)}] {report.Message}"
-            : $"[GoDo.{report.Module}] [{LevelLabel(report.Level)}] ({report.Context}) {report.Message}";
+            ? $"[{report.Module}] [{LevelLabel(report.Level)}] {report.Message}"
+            : $"[{report.Module}] [{LevelLabel(report.Level)}] ({report.Context}) {report.Message}";
 
 #if GODOT_DEBUG
         // Debug 下才拼接异常类型与调用栈，这部分本身就比 head 大得多，

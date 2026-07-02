@@ -84,7 +84,7 @@ GoDo Runtime Services（可选、彼此独立）
                     │
                     ▼
 GoDo Core（最小稳定核心）
-  ErrorHandler / EventChannel / Service Registry / Bootstrap
+  ErrorHandler / EventChannel / Service Registry / GoDoRuntime
                     │
                     ▼
 Godot 4.7 C# / .NET
@@ -130,13 +130,15 @@ Godot 4.7 C# / .NET
 后续重点：
 
 - 验证递归上报、Reporter 异常、并发增删和退出阶段行为。
-- 明确 `Fatal` 是“严重级别”还是会终止流程；名称与行为必须一致。
+- `Fatal` 已明确为最高严重等级，不主动终止流程；是否退出由调用方决定。
 - 远程 Reporter 只保留接口和示例，不在核心中绑定具体平台或第三方服务。
 - 区分普通日志与错误报告；在真实需求出现前，不急于拆出庞大的 Log 子系统。
 
 #### Service Registry
 
 用途：向业务层暴露少量长期服务接口，并在测试中替换实现。
+
+状态：暂缓开发。等 Scene、Audio 等首个需要业务层全局访问的服务出现后，再根据真实用法设计，避免先建立没有消费者的全局容器。
 
 设计限制：
 
@@ -145,11 +147,11 @@ Godot 4.7 C# / .NET
 - 必须提供重复注册、缺失注册、替换和清理的确定语义。
 - 框架内部不使用它掩盖模块依赖。
 
-#### Bootstrap
+#### GoDoRuntime
 
 用途：管理框架启动、服务注册和退出清理的确定顺序。
 
-建议由现有 `GoDoAutoload` 演进，但保持职责很薄：
+当前由 Autoload 场景 `GoDoRuntime.tscn` 和脚本 `GoDoRuntime.cs` 提供，并保持职责很薄：
 
 - 初始化 Core。
 - 注册启用的可选服务。
@@ -160,7 +162,9 @@ Godot 4.7 C# / .NET
 
 #### Pool（优先）
 
-首版只支持 Godot Node/PackedScene 池：预热、容量、取出、归还和 `IPoolable` 回调。不要自动猜测需要重置的字段，重置责任由池化对象明确实现。
+状态：首版基础实现已完成，位于 `GoDo/Runtime/Pool/`。
+
+首版只支持 Godot Node/PackedScene 池：`NodePool<T>` 提供初始容量、空闲区容量、`Acquire/Release` 和 `IPoolable.OnAcquire/OnRelease` 回调。不要自动猜测需要重置的字段，重置责任由池化对象明确实现。
 
 首版暂不支持纯 C# 对象池、多线程池、自动扫描和复杂淘汰策略。只有性能测量证明需要时再扩展。
 
@@ -245,8 +249,8 @@ Godot 4.7 C# / .NET
 
 - 为 EventChannel 补齐关键派发、Once、生命周期和异常隔离测试。
 - 为 ErrorHandler 补齐 Reporter、等级过滤和异常路径测试。
-- 确定并实现轻量 Service Registry。
-- 收敛 GoDoAutoload/Bootstrap 的初始化与释放职责。
+- Service Registry 延后到首个真实全局服务出现时设计。
+- 继续保持 GoDoRuntime 初始化与释放职责的边界，不承载游戏流程。
 
 验收标准：Core 可独立使用；无具体玩法类型；公共 API、失败语义和生命周期均有文档与验证。
 
@@ -256,7 +260,7 @@ Godot 4.7 C# / .NET
 
 建议顺序：
 
-1. Pool：边界清楚，容易用压力场景验证价值。
+1. Pool：首版基础实现已完成，下一步需要最小场景验证和压力测试。
 2. Scene：先完成可靠加载和错误处理，再做过渡效果。
 3. Audio：复用 Audio Bus，并以 SFX 池验证跨场景服务。
 
@@ -315,21 +319,20 @@ Godot 4.7 C# / .NET
 
 ### 已有基础
 
-- EventChannel 已实现主要功能，可进入边界清理与测试阶段。
-- ErrorHandler、Reporter 接口和 GoDoAutoload 已存在，应视为“已实现、待稳定”，不再列为下一个从零开发的模块。
+- EventChannel 已完成边界清理与重入稳定化，可进入测试阶段。
+- ErrorHandler、Reporter 接口和 GoDoRuntime 已存在；递归保护、监听者隔离与入口注册已完成，正式远程 Reporter 待后续实现。
+- `NodePool<T>` 与 `IPoolable` 首版已实现，当前为实例级独立模块，不依赖 Service Registry。
 - 已形成框架不感知具体玩法、Core 横向依赖受限的正确方向。
 
 ### 当前不一致
 
-- `ARCHITECTURE.md` 仍把 ErrorHandler 标记为下一步，与代码现状不一致。
-- `GameEvents.cs` 位于 `GoDo.Events`，并定义玩家和敌人事件，违反框架边界。
 - Overview 提出“框架模块通过 ServiceLocator 互访”，而 Architecture 已改成仅供业务层使用；以后者为准。
 - Overview 和 Architecture 都把 Tick 排得过早，目前没有证据证明需要集中接管所有更新。
 - “泛型场景切换即可消灭路径”仍缺少可靠的类型到资源映射设计。
 
 ### 推荐的下一个具体任务
 
-先完成阶段 0，而不是立即增加新模块：更新架构状态、清理业务事件边界、建立 Core 的验证基线。完成后再设计 Service Registry 的最小 API。
+Pool 最小验证场景已覆盖初始化、复用、重复释放、空闲区容量和 `IPoolable` 生命周期；完成压力与异常路径测试后再进入 Scene 模块设计。
 
 ---
 

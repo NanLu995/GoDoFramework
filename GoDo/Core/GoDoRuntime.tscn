@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://2y8nge3y4gp0" path="res://GoDo/Core/GoDoRuntime.cs" id="1_runtime"]
+
+[node name="GoDoRuntime" type="Node"]
+process_mode = 3
+script = ExtResource("1_runtime")

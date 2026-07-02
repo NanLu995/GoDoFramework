@@ -5,14 +5,14 @@ using System;
 namespace GoDo;
 
 /// <summary>
-/// 一条错误报告的完整数据快照。使用 struct 保持零堆分配。
+/// 一条错误报告的只读数据快照。使用 struct 避免为报告容器额外分配对象。
 /// </summary>
 public readonly struct ErrorReport
 {
     /// <summary>错误等级。</summary>
     public ErrorLevel Level { get; init; }
 
-    /// <summary>产生错误的框架模块名称，如 "EventChannel"、"ServiceLocator"。</summary>
+    /// <summary>错误来源，如框架的 "EventChannel" 或业务层的 "Game.Save"。</summary>
     public string Module { get; init; }
 
     /// <summary>人类可读的错误描述。</summary>
@@ -32,8 +32,8 @@ public readonly struct ErrorReport
 
     /// <summary>
     /// 调用栈字符串。
-    /// Debug 模式下来自 <see cref="Exception.StackTrace"/> 或手动捕获；
-    /// Release 下为 null 以避免开销。
+    /// 有异常时来自 <see cref="Exception.StackTrace"/>；Debug 模式下，无异常的 Fatal
+    /// 报告也会主动捕获当前调用栈。
     /// </summary>
     public string? StackTrace { get; init; }
 
@@ -43,6 +43,6 @@ public readonly struct ErrorReport
     public override string ToString()
     {
         var ctx = string.IsNullOrEmpty(Context) ? string.Empty : $" | ctx={Context}";
-        return $"[GoDo.{Module}] [{Level}]{ctx} {Message}";
+        return $"[{Module}] [{Level}]{ctx} {Message}";
     }
 }

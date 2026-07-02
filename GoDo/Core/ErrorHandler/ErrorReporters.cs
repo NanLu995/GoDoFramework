@@ -1,5 +1,7 @@
 using Godot;
 
+#nullable enable
+
 namespace GoDo;
 
 /// <summary>
