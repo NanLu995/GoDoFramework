@@ -275,26 +275,64 @@ pool.Release(bullet);
 
 #### Audio —— 音频管理
 
-**职责**
-- 统一音效/背景音乐的播放、暂停、停止
-- 音量分组管理（Master / BGM / SFX）
-- 音效池化，支持同时播放多个同类音效
+**状态：首版稳定基线完成。**
 
-**计划 API**
+**职责**
+- 通过 ResourceHub 异步加载 AudioStream
+- 单路 BGM 播放、暂停、恢复、停止和重复请求控制
+- Master / BGM / SFX 线性音量管理，缺失 Bus 时运行时补齐
+- 通过 NodePool 复用非空间 SFX Voice，自然结束自动回收
+- 默认最大 32 路 SFX，容量满返回 false，不抢占已有声音
+- 由 GoDoRuntime 持有并以 `IAudioService` 注册到 Services
+
+**当前 API**
 ```csharp
-GoDo.Audio.PlayBgm("main_theme");
-GoDo.Audio.PlaySfx("explosion");
-GoDo.Audio.SetVolume(AudioGroup.SFX, 0.8f);
+IAudioService audio = Services.Get<IAudioService>();
+await audio.PlayBgmAsync(bgmKey);
+bool played = await audio.PlaySfxAsync(sfxKey);
+audio.SetVolume(AudioGroup.Sfx, 0.8f);
 ```
+
+加载失败抛出 `AudioPlaybackException`，主动 Stop 或服务退出使未完成请求收到 `OperationCanceledException`。首版不包含淡入淡出、播放列表、跨 BGM 混音和空间音频。
+
+已通过 Bus、失败语义、BGM 并发与取消、SFX 自然回收、32 路上限、StopAll、100 次压力循环和服务离树清理验证。
 
 ---
 
 ### 优先级 3（开发效率）
 
 #### Save —— 存档系统
-- 统一存档格式（JSON / 二进制可选）
-- 支持多存档槽
-- 自动序列化 C# 对象
+
+**状态：首版稳定基线完成。**
+
+**职责**
+- 使用安全 `SaveSlot` 管理 `user://saves` 下的多槽位文件
+- 统一二进制容器：魔数、容器版本、业务版本、UTC 时间、Payload 长度和 SHA-256
+- 临时文件完整校验后提交，保留一份健康备份；损坏正式档不会覆盖健康备份
+- 正式档失败时尝试备份，并通过 `SaveLoadStatus` 明确来源
+- 业务层通过 `ISaveCodec<T>` 负责具体数据编码、解码与版本迁移
+- 由 GoDoRuntime 创建并以 `ISaveService` 注册到 Services
+
+**当前 API**
+```csharp
+ISaveService saves = Services.Get<ISaveService>();
+saves.Save(slot, gameSave, dataVersion: 3, codec);
+SaveLoadResult<GameSave> result = saves.Load(slot, codec);
+```
+
+首版为同步主线程 API，Payload 上限 64 MiB；不包含自动 JSON、压缩、加密、云存档、自动存档调度或槽位 UI。Debug 与 Release 使用相同权威格式。
+
+已通过真实数据、版本、NotFound、备份恢复、健康备份保护、双重损坏、Codec 异常、删除和 100 次保存/读取验证。
+
+#### Settings —— 用户设置
+
+**状态：Windows 首版稳定基线完成；移动端真机验证后置。**
+
+设置修改立即应用，调用 `Save()` 才通过 SaveService 的独立固定槽位写盘。SettingsService 通过显式构造依赖使用 AudioService、SaveService 和平台适配器，不在框架内部通过 Services 横向查找。
+
+首版管理 Master / BGM / SFX 音量、Locale、窗口模式、分辨率和 VSync；不包含键位映射、画质预设、云同步或平台账户设置。不支持的平台能力返回 `Unsupported`。
+
+已通过默认值、非法参数、能力降级、真实 SaveService 持久化、Windows 显示/Locale/音量实际应用和 100 次修改/保存/加载循环验证；本次 Debug 结果为 0 ms、当前线程累计分配 104840 bytes。
 
 #### UI —— UI 管理
 - UI 层级管理（弹窗、HUD、Loading 分层）
@@ -302,8 +340,16 @@ GoDo.Audio.SetVolume(AudioGroup.SFX, 0.8f);
 - 简单的数据绑定（MVVM 轻量版）
 
 #### Config —— 配置表系统
-- CSV / JSON 转强类型 C# 对象
-- 编辑器工具：一键导入配置
+
+**状态：首版稳定基线完成。**
+
+- 具体游戏定义继承 Godot `Resource` 并实现 `IConfigResource` 的强类型配置资产
+- ConfigHub 通过 ResourceHub 同步加载，并把内容校验失败包装为 `ConfigValidationException`
+- ConfigTable 在构建时拒绝空项、空键和重复键，提供 `Get` / `TryGet` 只读查询
+- 不接入 GoDoRuntime 或 Services，不建立第二套资源缓存
+- CSV/JSON、目录扫描、热重载、代码生成和编辑器导入器不属于首版
+
+已在 Godot 运行时通过有效/无效 Resource、缺失资源、正常/缺失键查询和重复键验证。
 
 ---
 
@@ -326,7 +372,6 @@ GoDo.Audio.SetVolume(AudioGroup.SFX, 0.8f);
 - TimerMgr —— 时间管理
 - InputMgr —— 输入映射
 - i18n —— 本地化系统(多语言)
-- SettingMgr —— 配置系统(游戏设置存档跟存档系统是分开的)
 
 ---
 
@@ -360,8 +405,8 @@ GoDo/
 │   │   ├── NodePool.cs
 │   │   └── IPoolable.cs
 │   ├── Scene/               ← 首版稳定基线完成
-│   ├── Audio/
-│   ├── Save/
+│   ├── Audio/               ← 首版稳定基线完成
+│   ├── Save/                ← 首版稳定基线完成
 │   └── UI/
 │
 ├── Tools/

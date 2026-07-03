@@ -22,6 +22,8 @@ public sealed partial class GoDoRuntime : Node
     private bool _subscribed;
     private SceneService? _sceneService;
     private AudioService? _audioService;
+    private SaveService? _saveService;
+    private SettingsService? _settingsService;
 
     [Export]
     public NodePath SceneServicePath { get; set; } = null!;
@@ -64,6 +66,10 @@ public sealed partial class GoDoRuntime : Node
 
         Services.Register<ISceneService>(_sceneService);
         Services.Register<IAudioService>(_audioService);
+        _saveService = new SaveService();
+        Services.Register<ISaveService>(_saveService);
+        _settingsService = new SettingsService(_audioService, _saveService);
+        Services.Register<ISettingsService>(_settingsService);
 
         ErrorHub.Debug("GoDo 运行时初始化完成", "Runtime");
     }
@@ -84,10 +90,14 @@ public sealed partial class GoDoRuntime : Node
 
         if (_instance == this)
         {
-            if (IsInstanceValid(_sceneService))
-                Services.Unregister<ISceneService>(_sceneService);
+            if (_settingsService != null)
+                Services.Unregister<ISettingsService>(_settingsService);
+            if (_saveService != null)
+                Services.Unregister<ISaveService>(_saveService);
             if (IsInstanceValid(_audioService))
                 Services.Unregister<IAudioService>(_audioService);
+            if (IsInstanceValid(_sceneService))
+                Services.Unregister<ISceneService>(_sceneService);
 
             Services.Clear();
             ResourceHub.Shutdown();
@@ -95,6 +105,8 @@ public sealed partial class GoDoRuntime : Node
             _instance = null;
             _sceneService = null;
             _audioService = null;
+            _saveService = null;
+            _settingsService = null;
             RuntimeThreadGuard.Reset();
         }
     }

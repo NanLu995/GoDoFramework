@@ -58,10 +58,11 @@ internal sealed class SfxPoolController : IDisposable
             ResourceLoadOperation<AudioStream> operation = ResourceHub.LoadAsync<AudioStream>(key);
             AudioStream stream = await operation.Completion;
             RuntimeThreadGuard.VerifyAccess();
-            ThrowIfDisposed();
 
             if (requestVersion != _requestVersion)
                 throw new OperationCanceledException("音效加载完成前已停止全部音效。");
+
+            ThrowIfDisposed();
 
             if (_activeVoices.Count >= _maxVoices)
                 return false;
