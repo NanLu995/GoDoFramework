@@ -2,7 +2,7 @@
 
 ## 定位与优势
 
-Services 是面向业务层的最小长期服务注册表。它让业务代码依赖 `ISceneService`、未来的 `IAudioService` 等接口，而不是硬编码 Autoload 节点路径或持有具体实现。
+Services 是面向业务层的最小长期服务注册表。它让业务代码依赖 `ISceneService`、`IAudioService` 等接口，而不是硬编码 Autoload 节点路径或持有具体实现。
 
 它不是依赖注入容器：不自动构造对象、不解析依赖、不管理任意对象生命周期，也不允许 Core 模块借它横向查找彼此。
 

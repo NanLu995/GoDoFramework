@@ -189,8 +189,8 @@ public static class ErrorHub
     /// <summary>在 Godot 主线程分发后台线程排队的报告。</summary>
     internal static void FlushPending()
     {
-        if (RuntimeThreadGuard.IsInitialized)
-            RuntimeThreadGuard.VerifyAccess();
+        if (MainThreadGuard.IsInitialized)
+            MainThreadGuard.VerifyAccess();
 
         int processedCount = 0;
         while (processedCount < MaxReportsPerFlush &&
@@ -217,8 +217,8 @@ public static class ErrorHub
     /// <summary>清理静态监听者和 Reporter，由 GoDoRuntime 退出时调用。</summary>
     internal static void Shutdown()
     {
-        if (RuntimeThreadGuard.IsInitialized)
-            RuntimeThreadGuard.VerifyAccess();
+        if (MainThreadGuard.IsInitialized)
+            MainThreadGuard.VerifyAccess();
 
         while (!_pendingReports.IsEmpty)
             FlushPending();
@@ -254,7 +254,7 @@ public static class ErrorHub
 
     private static void Submit(in ErrorReport report)
     {
-        if (RuntimeThreadGuard.IsInitialized && !RuntimeThreadGuard.IsMainThread)
+        if (MainThreadGuard.IsInitialized && !MainThreadGuard.IsMainThread)
         {
             int pendingCount = Interlocked.Increment(ref _pendingReportCount);
             if (pendingCount > MaxPendingReports)
@@ -377,7 +377,7 @@ public static class ErrorHub
     private static void FallbackLog(string reason, in ErrorReport originalReport)
     {
         // 降级路径绝不再调用 ErrorHub，避免形成递归。
-        if (RuntimeThreadGuard.IsInitialized && !RuntimeThreadGuard.IsMainThread)
+        if (MainThreadGuard.IsInitialized && !MainThreadGuard.IsMainThread)
         {
             Console.Error.WriteLine($"[GoDo.ErrorHub] {reason}; 原始报告: {originalReport}");
             return;

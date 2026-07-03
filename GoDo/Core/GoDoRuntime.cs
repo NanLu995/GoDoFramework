@@ -44,7 +44,7 @@ public sealed partial class GoDoRuntime : Node
         }
 
         _instance = this;
-        RuntimeThreadGuard.Initialize();
+        MainThreadGuard.Initialize();
         ResourceHub.Initialize();
     }
 
@@ -107,7 +107,7 @@ public sealed partial class GoDoRuntime : Node
             _audioService = null;
             _saveService = null;
             _settingsService = null;
-            RuntimeThreadGuard.Reset();
+            MainThreadGuard.Reset();
         }
     }
 

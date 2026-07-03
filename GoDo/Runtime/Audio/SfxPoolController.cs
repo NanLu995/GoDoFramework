@@ -44,7 +44,7 @@ internal sealed class SfxPoolController : IDisposable
 
     public async Task<bool> PlayAsync(ResourceKey key)
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         ThrowIfDisposed();
 
         if (_activeVoices.Count + _pendingLoads >= _maxVoices)
@@ -57,7 +57,7 @@ internal sealed class SfxPoolController : IDisposable
         {
             ResourceLoadOperation<AudioStream> operation = ResourceHub.LoadAsync<AudioStream>(key);
             AudioStream stream = await operation.Completion;
-            RuntimeThreadGuard.VerifyAccess();
+            MainThreadGuard.VerifyAccess();
 
             if (requestVersion != _requestVersion)
                 throw new OperationCanceledException("音效加载完成前已停止全部音效。");
@@ -101,7 +101,7 @@ internal sealed class SfxPoolController : IDisposable
 
     public void StopAll()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         ThrowIfDisposed();
         _requestVersion++;
 
@@ -126,7 +126,7 @@ internal sealed class SfxPoolController : IDisposable
 
     private void OnPlaybackFinished(SfxVoice voice)
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         if (!_disposed)
             ReleaseVoice(voice);
     }

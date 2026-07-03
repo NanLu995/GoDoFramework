@@ -313,21 +313,24 @@ public void LoadGame()
 GoDo/
 ├── Core/                        核心层（其他模块依赖）
 │   ├── ErrorHub/            错误捕获、格式化、上报
-│   ├── EventChannel/            事件总线，解耦通信    ✅ 已完成
-│   └── ServiceLocator/          全局服务注册与获取
+│   ├── EventChannel/            事件总线，解耦通信
+│   ├── ServiceLocator/          全局服务注册与获取
+│   └── ...
 │
 ├── Gameplay/                    游戏功能层
 │   ├── Scene/                   场景管理，类型安全切换
 │   ├── Pool/                    对象池，节点复用
 │   ├── Audio/                   音频统一管理
 │   ├── Save/                    存档系统
-│   └── UI/                      UI 层级与栈管理
+│   ├── UI/                      UI 层级与栈管理
+│   └── ...
 │
 └── Tools/                       工具层
     ├── Log/                     日志系统
     ├── Tick/                    统一帧更新管理
     ├── Config/                  配置表读取
-    └── Extensions/              扩展方法集
+    ├── Extensions/              扩展方法集
+    └── ...
 ```
 
 ---
@@ -671,33 +674,6 @@ await signal.ToTask();                  // Signal 转 Task
 await GoDo.Async.Delay(1.5f);          // 等待 1.5 秒
 await GoDo.Async.NextFrame();           // 等待下一帧
 await GoDo.Async.NextPhysicsFrame();    // 等待下一物理帧
-```
-
----
-
-## 开发顺序
-
-```
-阶段一（核心基础）
-  ✅ EventChannel     事件系统        已完成
-  🔴 ErrorHub     错误捕获器      下一个
-  🔴 ServiceLocator   服务定位器
-
-阶段二（游戏功能）
-  🟡 Pool             对象池
-  🟡 Scene            场景管理
-  🟡 Audio            音频管理
-
-阶段三（开发效率）
-  🟢 Save             存档系统
-  🟢 UI               界面管理
-  🟢 Tick             帧更新管理
-  🟢 Config           配置表
-
-阶段四（工具完善）
-  🔵 Log              日志系统
-  🔵 Extensions       扩展方法集
-  🔵 Async            异步封装
 ```
 
 ---

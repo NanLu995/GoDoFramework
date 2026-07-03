@@ -1,143 +1,95 @@
 # AGENTS.md — Godot C# 项目协作规则
 
-> 这份文件给AI（Codex / 本地模型）看，不是给人看的README。
-> 每次AI开始工作前会先读这份文件。改完这份文件要重启Codex会话才会生效。
+> 本文件供 AI 使用。修改后需重启 Codex 会话才会作为启动规则生效。
 
-## 项目基本信息
+## 项目与文档路由
 
-- 引擎：Godot 4.7，使用 C# / .NET 8（不是 GDScript；Android 构建目标为 .NET 9）
-- 项目名称：GoDoFramework；框架根命名空间：`GoDo`
-- 目标平台：待确定，不要自行假设平台特性
-- 当前是单人开发，没有团队协作流程，但希望AI按专业标准做事
-
-## 开始工作前
-
-- `FRAMEWORK_OVERVIEW.md` 记录框架愿景、历史痛点和早期设想，仅在讨论框架定位或重新规划时读取。
-- `FRAMEWORK_DESIGN_PLAN.md` 记录建设范围、优先级和阶段路线；新增模块或调整开发顺序前必须读取。
-- `ARCHITECTURE.md` 记录当前已经采用的架构事实与依赖规则；修改 `GoDo/` 下的框架代码前必须读取。
-- `GODOT_GOTCHAS.md` 记录项目实际遇到的 Godot/C# 坑位；处理相关问题时按需读取。
-- `AGENTS.md` 规定协作方式和通用代码规范，`ARCHITECTURE.md` 规定框架边界和模块依赖；两者都必须遵守。如有冲突或含义不清，先指出具体冲突并询问我。
-- 文档与代码状态冲突时，以代码和工程配置的实际状态为依据，同时指出需要同步的文档，不能静默沿用过期描述。
-- 搜索和分析项目文件时排除 `.godot/`、`bin/`、`obj/` 及自动生成的 `*.Generated.cs`，不要修改其中内容。
+- 引擎：Godot 4.7，C# / .NET 8；Android 构建目标为 .NET 9。框架根命名空间：`GoDo`。
+- 目标平台待定，不自行假设平台特性。
+- `FRAMEWORK_OVERVIEW.md`：历史愿景与痛点，仅讨论框架定位或重新规划时读取。
+- `FRAMEWORK_DESIGN_PLAN.md`：目标、状态与路线；新增模块或调整顺序前读取。
+- `ARCHITECTURE.md`：当前架构事实与依赖；修改 `GoDo/` 前读取。
+- 模块 `USAGE.md`：API、失败语义、生命周期、性能和验证细节；处理对应模块时读取。
+- `GODOT_GOTCHAS.md`：项目实际遇到的 Godot/C# 坑位，按需读取。
+- 文档与代码冲突时，以源码和工程配置为准，同时指出并修正文档，不静默沿用旧描述。
+- 常规搜索排除 `.godot/`、`bin/`、`obj/`、`*.Generated.cs` 和离线文档目录，不修改生成内容。
 
 ## 框架入口
 
-- `GoDo/Core/GoDoRuntime.tscn` 是框架唯一 Autoload 入口，`GoDoRuntime.cs` 负责框架初始化与退出清理。
-- 不要在业务场景或测试场景中重复初始化框架；`TestScene.tscn` 仅用于测试。
-- 新增需要全局生命周期的框架服务时，先在设计计划中确认依赖和顺序，再接入 GoDoRuntime；GoDoRuntime 不承载具体游戏流程。
-- 不要自动修改其他项目的 Autoload 配置；未来由 EditorPlugin 提供显式的一键安装和卸载能力。
+- `GoDo/Core/GoDoRuntime.tscn` 是唯一 Autoload 入口；`GoDoRuntime.cs` 只负责框架初始化、服务注册与退出清理，不承载游戏流程。
+- 业务场景和测试场景不得重复初始化框架；`TestScene.tscn` 仅用于验证。
+- 新增长期服务前，先在设计计划确认依赖和顺序，再接入 GoDoRuntime。
+- 不自动修改其他项目的 Autoload；未来由 EditorPlugin 提供显式安装能力。
 
-## 工作方式（重要）
+## 工作方式
 
-- **每次只做一件具体的事**。如果我的需求里包含多个改动，先列出你打算做的步骤，等我确认再动手。
-- **改动前先说明思路**，不要直接大段重写整个文件。优先用最小改动达成目标。
-- **不确定 Godot API 的具体用法时，明确说“我不确定这个 API 的细节”**，不要凭记忆编造方法名、参数顺序或信号名。依次检查项目现有实现、Godot 官方文档和编译器反馈；仍无法确认时再询问我。
-- 涉及节点树结构、场景文件（.tscn）改动时，先告诉我你的改动会如何影响场景树，再执行。
-- 完成代码修改后，**用一句话总结你改了什么、为什么这么改**，不要写长篇大论。
+- 每次只做一件具体的事。需求包含多个改动时，先列步骤，等我确认再修改。
+- 改动前先说明思路和影响，优先最小改动，不大段重写无关代码。
+- 涉及 `.tscn` 或节点树时，修改前说明场景树变化。
+- 不确定 Godot API 时明确说明；依次检查项目实现、离线 4.7 文档、官方在线文档和编译器反馈，不凭记忆编造名称或签名。
+- 工作区可能已有我的修改；必须保留并避开无关改动，无法避开时先说明。
 
-## 代码规范
+## C# 与 Godot 规则
 
-- 命名：类名/方法名用 PascalCase，私有字段用 _camelCase，常量用 PascalCase。
-- 节点引用统一通过 `[Export]` 字段暴露，不要在代码里写死 `GetNode("路径/写死")`。
-- 避免在 `_Process` / `_PhysicsProcess` 里做高开销操作（比如频繁 GetNode、字符串拼接、LINQ查询），有疑问就提出来问我，不要默认这样写。
-- 异步操作优先用 Godot 的信号/协程方式（`await ToSignal(...)`），不要随意引入 `Task.Run` 除非我明确要求。
+- 类/方法 PascalCase，私有字段 `_camelCase`，常量 PascalCase；public API 提供 XML 注释。
+- 节点引用优先使用 `[Export]`；必须查找时用 `GetNodeOrNull<T>()` 并处理缺失，不硬编码脆弱路径。
+- 异步优先 Godot 信号/协程（`await ToSignal(...)`）；未明确要求时不使用 `Task.Run` 操作 Godot 对象。
+- `QueueFree()` 后不要继续访问节点；不确定释放时序时先询问。
 
-### 信号（Signal）写法 —— 必须严格遵守，这是最容易出错的地方
+### Godot 4.x Signal
 
-本项目是 **Godot 4.x**，信号系统和 Godot 3.x 完全不同。绝对不要用 Godot 3.x 的字符串写法。
+- 优先使用 C# 事件风格：`source.HealthChanged += OnHealthChanged`，触发用 `EmitSignal(SignalName.HealthChanged, value)`。
+- 需要 Callable 时使用 `Connect(SignalName.X, Callable.From(...))`；禁止 Godot 3 的 `Connect("signal", this, "Method")`。
+- 生命周期不同或信号源更长寿时，在 `_EnterTree()` / `_Ready()` 订阅，并在 `_ExitTree()` 对称取消；取消前确认 Godot 对象仍有效。
+- 已有 `EventChannel.Bind` 等自动生命周期机制时优先使用，不重复手动解绑。
+- 不用匿名 lambda 订阅需要解绑的信号；使用 `OnXxx` 具名方法。
+- 内置信号名不确定时先查项目与 4.7 文档。
 
-**正确写法（C# 事件风格，优先用这个）：**
-```csharp
-[Signal]
-public delegate void HealthChangedEventHandler(int newHealth);
+### 高频路径
 
-// 订阅
-someNode.HealthChanged += OnHealthChanged;
-
-// 取消订阅
-someNode.HealthChanged -= OnHealthChanged;
-
-// 触发
-EmitSignal(SignalName.HealthChanged, newHealth);
-
-private void OnHealthChanged(int newHealth) { ... }
-```
-
-**正确写法（Callable方式，需要更细粒度控制时用）：**
-```csharp
-someNode.Connect(SignalName.HealthChanged, Callable.From<int>(OnHealthChanged));
-```
-
-**绝对禁止（Godot 3.x 旧语法，会直接报错或静默失效）：**
-```csharp
-// 禁止 —— 这是Godot 3.x写法
-Connect("health_changed", this, "OnHealthChanged");
-```
-
-**生命周期规则（必须遵守，否则可能导致内存泄漏或“在已释放对象上调用方法”的报错）：**
-- 对生命周期不同，或信号源可能比订阅者存活更久的订阅，订阅写在 `_EnterTree()` 或 `_Ready()`，并在对应的 `_ExitTree()` 对称取消。
-- 如果项目已有 `EventChannel.Bind` 等自动绑定节点生命周期的机制，优先使用现有机制，不要再重复手动解绑。
-- 手动取消 Godot 对象的订阅前，先用 `IsInstanceValid(目标对象)` 判断对象是否仍然存在，再执行 `-=`。
-- 不要用匿名 lambda 订阅信号（`node.Signal += () => {...}`），这样无法手动取消订阅，容易内存泄漏。优先用具名方法。
-- 信号命名用动词过去式或描述性短语（如 `HealthChanged`、`Died`），订阅方法用 `On` 前缀（如 `OnHealthChanged`）。
-
-如果不确定某个内置信号（比如 Tween、AnimationPlayer 自带的信号）叫什么名字，先查项目现有实现和对应版本的 Godot 官方文档；仍无法确认时明确说明，不要凭记忆编造。
-
-### 节点引用与空安全
-
-- 优先用 `[Export]` 字段在编辑器里手动拖拽赋值，而不是代码里 `GetNode<T>("路径")` 硬编码路径——路径一旦改场景结构就会失效，且失效时往往没有编译期报错。
-- 如果必须用 `GetNode`，要加判空处理或者用 `GetNodeOrNull<T>()`，不要假设节点一定存在。
-- 涉及 `QueueFree()` 释放节点后，不要在同一帧内继续访问该节点的属性或方法；如果不确定时序，提出来问我。
-
-### 性能相关的具体规则
-
-- `_Process` / `_PhysicsProcess` 里禁止每帧 `new` 大对象（数组、List、字符串拼接），改为成员变量复用。
-- 禁止在 `_Process` / `_PhysicsProcess` 里用 `GetNode` / `FindChild` 这类查找类API，应在 `_Ready()` 里缓存好引用。
-- 大量重复创建/销毁的对象（子弹、特效粒子等）优先考虑对象池模式，不要默认每次 `Instantiate()` + `QueueFree()`。如果我没要求做对象池，先实现最简单版本，但可以提醒我后续可以优化。
+- `_Process` / `_PhysicsProcess` 中不每帧创建大数组、List 或拼接字符串，不使用 LINQ 热查询。
+- 不在每帧路径调用 `GetNode` / `FindChild`，引用在初始化阶段缓存。
+- 高频创建销毁的节点优先评估对象池；未要求对象池时先做简单版本，可提示后续优化。
 
 ## 禁止事项
 
-- 不要修改 `.csproj`、`project.godot`、`export_presets.cfg` 这些工程配置文件，除非我明确要求。
-- 不要删除或重命名现有的 public 方法/信号，除非我明确同意——这些可能被其他场景脚本引用。
-- 不要引入新的 NuGet 包依赖，除非先问我。
-- 不要自动执行 git commit / git push。
+- 不修改 `.csproj`、`project.godot`、`export_presets.cfg`，除非我明确要求。
+- 不删除、重命名或改变现有 public API / 信号语义，除非我明确同意。
+- 不引入 NuGet 包，除非先询问。
+- 不自动执行 git commit / push。
 
 ## 框架边界
 
-- `GoDo.*` 只提供可跨游戏复用的机制，不得引用角色、血量、子弹、关卡规则等具体玩法概念；业务代码不得放进 `GoDo.*` 命名空间。
-- Core 层模块之间禁止通过 `ServiceLocator` 或直接持有引用进行横向依赖；模块通信遵循 `ARCHITECTURE.md`，使用 `EventChannel`。`ErrorHub` 是文档明确规定的例外。
-- 新增模块或公共 API 前，先检查现有模块是否已经提供同类能力，不要重复实现事件、日志、错误处理、对象池等基础设施。
-- 不要删除、重命名或改变现有 public API 和信号语义，除非我明确同意；新增 public API 时说明它的职责、依赖方向和兼容性影响。
-- Scene、Audio、UI、Config 等运行时模块加载 Godot Resource 时统一使用 `ResourceHub`，不要各自重复封装 `Godot.ResourceLoader`。
-- ResourceHub 只包装 Godot 资源加载机制：公共 API 使用 `ResourceKey` 和 `T : Resource`，失败抛出 `ResourceLoadException`；禁止返回 null、重复上报后再 throw，或自行维护第二套引用计数与缓存。
-- 远程下载、PCK/DLC、热更新、目录批量加载和自定义缓存属于未来独立扩展，不得混入 ResourceHub 首版核心。
+- `GoDo.*` 只提供跨游戏机制，不包含角色、血量、子弹、关卡规则等玩法概念；业务代码不放入 `GoDo.*`。
+- Core 模块不通过 Services 或直接引用横向耦合；遵循 `ARCHITECTURE.md` 使用 EventChannel。ErrorHub 是明确例外。
+- Services 只供业务层访问长期服务，不是框架内部依赖捷径。
+- 新增模块/API 前先检查现有事件、日志、错误、资源和对象池能力，避免重复实现。
+- Scene、Audio、UI、Config 等加载 Godot Resource 时统一使用 ResourceHub。
+- ResourceHub API 使用 `ResourceKey` 与 `T : Resource`；失败抛 `ResourceLoadException`，不返回 null、不重复上报后再抛出，也不维护第二套缓存或引用计数。
+- 远程下载、PCK/DLC、热更新、目录加载和高级缓存属于未来独立扩展。
 
-## 测试与验证
+## 测试与交付
 
-- 每个独立框架模块目录必须提供 `USAGE.md`，至少说明模块定位、适用与非适用场景、快速上手、public API、失败语义、生命周期/线程约束、性能注意事项和常见误用。
-- 新增或修改模块 public API、失败语义、生命周期或依赖关系时，必须同步更新对应 `USAGE.md`；示例代码必须与当前源码签名一致，不能保留已经失效的计划 API。
+- 每个独立模块必须有 `USAGE.md`，说明定位、适用/非适用场景、上手、public API、失败语义、生命周期/线程、性能与误用。
+- public API、失败语义、生命周期或依赖变化时同步更新 `USAGE.md`，示例必须与源码一致。
+- 修改后默认可运行 `dotnet build` 和不依赖编辑器的测试；会修改项目数据、场景或外部状态的测试必须先询问。
+- 输入、物理、节点生命周期、场景切换或编辑器配置仍需提醒我在 Godot 中手动验证。
+- 编译通过不等于功能验证通过；未执行的测试不得声称通过。
+- 完成后简报：修改文件、public API/场景树影响、已执行验证和待手动验证。
 
-- 代码修改后默认可以执行 `dotnet build` 和不依赖 Godot 编辑器交互的自动化测试；如果测试会修改项目数据、场景或外部状态，必须先询问我。
-- 涉及输入、物理、节点生命周期、场景切换或编辑器配置时，提醒我在 Godot 编辑器中手动运行对应场景验证。
-- 不得把“编译通过”描述成“功能验证通过”，也不得在没有实际执行时声称测试通过。
-- 完成修改后简要报告：修改了哪些文件、是否影响 public API 或场景树、执行了什么验证、还需要我手动验证什么。
+## Godot 4.7 离线文档
 
-## 当你不确定时
+- 目录：`Godot Engine 4.7 documentation in English MD/`，约 1593 个平铺 Markdown，文件名如 `gdd_1242_DisplayServer.md`。
+- 禁止枚举、输出或整读全部文档。类 API 先按 `*ClassName.md` 定位单文件，再在该文件内搜索成员。
+- 文档使用 snake_case；查询 C# API 时同时考虑映射名，如 `WindowSetMode` → `window_set_mode`，最终以当前项目编译确认绑定签名。
+- 教程/概念先按文件名缩小候选；无法定位时才做目录内容搜索，并限制为最相关的 1–3 个文件。
+- 只读取命中行附近的签名、说明和注意事项；结果过多时继续增加类名或成员名。
+- 优先 `rg`；不可用时使用 `Select-String`，仍遵循“先文件名、后单文件、限制结果数”。
 
-- 缺少上下文（比如不知道某个节点在场景里怎么挂的）就直接问我，不要假设。
-- 如果你判断某个需求实现方式有更好的做法，可以提出建议，但默认还是先做我要求的最小实现。
+## 回复与不确定性
 
-## 给本地小模型的额外提醒
-
-如果你是本地运行的中小型模型（参数量低于30B），请特别注意：
-
-- 你对 Godot 4.x 相对较新的API（4.2+引入的特性）记忆可能不准确或停留在 Godot 3.x，涉及具体类名、方法签名时，优先参考项目里已有的同类代码作为范例，而不是凭训练记忆直接写。
-- 不要在一次回复里同时改动超过2个文件，除非任务明确要求跨文件改动（比如新增一个类同时要在场景里挂载）。
-- 长任务（预计改动较多）请先分解成步骤列表展示给我，不要直接开始大段编辑。
-- 如果生成的代码里出现了你自己也不确定是否存在的API（比如不常见的内置类、方法），用注释标注 `// TODO: 请确认此API是否存在`，不要假装自己很确定。
-
-## 回复格式
-
-- 默认用简体中文回复说明性文字，代码注释也用中文（除非项目已有英文注释习惯，保持一致）。
-- 不要输出大段的"我理解了""好的我来帮你"这类开场白，直接进入实质内容。
-- 改动完成后的总结控制在3句话以内：改了什么、为什么、有什么需要我注意的。
+- 默认简体中文；注释跟随项目现有语言习惯。
+- 缺少节点挂载、平台或业务上下文时直接询问，不自行假设。
+- 可以提出更好方案，但默认先实现我要求的最小版本。
+- 不写大段客套开场；完成总结控制在 3 句话内。
+- 本地小模型遇到 Godot 4.2+ API 时优先查项目和文档；长任务先拆步骤，不确定的 API 明确标注并询问。

@@ -28,7 +28,7 @@ public static class ResourceHub
 
     internal static void Initialize()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         if (_initialized)
             return;
 
@@ -105,7 +105,7 @@ public static class ResourceHub
         if (!_initialized)
             return;
 
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         _updateBuffer.Clear();
 
         foreach (IResourceOperation operation in _operations.Values)
@@ -128,7 +128,7 @@ public static class ResourceHub
         if (!_initialized)
             return;
 
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
 
         _updateBuffer.Clear();
         foreach (IResourceOperation operation in _operations.Values)
@@ -145,7 +145,7 @@ public static class ResourceHub
 
     private static void VerifyReady()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         if (!_initialized)
             throw new InvalidOperationException("ResourceHub 尚未初始化。");
     }

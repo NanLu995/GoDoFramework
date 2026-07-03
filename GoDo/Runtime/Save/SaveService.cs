@@ -384,7 +384,7 @@ public sealed class SaveService : ISaveService
 
     private static void VerifyAccess()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
     }
 
     private static SavePaths GetPaths(SaveSlot slot)

@@ -4,6 +4,9 @@ using GoDo;
 
 namespace GoDoFramework.Example.Events;
 
+/// <summary>示例业务事件的统一标记，不属于 GoDo 框架 API。</summary>
+public interface IGameEvent : IEventMessage { }
+
 public struct PlayerDiedEvent : IGameEvent
 {
     public int PlayerId;

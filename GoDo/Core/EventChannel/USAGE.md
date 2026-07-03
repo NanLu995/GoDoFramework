@@ -2,21 +2,25 @@
 
 ## 定位与优势
 
-EventChannel 是 Godot 主线程内的类型安全一对多通知机制，适合发送“某件事已经发生”的消息。事件使用 `struct + IGameEvent`，支持优先级、一次性监听、派发期间安全增删、同类型重入、监听者异常隔离，以及 Node/纯 C# 对象两种生命周期管理。
+EventChannel 是 Godot 主线程内的类型安全一对多通知机制，适合发送“某件事已经发生”的消息。事件使用 `struct + IEventMessage`，支持优先级、一次性监听、派发期间安全增删、同类型重入、监听者异常隔离，以及 Node/纯 C# 对象两种生命周期管理。
 
 它不应替代所有方法调用：需要立即返回结果时直接调用接口；父子节点的局部通知优先考虑 Godot Signal；只有需要一对多广播或解耦观察者时使用 EventChannel。
 
 ## 快速上手
 
-事件属于具体游戏，统一放在业务层 `GameEvents.cs`，不要放进 `GoDo.*`：
+`IEventMessage` 只是 EventChannel 的公共底层契约。具体游戏可以在业务命名空间中定义自己的分组接口，再让玩法事件实现它：
 
 ```csharp
+public interface IGameEvent : IEventMessage { }
+
 public readonly struct PlayerDiedEvent : IGameEvent
 {
     public int PlayerId { get; init; }
     public Vector2 Position { get; init; }
 }
 ```
+
+GoDo 框架内部事件实现 internal `IFrameworkEvent`。框架未来拆成独立程序集后，外部业务无法实现该接口；当前 GoDo 与业务脚本仍在同一程序集，因此这是一条可检查的架构约定，而不是安全边界。框架内部事件优先放在所属模块旁；只有少量跨 Core 的稳定事件才集中维护，不建立一个不断膨胀的全局事件文件。
 
 Node 中优先使用 `Bind`，节点退出树时自动解绑：
 
@@ -101,4 +105,5 @@ public sealed class SessionObserver : IDisposable
 | 纯 C# 对象持有并释放 `EventScope` | 创建临时 Scope 后立即丢失引用 |
 | 事件表达已经发生的事实 | 用事件隐藏必须返回结果的请求 |
 | 使用具名回调 | 使用无法对称解绑的匿名 lambda |
+| 业务层自定义 `IGameEvent : IEventMessage` | 把业务分组接口误当成框架公共契约 |
 | 业务事件留在业务命名空间 | 把 Player、Enemy 等玩法概念放入 `GoDo.*` |

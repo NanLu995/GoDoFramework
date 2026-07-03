@@ -26,7 +26,7 @@ namespace GoDo
         /// 广播一个事件给所有监听者。
         /// 即使某个 handler 抛出异常，其余 handler 仍会继续执行。
         /// </summary>
-        public static void Emit<T>(T evt) where T : struct, IGameEvent
+        public static void Emit<T>(T evt) where T : struct, IEventMessage
         {
             // P1: 缓存 typeof(T)，避免重复调用
             var type = typeof(T);
@@ -43,7 +43,7 @@ namespace GoDo
         /// priority 越小越先执行，默认 0。
         /// </summary>
         public static void On<T>(Action<T> handler, int priority = 0)
-            where T : struct, IGameEvent
+            where T : struct, IEventMessage
         {
             if (handler == null) throw new ArgumentNullException(nameof(handler));
             GetOrCreate<T>().Add(handler, priority, once: false);
@@ -53,7 +53,7 @@ namespace GoDo
         /// 监听一次，触发后自动移除。
         /// </summary>
         public static void Once<T>(Action<T> handler)
-            where T : struct, IGameEvent
+            where T : struct, IEventMessage
         {
             if (handler == null) throw new ArgumentNullException(nameof(handler));
             GetOrCreate<T>().Add(handler, priority: 0, once: true);
@@ -63,7 +63,7 @@ namespace GoDo
         /// 手动取消监听。
         /// </summary>
         public static void Off<T>(Action<T> handler)
-            where T : struct, IGameEvent
+            where T : struct, IEventMessage
         {
             if (handler == null) return;
             if (_registry.TryGetValue(typeof(T), out var group))
@@ -75,7 +75,7 @@ namespace GoDo
         /// 节点退出场景树时自动解绑，无需手动 Off。
         /// </summary>
         public static void Bind<T>(Node node, Action<T> handler, int priority = 0)
-            where T : struct, IGameEvent
+            where T : struct, IEventMessage
         {
             if (node == null) throw new ArgumentNullException(nameof(node));
             if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -109,7 +109,7 @@ namespace GoDo
         /// [仅限框架内部/测试] 移除某事件类型的全部监听。
         /// 普通业务代码请勿调用。
         /// </summary>
-        internal static void ClearAll<T>() where T : struct, IGameEvent
+        internal static void ClearAll<T>() where T : struct, IEventMessage
         {
 #if GODOT_DEBUG
             // R5: 提示开发者此操作的风险
@@ -129,7 +129,7 @@ namespace GoDo
         /// <summary>
         /// [仅 Debug 模式] 返回当前某事件类型的监听数量。
         /// </summary>
-        public static int GetListenerCount<T>() where T : struct, IGameEvent
+        public static int GetListenerCount<T>() where T : struct, IEventMessage
         {
             if (_registry.TryGetValue(typeof(T), out var group))
                 return ((HandlerGroup<T>)group).Count;
@@ -150,7 +150,7 @@ namespace GoDo
 
         // ── 内部实现 ──────────────────────────────
 
-        private static HandlerGroup<T> GetOrCreate<T>() where T : struct, IGameEvent
+        private static HandlerGroup<T> GetOrCreate<T>() where T : struct, IEventMessage
         {
             if (!_registry.TryGetValue(typeof(T), out var group))
             {
@@ -163,9 +163,9 @@ namespace GoDo
         // ── HandlerGroup<T> ───────────────────────
 
 #if GODOT_DEBUG
-        private class HandlerGroup<T> : IHandlerGroup where T : struct, IGameEvent
+        private class HandlerGroup<T> : IHandlerGroup where T : struct, IEventMessage
 #else
-        private class HandlerGroup<T> where T : struct, IGameEvent
+        private class HandlerGroup<T> where T : struct, IEventMessage
 #endif
         {
             // P3: 预设初始容量，大多数事件监听者在 4 个以内，避免首次扩容

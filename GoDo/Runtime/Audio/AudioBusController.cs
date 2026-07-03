@@ -12,21 +12,21 @@ internal sealed class AudioBusController
 
     public void Initialize()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         EnsureBus(BgmBus);
         EnsureBus(SfxBus);
     }
 
     public float GetVolume(AudioGroup group)
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         int busIndex = GetRequiredBusIndex(group);
         return AudioServer.GetBusVolumeLinear(busIndex);
     }
 
     public void SetVolume(AudioGroup group, float linearVolume)
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         if (!float.IsFinite(linearVolume) || linearVolume < 0f || linearVolume > 1f)
         {
             throw new ArgumentOutOfRangeException(

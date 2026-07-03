@@ -41,7 +41,7 @@ public sealed partial class SceneService : Node, ISceneService
     /// <exception cref="SceneChangeException">加载、实例化或挂载目标场景失败。</exception>
     public async Task<Node> ChangeAsync(ResourceKey key)
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
 
         if (!IsInsideTree())
             throw new InvalidOperationException("SceneService 必须进入场景树后才能切换场景。");
@@ -68,7 +68,7 @@ public sealed partial class SceneService : Node, ISceneService
             _loadOperation.ProgressChanged += OnLoadProgressChanged;
 
             PackedScene packedScene = await _loadOperation.Completion;
-            RuntimeThreadGuard.VerifyAccess();
+            MainThreadGuard.VerifyAccess();
             VerifyLifecycle(lifecycleVersion, key);
 
             Node newScene = InstantiateScene(packedScene, key);

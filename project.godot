@@ -13,7 +13,6 @@ config_version=5
 config/name="GoDoFramework"
 run/main_scene="uid://oeorxao7qtdc"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
-config/icon="res://resources/icon.svg"
 
 [autoload]
 

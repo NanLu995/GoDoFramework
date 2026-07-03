@@ -12,10 +12,12 @@ public static class Services
 {
     private static readonly Dictionary<Type, object> _registrations = new();
 
-    /// <summary>注册一个服务接口。相同接口不能重复注册。</summary>
+    /// <summary>
+    /// 注册一个服务接口。相同接口不能重复注册。
+    /// </summary>
     public static void Register<TService>(TService service) where TService : class
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         ArgumentNullException.ThrowIfNull(service);
 
         Type serviceType = typeof(TService);
@@ -26,10 +28,12 @@ public static class Services
             throw new InvalidOperationException($"服务接口已注册: {serviceType.FullName}");
     }
 
-    /// <summary>获取已注册的服务；缺失时明确抛出异常。</summary>
+    /// <summary>
+    /// 获取已注册的服务；缺失时明确抛出异常。
+    /// </summary>
     public static TService Get<TService>() where TService : class
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
 
         if (_registrations.TryGetValue(typeof(TService), out object? service))
             return (TService)service;
@@ -37,10 +41,12 @@ public static class Services
         throw new InvalidOperationException($"服务接口尚未注册: {typeof(TService).FullName}");
     }
 
-    /// <summary>尝试获取已注册的服务。</summary>
+    /// <summary>
+    /// 尝试获取已注册的服务。
+    /// </summary>
     public static bool TryGet<TService>(out TService? service) where TService : class
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
 
         if (_registrations.TryGetValue(typeof(TService), out object? registered))
         {
@@ -52,10 +58,12 @@ public static class Services
         return false;
     }
 
-    /// <summary>仅当当前注册实例与调用方提供的实例相同时注销服务。</summary>
+    /// <summary>
+    /// 仅当当前注册实例与调用方提供的实例相同时注销服务。
+    /// </summary>
     public static bool Unregister<TService>(TService service) where TService : class
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         ArgumentNullException.ThrowIfNull(service);
 
         Type serviceType = typeof(TService);
@@ -70,7 +78,7 @@ public static class Services
 
     internal static void Clear()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         _registrations.Clear();
     }
 }

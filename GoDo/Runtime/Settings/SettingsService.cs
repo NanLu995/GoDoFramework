@@ -67,7 +67,7 @@ public sealed class SettingsService : ISettingsService
     /// <inheritdoc/>
     public SettingsLoadStatus LoadAndApply()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         SaveLoadResult<SettingsSnapshot> result = _saveService.Load(_settingsSlot, _codec);
         if (!result.HasValue)
         {
@@ -84,14 +84,14 @@ public sealed class SettingsService : ISettingsService
     /// <inheritdoc/>
     public void Save()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         _saveService.Save(_settingsSlot, _current, SettingsCodec.CurrentVersion, _codec);
     }
 
     /// <inheritdoc/>
     public void ResetToDefaults()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         ApplySnapshot(new SettingsSnapshot());
     }
 
@@ -110,7 +110,7 @@ public sealed class SettingsService : ISettingsService
     /// <inheritdoc/>
     public SettingsApplyResult SetLocale(string locale)
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         ValidateLocale(locale);
         SettingsApplyResult result = _platformAdapter.SetLocale(locale);
         if (result == SettingsApplyResult.Applied)
@@ -121,7 +121,7 @@ public sealed class SettingsService : ISettingsService
     /// <inheritdoc/>
     public SettingsApplyResult SetWindowMode(SettingsWindowMode mode)
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         ValidateWindowMode(mode);
         SettingsApplyResult result = _platformAdapter.SetWindowMode(mode);
         if (result == SettingsApplyResult.Applied)
@@ -132,7 +132,7 @@ public sealed class SettingsService : ISettingsService
     /// <inheritdoc/>
     public SettingsApplyResult SetResolution(Vector2I resolution)
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         ValidateResolution(resolution);
         SettingsApplyResult result = _platformAdapter.SetResolution(resolution.X, resolution.Y);
         if (result == SettingsApplyResult.Applied)
@@ -143,7 +143,7 @@ public sealed class SettingsService : ISettingsService
     /// <inheritdoc/>
     public SettingsApplyResult SetVSync(bool enabled)
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         SettingsApplyResult result = _platformAdapter.SetVSync(enabled);
         if (result == SettingsApplyResult.Applied)
             _current = _current with { VSyncEnabled = enabled };
@@ -163,7 +163,7 @@ public sealed class SettingsService : ISettingsService
 
     private SettingsApplyResult SetVolume(AudioGroup group, float linearVolume)
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         ValidateVolume(linearVolume, nameof(linearVolume));
         _audioService.SetVolume(group, linearVolume);
         _current = group switch

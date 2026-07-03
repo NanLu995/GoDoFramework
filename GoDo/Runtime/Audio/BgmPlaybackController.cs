@@ -24,7 +24,7 @@ internal sealed class BgmPlaybackController
 
     public async Task PlayAsync(ResourceKey key, bool restart)
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
 
         if (IsLoading)
             throw new InvalidOperationException("已有背景音乐正在加载，不能重复发起请求。");
@@ -47,7 +47,7 @@ internal sealed class BgmPlaybackController
         {
             ResourceLoadOperation<AudioStream> operation = ResourceHub.LoadAsync<AudioStream>(key);
             AudioStream stream = await operation.Completion;
-            RuntimeThreadGuard.VerifyAccess();
+            MainThreadGuard.VerifyAccess();
 
             if (requestVersion != _requestVersion)
                 throw new OperationCanceledException("背景音乐加载完成前已被停止。");
@@ -76,21 +76,21 @@ internal sealed class BgmPlaybackController
 
     public void Pause()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         if (_player.Stream != null && _player.Playing)
             _player.StreamPaused = true;
     }
 
     public void Resume()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         if (_player.Stream != null && _player.StreamPaused)
             _player.StreamPaused = false;
     }
 
     public void Stop()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         _requestVersion++;
         _player.Stop();
         _player.StreamPaused = false;

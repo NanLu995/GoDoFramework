@@ -38,7 +38,7 @@ public sealed partial class AudioService : Node, IAudioService
 
     public override void _Ready()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
 
         if (MaxSfxVoices <= 0)
             throw new InvalidOperationException("MaxSfxVoices 必须大于 0。");
@@ -118,7 +118,7 @@ public sealed partial class AudioService : Node, IAudioService
 
     private void VerifyReady()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
         if (!IsInsideTree() || !IsInitialized)
             throw new InvalidOperationException("AudioService 尚未初始化或已经退出场景树。");
     }

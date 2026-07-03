@@ -307,6 +307,6 @@ public sealed class NodePool<T> : IDisposable where T : Node
 
     private void VerifyThreadAccess()
     {
-        RuntimeThreadGuard.VerifyAccess();
+        MainThreadGuard.VerifyAccess();
     }
 }

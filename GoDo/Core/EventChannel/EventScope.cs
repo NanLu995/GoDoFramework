@@ -30,7 +30,7 @@ namespace GoDo
         /// Scope.Dispose() 时自动注销。
         /// </summary>
         public EventScope On<T>(Action<T> handler, int priority = 0)
-            where T : struct, IGameEvent
+            where T : struct, IEventMessage
         {
             ThrowIfDisposed();
             EventChannel.On<T>(handler, priority);
@@ -43,7 +43,7 @@ namespace GoDo
         /// 触发后自动移除；未触发时 Dispose() 也会清除。
         /// </summary>
         public EventScope Once<T>(Action<T> handler)
-            where T : struct, IGameEvent
+            where T : struct, IEventMessage
         {
             ThrowIfDisposed();
             EventChannel.Once<T>(handler);
@@ -57,7 +57,7 @@ namespace GoDo
         /// Dispose 时会再调一次 Off，Off 对不存在的 handler 是安全的（幂等）。
         /// </summary>
         public void Off<T>(Action<T> handler)
-            where T : struct, IGameEvent
+            where T : struct, IEventMessage
         {
             EventChannel.Off<T>(handler);
         }
