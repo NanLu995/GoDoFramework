@@ -58,7 +58,7 @@ public static class ErrorHub
     /// 默认值：Debug 模式为 <see cref="ErrorLevel.Debug"/>，
     /// Release 模式为 <see cref="ErrorLevel.Warning"/>。
     /// </summary>
-#if GODOT_DEBUG
+#if DEBUG
     public static ErrorLevel MinLevel { get; set; } = ErrorLevel.Debug;
 #else
     public static ErrorLevel MinLevel { get; set; } = ErrorLevel.Warning;
@@ -159,7 +159,7 @@ public static class ErrorHub
     /// 上报一条 <see cref="ErrorLevel.Debug"/> 级别消息的便捷方法。
     /// 在 Release 构建中，若 <see cref="MinLevel"/> 高于 Debug，则无任何开销。
     /// </summary>
-    [System.Diagnostics.Conditional("GODOT_DEBUG")]
+    [System.Diagnostics.Conditional("DEBUG")]
     public static void Debug(string message, string module, string? context = null)
         => Report(ErrorLevel.Debug, message, module, context);
 
@@ -293,12 +293,12 @@ public static class ErrorHub
             Context   = context,
             Exception = exception,
             Timestamp = DateTime.UtcNow,
-#if GODOT_DEBUG
+#if DEBUG
             // 有异常时直接用异常自带的栈；没有异常时，只在 Fatal 级别才
             // 额外捕获当前调用栈（Environment.StackTrace 开销不小，
             // 不应该让高频的 Debug/Warn 调用都承担这个成本）。
             StackTrace = exception?.StackTrace
-                         ?? (level == ErrorLevel.Fatal ? Environment.StackTrace : null),
+                         ?? (level == ErrorLevel.Fatal ? System.Environment.StackTrace : null),
 #else
             StackTrace = exception?.StackTrace,
 #endif
@@ -400,7 +400,7 @@ public static class ErrorHub
         switch (report.Level)
         {
             case ErrorLevel.Debug:
-#if GODOT_DEBUG
+#if DEBUG
                 GD.Print(formatted);
 #endif
                 break;
@@ -427,7 +427,7 @@ public static class ErrorHub
             ? $"[{report.Module}] [{LevelLabel(report.Level)}] {report.Message}"
             : $"[{report.Module}] [{LevelLabel(report.Level)}] ({report.Context}) {report.Message}";
 
-#if GODOT_DEBUG
+#if DEBUG
         // Debug 下才拼接异常类型与调用栈，这部分本身就比 head 大得多，
         // 没必要在 Release（Warning/Error/Fatal 仍会输出）路径上保留它的拼接逻辑。
         if (report.Exception != null || !string.IsNullOrEmpty(report.StackTrace))

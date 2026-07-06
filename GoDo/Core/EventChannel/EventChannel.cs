@@ -31,7 +31,7 @@ namespace GoDo
             // P1: 缓存 typeof(T)，避免重复调用
             var type = typeof(T);
 
-#if GODOT_DEBUG
+#if DEBUG
             GD.Print($"[EventChannel] Emit → {type.Name}");
 #endif
             if (_registry.TryGetValue(type, out var group))
@@ -111,7 +111,7 @@ namespace GoDo
         /// </summary>
         internal static void ClearAll<T>() where T : struct, IEventMessage
         {
-#if GODOT_DEBUG
+#if DEBUG
             // R5: 提示开发者此操作的风险
             if (_registry.ContainsKey(typeof(T)))
                 GD.PrintErr($"[EventChannel] ClearAll<{typeof(T).Name}> called — 所有监听已清除，" +
@@ -122,7 +122,7 @@ namespace GoDo
 
         // ── 调试 API ──────────────────────────────
 
-#if GODOT_DEBUG
+#if DEBUG
         // 让 DumpRegistry 可以统一调用 Count，无需知道泛型类型
         private interface IHandlerGroup { int Count { get; } }
 
@@ -146,6 +146,42 @@ namespace GoDo
                 GD.Print($"  {kv.Key.Name}: {((IHandlerGroup)kv.Value).Count} listener(s)");
             GD.Print("───────────────────────────");
         }
+
+        /// <summary>
+        /// [仅框架内部 Debug] 返回事件类型与监听数量的只读快照。
+        /// </summary>
+        internal static EventDebugEntry[] GetDebugSnapshot()
+        {
+            MainThreadGuard.VerifyAccess();
+
+            var snapshot = new EventDebugEntry[_registry.Count];
+            int index = 0;
+            foreach (KeyValuePair<Type, object> item in _registry)
+            {
+                snapshot[index] = new EventDebugEntry(
+                    item.Key,
+                    ((IHandlerGroup)item.Value).Count);
+                index++;
+            }
+
+            Array.Sort(snapshot, CompareDebugEntries);
+            return snapshot;
+        }
+
+        private static int CompareDebugEntries(EventDebugEntry left, EventDebugEntry right) =>
+            string.CompareOrdinal(left.EventType.FullName, right.EventType.FullName);
+
+        internal readonly struct EventDebugEntry
+        {
+            public Type EventType { get; }
+            public int ListenerCount { get; }
+
+            public EventDebugEntry(Type eventType, int listenerCount)
+            {
+                EventType = eventType;
+                ListenerCount = listenerCount;
+            }
+        }
 #endif
 
         // ── 内部实现 ──────────────────────────────
@@ -162,7 +198,7 @@ namespace GoDo
 
         // ── HandlerGroup<T> ───────────────────────
 
-#if GODOT_DEBUG
+#if DEBUG
         private class HandlerGroup<T> : IHandlerGroup where T : struct, IEventMessage
 #else
         private class HandlerGroup<T> where T : struct, IEventMessage

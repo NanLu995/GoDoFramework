@@ -18,12 +18,20 @@ namespace GoDo;
 /// </summary>
 public sealed partial class GoDoRuntime : Node
 {
+#if DEBUG
+    private static readonly ResourceKey DebuggerSceneKey =
+        ResourceKey.Create("res://GoDo/Diagnostics/DebuggerOverlay.tscn");
+#endif
+
     private static GoDoRuntime? _instance;
     private bool _subscribed;
     private SceneService? _sceneService;
     private AudioService? _audioService;
     private SaveService? _saveService;
     private SettingsService? _settingsService;
+#if DEBUG
+    private DebuggerOverlay? _debuggerOverlay;
+#endif
 
     [Export]
     public NodePath SceneServicePath { get; set; } = null!;
@@ -71,6 +79,12 @@ public sealed partial class GoDoRuntime : Node
         _settingsService = new SettingsService(_audioService, _saveService);
         Services.Register<ISettingsService>(_settingsService);
 
+#if DEBUG
+        PackedScene debuggerScene = ResourceHub.Load<PackedScene>(DebuggerSceneKey);
+        _debuggerOverlay = debuggerScene.Instantiate<DebuggerOverlay>();
+        AddChild(_debuggerOverlay);
+#endif
+
         ErrorHub.Debug("GoDo 运行时初始化完成", "Runtime");
     }
 
@@ -107,6 +121,9 @@ public sealed partial class GoDoRuntime : Node
             _audioService = null;
             _saveService = null;
             _settingsService = null;
+#if DEBUG
+            _debuggerOverlay = null;
+#endif
             MainThreadGuard.Reset();
         }
     }

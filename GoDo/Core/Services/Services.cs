@@ -81,4 +81,20 @@ public static class Services
         MainThreadGuard.VerifyAccess();
         _registrations.Clear();
     }
+
+#if DEBUG
+    /// <summary>返回当前已注册服务接口类型的 Debug 快照。</summary>
+    internal static Type[] GetDebugSnapshot()
+    {
+        MainThreadGuard.VerifyAccess();
+
+        var snapshot = new Type[_registrations.Count];
+        _registrations.Keys.CopyTo(snapshot, 0);
+        Array.Sort(snapshot, CompareServiceTypes);
+        return snapshot;
+    }
+
+    private static int CompareServiceTypes(Type left, Type right) =>
+        string.CompareOrdinal(left.FullName, right.FullName);
+#endif
 }

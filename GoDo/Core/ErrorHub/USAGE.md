@@ -38,7 +38,7 @@ ErrorHub.Fatal("启动所需配置不可用", "Bootstrap");
 ErrorHub.MinLevel = ErrorLevel.Warning;
 ```
 
-`Debug()` 带 `[Conditional("GODOT_DEBUG")]`，Release 下连参数表达式也不会求值。过滤后的普通等级不会构造 `ErrorReport`。
+`Debug()` 带 `[Conditional("DEBUG")]`，Release / ExportRelease 下连参数表达式也不会求值。过滤后的普通等级不会构造 `ErrorReport`。
 
 ## 监听与生命周期
 

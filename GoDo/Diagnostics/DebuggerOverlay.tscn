@@ -1,0 +1,86 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://GoDo/Diagnostics/DebuggerOverlay.cs" id="1_debugger"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.055, 0.065, 0.08, 0.82)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.42, 0.55, 0.72, 0.9)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.42)
+shadow_size = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
+bg_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+bg_color = Color(0.25, 0.38, 0.55, 0.32)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[node name="GoDoDebugger" type="CanvasLayer"]
+layer = 128
+script = ExtResource("1_debugger")
+PanelPath = NodePath("Panel")
+ToggleButtonPath = NodePath("Panel/Margin/VBox/Header/FpsButton")
+ContentPath = NodePath("Panel/Margin/VBox/Content")
+DiagnosticsLabelPath = NodePath("Panel/Margin/VBox/Content/DiagnosticsLabel")
+
+[node name="Panel" type="PanelContainer" parent="."]
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 128.0
+offset_bottom = 52.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="Panel/Margin/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 32)
+alignment = 1
+
+[node name="FpsButton" type="Button" parent="Panel/Margin/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.88, 0.94, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
+text = "FPS: 0"
+
+[node name="Content" type="ScrollContainer" parent="Panel/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="DiagnosticsLabel" type="Label" parent="Panel/Margin/VBox/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/line_spacing = 3
+theme_override_font_sizes/font_size = 14
+text = "Loading diagnostics..."
+autowrap_mode = 2
