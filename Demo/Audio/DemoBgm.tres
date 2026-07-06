@@ -1,0 +1,10 @@
+[gd_resource type="AudioStreamWAV" format=3]
+
+[resource]
+format = 0
+loop_mode = 1
+loop_begin = 0
+loop_end = 32
+mix_rate = 8000
+stereo = false
+data = PackedByteArray(0, 9, 18, 27, 34, 40, 44, 47, 48, 47, 44, 40, 34, 27, 18, 9, 0, 247, 238, 229, 222, 216, 212, 209, 208, 209, 212, 216, 222, 229, 238, 247)
