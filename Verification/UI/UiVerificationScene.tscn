@@ -1,0 +1,67 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Verification/UI/UiVerificationScene.cs" id="1_scene"]
+
+[node name="UiVerificationScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_scene")
+OpenPageButtonPath = NodePath("Center/VBox/OpenPageButton")
+BackButtonPath = NodePath("Center/VBox/BackButton")
+BackgroundButtonPath = NodePath("Center/VBox/BackgroundButton")
+StatusLabelPath = NodePath("Center/VBox/StatusLabel")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.06, 0.08, 0.12, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "UI 首版交互验证"
+horizontal_alignment = 1
+
+[node name="Instructions" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "打开页面 A，再测试页面 B、模态和嵌套模态。\n模态打开时，尝试点击其外侧的页面计数按钮。"
+horizontal_alignment = 1
+
+[node name="OpenPageButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "打开页面 A"
+
+[node name="BackButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "调用 TryGoBack"
+
+[node name="BackgroundButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "底层点击计数"
+
+[node name="StatusLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "准备就绪\n底层按钮点击次数：0"
+horizontal_alignment = 1

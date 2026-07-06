@@ -27,6 +27,7 @@ public sealed partial class GoDoRuntime : Node
     private bool _subscribed;
     private SceneService? _sceneService;
     private AudioService? _audioService;
+    private UiService? _uiService;
     private SaveService? _saveService;
     private SettingsService? _settingsService;
 #if DEBUG
@@ -38,6 +39,9 @@ public sealed partial class GoDoRuntime : Node
 
     [Export]
     public NodePath AudioServicePath { get; set; } = null!;
+
+    [Export]
+    public NodePath UiServicePath { get; set; } = null!;
 
     public override void _EnterTree()
     {
@@ -72,8 +76,13 @@ public sealed partial class GoDoRuntime : Node
         if (!IsInstanceValid(_audioService) || !_audioService.IsInitialized)
             throw new InvalidOperationException("GoDoRuntime 未配置或未能初始化 AudioService 子节点。");
 
+        _uiService = GetNodeOrNull<UiService>(UiServicePath);
+        if (!IsInstanceValid(_uiService))
+            throw new InvalidOperationException("GoDoRuntime 未配置 UiService 子节点。");
+
         Services.Register<ISceneService>(_sceneService);
         Services.Register<IAudioService>(_audioService);
+        Services.Register<IUiService>(_uiService);
         _saveService = new SaveService();
         Services.Register<ISaveService>(_saveService);
         _settingsService = new SettingsService(_audioService, _saveService);
@@ -108,6 +117,8 @@ public sealed partial class GoDoRuntime : Node
                 Services.Unregister<ISettingsService>(_settingsService);
             if (_saveService != null)
                 Services.Unregister<ISaveService>(_saveService);
+            if (IsInstanceValid(_uiService))
+                Services.Unregister<IUiService>(_uiService);
             if (IsInstanceValid(_audioService))
                 Services.Unregister<IAudioService>(_audioService);
             if (IsInstanceValid(_sceneService))
@@ -119,6 +130,7 @@ public sealed partial class GoDoRuntime : Node
             _instance = null;
             _sceneService = null;
             _audioService = null;
+            _uiService = null;
             _saveService = null;
             _settingsService = null;
 #if DEBUG

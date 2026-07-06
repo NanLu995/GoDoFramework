@@ -12,19 +12,55 @@ public sealed partial class TestScene : Node
         ResourceKey.Create("res://resources/ConfigTestValid.tres");
     private static readonly ResourceKey InvalidConfigKey =
         ResourceKey.Create("res://resources/ConfigTestInvalid.tres");
+    private static readonly ResourceKey UiPageAKey =
+        ResourceKey.Create("res://resources/UiTestPageA.tscn");
+    private static readonly ResourceKey UiPageBKey =
+        ResourceKey.Create("res://resources/UiTestPageB.tscn");
+    private static readonly ResourceKey UiInvalidRootKey =
+        ResourceKey.Create("res://resources/UiTestInvalidRoot.tscn");
 
     public override void _Ready()
     {
         try
         {
             RunConfigVerification();
-            GD.Print("Config 首版运行时验证通过。");
+            RunUiVerification();
+            GD.Print("Config 与 UI 首版运行时验证通过。");
         }
         catch (Exception exception)
         {
-            GD.PrintErr($"Config 首版运行时验证失败：{exception}");
+            GD.PrintErr($"Config 或 UI 首版运行时验证失败：{exception}");
             throw;
         }
+    }
+
+    private static void RunUiVerification()
+    {
+        IUiService ui = Services.Get<IUiService>();
+        Assert(!ui.TryGoBack(), "初始 UI 栈应为空。");
+
+        Control pageA = ui.OpenPage(UiPageAKey);
+        Assert(pageA.Visible, "首个页面打开后应可见。");
+
+        Control pageB = ui.OpenPage(UiPageBKey);
+        Assert(!pageA.Visible && pageB.Visible, "新页面应隐藏前一页面。");
+
+        Control modal = ui.OpenModal(UiPageAKey);
+        Assert(IsInstanceValid(modal), "模态场景应成功实例化。");
+        AssertThrows<InvalidOperationException>(() => ui.Close(pageB));
+        Assert(ui.TryGoBack(), "返回应优先关闭顶部模态。");
+        Assert(pageB.Visible, "关闭模态不应隐藏当前页面。");
+
+        Assert(ui.TryGoBack(), "第二次返回应关闭顶部页面。");
+        Assert(pageA.Visible, "关闭顶部页面后应恢复前一页面。");
+
+        ui.Close(pageA);
+        Assert(!ui.TryGoBack(), "关闭全部界面后返回栈应为空。");
+
+        UiOpenException exception =
+            AssertThrows<UiOpenException>(() => ui.OpenPage(UiInvalidRootKey));
+        Assert(exception.Key == UiInvalidRootKey, "UI 打开异常应保留资源键。");
+        Assert(!ui.TryGoBack(), "打开失败不应修改返回栈。");
     }
 
     private static void RunConfigVerification()
