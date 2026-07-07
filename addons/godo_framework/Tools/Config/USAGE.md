@@ -67,4 +67,4 @@ if (table.TryGet("slime", out EnemyDefinition? slime))
 
 ## 实现与验证状态
 
-首版稳定基线完成。`TestScene.tscn` 已在 Godot 运行时通过有效/无效 Resource、缺失资源、正常/缺失键查询和重复键验证；编译为 0 警告、0 错误。
+首版稳定基线完成。已在 Godot 运行时通过有效/无效 Resource、缺失资源、正常/缺失键查询和重复键验证；对应临时验证入口已在验收后移除。
