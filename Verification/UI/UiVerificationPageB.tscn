@@ -13,9 +13,12 @@ color = Color(0.18, 0.1, 0.3, 0.96)
 script = ExtResource("1_page")
 OpenPageButtonPath = NodePath("Center/VBox/OpenPageButton")
 OpenModalButtonPath = NodePath("Center/VBox/OpenModalButton")
+ChangeSceneButtonPath = NodePath("Center/VBox/ChangeSceneButton")
+FailureButtonPath = NodePath("Center/VBox/FailureButton")
 CloseButtonPath = NodePath("Center/VBox/CloseButton")
 CounterButtonPath = NodePath("Center/VBox/CounterButton")
 CounterLabelPath = NodePath("Center/VBox/CounterLabel")
+FailureLabelPath = NodePath("Center/VBox/FailureLabel")
 
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -52,6 +55,19 @@ text = "再次打开 View B"
 [node name="OpenModalButton" type="Button" parent="Center/VBox"]
 layout_mode = 2
 text = "打开模态"
+
+[node name="ChangeSceneButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "切换主场景（验证 Scene 清理）"
+
+[node name="FailureButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "运行失败语义验证"
+
+[node name="FailureLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "失败语义尚未验证"
+horizontal_alignment = 1
 
 [node name="CloseButton" type="Button" parent="Center/VBox"]
 layout_mode = 2

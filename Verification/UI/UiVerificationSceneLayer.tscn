@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[node name="UiVerificationSceneLayer" type="MarginContainer"]
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 56.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.82, 0.25, 1)
+theme_override_font_sizes/font_size = 22
+text = "Scene 层标记：切换成功后此文字必须消失"
+horizontal_alignment = 1

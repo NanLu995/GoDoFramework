@@ -116,5 +116,8 @@ UiService 没有每帧更新，也不池化或维护第二套资源缓存。View
 
 - `dotnet build GoDoFramework.sln`：验证 C# API、Godot 绑定和场景资源引用可编译。
 - `Verification/UI/UiVerificationScene.tscn`：使用 F6 手动验证 View 恢复、嵌套 Modal、视觉层级和 GUI 指针阻挡。
-- 已完成旧版交互场景中的返回栈、嵌套模态、视觉层级和 GUI 指针阻挡验证；本次层级重构后需重新运行。
-- Scene 层随主内容场景切换自动清理的行为需要单独手动验证。
+- Scene 层清理：先打开 Scene 层标记和 View A，再在 View A 内点击“切换主场景（验证 Scene 清理）”；切换后 View A 必须继续显示，关闭 View A 后应看到只有说明 Label 的目标场景，且顶部 Scene 层标记必须不存在。
+- 失败语义：在 View A 或 View B 点击“运行失败语义验证”，结果必须显示通过，当前 View 的计数与导航仍应正常工作。
+- 已在 Godot 中完成层级重构后的 View 恢复、嵌套 Modal、视觉层级和 GUI 指针阻挡验证。
+- 已在 Godot 中完成 Scene 层随主内容场景切换自动清理，以及 View 跨场景保留验证。
+- 已在 Godot 中完成资源缺失、错误根类型和非法关闭的失败语义验证；异常后当前 View 的状态与导航保持正常。

@@ -11,6 +11,8 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_scene")
 OpenPageButtonPath = NodePath("Center/VBox/OpenPageButton")
+OpenSceneLayerButtonPath = NodePath("Center/VBox/OpenSceneLayerButton")
+ChangeSceneButtonPath = NodePath("Center/VBox/ChangeSceneButton")
 BackButtonPath = NodePath("Center/VBox/BackButton")
 BackgroundButtonPath = NodePath("Center/VBox/BackgroundButton")
 StatusLabelPath = NodePath("Center/VBox/StatusLabel")
@@ -46,12 +48,20 @@ horizontal_alignment = 1
 
 [node name="Instructions" type="Label" parent="Center/VBox"]
 layout_mode = 2
-text = "打开 View A，再测试 View B、模态和嵌套模态。\n模态打开时，尝试点击其外侧的 View 计数按钮。"
+text = "打开 View A，再测试 View B、模态和嵌套模态。\nScene 验证：打开 Scene 层标记和 View A，再切换主场景。"
 horizontal_alignment = 1
 
 [node name="OpenPageButton" type="Button" parent="Center/VBox"]
 layout_mode = 2
 text = "打开 View A"
+
+[node name="OpenSceneLayerButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "打开 Scene 层标记"
+
+[node name="ChangeSceneButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "仅切换主场景（目标是单 Label）"
 
 [node name="BackButton" type="Button" parent="Center/VBox"]
 layout_mode = 2

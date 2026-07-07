@@ -1,0 +1,33 @@
+[gd_scene format=3]
+
+[node name="UiVerificationTargetScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.06, 0.16, 0.1, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="Center"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "目标主场景\n此前打开的 View 应继续保留；关闭 View 后，Scene 层标记必须不存在"
+horizontal_alignment = 1
