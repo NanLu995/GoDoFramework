@@ -40,7 +40,7 @@ public sealed partial class UiVerificationModal : Control
         _closeButton = null;
     }
 
-    private void OnOpenModalPressed() => Services.Get<IUiService>().OpenModal(ModalKey);
+    private void OnOpenModalPressed() => Services.Get<IUiService>().Open(ModalKey, UiLayer.Modal);
 
     private void OnClosePressed() => Services.Get<IUiService>().Close(this);
 }

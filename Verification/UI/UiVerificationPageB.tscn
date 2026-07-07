@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Verification/UI/UiVerificationPage.cs" id="1_page"]
 
-[node name="UiVerificationPageB" type="ColorRect"]
+[node name="UiVerificationViewB" type="ColorRect"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -33,21 +33,21 @@ theme_override_constants/separation = 12
 [node name="Title" type="Label" parent="Center/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
-text = "页面 B"
+text = "View B"
 horizontal_alignment = 1
 
 [node name="CounterLabel" type="Label" parent="Center/VBox"]
 layout_mode = 2
-text = "当前页面按钮点击次数：0"
+text = "当前 View 按钮点击次数：0"
 horizontal_alignment = 1
 
 [node name="CounterButton" type="Button" parent="Center/VBox"]
 layout_mode = 2
-text = "页面点击计数（模态打开后应被阻止）"
+text = "View 点击计数（模态打开后应被阻止）"
 
 [node name="OpenPageButton" type="Button" parent="Center/VBox"]
 layout_mode = 2
-text = "再次打开页面 B"
+text = "再次打开 View B"
 
 [node name="OpenModalButton" type="Button" parent="Center/VBox"]
 layout_mode = 2
@@ -55,4 +55,4 @@ text = "打开模态"
 
 [node name="CloseButton" type="Button" parent="Center/VBox"]
 layout_mode = 2
-text = "关闭并恢复前一页面"
+text = "关闭并恢复前一 View"

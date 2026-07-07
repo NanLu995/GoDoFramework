@@ -1,0 +1,45 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/godo_framework/Runtime/UI/UiRoot.cs" id="1_ui_root"]
+
+[node name="GoDoUI" type="Node"]
+script = ExtResource("1_ui_root")
+SceneRootPath = NodePath("SceneLayer/SceneRoot")
+ViewRootPath = NodePath("ViewLayer/ViewRoot")
+ModalRootPath = NodePath("ModalLayer/ModalRoot")
+
+[node name="SceneLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="SceneRoot" type="Control" parent="SceneLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ViewLayer" type="CanvasLayer" parent="."]
+layer = 20
+
+[node name="ViewRoot" type="Control" parent="ViewLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ModalLayer" type="CanvasLayer" parent="."]
+layer = 30
+
+[node name="ModalRoot" type="Control" parent="ModalLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

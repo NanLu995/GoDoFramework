@@ -16,7 +16,7 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 [autoload]
 
-GoDoRuntime="*res://GoDo/Core/GoDoRuntime.tscn"
+GoDoRuntime="*res://addons/godo_framework/Core/GoDoRuntime.tscn"
 
 [display]
 
@@ -26,6 +26,10 @@ window/stretch/aspect="expand"
 [dotnet]
 
 project/assembly_name="GoDoFramework"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godo_framework/plugin.cfg")
 
 [physics]
 

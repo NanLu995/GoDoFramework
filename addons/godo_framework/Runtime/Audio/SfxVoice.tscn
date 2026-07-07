@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://GoDo/Runtime/Audio/SfxVoice.cs" id="1_sfx_voice"]
+[ext_resource type="Script" path="res://addons/godo_framework/Runtime/Audio/SfxVoice.cs" id="1_sfx_voice"]
 
 [node name="SfxVoice" type="AudioStreamPlayer"]
 script = ExtResource("1_sfx_voice")

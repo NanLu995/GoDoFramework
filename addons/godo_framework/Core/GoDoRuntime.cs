@@ -20,7 +20,7 @@ public sealed partial class GoDoRuntime : Node
 {
 #if DEBUG
     private static readonly ResourceKey DebuggerSceneKey =
-        ResourceKey.Create("res://GoDo/Diagnostics/DebuggerOverlay.tscn");
+        ResourceKey.Create("res://addons/godo_framework/Diagnostics/DebuggerOverlay.tscn");
 #endif
 
     private static GoDoRuntime? _instance;
@@ -28,6 +28,7 @@ public sealed partial class GoDoRuntime : Node
     private SceneService? _sceneService;
     private AudioService? _audioService;
     private UiService? _uiService;
+    private UiRoot? _uiRoot;
     private SaveService? _saveService;
     private SettingsService? _settingsService;
 #if DEBUG
@@ -42,6 +43,10 @@ public sealed partial class GoDoRuntime : Node
 
     [Export]
     public NodePath UiServicePath { get; set; } = null!;
+
+    /// <summary>启动阶段随运行时实例化、随后移动到 /root 的 UI 显示根路径。</summary>
+    [Export]
+    public NodePath UiRootPath { get; set; } = null!;
 
     public override void _EnterTree()
     {
@@ -79,6 +84,13 @@ public sealed partial class GoDoRuntime : Node
         _uiService = GetNodeOrNull<UiService>(UiServicePath);
         if (!IsInstanceValid(_uiService))
             throw new InvalidOperationException("GoDoRuntime 未配置 UiService 子节点。");
+
+        _uiRoot = GetNodeOrNull<UiRoot>(UiRootPath);
+        if (!IsInstanceValid(_uiRoot) || !_uiRoot.IsInitialized)
+            throw new InvalidOperationException("GoDoRuntime 未配置或未能初始化 UiRoot 子节点。");
+
+        _uiService.Initialize(_uiRoot);
+        CallDeferred(MethodName.ReparentUiRoot);
 
         Services.Register<ISceneService>(_sceneService);
         Services.Register<IAudioService>(_audioService);
@@ -125,12 +137,15 @@ public sealed partial class GoDoRuntime : Node
                 Services.Unregister<ISceneService>(_sceneService);
 
             Services.Clear();
+            if (IsInstanceValid(_uiRoot))
+                _uiRoot.QueueFree();
             ResourceHub.Shutdown();
             ErrorHub.Shutdown();
             _instance = null;
             _sceneService = null;
             _audioService = null;
             _uiService = null;
+            _uiRoot = null;
             _saveService = null;
             _settingsService = null;
 #if DEBUG
@@ -138,6 +153,16 @@ public sealed partial class GoDoRuntime : Node
 #endif
             MainThreadGuard.Reset();
         }
+    }
+
+    private void ReparentUiRoot()
+    {
+        if (_instance != this || !IsInsideTree() || !IsInstanceValid(_uiRoot))
+            return;
+
+        Window root = GetTree().Root;
+        if (_uiRoot.GetParent() != root)
+            _uiRoot.Reparent(root);
     }
 
     private static void OnDomainUnhandledException(

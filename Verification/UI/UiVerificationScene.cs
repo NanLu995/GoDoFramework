@@ -9,7 +9,7 @@ namespace GoDoFramework.Verification;
 /// <summary>UI 首版的可交互验证入口。</summary>
 public sealed partial class UiVerificationScene : Control
 {
-    private static readonly ResourceKey PageAKey =
+    private static readonly ResourceKey ViewAKey =
         ResourceKey.Create("res://Verification/UI/UiVerificationPageA.tscn");
 
     private Button? _openPageButton;
@@ -60,8 +60,8 @@ public sealed partial class UiVerificationScene : Control
 
     private void OnOpenPagePressed()
     {
-        Services.Get<IUiService>().OpenPage(PageAKey);
-        RefreshStatus("已打开页面 A");
+        Services.Get<IUiService>().Open(ViewAKey, UiLayer.View);
+        RefreshStatus("已打开 View A");
     }
 
     private void OnBackPressed()

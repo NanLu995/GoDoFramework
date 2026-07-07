@@ -8,7 +8,7 @@
 - 目标平台待定，不自行假设平台特性。
 - `FRAMEWORK_OVERVIEW.md`：历史愿景与痛点，仅讨论框架定位或重新规划时读取。
 - `FRAMEWORK_DESIGN_PLAN.md`：目标、状态与路线；新增模块或调整顺序前读取。
-- `ARCHITECTURE.md`：当前架构事实与依赖；修改 `GoDo/` 前读取。
+- `ARCHITECTURE.md`：当前架构事实与依赖；修改 `addons/godo_framework/` 前读取。
 - 模块 `USAGE.md`：API、失败语义、生命周期、性能和验证细节；处理对应模块时读取。
 - `GODOT_GOTCHAS.md`：项目实际遇到的 Godot/C# 坑位，按需读取。
 - 文档与代码冲突时，以源码和工程配置为准，同时指出并修正文档，不静默沿用旧描述。
@@ -16,7 +16,7 @@
 
 ## 框架入口
 
-- `GoDo/Core/GoDoRuntime.tscn` 是唯一 Autoload 入口；`GoDoRuntime.cs` 只负责框架初始化、服务注册与退出清理，不承载游戏流程。
+- `addons/godo_framework/Core/GoDoRuntime.tscn` 是唯一 Autoload 入口；`GoDoRuntime.cs` 只负责框架初始化、服务注册与退出清理，不承载游戏流程。
 - 业务场景和测试场景不得重复初始化框架；`TestScene.tscn` 仅用于验证。
 - 新增长期服务前，先在设计计划确认依赖和顺序，再接入 GoDoRuntime。
 - 不自动修改其他项目的 Autoload；未来由 EditorPlugin 提供显式安装能力。

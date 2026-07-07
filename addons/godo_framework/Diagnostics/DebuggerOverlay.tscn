@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3]
 
-[ext_resource type="Script" path="res://GoDo/Diagnostics/DebuggerOverlay.cs" id="1_debugger"]
+[ext_resource type="Script" path="res://addons/godo_framework/Diagnostics/DebuggerOverlay.cs" id="1_debugger"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.055, 0.065, 0.08, 0.82)

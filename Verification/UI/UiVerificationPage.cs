@@ -6,10 +6,10 @@ using GoDo;
 
 namespace GoDoFramework.Verification;
 
-/// <summary>用于验证页面入栈、恢复和模态阻挡的交互页面。</summary>
+/// <summary>用于验证 View 入栈、恢复和模态阻挡的交互界面。</summary>
 public sealed partial class UiVerificationPage : Control
 {
-    private static readonly ResourceKey PageBKey =
+    private static readonly ResourceKey ViewBKey =
         ResourceKey.Create("res://Verification/UI/UiVerificationPageB.tscn");
     private static readonly ResourceKey ModalKey =
         ResourceKey.Create("res://Verification/UI/UiVerificationModal.tscn");
@@ -68,9 +68,9 @@ public sealed partial class UiVerificationPage : Control
         _counterLabel = null;
     }
 
-    private void OnOpenPagePressed() => Services.Get<IUiService>().OpenPage(PageBKey);
+    private void OnOpenPagePressed() => Services.Get<IUiService>().Open(ViewBKey, UiLayer.View);
 
-    private void OnOpenModalPressed() => Services.Get<IUiService>().OpenModal(ModalKey);
+    private void OnOpenModalPressed() => Services.Get<IUiService>().Open(ModalKey, UiLayer.Modal);
 
     private void OnClosePressed() => Services.Get<IUiService>().Close(this);
 
@@ -82,6 +82,6 @@ public sealed partial class UiVerificationPage : Control
 
     private void RefreshCounter()
     {
-        _counterLabel!.Text = $"当前页面按钮点击次数：{_clickCount}";
+        _counterLabel!.Text = $"当前 View 按钮点击次数：{_clickCount}";
     }
 }
