@@ -29,7 +29,10 @@ public sealed class SaveException : Exception
 /// <summary>SaveException 对应的服务操作。</summary>
 public enum SaveOperation
 {
+    /// <summary>写入存档。</summary>
     Save,
+    /// <summary>读取存档。</summary>
     Load,
+    /// <summary>删除存档。</summary>
     Delete,
 }

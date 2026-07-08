@@ -13,29 +13,39 @@ public sealed partial class AudioService : Node, IAudioService
     private BgmPlaybackController? _bgm;
     private SfxPoolController? _sfx;
 
+    /// <summary>BGM 播放器节点路径。</summary>
     [Export]
     public NodePath BgmPlayerPath { get; set; } = null!;
 
+    /// <summary>SFX 播放节点的父节点路径。</summary>
     [Export]
     public NodePath SfxRootPath { get; set; } = null!;
 
+    /// <summary>SFX 声部使用的场景资源。</summary>
     [Export]
     public PackedScene SfxVoiceScene { get; set; } = null!;
 
+    /// <summary>SFX 声部总数上限。</summary>
     [Export(PropertyHint.Range, "1,256,1")]
     public int MaxSfxVoices { get; set; } = 32;
 
+    /// <summary>启动时预热的 SFX 声部数量。</summary>
     [Export(PropertyHint.Range, "0,256,1")]
     public int InitialSfxVoices { get; set; } = 8;
 
     /// <summary>服务是否已经完成节点与对象池初始化。</summary>
     internal bool IsInitialized => _bgm != null && _sfx != null;
 
+    /// <inheritdoc />
     public ResourceKey? CurrentBgm => GetBgm().CurrentBgm;
+    /// <inheritdoc />
     public bool IsBgmPlaying => GetBgm().IsPlaying;
+    /// <inheritdoc />
     public bool IsBgmLoading => GetBgm().IsLoading;
+    /// <inheritdoc />
     public int ActiveSfxCount => GetSfx().ActiveCount;
 
+    /// <inheritdoc />
     public override void _Ready()
     {
         MainThreadGuard.VerifyAccess();
@@ -64,6 +74,7 @@ public sealed partial class AudioService : Node, IAudioService
             InitialSfxVoices);
     }
 
+    /// <inheritdoc />
     public override void _ExitTree()
     {
         if (_sfx != null)
@@ -79,25 +90,33 @@ public sealed partial class AudioService : Node, IAudioService
         }
     }
 
+    /// <inheritdoc />
     public Task PlayBgmAsync(ResourceKey key, bool restart = false) =>
         GetBgm().PlayAsync(key, restart);
 
+    /// <inheritdoc />
     public void PauseBgm() => GetBgm().Pause();
 
+    /// <inheritdoc />
     public void ResumeBgm() => GetBgm().Resume();
 
+    /// <inheritdoc />
     public void StopBgm() => GetBgm().Stop();
 
+    /// <inheritdoc />
     public Task<bool> PlaySfxAsync(ResourceKey key) => GetSfx().PlayAsync(key);
 
+    /// <inheritdoc />
     public void StopAllSfx() => GetSfx().StopAll();
 
+    /// <inheritdoc />
     public float GetVolume(AudioGroup group)
     {
         VerifyReady();
         return _buses.GetVolume(group);
     }
 
+    /// <inheritdoc />
     public void SetVolume(AudioGroup group, float linearVolume)
     {
         VerifyReady();

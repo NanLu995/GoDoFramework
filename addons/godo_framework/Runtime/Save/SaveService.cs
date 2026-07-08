@@ -25,6 +25,7 @@ public sealed class SaveService : ISaveService
 
     private static readonly byte[] Magic = Encoding.ASCII.GetBytes("GODOSAVE");
 
+    /// <inheritdoc />
     public void Save<T>(SaveSlot slot, T value, int dataVersion, ISaveCodec<T> codec)
     {
         VerifyAccess();
@@ -70,6 +71,7 @@ public sealed class SaveService : ISaveService
         }
     }
 
+    /// <inheritdoc />
     public SaveLoadResult<T> Load<T>(SaveSlot slot, ISaveCodec<T> codec)
     {
         VerifyAccess();
@@ -123,6 +125,7 @@ public sealed class SaveService : ISaveService
             primaryFailure);
     }
 
+    /// <inheritdoc />
     public bool Exists(SaveSlot slot)
     {
         VerifyAccess();
@@ -132,6 +135,7 @@ public sealed class SaveService : ISaveService
                GodotFileAccess.FileExists(paths.Backup);
     }
 
+    /// <inheritdoc />
     public bool Delete(SaveSlot slot)
     {
         VerifyAccess();

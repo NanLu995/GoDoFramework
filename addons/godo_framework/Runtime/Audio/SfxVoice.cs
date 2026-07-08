@@ -10,6 +10,7 @@ public sealed partial class SfxVoice : AudioStreamPlayer, IPoolable
 {
     internal event Action<SfxVoice>? PlaybackFinished;
 
+    /// <inheritdoc />
     public void OnAcquire()
     {
         Bus = AudioBusController.SfxBus;
@@ -20,6 +21,7 @@ public sealed partial class SfxVoice : AudioStreamPlayer, IPoolable
         Finished += OnFinished;
     }
 
+    /// <inheritdoc />
     public void OnRelease()
     {
         Finished -= OnFinished;

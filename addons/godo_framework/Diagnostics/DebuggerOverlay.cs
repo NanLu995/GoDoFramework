@@ -27,16 +27,22 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private double _refreshElapsed;
     private bool _expanded;
 
+    /// <summary>展开面板的节点路径。</summary>
     [Export] public NodePath PanelPath { get; set; } = null!;
+    /// <summary>折叠状态按钮的节点路径。</summary>
     [Export] public NodePath ToggleButtonPath { get; set; } = null!;
+    /// <summary>诊断内容容器的节点路径。</summary>
     [Export] public NodePath ContentPath { get; set; } = null!;
+    /// <summary>诊断摘要标签的节点路径。</summary>
     [Export] public NodePath DiagnosticsLabelPath { get; set; } = null!;
 
+    /// <inheritdoc />
     public override void _EnterTree()
     {
         ErrorHub.OnError += OnErrorReported;
     }
 
+    /// <inheritdoc />
     public override void _Ready()
     {
         _panel = GetNodeOrNull<PanelContainer>(PanelPath);
@@ -57,6 +63,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         RefreshFps();
     }
 
+    /// <inheritdoc />
     public override void _Process(double delta)
     {
         _refreshElapsed += delta;
@@ -70,6 +77,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             RefreshDiagnostics();
     }
 
+    /// <inheritdoc />
     public override void _ExitTree()
     {
         ErrorHub.OnError -= OnErrorReported;

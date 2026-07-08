@@ -30,6 +30,7 @@ public sealed partial class UiService : Node, IUiService
         EventChannel.Bind<MainSceneChangedEvent>(this, OnMainSceneChanged);
     }
 
+    /// <inheritdoc />
     public override void _ExitTree()
     {
         _sceneViews.Clear();

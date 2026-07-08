@@ -21,11 +21,13 @@ public sealed partial class SceneService : Node, ISceneService
     /// <summary>当前场景加载进度，范围为 0 到 1。</summary>
     public float Progress { get; private set; }
 
+    /// <inheritdoc />
     public override void _EnterTree()
     {
         _lifecycleVersion++;
     }
 
+    /// <inheritdoc />
     public override void _ExitTree()
     {
         _lifecycleVersion++;

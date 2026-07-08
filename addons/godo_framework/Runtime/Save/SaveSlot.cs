@@ -49,17 +49,23 @@ public readonly struct SaveSlot : IEquatable<SaveSlot>
         return new SaveSlot(value);
     }
 
+    /// <inheritdoc />
     public bool Equals(SaveSlot other) =>
         string.Equals(_value, other._value, StringComparison.Ordinal);
 
+    /// <inheritdoc />
     public override bool Equals(object? obj) => obj is SaveSlot other && Equals(other);
 
+    /// <inheritdoc />
     public override int GetHashCode() =>
         _value == null ? 0 : StringComparer.Ordinal.GetHashCode(_value);
 
+    /// <inheritdoc />
     public override string ToString() => Value;
 
+    /// <summary>判断两个槽位是否相等。</summary>
     public static bool operator ==(SaveSlot left, SaveSlot right) => left.Equals(right);
 
+    /// <summary>判断两个槽位是否不相等。</summary>
     public static bool operator !=(SaveSlot left, SaveSlot right) => !left.Equals(right);
 }

@@ -24,6 +24,7 @@ public sealed partial class UiRoot : Node
     internal bool IsInitialized =>
         IsInstanceValid(SceneRoot) && IsInstanceValid(ViewRoot) && IsInstanceValid(ModalRoot);
 
+    /// <inheritdoc />
     public override void _Ready()
     {
         SceneRoot = GetNodeOrNull<Control>(SceneRootPath)!;

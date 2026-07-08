@@ -35,12 +35,15 @@ public sealed partial class GoDoRuntime : Node
     private DebuggerOverlay? _debuggerOverlay;
 #endif
 
+    /// <summary>SceneService 子节点路径。</summary>
     [Export]
     public NodePath SceneServicePath { get; set; } = null!;
 
+    /// <summary>AudioService 子节点路径。</summary>
     [Export]
     public NodePath AudioServicePath { get; set; } = null!;
 
+    /// <summary>UiService 子节点路径。</summary>
     [Export]
     public NodePath UiServicePath { get; set; } = null!;
 
@@ -48,6 +51,7 @@ public sealed partial class GoDoRuntime : Node
     [Export]
     public NodePath UiRootPath { get; set; } = null!;
 
+    /// <inheritdoc />
     public override void _EnterTree()
     {
         if (IsInstanceValid(_instance) && _instance != this)
@@ -65,6 +69,7 @@ public sealed partial class GoDoRuntime : Node
         ResourceHub.Initialize();
     }
 
+    /// <inheritdoc />
     public override void _Ready()
     {
         if (_instance != this || _subscribed)
@@ -109,12 +114,14 @@ public sealed partial class GoDoRuntime : Node
         ErrorHub.Debug("GoDo 运行时初始化完成", "Runtime");
     }
 
+    /// <inheritdoc />
     public override void _Process(double delta)
     {
         ResourceHub.Update();
         ErrorHub.FlushPending();
     }
 
+    /// <inheritdoc />
     public override void _ExitTree()
     {
         if (_subscribed)
