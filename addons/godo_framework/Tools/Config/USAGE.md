@@ -67,4 +67,10 @@ if (table.TryGet("slime", out EnemyDefinition? slime))
 
 ## 实现与验证状态
 
-首版稳定基线完成。已在 Godot 运行时通过有效/无效 Resource、缺失资源、正常/缺失键查询和重复键验证；对应临时验证入口已在验收后移除。
+首版稳定基线完成。`Verification/Automated/ConfigRegression.tscn` 验证有效配置加载、无效配置异常上下文、缺失资源异常透传、ConfigTable 查询与比较器、缺失键、重复键和空项拒绝。
+
+```powershell
+Godot_v4.7-stable_mono_win64_console.exe --headless --path . Verification/Automated/ConfigRegression.tscn
+```
+
+当前 runner 已通过 `dotnet build` 编译，并在 Godot 4.7 Mono Headless 中完成 6/6 项验证；成功退出码为 0，失败退出码为 1。

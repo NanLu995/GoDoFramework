@@ -68,6 +68,24 @@ private void OnProgressChanged(float progress)
 - 每个异步操作复用进度数组，Update 复用缓冲列表；不要自行重复轮询 Godot API。
 - `ActiveOperationCount` 只表示 ResourceHub 当前活动请求，不代表 Godot 全局缓存数量。
 
+## 自动回归验证
+
+`Verification/Automated/ResourceKeyRegression.tscn` 验证合法路径规范化、空白与非 `res://` 路径拒绝、非规范路径、父目录跳转、区分大小写的相等性、默认值和哈希集合行为；该 runner 不触发 ResourceLoader。
+
+```powershell
+Godot_v4.7-stable_mono_win64_console.exe --headless --path . Verification/Automated/ResourceKeyRegression.tscn
+```
+
+当前 runner 已通过 `dotnet build` 编译，并在 Godot 4.7 Mono Headless 中完成 6/6 项验证；成功退出码为 0，失败退出码为 1。
+
+`Verification/Automated/ResourceHubRegression.tscn` 复用现有强类型 `.tres`，验证同步加载、无效与缺失资源、同步类型不匹配、异步请求合并、同路径类型冲突、异步期间同步冲突，以及完成操作从活动表清理；不调用 Shutdown。
+
+```powershell
+Godot_v4.7-stable_mono_win64_console.exe --headless --path . Verification/Automated/ResourceHubRegression.tscn
+```
+
+ResourceHub runner 已通过 `dotnet build` 编译，并在 Godot 4.7 Mono Headless 中完成 5/5 项验证；成功退出码为 0，失败退出码为 1。
+
 ## 不负责的能力
 
 远程下载、PCK/DLC、热更新、目录批量加载、手动 Unload、下载重试和高级缓存策略属于独立未来扩展，不应混入 ResourceHub 核心。

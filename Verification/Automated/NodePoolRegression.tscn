@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Verification/Automated/NodePoolRegression.cs" id="1_runner"]
+[ext_resource type="PackedScene" path="res://Verification/Automated/PoolRegressionNode.tscn" id="2_node_scene"]
+
+[node name="NodePoolRegression" type="Node"]
+script = ExtResource("1_runner")
+TestNodeScene = ExtResource("2_node_scene")

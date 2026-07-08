@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Verification/Automated/PoolRegressionNode.cs" id="1_node"]
+
+[node name="PoolRegressionNode" type="Node"]
+script = ExtResource("1_node")

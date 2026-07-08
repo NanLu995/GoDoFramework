@@ -63,6 +63,16 @@ if (result.HasValue)
 - 100 次小型 JSON Payload 保存/读取 Debug 验证为 594 ms、当前线程累计分配 439176 bytes。
 - 性能数据包含 JSON Codec、SHA-256、文件读写、备份重命名和测试断言，不代表所有平台固定耗时。
 
+### 自动回归验证
+
+`Verification/Automated/SaveServiceRegression.tscn` 使用随机 `godo-regression-*` 槽位验证 NotFound、保存读取与元数据、正式档损坏后的备份恢复、Codec 异常边界，以及正式档与备份的完整删除。runner 在最外层 `finally` 清理本次创建的全部槽位，不使用正式游戏槽位。
+
+```powershell
+Godot_v4.7-stable_mono_win64_console.exe --headless --path . Verification/Automated/SaveServiceRegression.tscn
+```
+
+当前 runner 已通过 `dotnet build` 编译，并在 Godot 4.7 Mono Headless 中完成 5/5 项验证；成功退出码为 0，失败退出码为 1，验证后未残留 `godo-regression-*` 文件。
+
 ## 后续可选扩展
 
 - Debug 可由业务 Codec 额外输出可读 `.debug.json` 镜像；镜像只用于诊断，SaveService 的 Load 永远不读取它。

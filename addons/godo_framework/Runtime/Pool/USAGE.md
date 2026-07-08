@@ -62,6 +62,16 @@ bool released = pool.Release(projectile);
 - Release 后节点离开场景树，依赖 `_ExitTree()` 的逻辑会执行；复用时也会再次 `_EnterTree()`。
 - Pool 不支持多线程、纯 C# 对象、自动字段重置或复杂淘汰策略。
 
+## 自动回归验证
+
+`Verification/Automated/NodePoolRegression.tscn` 使用最小 PackedScene 和 IPoolable 测试节点，验证预热、Acquire/Release 与实例复用、空闲容量、重复和外部节点拒绝、Clear 以及 Dispose 强制清理活动节点。
+
+```powershell
+Godot_v4.7-stable_mono_win64_console.exe --headless --path . Verification/Automated/NodePoolRegression.tscn
+```
+
+当前 runner 已通过 `dotnet build` 编译，并在 Godot 4.7 Mono Headless 中完成 6/6 项验证；成功退出码为 0，失败退出码为 1。测试节点只存在于 `Verification/Automated/`，不进入框架发布包。
+
 ## 常见误用
 
 | 应该 | 避免 |

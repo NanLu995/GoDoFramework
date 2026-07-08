@@ -45,6 +45,16 @@ Services.Unregister<ISceneService>(sceneService);
 - 短生命周期对象、关卡节点或临时数据不应注册为全局服务。
 - 测试替换服务时应先注销原实例，并在测试结束后恢复，避免污染其他用例。
 
+## 自动回归验证
+
+`Verification/Automated/ServicesRegression.tscn` 使用专属测试接口验证缺失查询、注册与获取、重复注册、具体类型拒绝、实例匹配注销和注销后状态，不会清空或替换 GoDoRuntime 已注册的真实服务。
+
+```powershell
+Godot_v4.7-stable_mono_win64_console.exe --headless --path . Verification/Automated/ServicesRegression.tscn
+```
+
+当前 runner 已通过 `dotnet build` 编译，并在 Godot 4.7 Mono Headless 中完成 6/6 项验证；成功退出码为 0，失败退出码为 1。
+
 ## 常见误用
 
 | 应该 | 避免 |
