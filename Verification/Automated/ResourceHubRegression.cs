@@ -12,9 +12,9 @@ namespace GoDoFramework.Verification;
 public sealed partial class ResourceHubRegression : Node
 {
     private static readonly ResourceKey ValidKey =
-        ResourceKey.Create("res://resources/ConfigTestValid.tres");
+        ResourceKey.Create("res://Verification/Automated/Fixtures/ConfigTestValid.tres");
     private static readonly ResourceKey MissingKey =
-        ResourceKey.Create("res://resources/ResourceHubMissing.tres");
+        ResourceKey.Create("res://Verification/Automated/Fixtures/ResourceHubMissing.tres");
 
     private int _passed;
 

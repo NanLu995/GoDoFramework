@@ -11,11 +11,11 @@ namespace GoDoFramework.Verification;
 public sealed partial class ConfigRegression : Node
 {
     private static readonly ResourceKey ValidKey =
-        ResourceKey.Create("res://resources/ConfigTestValid.tres");
+        ResourceKey.Create("res://Verification/Automated/Fixtures/ConfigTestValid.tres");
     private static readonly ResourceKey InvalidKey =
-        ResourceKey.Create("res://resources/ConfigTestInvalid.tres");
+        ResourceKey.Create("res://Verification/Automated/Fixtures/ConfigTestInvalid.tres");
     private static readonly ResourceKey MissingKey =
-        ResourceKey.Create("res://resources/ConfigTestMissing.tres");
+        ResourceKey.Create("res://Verification/Automated/Fixtures/ConfigTestMissing.tres");
 
     private int _passed;
 
