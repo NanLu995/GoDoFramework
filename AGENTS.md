@@ -34,6 +34,9 @@
 
 - 类/方法 PascalCase，私有字段 `_camelCase`，常量 PascalCase；public API 提供 XML 注释。
 - 类名、方法名、字段名、事件名、资源键、场景名和目录名优先使用计算机/工程语义，少用口语化自然语言；命名应表达类型、职责、生命周期或数据含义，例如 `ProcedureContext`、`SaveSlot`、`ResourceKey`，避免 `DoSomething`、`HandleStuff`、`GameThing`、`Shell` 这类含义松散或需要上下文猜测的名称。
+- 缩写遵循项目既有 C# 风格：类型和成员名使用 `Ui`、`Bgm`、`Sfx` 这类 PascalCase 形式；文档正文描述模块概念时可使用 `UI`、`BGM`、`SFX`。
+- `Hub`、`Service`、`Controller`、`Adapter`、`Factory`、`Codec`、`Operation`、`Status` 等后缀只在职责与生命周期确实匹配时使用；不要为听起来像框架而套后缀。
+- 重命名 public API、信号、资源键、场景名或目录名属于兼容性改动，必须先说明影响、迁移范围和验证方式，等待明确确认后再改。
 - 节点引用优先使用 `[Export]`；必须查找时用 `GetNodeOrNull<T>()` 并处理缺失，不硬编码脆弱路径。
 - 异步优先 Godot 信号/协程（`await ToSignal(...)`）；未明确要求时不使用 `Task.Run` 操作 Godot 对象。
 - `QueueFree()` 后不要继续访问节点；不确定释放时序时先询问。
@@ -67,6 +70,7 @@
 - Core 模块不通过 Services 或直接引用横向耦合；遵循 `ARCHITECTURE.md` 使用 EventChannel。ErrorHub 是明确例外——因其承担全局错误上报职责，需被各层直接访问，不走 EventChannel 这层间接层；除 ErrorHub 外不再新增同类例外。
 - Services 只供业务层访问长期服务，不是框架内部依赖捷径。
 - 新增模块/API 前先检查现有事件、日志、错误、资源和对象池能力，避免重复实现。
+- 设计框架功能前必须先说明性能、鲁棒性与稳定性取舍：是否处于高频路径、是否产生额外分配、失败是否可见、生命周期是否可清理、跨平台/Debug 与 Release 行为是否一致；没有验证证据时不要把接口标为稳定基线。
 - Scene、Audio、UI、Config 等加载 Godot Resource 时统一使用 ResourceHub。
 - ResourceHub API 使用 `ResourceKey` 与 `T : Resource`；失败抛 `ResourceLoadException`，不返回 null、不重复上报后再抛出，也不维护第二套缓存或引用计数。
 - 远程下载、PCK/DLC、热更新、目录加载和高级缓存属于未来独立扩展。

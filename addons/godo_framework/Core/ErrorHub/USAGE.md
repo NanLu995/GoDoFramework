@@ -88,7 +88,7 @@ ErrorHub.RemoveReporter(reporter);
 - Reporter 按实例引用去重和移除。
 - Reporter 在错误分发调用栈上同步执行，禁止 `.Wait()`、`.Result` 或同步网络请求。
 - GoDoRuntime Shutdown 会清理监听者，并 Dispose 仍在注册且实现 `IDisposable` 的 Reporter。
-- `RemoteReporterStub` 只是扩展骨架，不是生产可用的远程上报实现。
+- `RemoteErrorReporterTemplate` 只是扩展骨架，不是生产可用的远程上报实现。
 
 ## 后台线程与队列
 

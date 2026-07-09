@@ -20,12 +20,12 @@ namespace GoDo;
 /// 网络请求在后台运行，失败也只会打印一行日志，绝不向上抛出或阻塞调用方。
 /// </para>
 /// </summary>
-public sealed class RemoteReporterStub : IErrorReporter
+public sealed class RemoteErrorReporterTemplate : IErrorReporter
 {
     private readonly string _endpoint;
 
     /// <param name="endpoint">远程服务器 URL，例如 "https://errors.mygame.com/report"。</param>
-    public RemoteReporterStub(string endpoint)
+    public RemoteErrorReporterTemplate(string endpoint)
     {
         _endpoint = endpoint;
     }
@@ -70,7 +70,7 @@ public sealed class RemoteReporterStub : IErrorReporter
         catch (System.Exception ex)
         {
             // 网络层失败绝不可以再抛回 ErrorHub，否则可能死循环上报错误。
-            GD.PrintErr($"[RemoteReporterStub] 上报到 {_endpoint} 失败: {ex.Message}");
+            GD.PrintErr($"[RemoteErrorReporterTemplate] 上报到 {_endpoint} 失败: {ex.Message}");
         }
     }
 }
