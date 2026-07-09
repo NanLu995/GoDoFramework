@@ -24,8 +24,10 @@ public sealed partial class ProcedureRegression : Node
             await RunAsync("Exit 失败保留旧流程", VerifyExitFailureAsync);
             await RunAsync("Enter 失败后当前流程为空", VerifyEnterFailureAsync);
             await RunAsync("Context 获取服务", VerifyContextServiceAccessAsync);
+            await RunAsync("Enter 内请求后续流程", VerifyEnterRequestedChangeAsync);
+            await RunAsync("当前流程方法请求切换", VerifyCurrentProcedureRequestedChangeAsync);
 
-            GD.Print($"[ProcedureRegression] PASS ({_passed}/7)");
+            GD.Print($"[ProcedureRegression] PASS ({_passed}/9)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -143,6 +145,34 @@ public sealed partial class ProcedureRegression : Node
         }
     }
 
+    private static async Task VerifyEnterRequestedChangeAsync()
+    {
+        var service = new ProcedureService();
+        var log = new ProcedureLog();
+        var next = new RecordingProcedure("Menu", log);
+        var boot = new RequestOnEnterProcedure("Boot", next, log);
+
+        await service.ChangeAsync(boot);
+
+        Assert(ReferenceEquals(next, service.Current), "Enter 内 RequestChange 后 Current 不是请求的后续流程");
+        Assert(log.Text == "Enter:Boot;Exit:Boot;Enter:Menu;", $"Enter 请求切换顺序不正确: {log.Text}");
+        Assert(!service.IsChanging, "Enter 请求切换完成后 IsChanging 未复位");
+    }
+
+    private static async Task VerifyCurrentProcedureRequestedChangeAsync()
+    {
+        var service = new ProcedureService();
+        var log = new ProcedureLog();
+        var current = new CommandProcedure("Menu", log);
+        var next = new RecordingProcedure("Game", log);
+
+        await service.ChangeAsync(current);
+        current.RequestNext(next);
+        await Task.Delay(1);
+
+        Assert(ReferenceEquals(next, service.Current), "当前流程方法 RequestChange 后 Current 不正确");
+        Assert(log.Text == "Enter:Menu;Exit:Menu;Enter:Game;", $"当前流程方法请求切换顺序不正确: {log.Text}");
+    }
     private static void Assert(bool condition, string message)
     {
         if (!condition)
@@ -199,6 +229,51 @@ public sealed partial class ProcedureRegression : Node
         }
     }
 
+    private sealed class RequestOnEnterProcedure : RecordingProcedure
+    {
+        private readonly IProcedure _next;
+
+        public RequestOnEnterProcedure(string name, IProcedure next, ProcedureLog log) : base(name, log)
+        {
+            _next = next;
+        }
+
+        public override Task EnterAsync(ProcedureContext context)
+        {
+            Task result = base.EnterAsync(context);
+            context.RequestChange(_next);
+            return result;
+        }
+    }
+
+    private sealed class CommandProcedure : RecordingProcedure
+    {
+        private ProcedureContext? _context;
+
+        public CommandProcedure(string name, ProcedureLog log) : base(name, log)
+        {
+        }
+
+        public override Task EnterAsync(ProcedureContext context)
+        {
+            _context = context;
+            return base.EnterAsync(context);
+        }
+
+        public override Task ExitAsync(ProcedureContext context)
+        {
+            _context = null;
+            return base.ExitAsync(context);
+        }
+
+        public void RequestNext(IProcedure next)
+        {
+            if (_context == null)
+                throw new InvalidOperationException("流程尚未进入，不能请求切换。");
+
+            _context.RequestChange(next);
+        }
+    }
     private sealed class BlockingProcedure : RecordingProcedure
     {
         private readonly TaskCompletionSource _releaseEnter = new();

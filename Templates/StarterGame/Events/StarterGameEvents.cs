@@ -1,6 +1,6 @@
 using GoDo;
 
-namespace GoDoFramework.Templates.StarterGame;
+namespace StarterGame;
 
 /// <summary>StarterGame 模板的业务事件标记。</summary>
 public interface IStarterGameEvent : IEventMessage { }

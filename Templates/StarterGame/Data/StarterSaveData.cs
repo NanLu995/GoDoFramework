@@ -1,4 +1,4 @@
-namespace GoDoFramework.Templates.StarterGame;
+namespace StarterGame;
 
 /// <summary>StarterGame 模板的持久化数据。</summary>
 public sealed class StarterSaveData

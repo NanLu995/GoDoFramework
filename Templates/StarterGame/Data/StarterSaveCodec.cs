@@ -2,7 +2,7 @@ using System;
 using System.Buffers.Binary;
 using GoDo;
 
-namespace GoDoFramework.Templates.StarterGame;
+namespace StarterGame;
 
 /// <summary>StarterGame 首版存档的固定长度二进制 Codec。</summary>
 public sealed class StarterSaveCodec : ISaveCodec<StarterSaveData>

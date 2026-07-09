@@ -5,17 +5,19 @@ using GoDo;
 
 #nullable enable
 
-namespace GoDoFramework.Templates.StarterGame;
+namespace StarterGame;
 
-/// <summary>结算流程：停止 BGM 并打开结算 View。</summary>
+/// <summary>结算流程：停止 BGM、打开结算 View，并响应结算界面操作。</summary>
 public sealed class ResultProcedure : IProcedure
 {
     private Control? _view;
+    private ProcedureContext? _context;
 
     public string Name => "Result";
 
     public Task EnterAsync(ProcedureContext context)
     {
+        _context = context;
         context.GetService<IAudioService>().StopBgm();
         _view = context.GetService<IUiService>().Open(StarterGameKeys.ResultView, UiLayer.View);
         return Task.CompletedTask;
@@ -23,8 +25,27 @@ public sealed class ResultProcedure : IProcedure
 
     public Task ExitAsync(ProcedureContext context)
     {
+        _context = null;
         CloseView(context);
         return Task.CompletedTask;
+    }
+
+    public void Retry()
+    {
+        RequestChange(new GameplayProcedure());
+    }
+
+    public void ReturnToMenu()
+    {
+        RequestChange(new MainMenuProcedure());
+    }
+
+    private void RequestChange(IProcedure next)
+    {
+        if (_context == null)
+            throw new InvalidOperationException("ResultProcedure 尚未进入，不能请求切换。");
+
+        _context.RequestChange(next);
     }
 
     private void CloseView(ProcedureContext context)

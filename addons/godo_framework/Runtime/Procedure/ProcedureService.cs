@@ -11,7 +11,15 @@ namespace GoDo;
 /// </summary>
 public sealed class ProcedureService : IProcedureService
 {
-    private readonly ProcedureContext _context = new();
+    private readonly ProcedureContext _context;
+    private IProcedure? _requestedProcedure;
+    private bool _isProcessingRequest;
+
+    /// <summary>创建顶层流程服务。</summary>
+    public ProcedureService()
+    {
+        _context = new ProcedureContext(RequestChange);
+    }
 
     /// <inheritdoc />
     public IProcedure? Current { get; private set; }
@@ -28,17 +36,62 @@ public sealed class ProcedureService : IProcedureService
         if (IsChanging)
             throw new ProcedureChangeException(next.Name, "已有流程切换正在执行，不能重复发起请求。");
 
-        IsChanging = true;
-        IProcedure? previous = Current;
+        await ChangeSequenceAsync(next);
+    }
 
+    internal void Shutdown()
+    {
+        MainThreadGuard.VerifyAccess();
+        Current = null;
+        _requestedProcedure = null;
+        IsChanging = false;
+        _isProcessingRequest = false;
+    }
+
+    private void RequestChange(IProcedure next)
+    {
+        MainThreadGuard.VerifyAccess();
+        ArgumentNullException.ThrowIfNull(next);
+
+        _requestedProcedure = next;
+        if (!IsChanging && !_isProcessingRequest)
+            _ = ProcessRequestedChangeAsync();
+    }
+
+    private async Task ProcessRequestedChangeAsync()
+    {
+        _isProcessingRequest = true;
         try
         {
-            if (previous != null)
-                await ExitAsync(previous);
+            while (_requestedProcedure != null)
+            {
+                IProcedure next = _requestedProcedure;
+                _requestedProcedure = null;
+                await ChangeAsync(next);
+            }
+        }
+        catch (Exception exception)
+        {
+            ErrorHub.Report(exception, "Procedure", "处理流程切换请求失败");
+        }
+        finally
+        {
+            _isProcessingRequest = false;
+        }
+    }
 
-            Current = null;
-            await EnterAsync(next);
-            Current = next;
+    private async Task ChangeSequenceAsync(IProcedure next)
+    {
+        IsChanging = true;
+        try
+        {
+            await ChangeSingleAsync(next);
+            while (_requestedProcedure != null)
+            {
+                IProcedure requested = _requestedProcedure;
+                _requestedProcedure = null;
+                await ChangeSingleAsync(requested);
+            }
         }
         finally
         {
@@ -46,11 +99,15 @@ public sealed class ProcedureService : IProcedureService
         }
     }
 
-    internal void Shutdown()
+    private async Task ChangeSingleAsync(IProcedure next)
     {
-        MainThreadGuard.VerifyAccess();
+        IProcedure? previous = Current;
+        if (previous != null)
+            await ExitAsync(previous);
+
         Current = null;
-        IsChanging = false;
+        await EnterAsync(next);
+        Current = next;
     }
 
     private async Task ExitAsync(IProcedure procedure)

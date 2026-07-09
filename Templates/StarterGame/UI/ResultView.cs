@@ -4,7 +4,7 @@ using GoDo;
 
 #nullable enable
 
-namespace GoDoFramework.Templates.StarterGame;
+namespace StarterGame;
 
 /// <summary>StarterGame 结算界面。</summary>
 public sealed partial class ResultView : Control
@@ -56,27 +56,30 @@ public sealed partial class ResultView : Control
         _menuButton = null;
     }
 
-    private async void OnRetryPressed()
+    private void OnRetryPressed()
     {
-        await ChangeProcedureAsync(new GameplayProcedure());
+        NotifyCurrentProcedure(static procedure => procedure.Retry(), "通知 ResultProcedure 再来一局失败");
     }
 
-    private async void OnMenuPressed()
+    private void OnMenuPressed()
     {
-        await ChangeProcedureAsync(new MainMenuProcedure());
+        NotifyCurrentProcedure(static procedure => procedure.ReturnToMenu(), "通知 ResultProcedure 返回主菜单失败");
     }
 
-    private async System.Threading.Tasks.Task ChangeProcedureAsync(IProcedure procedure)
+    private void NotifyCurrentProcedure(Action<ResultProcedure> action, string errorContext)
     {
         SetButtonsDisabled(true);
         try
         {
-            await Services.Get<IProcedureService>().ChangeAsync(procedure);
+            if (Services.Get<IProcedureService>().Current is not ResultProcedure procedure)
+                throw new InvalidOperationException("当前流程不是 ResultProcedure，不能处理结算操作。");
+
+            action(procedure);
         }
         catch (Exception exception)
         {
             SetButtonsDisabled(false);
-            ErrorHub.Report(exception, nameof(ResultView), $"切换到 {procedure.Name} 失败");
+            ErrorHub.Report(exception, nameof(ResultView), errorContext);
         }
     }
 

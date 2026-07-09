@@ -4,7 +4,7 @@ using GoDo;
 
 #nullable enable
 
-namespace GoDoFramework.Templates.StarterGame;
+namespace StarterGame;
 
 /// <summary>通过 EventChannel 接收分数变化并刷新显示。</summary>
 public sealed partial class ScorePanel : Control

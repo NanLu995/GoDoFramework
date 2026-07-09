@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3]
 
-[ext_resource type="Script" path="res://addons/godo_framework/Diagnostics/DebuggerOverlay.cs" id="1_debugger"]
+[ext_resource type="Script" path="res://addons/godo_framework/Debugger/DebuggerOverlay.cs" id="1_debugger"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.055, 0.065, 0.08, 0.82)
@@ -36,7 +36,7 @@ script = ExtResource("1_debugger")
 PanelPath = NodePath("Panel")
 ToggleButtonPath = NodePath("Panel/Margin/VBox/Header/FpsButton")
 ContentPath = NodePath("Panel/Margin/VBox/Content")
-DiagnosticsLabelPath = NodePath("Panel/Margin/VBox/Content/DiagnosticsLabel")
+DebuggerLabelPath = NodePath("Panel/Margin/VBox/Content/DebuggerLabel")
 
 [node name="Panel" type="PanelContainer" parent="."]
 offset_left = 12.0
@@ -77,10 +77,10 @@ layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="DiagnosticsLabel" type="Label" parent="Panel/Margin/VBox/Content"]
+[node name="DebuggerLabel" type="Label" parent="Panel/Margin/VBox/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/line_spacing = 3
 theme_override_font_sizes/font_size = 14
-text = "Loading diagnostics..."
+text = "Loading debugger..."
 autowrap_mode = 2

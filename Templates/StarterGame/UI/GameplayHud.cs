@@ -4,7 +4,7 @@ using GoDo;
 
 #nullable enable
 
-namespace GoDoFramework.Templates.StarterGame;
+namespace StarterGame;
 
 /// <summary>StarterGame 的游戏 HUD，负责一局点击挑战。</summary>
 public sealed partial class GameplayHud : Control
@@ -73,23 +73,17 @@ public sealed partial class GameplayHud : Control
         }
     }
 
-    private async void FinishRun()
+    private void FinishRun()
     {
         _finishing = true;
         _clickButton!.Disabled = true;
 
         try
         {
-            ISaveService saves = Services.Get<ISaveService>();
-            SaveLoadResult<StarterSaveData> loaded = saves.Load(StarterGameKeys.SaveSlot, StarterGameKeys.SaveCodec);
-            StarterSaveData data = loaded.HasValue ? loaded.Value : new StarterSaveData();
-            data.LastScore = _score;
-            data.BestScore = Math.Max(data.BestScore, _score);
-            data.GamesPlayed++;
-            saves.Save(StarterGameKeys.SaveSlot, data, StarterSaveCodec.CurrentDataVersion, StarterGameKeys.SaveCodec);
+            if (Services.Get<IProcedureService>().Current is not GameplayProcedure procedure)
+                throw new InvalidOperationException("当前流程不是 GameplayProcedure，不能结束游戏。");
 
-            EventChannel.Emit(new StarterRunFinishedEvent(_score));
-            await Services.Get<IProcedureService>().ChangeAsync(new ResultProcedure());
+            procedure.FinishRun(_score);
         }
         catch (Exception exception)
         {

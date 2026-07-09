@@ -39,9 +39,9 @@ Templates/StarterGame/
 
 ## 覆盖的框架用法
 
-- Procedure：`Boot`、`MainMenu`、`Gameplay`、`Result` 顶层流程切换。
+- Procedure：`Boot`、`MainMenu`、`Gameplay`、`Result` 顶层流程切换；UI/场景只通知当前流程，当前流程通过 `RequestChange` 决定下一个流程。
 - SceneService：启动后切到 MainMenuScene，进入 Gameplay 时切换主内容场景。
-- UiService：主菜单、HUD、结算界面分别挂到 View / Scene 层。
+- UiService：GameplayHud 挂到 Scene 层，ResultView 挂到 View 层；主菜单作为主场景保持直观。
 - AudioService：播放 BGM 和点击 SFX。
 - SaveService：保存最高分、累计局数和上一局分数。
 - SettingsService：读取、应用、保存 Master 音量。
@@ -50,6 +50,22 @@ Templates/StarterGame/
 - ErrorHub：业务边界捕获异常后补充上下文上报。
 - ResourceKey：资源路径集中维护在 `StarterGameKeys`。
 - Services：业务代码通过接口获取长期框架服务。
+
+## 命名空间
+
+模板代码默认使用：
+
+```csharp
+namespace StarterGame;
+```
+
+复制到真实项目后，建议统一替换为你的项目命名空间，例如：
+
+```csharp
+namespace MyGame;
+```
+
+模板代码属于业务侧示例，只引用 `GoDo`，不属于框架本体命名空间。
 
 ## 复制到新项目时建议保留
 

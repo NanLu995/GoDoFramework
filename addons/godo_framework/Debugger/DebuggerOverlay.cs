@@ -23,7 +23,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private PanelContainer? _panel;
     private Button? _toggleButton;
     private ScrollContainer? _content;
-    private Label? _diagnosticsLabel;
+    private Label? _debuggerLabel;
     private double _refreshElapsed;
     private bool _expanded;
 
@@ -31,10 +31,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     [Export] public NodePath PanelPath { get; set; } = null!;
     /// <summary>折叠状态按钮的节点路径。</summary>
     [Export] public NodePath ToggleButtonPath { get; set; } = null!;
-    /// <summary>诊断内容容器的节点路径。</summary>
+    /// <summary>调试内容容器的节点路径。</summary>
     [Export] public NodePath ContentPath { get; set; } = null!;
-    /// <summary>诊断摘要标签的节点路径。</summary>
-    [Export] public NodePath DiagnosticsLabelPath { get; set; } = null!;
+    /// <summary>调试摘要标签的节点路径。</summary>
+    [Export] public NodePath DebuggerLabelPath { get; set; } = null!;
 
     /// <inheritdoc />
     public override void _EnterTree()
@@ -48,12 +48,12 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _panel = GetNodeOrNull<PanelContainer>(PanelPath);
         _toggleButton = GetNodeOrNull<Button>(ToggleButtonPath);
         _content = GetNodeOrNull<ScrollContainer>(ContentPath);
-        _diagnosticsLabel = GetNodeOrNull<Label>(DiagnosticsLabelPath);
+        _debuggerLabel = GetNodeOrNull<Label>(DebuggerLabelPath);
 
         if (!IsInstanceValid(_panel) ||
             !IsInstanceValid(_toggleButton) ||
             !IsInstanceValid(_content) ||
-            !IsInstanceValid(_diagnosticsLabel))
+            !IsInstanceValid(_debuggerLabel))
         {
             throw new InvalidOperationException("DebuggerOverlay 场景缺少必要的导出节点引用。");
         }
@@ -74,7 +74,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         RefreshFps();
         ApplyPanelSize();
         if (_expanded)
-            RefreshDiagnostics();
+            RefreshDebugger();
     }
 
     /// <inheritdoc />
@@ -87,7 +87,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _panel = null;
         _toggleButton = null;
         _content = null;
-        _diagnosticsLabel = null;
+        _debuggerLabel = null;
     }
 
     private void OnTogglePressed()
@@ -95,7 +95,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _expanded = !_expanded;
         ApplyExpandedState();
         if (_expanded)
-            RefreshDiagnostics();
+            RefreshDebugger();
     }
 
     private void ApplyExpandedState()
@@ -130,9 +130,9 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             _toggleButton.Text = $"FPS: {Mathf.RoundToInt(Engine.GetFramesPerSecond())}";
     }
 
-    private void RefreshDiagnostics()
+    private void RefreshDebugger()
     {
-        if (!IsInstanceValid(_diagnosticsLabel))
+        if (!IsInstanceValid(_debuggerLabel))
             return;
 
         _textBuilder.Clear();
@@ -142,7 +142,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         AppendServicesLine();
         AppendEventsLine();
         AppendWarnings();
-        _diagnosticsLabel.Text = _textBuilder.ToString();
+        _debuggerLabel.Text = _textBuilder.ToString();
     }
 
     private void AppendRuntimeLine()

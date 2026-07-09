@@ -4,7 +4,7 @@ using GoDo;
 
 #nullable enable
 
-namespace GoDoFramework.Templates.StarterGame;
+namespace StarterGame;
 
 /// <summary>StarterGame 模板入口场景。</summary>
 public sealed partial class StarterBoot : Control
@@ -22,9 +22,7 @@ public sealed partial class StarterBoot : Control
         try
         {
             _statusLabel.Text = "正在启动 StarterGame...";
-            IProcedureService procedures = Services.Get<IProcedureService>();
-            await procedures.ChangeAsync(new BootProcedure());
-            await procedures.ChangeAsync(new MainMenuProcedure());
+            await Services.Get<IProcedureService>().ChangeAsync(new BootProcedure());
         }
         catch (Exception exception)
         {

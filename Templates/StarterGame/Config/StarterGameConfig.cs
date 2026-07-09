@@ -2,7 +2,7 @@ using System;
 using Godot;
 using GoDo;
 
-namespace GoDoFramework.Templates.StarterGame;
+namespace StarterGame;
 
 /// <summary>StarterGame 模板的只读玩法配置。</summary>
 [GlobalClass]

@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://bf7i5aibfoy56"]
 
-[ext_resource type="Script" path="res://Templates/StarterGame/Scenes/StarterBoot.cs" id="1_boot"]
+[ext_resource type="Script" uid="uid://bghokj8vqxwv6" path="res://Templates/StarterGame/Scenes/StarterBoot.cs" id="1_boot"]
 
-[node name="StarterBoot" type="Control"]
+[node name="StarterBoot" type="Control" unique_id=181386111]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,7 +12,7 @@ grow_vertical = 2
 script = ExtResource("1_boot")
 StatusLabelPath = NodePath("StatusLabel")
 
-[node name="StatusLabel" type="Label" parent="."]
+[node name="StatusLabel" type="Label" parent="." unique_id=992187407]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5

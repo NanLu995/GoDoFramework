@@ -2,7 +2,7 @@ using GoDo;
 
 #nullable enable
 
-namespace GoDoFramework.Templates.StarterGame;
+namespace StarterGame;
 
 /// <summary>StarterGame 模板集中维护的资源键和存档槽位。</summary>
 internal static class StarterGameKeys

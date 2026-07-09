@@ -20,7 +20,7 @@ public sealed partial class GoDoRuntime : Node
 {
 #if DEBUG
     private static readonly ResourceKey DebuggerSceneKey =
-        ResourceKey.Create("res://addons/godo_framework/Diagnostics/DebuggerOverlay.tscn");
+        ResourceKey.Create("res://addons/godo_framework/Debugger/DebuggerOverlay.tscn");
 #endif
 
     private static GoDoRuntime? _instance;

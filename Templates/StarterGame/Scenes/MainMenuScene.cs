@@ -4,7 +4,7 @@ using GoDo;
 
 #nullable enable
 
-namespace GoDoFramework.Templates.StarterGame;
+namespace StarterGame;
 
 /// <summary>StarterGame 主菜单主场景。</summary>
 public sealed partial class MainMenuScene : Control
@@ -90,17 +90,20 @@ public sealed partial class MainMenuScene : Control
         _settings?.SetMasterVolume((float)value);
     }
 
-    private async void OnStartPressed()
+    private void OnStartPressed()
     {
         SetButtonsDisabled(true);
         try
         {
-            await Services.Get<IProcedureService>().ChangeAsync(new GameplayProcedure());
+            if (Services.Get<IProcedureService>().Current is not MainMenuProcedure procedure)
+                throw new InvalidOperationException("当前流程不是 MainMenuProcedure，不能开始游戏。");
+
+            procedure.StartGame();
         }
         catch (Exception exception)
         {
             SetButtonsDisabled(false);
-            ErrorHub.Report(exception, nameof(MainMenuScene), "进入 GameplayProcedure 失败");
+            ErrorHub.Report(exception, nameof(MainMenuScene), "通知 MainMenuProcedure 开始游戏失败");
         }
     }
 
