@@ -1,0 +1,58 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Templates/StarterGame/UI/GameplayHud.cs" id="1_hud"]
+[ext_resource type="Script" path="res://Templates/StarterGame/UI/ScorePanel.cs" id="2_score"]
+
+[node name="GameplayHud" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_hud")
+TimeLabelPath = NodePath("Center/VBox/TimeLabel")
+ClickButtonPath = NodePath("Center/VBox/ClickButton")
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TimeLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "剩余时间：10.0"
+horizontal_alignment = 1
+
+[node name="ScorePanel" type="Control" parent="Center/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+script = ExtResource("2_score")
+ScoreLabelPath = NodePath("ScoreLabel")
+
+[node name="ScoreLabel" type="Label" parent="Center/VBox/ScorePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "得分：0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ClickButton" type="Button" parent="Center/VBox"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "点击！"

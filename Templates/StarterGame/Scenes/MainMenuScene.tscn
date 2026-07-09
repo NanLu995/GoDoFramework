@@ -1,0 +1,73 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Templates/StarterGame/Scenes/MainMenuScene.cs" id="1_menu"]
+
+[node name="MainMenuScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+BestScoreLabelPath = NodePath("Center/VBox/BestScoreLabel")
+MasterVolumeSliderPath = NodePath("Center/VBox/MasterVolumeSlider")
+StartButtonPath = NodePath("Center/VBox/StartButton")
+SaveSettingsButtonPath = NodePath("Center/VBox/SaveSettingsButton")
+ClearSaveButtonPath = NodePath("Center/VBox/ClearSaveButton")
+QuitButtonPath = NodePath("Center/VBox/QuitButton")
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "StarterGame 模板"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "Procedure + Scene + UI + Audio + Save + Config"
+horizontal_alignment = 1
+
+[node name="BestScoreLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "最高分：0    已玩：0 局"
+horizontal_alignment = 1
+
+[node name="StartButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "开始游戏"
+
+[node name="VolumeLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "主音量"
+
+[node name="MasterVolumeSlider" type="HSlider" parent="Center/VBox"]
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+value = 1.0
+
+[node name="SaveSettingsButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "保存设置"
+
+[node name="ClearSaveButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "清除模板存档"
+
+[node name="QuitButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "退出"

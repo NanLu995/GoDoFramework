@@ -1,0 +1,54 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Templates/StarterGame/UI/ResultView.cs" id="1_result"]
+
+[node name="ResultView" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_result")
+ScoreLabelPath = NodePath("Center/VBox/ScoreLabel")
+BestScoreLabelPath = NodePath("Center/VBox/BestScoreLabel")
+RetryButtonPath = NodePath("Center/VBox/RetryButton")
+MenuButtonPath = NodePath("Center/VBox/MenuButton")
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "挑战结束"
+horizontal_alignment = 1
+
+[node name="ScoreLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "本局得分：0"
+horizontal_alignment = 1
+
+[node name="BestScoreLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "最高分：0    已玩：0 局"
+horizontal_alignment = 1
+
+[node name="RetryButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "再来一局"
+
+[node name="MenuButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "返回主菜单"
