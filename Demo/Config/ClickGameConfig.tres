@@ -1,8 +1,0 @@
-[gd_resource type="Resource" script_class="ClickGameConfig" load_steps=2 format=3]
-
-[ext_resource type="Script" path="res://Demo/Config/ClickGameConfig.cs" id="1_config"]
-
-[resource]
-script = ExtResource("1_config")
-RoundDurationSeconds = 10.0
-ScorePerClick = 1
