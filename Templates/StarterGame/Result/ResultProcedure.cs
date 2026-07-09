@@ -10,6 +10,7 @@ namespace StarterGame;
 /// <summary>结算流程：停止 BGM、打开结算 View，并响应结算界面操作。</summary>
 public sealed class ResultProcedure : IProcedure
 {
+    private readonly EventScope _events = new();
     private Control? _view;
     private ProcedureContext? _context;
 
@@ -20,22 +21,26 @@ public sealed class ResultProcedure : IProcedure
         _context = context;
         context.GetService<IAudioService>().StopBgm();
         _view = context.GetService<IUiService>().Open(StarterGameKeys.ResultView, UiLayer.View);
+        _events
+            .On<StarterRetrySelectedEvent>(OnRetrySelected)
+            .On<StarterReturnToMenuSelectedEvent>(OnReturnToMenuSelected);
         return Task.CompletedTask;
     }
 
     public Task ExitAsync(ProcedureContext context)
     {
+        _events.Dispose();
         _context = null;
         CloseView(context);
         return Task.CompletedTask;
     }
 
-    public void Retry()
+    private void OnRetrySelected(StarterRetrySelectedEvent evt)
     {
         RequestChange(new GameplayProcedure());
     }
 
-    public void ReturnToMenu()
+    private void OnReturnToMenuSelected(StarterReturnToMenuSelectedEvent evt)
     {
         RequestChange(new MainMenuProcedure());
     }

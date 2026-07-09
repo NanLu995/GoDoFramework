@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://bf7i5aibfoy56"]
 
-[ext_resource type="Script" uid="uid://bghokj8vqxwv6" path="res://Templates/StarterGame/Scenes/StarterBoot.cs" id="1_boot"]
+[ext_resource type="Script" path="res://Templates/StarterGame/Boot.cs" id="1_boot"]
 
-[node name="StarterBoot" type="Control" unique_id=181386111]
+[node name="Boot" type="Control" unique_id=181386111]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

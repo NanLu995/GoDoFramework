@@ -58,29 +58,14 @@ public sealed partial class ResultView : Control
 
     private void OnRetryPressed()
     {
-        NotifyCurrentProcedure(static procedure => procedure.Retry(), "通知 ResultProcedure 再来一局失败");
+        SetButtonsDisabled(true);
+        EventChannel.Emit(new StarterRetrySelectedEvent());
     }
 
     private void OnMenuPressed()
     {
-        NotifyCurrentProcedure(static procedure => procedure.ReturnToMenu(), "通知 ResultProcedure 返回主菜单失败");
-    }
-
-    private void NotifyCurrentProcedure(Action<ResultProcedure> action, string errorContext)
-    {
         SetButtonsDisabled(true);
-        try
-        {
-            if (Services.Get<IProcedureService>().Current is not ResultProcedure procedure)
-                throw new InvalidOperationException("当前流程不是 ResultProcedure，不能处理结算操作。");
-
-            action(procedure);
-        }
-        catch (Exception exception)
-        {
-            SetButtonsDisabled(false);
-            ErrorHub.Report(exception, nameof(ResultView), errorContext);
-        }
+        EventChannel.Emit(new StarterReturnToMenuSelectedEvent());
     }
 
     private void SetButtonsDisabled(bool disabled)

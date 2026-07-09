@@ -80,10 +80,7 @@ public sealed partial class GameplayHud : Control
 
         try
         {
-            if (Services.Get<IProcedureService>().Current is not GameplayProcedure procedure)
-                throw new InvalidOperationException("当前流程不是 GameplayProcedure，不能结束游戏。");
-
-            procedure.FinishRun(_score);
+            EventChannel.Emit(new StarterRunFinishedEvent(_score));
         }
         catch (Exception exception)
         {

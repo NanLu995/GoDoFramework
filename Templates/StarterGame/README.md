@@ -1,13 +1,13 @@
 # StarterGame 模板
 
-StarterGame 是 GoDoFramework 的可复制项目模板。它不是用于炫技的 Demo，而是一个小而完整的游戏骨架，开发者可以直接复制后替换成自己的业务代码。
+StarterGame 是 GoDoFramework 的可复制项目模板。一个小而完整的游戏骨架，开发者可以直接复制后替换成自己的业务代码。
 
 ## 运行
 
 在 Godot 中直接运行：
 
 ```text
-Templates/StarterGame/Scenes/StarterBoot.tscn
+Templates/StarterGame/Boot.tscn
 ```
 
 模板不修改项目主场景，也不重复初始化 GoDoRuntime。使用前请确认 GoDoRuntime Autoload 已安装。
@@ -15,7 +15,7 @@ Templates/StarterGame/Scenes/StarterBoot.tscn
 ## 流程
 
 ```text
-StarterBoot.tscn
+Boot.tscn
   → BootProcedure
   → MainMenuProcedure（切换到 MainMenuScene.tscn）
   → GameplayProcedure
@@ -27,26 +27,25 @@ StarterBoot.tscn
 
 ```text
 Templates/StarterGame/
-├── Audio/          BGM 与 SFX 资源
-├── Config/         强类型 Resource 配置
-├── Data/           存档数据与 Save Codec
-├── Events/         EventChannel 业务事件
-├── Procedures/     顶层游戏流程
-├── Scenes/         启动入口、主菜单场景和主内容场景
-├── Shared/         资源键、存档槽位等共享常量
-└── UI/             UiService 管理的界面
+├── Boot.tscn       模板入口场景
+├── Boot.cs         模板入口脚本
+├── Audio/          全局复用的 BGM 与 SFX 资源
+├── Shared/         跨流程共享的资源键、配置、存档、事件与启动流程
+├── MainMenu/       主菜单流程、场景和脚本
+├── Gameplay/       游戏流程、主内容场景、HUD 和分数面板
+└── Result/         结算流程、界面和脚本
 ```
 
 ## 覆盖的框架用法
 
-- Procedure：`Boot`、`MainMenu`、`Gameplay`、`Result` 顶层流程切换；UI/场景只通知当前流程，当前流程通过 `RequestChange` 决定下一个流程。
+- Procedure：`Boot`、`MainMenu`、`Gameplay`、`Result` 顶层流程切换；流程通过 `EventScope` 监听业务事件，并通过 `RequestChange` 决定下一个流程。
 - SceneService：启动后切到 MainMenuScene，进入 Gameplay 时切换主内容场景。
 - UiService：GameplayHud 挂到 Scene 层，ResultView 挂到 View 层；主菜单作为主场景保持直观。
 - AudioService：播放 BGM 和点击 SFX。
 - SaveService：保存最高分、累计局数和上一局分数。
 - SettingsService：读取、应用、保存 Master 音量。
 - Config：读取并校验 `StarterGameConfig.tres`。
-- EventChannel：点击时广播分数变化，ScorePanel 通过生命周期绑定刷新显示。
+- EventChannel：UI/场景广播玩家选择和分数变化；Procedure 监听玩家选择，ScorePanel 通过生命周期绑定刷新显示。
 - ErrorHub：业务边界捕获异常后补充上下文上报。
 - ResourceKey：资源路径集中维护在 `StarterGameKeys`。
 - Services：业务代码通过接口获取长期框架服务。
@@ -69,11 +68,10 @@ namespace MyGame;
 
 ## 复制到新项目时建议保留
 
-- `Procedures/`：作为游戏顶层流程入口。
-- `Shared/StarterGameKeys.cs`：改名后继续集中维护资源键。
-- `Data/`：按自己的存档结构替换。
-- `Config/`：按自己的玩法配置替换。
-- `UI/` 与 `Scenes/`：按自己的界面和主内容场景替换。
+- `Boot.tscn`：作为模板入口场景，复制后可改名为项目自己的入口。
+- `Shared/StarterGameKeys.cs`：改名后继续集中维护跨模块资源键。
+- `Shared/` 中的配置、存档、事件：按自己的跨模块数据替换。
+- `MainMenu/`、`Gameplay/`、`Result/`：按真实功能模块替换或扩展。
 
 ## 不建议在模板里继续加的东西
 
@@ -85,7 +83,7 @@ namespace MyGame;
 
 ## 手动验证建议
 
-1. 运行 `StarterBoot.tscn`。
+1. 运行 `Boot.tscn`。
 2. 点击“开始游戏”。
 3. 连续点击按钮直到时间结束。
 4. 确认进入结算页，最高分和局数更新。

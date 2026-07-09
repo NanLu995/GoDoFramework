@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://Templates/StarterGame/UI/ResultView.cs" id="1_result"]
+[ext_resource type="Script" path="res://Templates/StarterGame/Result/ResultView.cs" id="1_result"]
 
 [node name="ResultView" type="Control"]
 layout_mode = 3

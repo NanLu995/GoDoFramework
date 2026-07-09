@@ -7,7 +7,7 @@ using GoDo;
 namespace StarterGame;
 
 /// <summary>StarterGame 模板入口场景。</summary>
-public sealed partial class StarterBoot : Control
+public sealed partial class Boot : Control
 {
     private Label? _statusLabel;
 
@@ -17,7 +17,7 @@ public sealed partial class StarterBoot : Control
     {
         _statusLabel = GetNodeOrNull<Label>(StatusLabelPath);
         if (!IsInstanceValid(_statusLabel))
-            throw new InvalidOperationException("StarterBoot 缺少状态 Label。");
+            throw new InvalidOperationException("Boot 缺少状态 Label。");
 
         try
         {
@@ -27,7 +27,7 @@ public sealed partial class StarterBoot : Control
         catch (Exception exception)
         {
             _statusLabel.Text = $"StarterGame 启动失败：{exception.Message}";
-            ErrorHub.Report(exception, nameof(StarterBoot));
+            ErrorHub.Report(exception, nameof(Boot));
         }
     }
 }

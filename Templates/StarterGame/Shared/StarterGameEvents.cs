@@ -16,6 +16,9 @@ public readonly struct StarterScoreChangedEvent : IStarterGameEvent
     }
 }
 
+/// <summary>玩家选择开始游戏。</summary>
+public readonly struct StarterStartGameSelectedEvent : IStarterGameEvent { }
+
 /// <summary>一局游戏已经结束。</summary>
 public readonly struct StarterRunFinishedEvent : IStarterGameEvent
 {
@@ -26,3 +29,9 @@ public readonly struct StarterRunFinishedEvent : IStarterGameEvent
         Score = score;
     }
 }
+
+/// <summary>玩家在结算界面选择再来一局。</summary>
+public readonly struct StarterRetrySelectedEvent : IStarterGameEvent { }
+
+/// <summary>玩家在结算界面选择返回主菜单。</summary>
+public readonly struct StarterReturnToMenuSelectedEvent : IStarterGameEvent { }

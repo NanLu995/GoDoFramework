@@ -93,18 +93,7 @@ public sealed partial class MainMenuScene : Control
     private void OnStartPressed()
     {
         SetButtonsDisabled(true);
-        try
-        {
-            if (Services.Get<IProcedureService>().Current is not MainMenuProcedure procedure)
-                throw new InvalidOperationException("当前流程不是 MainMenuProcedure，不能开始游戏。");
-
-            procedure.StartGame();
-        }
-        catch (Exception exception)
-        {
-            SetButtonsDisabled(false);
-            ErrorHub.Report(exception, nameof(MainMenuScene), "通知 MainMenuProcedure 开始游戏失败");
-        }
+        EventChannel.Emit(new StarterStartGameSelectedEvent());
     }
 
     private void OnSaveSettingsPressed()

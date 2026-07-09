@@ -10,6 +10,7 @@
 - `FRAMEWORK_DESIGN_PLAN.md`：目标、状态与路线；新增模块或调整顺序前读取。
 - `ARCHITECTURE.md`：当前架构事实与依赖；修改 `addons/godo_framework/` 前读取。
 - 模块 `USAGE.md`：API、失败语义、生命周期、性能和验证细节；处理对应模块时读取。
+- `AI_GAMEDEV_GUIDE.md`、`PROJECT_STRUCTURE.md` 与 `Docs/Recipes/`：使用框架制作游戏、迁移模板或新增业务流程/UI/存档时读取。
 - `GODOT_GOTCHAS.md`：项目实际遇到的 Godot/C# 坑位，按需读取。
 - 文档与代码冲突时，以源码和工程配置为准，同时指出并修正文档，不静默沿用旧描述。
 - 常规搜索排除 `.godot/`、`bin/`、`obj/`、`*.Generated.cs` 和离线文档目录，不修改生成内容。

@@ -9,6 +9,7 @@ namespace StarterGame;
 /// <summary>主菜单流程：切换到主菜单主场景并响应主菜单操作。</summary>
 public sealed class MainMenuProcedure : IProcedure
 {
+    private readonly EventScope _events = new();
     private ProcedureContext? _context;
 
     public string Name => "MainMenu";
@@ -17,16 +18,18 @@ public sealed class MainMenuProcedure : IProcedure
     {
         _context = context;
         await context.GetService<ISceneService>().ChangeAsync(StarterGameKeys.MainMenuScene);
+        _events.On<StarterStartGameSelectedEvent>(OnStartGameSelected);
         PlayBgm(context);
     }
 
     public Task ExitAsync(ProcedureContext context)
     {
+        _events.Dispose();
         _context = null;
         return Task.CompletedTask;
     }
 
-    public void StartGame()
+    private void OnStartGameSelected(StarterStartGameSelectedEvent evt)
     {
         if (_context == null)
             throw new InvalidOperationException("MainMenuProcedure 尚未进入，不能开始游戏。");

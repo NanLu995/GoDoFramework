@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://Templates/StarterGame/UI/GameplayHud.cs" id="1_hud"]
-[ext_resource type="Script" path="res://Templates/StarterGame/UI/ScorePanel.cs" id="2_score"]
+[ext_resource type="Script" path="res://Templates/StarterGame/Gameplay/GameplayHud.cs" id="1_hud"]
+[ext_resource type="Script" path="res://Templates/StarterGame/Gameplay/ScorePanel.cs" id="2_score"]
 
 [node name="GameplayHud" type="Control"]
 layout_mode = 3

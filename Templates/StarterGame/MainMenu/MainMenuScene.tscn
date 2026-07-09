@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://Templates/StarterGame/Scenes/MainMenuScene.cs" id="1_menu"]
+[ext_resource type="Script" path="res://Templates/StarterGame/MainMenu/MainMenuScene.cs" id="1_menu"]
 
 [node name="MainMenuScene" type="Control"]
 layout_mode = 3
