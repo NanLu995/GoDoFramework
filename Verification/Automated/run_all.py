@@ -22,6 +22,7 @@ REGRESSION_SCENES = (
     "NodePoolRegression.tscn",
     "SaveServiceRegression.tscn",
     "ConfigRegression.tscn",
+    "ProcedureRegression.tscn",
 )
 
 

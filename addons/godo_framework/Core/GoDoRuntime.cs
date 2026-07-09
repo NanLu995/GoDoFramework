@@ -31,6 +31,7 @@ public sealed partial class GoDoRuntime : Node
     private UiRoot? _uiRoot;
     private SaveService? _saveService;
     private SettingsService? _settingsService;
+    private ProcedureService? _procedureService;
 #if DEBUG
     private DebuggerOverlay? _debuggerOverlay;
 #endif
@@ -104,6 +105,8 @@ public sealed partial class GoDoRuntime : Node
         Services.Register<ISaveService>(_saveService);
         _settingsService = new SettingsService(_audioService, _saveService);
         Services.Register<ISettingsService>(_settingsService);
+        _procedureService = new ProcedureService();
+        Services.Register<IProcedureService>(_procedureService);
 
 #if DEBUG
         PackedScene debuggerScene = ResourceHub.Load<PackedScene>(DebuggerSceneKey);
@@ -132,6 +135,11 @@ public sealed partial class GoDoRuntime : Node
 
         if (_instance == this)
         {
+            if (_procedureService != null)
+            {
+                _procedureService.Shutdown();
+                Services.Unregister<IProcedureService>(_procedureService);
+            }
             if (_settingsService != null)
                 Services.Unregister<ISettingsService>(_settingsService);
             if (_saveService != null)
@@ -155,6 +163,7 @@ public sealed partial class GoDoRuntime : Node
             _uiRoot = null;
             _saveService = null;
             _settingsService = null;
+            _procedureService = null;
 #if DEBUG
             _debuggerOverlay = null;
 #endif
