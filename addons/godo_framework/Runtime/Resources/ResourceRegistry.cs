@@ -82,18 +82,26 @@ public static class ResourceRegistry
         {
             if (entry is null)
             {
-                GD.PushWarning("ResourceManifest 中存在 null 记录，已跳过。");
+                ErrorHub.Warn("ResourceManifest 中存在 null 记录，已跳过。", nameof(ResourceRegistry));
                 continue;
             }
 
             if (string.IsNullOrWhiteSpace(entry.Id))
             {
-                GD.PushWarning($"ResourceManifest 中存在空 Id 的记录，Locator: {entry.Locator}，已跳过。");
+                ErrorHub.Warn(
+                    "ResourceManifest 中存在空 Id 的记录，已跳过。",
+                    nameof(ResourceRegistry),
+                    entry.Locator);
                 continue;
             }
 
             if (_map.ContainsKey(entry.Id))
-                GD.PushWarning($"ResourceManifest 中存在重复 Id: {entry.Id}，后者覆盖前者。");
+            {
+                ErrorHub.Warn(
+                    "ResourceManifest 中存在重复 Id，后者覆盖前者。",
+                    nameof(ResourceRegistry),
+                    entry.Id);
+            }
 
             _map[entry.Id] = ResourceKey.Create(entry.Locator);
         }

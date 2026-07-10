@@ -6,8 +6,7 @@ using Godot;
 namespace GoDo;
 
 /// <summary>
-/// GoDo 资源定位键。首版仅接受规范化的 <c>res://</c> 绝对路径，
-/// 为未来迁移到 Godot Resource UID 保留统一 API 边界。
+/// GoDo 资源定位键。支持规范化的 <c>res://</c> 绝对路径与 Godot <c>uid://</c> 资源 UID。
 /// </summary>
 public readonly struct ResourceKey : IEquatable<ResourceKey>
 {
