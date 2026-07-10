@@ -4,6 +4,7 @@
 
 - `ResourceKey` 支持 `uid://`，并新增 `IsUid`、`FromPath`、`FromUid` 与 `ResolveUid`。
 - 新增 `ResourceManifest` 与 `ResourceRegistry`，支持业务语义 ID 到 `ResourceKey` 的运行时映射。
+- 编辑器菜单改为 `GoDo Framework` 子菜单，并新增只读 `ResourceManifest` 校验入口。
 - StarterGame 模板资源键改为 `Root + relativePath` 形式，降低模板目录移动后的路径维护成本。
 
 ## 0.2.0

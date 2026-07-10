@@ -1,7 +1,9 @@
 @tool
 extends EditorPlugin
 
-const MENU_ITEM_NAME := "GoDo Framework..."
+const TOOL_MENU_NAME := "GoDo Framework"
+const MENU_SETUP_ID := 1
+const MENU_VALIDATE_MANIFEST_ID := 100
 const AUTOLOAD_NAME := "GoDoRuntime"
 const AUTOLOAD_SETTING := "autoload/GoDoRuntime"
 const RUNTIME_SCENE_PATH := "res://addons/godo_framework/Core/GoDoRuntime.tscn"
@@ -21,6 +23,11 @@ enum HealthLevel {
 
 var _setup_dialog: AcceptDialog
 var _uninstall_dialog: ConfirmationDialog
+var _manifest_file_dialog: EditorFileDialog
+var _manifest_report_dialog: AcceptDialog
+var _manifest_report_label: RichTextLabel
+var _tool_menu: PopupMenu
+var _resources_menu: PopupMenu
 var _content: VBoxContainer
 var _report_label: RichTextLabel
 var _message_label: RichTextLabel
@@ -30,15 +37,35 @@ var _uninstall_button: Button
 
 func _enter_tree() -> void:
 	_create_dialogs()
-	add_tool_menu_item(MENU_ITEM_NAME, _open_setup_dialog)
+	_create_tool_menu()
+	add_tool_submenu_item(TOOL_MENU_NAME, _tool_menu)
 
 
 func _exit_tree() -> void:
-	remove_tool_menu_item(MENU_ITEM_NAME)
+	remove_tool_menu_item(TOOL_MENU_NAME)
+	if is_instance_valid(_tool_menu):
+		_tool_menu.queue_free()
 	if is_instance_valid(_setup_dialog):
 		_setup_dialog.queue_free()
 	if is_instance_valid(_uninstall_dialog):
 		_uninstall_dialog.queue_free()
+	if is_instance_valid(_manifest_file_dialog):
+		_manifest_file_dialog.queue_free()
+	if is_instance_valid(_manifest_report_dialog):
+		_manifest_report_dialog.queue_free()
+
+
+func _create_tool_menu() -> void:
+	_tool_menu = PopupMenu.new()
+	_tool_menu.name = "GoDoFrameworkToolMenu"
+	_tool_menu.add_item("设置 (Setup)...", MENU_SETUP_ID)
+	_tool_menu.add_separator()
+	_resources_menu = PopupMenu.new()
+	_resources_menu.name = "Resources"
+	_resources_menu.add_item("校验资源清单 (Validate Resource Manifest)...", MENU_VALIDATE_MANIFEST_ID)
+	_resources_menu.id_pressed.connect(_on_resources_menu_id_pressed)
+	_tool_menu.add_submenu_node_item("资源 (Resources)", _resources_menu)
+	_tool_menu.id_pressed.connect(_on_tool_menu_id_pressed)
 
 
 func _create_dialogs() -> void:
@@ -64,6 +91,33 @@ func _create_dialogs() -> void:
 	_uninstall_dialog.confirmed.connect(_on_uninstall_confirmed)
 	_uninstall_dialog.canceled.connect(_on_uninstall_canceled)
 	get_editor_interface().get_base_control().add_child(_uninstall_dialog)
+
+	_manifest_file_dialog = EditorFileDialog.new()
+	_manifest_file_dialog.title = "Validate Resource Manifest"
+	_manifest_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	_manifest_file_dialog.access = FileDialog.ACCESS_RESOURCES
+	_manifest_file_dialog.filters = PackedStringArray(["*.tres,*.res;Resource files"])
+	_manifest_file_dialog.current_path = "res://"
+	_manifest_file_dialog.file_selected.connect(_on_manifest_file_selected)
+	get_editor_interface().get_base_control().add_child(_manifest_file_dialog)
+
+	_manifest_report_dialog = AcceptDialog.new()
+	_manifest_report_dialog.title = "Resource Manifest Validation"
+	_manifest_report_dialog.ok_button_text = "关闭"
+	_manifest_report_dialog.min_size = Vector2i(720, 420)
+	_manifest_report_dialog.get_label().hide()
+	_manifest_report_label = RichTextLabel.new()
+	_manifest_report_label.name = "ManifestReportLabel"
+	_manifest_report_label.bbcode_enabled = false
+	_manifest_report_label.selection_enabled = true
+	_manifest_report_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_manifest_report_dialog.add_child(_manifest_report_label)
+	_manifest_report_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_manifest_report_label.offset_left = 16
+	_manifest_report_label.offset_top = 16
+	_manifest_report_label.offset_right = -16
+	_manifest_report_label.offset_bottom = -48
+	get_editor_interface().get_base_control().add_child(_manifest_report_dialog)
 
 
 func _create_content() -> void:
@@ -111,10 +165,113 @@ func _ensure_content() -> bool:
 	return is_instance_valid(_report_label) and is_instance_valid(_message_label)
 
 
+func _on_tool_menu_id_pressed(id: int) -> void:
+	if id == MENU_SETUP_ID:
+		_open_setup_dialog()
+
+
+func _on_resources_menu_id_pressed(id: int) -> void:
+	if id == MENU_VALIDATE_MANIFEST_ID:
+		_open_manifest_file_dialog()
+
+
 func _open_setup_dialog() -> void:
 	var report := _refresh_report()
 	_show_status_advice(report)
 	_setup_dialog.popup_centered(Vector2i(620, 360))
+
+
+func _open_manifest_file_dialog() -> void:
+	if not is_instance_valid(_manifest_file_dialog):
+		return
+	_manifest_file_dialog.current_path = "res://"
+	_manifest_file_dialog.popup_centered(Vector2i(720, 480))
+
+
+func _on_manifest_file_selected(path: String) -> void:
+	var report := _validate_manifest(path)
+	_render_manifest_report(path, report)
+	_manifest_report_dialog.popup_centered(Vector2i(720, 420))
+
+
+func _validate_manifest(path: String) -> Dictionary:
+	var report := {
+		"items": [],
+		"level": HealthLevel.NORMAL,
+		"entry_count": 0,
+	}
+	var resource := ResourceLoader.load(path)
+	if resource == null:
+		_add_item(report, HealthLevel.ERROR, "清单加载", "无法加载 %s" % path)
+		return report
+
+	var entries = resource.get("Entries")
+	if entries == null:
+		entries = resource.get("entries")
+	if entries == null or not (entries is Array):
+		_add_item(report, HealthLevel.ERROR, "清单类型", "缺少 Entries 数组，请选择 ResourceManifest 资源")
+		return report
+
+	report.entry_count = entries.size()
+	if entries.is_empty():
+		_add_item(report, HealthLevel.WARNING, "清单内容", "Entries 为空")
+		return report
+
+	var seen_ids := {}
+	for index in range(entries.size()):
+		var entry = entries[index]
+		if entry == null or not (entry is Object):
+			_add_item(report, HealthLevel.ERROR, "Entry %d" % index, "条目为空或不是 ResourceManifestEntry")
+			continue
+
+		var entry_id := _get_exported_string(entry, "Id", "id").strip_edges()
+		var locator := _get_exported_string(entry, "Locator", "locator").strip_edges()
+		var label := "Entry %d" % index
+		if not entry_id.is_empty():
+			label = "%s (%s)" % [label, entry_id]
+
+		if entry_id.is_empty():
+			_add_item(report, HealthLevel.ERROR, label, "Id 为空")
+		elif seen_ids.has(entry_id):
+			_add_item(report, HealthLevel.ERROR, label, "Id 与 Entry %d 重复" % seen_ids[entry_id])
+		else:
+			seen_ids[entry_id] = index
+
+		if locator.is_empty():
+			_add_item(report, HealthLevel.ERROR, label, "Locator 为空")
+		elif not (locator.begins_with("res://") or locator.begins_with("uid://")):
+			_add_item(report, HealthLevel.ERROR, label, "Locator 必须以 res:// 或 uid:// 开头：%s" % locator)
+		elif not ResourceLoader.exists(locator):
+			_add_item(report, HealthLevel.WARNING, label, "Locator 当前无法解析到资源：%s" % locator)
+
+	if report.level == HealthLevel.NORMAL:
+		_add_item(report, HealthLevel.NORMAL, "清单内容", "%d 个条目通过校验" % report.entry_count)
+	return report
+
+
+func _get_exported_string(target: Object, primary_name: String, fallback_name: String) -> String:
+	var value = target.get(primary_name)
+	if value == null:
+		value = target.get(fallback_name)
+	return str(value) if value != null else ""
+
+
+func _render_manifest_report(path: String, report: Dictionary) -> void:
+	if not is_instance_valid(_manifest_report_label):
+		return
+	_manifest_report_label.clear()
+	_manifest_report_label.push_font_size(18)
+	_manifest_report_label.add_text("ResourceManifest 校验：")
+	_manifest_report_label.push_color(_level_color(report.level))
+	_manifest_report_label.add_text(_level_name(report.level))
+	_manifest_report_label.pop()
+	_manifest_report_label.pop()
+	_manifest_report_label.add_text("\n\n文件：%s\n条目数：%d\n\n" % [path, report.entry_count])
+	for item in report.items:
+		_manifest_report_label.push_color(_level_color(item.level))
+		_manifest_report_label.add_text("[%s]" % _level_name(item.level))
+		_manifest_report_label.pop()
+		_manifest_report_label.add_text(" %s：%s\n" % [item.name, item.message])
 
 
 func _on_check_pressed() -> void:
