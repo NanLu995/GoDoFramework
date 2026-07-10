@@ -18,6 +18,7 @@ REGRESSION_SCENES = (
     "ErrorHubRegression.tscn",
     "ServicesRegression.tscn",
     "ResourceKeyRegression.tscn",
+    "ResourceRegistryRegression.tscn",
     "ResourceHubRegression.tscn",
     "NodePoolRegression.tscn",
     "SaveServiceRegression.tscn",

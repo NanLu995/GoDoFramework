@@ -69,7 +69,7 @@ namespace MyGame;
 ## 复制到新项目时建议保留
 
 - `Boot.tscn`：作为模板入口场景，复制后可改名为项目自己的入口。
-- `Shared/StarterGameKeys.cs`：改名后继续集中维护跨模块资源键。
+- `Shared/StarterGameKeys.cs`：改名后继续集中维护跨模块资源键；复制到新目录后优先修改其中的 `Root`。
 - `Shared/` 中的配置、存档、事件：按自己的跨模块数据替换。
 - `MainMenu/`、`Gameplay/`、`Result/`：按真实功能模块替换或扩展。
 

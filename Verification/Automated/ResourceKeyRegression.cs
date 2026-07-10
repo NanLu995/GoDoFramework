@@ -23,8 +23,10 @@ public sealed partial class ResourceKeyRegression : Node
             Run("拒绝父目录跳转", VerifyParentTraversalRejection);
             Run("区分大小写的相等性", VerifyEquality);
             Run("默认值与哈希集合", VerifyDefaultAndHashing);
+            Run("UID 资源键", VerifyUidKey);
+            Run("UID 反查回退", VerifyResolveUidFallback);
 
-            GD.Print($"[ResourceKeyRegression] PASS ({_passed}/6)");
+            GD.Print($"[ResourceKeyRegression] PASS ({_passed}/8)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -46,8 +48,10 @@ public sealed partial class ResourceKeyRegression : Node
         ResourceKey key = ResourceKey.Create("  res://Scenes\\Level01.tscn  ");
 
         Assert(key.IsValid, "合法 ResourceKey 被标记为无效");
+        Assert(!key.IsUid, "res:// ResourceKey 被误判为 UID");
         AssertEqual("res://Scenes/Level01.tscn", key.Value, "路径没有正确规范化");
         AssertEqual(key.Value, key.ToString(), "ToString 与 Value 不一致");
+        AssertEqual(key, ResourceKey.FromPath("res://Scenes/Level01.tscn"), "FromPath 与 Create 行为不一致");
     }
 
     private static void VerifyRootRejection()
@@ -119,6 +123,30 @@ public sealed partial class ResourceKeyRegression : Node
         AssertEqual(string.Empty, empty.Value, "默认 ResourceKey.Value 不是空字符串");
         AssertEqual(0, empty.GetHashCode(), "默认 ResourceKey 哈希值不为 0");
         AssertEqual(1, set.Count, "相等 ResourceKey 在 HashSet 中没有合并");
+    }
+
+    private static void VerifyUidKey()
+    {
+        ResourceKey key = ResourceKey.Create("  uid://c8k2n4m8xj3fa  ");
+
+        Assert(key.IsValid, "合法 UID ResourceKey 被标记为无效");
+        Assert(key.IsUid, "UID ResourceKey 没有标记 IsUid");
+        AssertEqual("uid://c8k2n4m8xj3fa", key.Value, "UID 不应按路径规则规范化");
+        AssertEqual(key, ResourceKey.FromUid("uid://c8k2n4m8xj3fa"), "FromUid 与 Create 行为不一致");
+
+        AssertInvalid("uid://");
+        AssertInvalid("uid://   ");
+    }
+
+    private static void VerifyResolveUidFallback()
+    {
+        ResourceKey key = ResourceKey.ResolveUid("res://Verification/Automated/MissingResourceForUid.tres");
+
+        Assert(!key.IsUid, "不存在 UID 的路径不应返回 UID ResourceKey");
+        AssertEqual(
+            "res://Verification/Automated/MissingResourceForUid.tres",
+            key.Value,
+            "ResolveUid 找不到 UID 时没有回退到原始路径");
     }
 
     private static void AssertInvalid(string? path)

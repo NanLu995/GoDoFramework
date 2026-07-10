@@ -1,4 +1,5 @@
 using System;
+using Godot;
 
 #nullable enable
 
@@ -18,6 +19,9 @@ public readonly struct ResourceKey : IEquatable<ResourceKey>
     /// <summary>当前键是否包含有效值。</summary>
     public bool IsValid => !string.IsNullOrEmpty(_value);
 
+    /// <summary>当前键是否使用 Godot UID 定位。</summary>
+    public bool IsUid => _value?.StartsWith("uid://", StringComparison.Ordinal) == true;
+
     private ResourceKey(string value)
     {
         _value = value;
@@ -29,9 +33,13 @@ public readonly struct ResourceKey : IEquatable<ResourceKey>
         if (string.IsNullOrWhiteSpace(path))
             throw new ArgumentException("资源路径不能为空。", nameof(path));
 
-        string normalizedPath = path.Trim().Replace('\\', '/');
+        string trimmedPath = path.Trim();
+        if (trimmedPath.StartsWith("uid://", StringComparison.Ordinal))
+            return CreateUid(trimmedPath, nameof(path));
+
+        string normalizedPath = trimmedPath.Replace('\\', '/');
         if (!normalizedPath.StartsWith("res://", StringComparison.Ordinal))
-            throw new ArgumentException("资源路径必须是以 res:// 开头的绝对路径。", nameof(path));
+            throw new ArgumentException("资源路径必须是以 res:// 或 uid:// 开头的定位串。", nameof(path));
 
         string relativePath = normalizedPath[6..];
         if (relativePath.Length == 0 ||
@@ -53,6 +61,34 @@ public readonly struct ResourceKey : IEquatable<ResourceKey>
         }
 
         return new ResourceKey(normalizedPath);
+    }
+
+    /// <summary>创建并验证一个 <c>res://</c> 路径资源键。</summary>
+    public static ResourceKey FromPath(string resPath) => Create(resPath);
+
+    /// <summary>创建并验证一个 <c>uid://</c> 资源键。</summary>
+    public static ResourceKey FromUid(string uidText) => Create(uidText);
+
+    /// <summary>
+    /// 尝试将 <c>res://</c> 路径解析为 Godot UID 资源键。
+    /// <para>找不到 UID 时返回原始路径形式的资源键。</para>
+    /// </summary>
+    public static ResourceKey ResolveUid(string resPath)
+    {
+        ResourceKey pathKey = FromPath(resPath);
+        long id = ResourceLoader.GetResourceUid(pathKey.Value);
+        if (id == ResourceUid.InvalidId)
+            return pathKey;
+
+        return FromUid(ResourceUid.IdToText(id));
+    }
+
+    private static ResourceKey CreateUid(string uidText, string parameterName)
+    {
+        if (uidText.Length == "uid://".Length)
+            throw new ArgumentException("UID 资源键必须包含非空标识。", parameterName);
+
+        return new ResourceKey(uidText);
     }
 
     /// <summary>按规范化后的区分大小写路径比较。</summary>

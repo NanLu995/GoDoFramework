@@ -1,6 +1,6 @@
 # 自动回归验证
 
-`run_all.py` 会先执行 `dotnet build`，再依次启动 8 个独立 Godot Headless 场景。每个场景使用独立进程和退出码，单项失败后仍继续执行剩余场景，最后返回整体结果。
+`run_all.py` 会先执行 `dotnet build`，再依次启动 10 个独立 Godot Headless 场景。每个场景使用独立进程和退出码，单项失败后仍继续执行剩余场景，最后返回整体结果。
 
 ```powershell
 python Verification/Automated/run_all.py --godot "E:\Godot\Godot_v4.7\Godot_v4.7-stable_mono_win64_console.exe"
