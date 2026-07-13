@@ -30,7 +30,7 @@ Templates/StarterGame/
 ├── Boot.tscn       模板入口场景
 ├── Boot.cs         模板入口脚本
 ├── Audio/          全局复用的 BGM 与 SFX 资源
-├── Shared/         跨流程共享的资源键、配置、存档、事件与启动流程
+├── Shared/         跨流程共享的资源键、资源清单、配置、存档、事件与启动流程
 ├── MainMenu/       主菜单流程、场景和脚本
 ├── Gameplay/       游戏流程、主内容场景、HUD 和分数面板
 └── Result/         结算流程、界面和脚本
@@ -48,6 +48,7 @@ Templates/StarterGame/
 - EventChannel：UI/场景广播玩家选择和分数变化；Procedure 监听玩家选择，ScorePanel 通过生命周期绑定刷新显示。
 - ErrorHub：业务边界捕获异常后补充上下文上报。
 - ResourceKey：资源路径集中维护在 `StarterGameKeys`。
+- ResourceManifest / ResourceRegistry：Boot 加载 `Shared/ResourceManifest.tres`，主菜单场景通过 `starter/main_menu` 语义 ID 解析后交给 SceneService 加载。
 - Services：业务代码通过接口获取长期框架服务。
 
 ## 命名空间
@@ -69,7 +70,18 @@ namespace MyGame;
 ## 复制到新项目时建议保留
 
 - `Boot.tscn`：作为模板入口场景，复制后可改名为项目自己的入口。
-- `Shared/StarterGameKeys.cs`：改名后继续集中维护跨模块资源键；复制到新目录后优先修改其中的 `Root`。
+- `Shared/StarterGameKeys.cs`：改名后继续集中维护跨模块资源键和语义资源 ID；复制到新目录后优先修改其中的 `Root`。
+- `Shared/ResourceManifest.tres`：维护业务语义 ID 到资源定位串的映射；新项目可通过编辑器的资源清单工具管理条目。
+
+## 语义资源 ID
+
+`starter/main_menu` 是项目开发者定义的业务语义 ID，不是 Godot 自动生成的值，也不要求等于文件名。它在代码中由 `StarterGameResourceIds.MainMenuScene` 集中维护，在 `Shared/ResourceManifest.tres` 中映射到实际场景：
+
+```text
+starter/main_menu -> res://Templates/StarterGame/MainMenu/MainMenuScene.tscn
+```
+
+命名建议使用小写、稳定、按业务分组的形式，例如 `ui/main_menu`、`gameplay/hud`、`audio/click`。同一批通过 `ResourceRegistry.Load` 或 `LoadMerge` 加载的清单中，ID 必须唯一。修改 ID 时，在“管理资源清单”中选中条目并点击“编辑选中项”，再同步修改代码常量；移动资源文件通常只需要更新 Locator。
 - `Shared/` 中的配置、存档、事件：按自己的跨模块数据替换。
 - `MainMenu/`、`Gameplay/`、`Result/`：按真实功能模块替换或扩展。
 

@@ -13,6 +13,7 @@ public sealed class BootProcedure : IProcedure
     public Task EnterAsync(ProcedureContext context)
     {
         _ = ConfigHub.Load<StarterGameConfig>(StarterGameKeys.Config);
+        ResourceRegistry.Load(ResourceHub.Load<ResourceManifest>(StarterGameKeys.ResourceManifest));
         _ = context.GetService<ISaveService>().Load(StarterGameKeys.SaveSlot, StarterGameKeys.SaveCodec);
         _ = context.GetService<ISettingsService>().LoadAndApply();
         ErrorHub.Debug("StarterGame 启动检查完成", Name);

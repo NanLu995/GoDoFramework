@@ -17,7 +17,8 @@ public sealed class MainMenuProcedure : IProcedure
     public async Task EnterAsync(ProcedureContext context)
     {
         _context = context;
-        await context.GetService<ISceneService>().ChangeAsync(StarterGameKeys.MainMenuScene);
+        await context.GetService<ISceneService>().ChangeAsync(
+            ResourceRegistry.Resolve(StarterGameResourceIds.MainMenuScene));
         _events.On<StarterStartGameSelectedEvent>(OnStartGameSelected);
         PlayBgm(context);
     }
