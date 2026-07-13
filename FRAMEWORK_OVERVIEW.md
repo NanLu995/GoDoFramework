@@ -3,6 +3,7 @@
 > 本文件只讲"为什么做这个框架"和"设计原则"，即历史愿景与痛点。
 > 模块状态与路线见 `FRAMEWORK_DESIGN_PLAN.md`；当前架构与依赖见 `ARCHITECTURE.md`；
 > 各模块 API、失败语义、生命周期与性能细节见对应模块的 `USAGE.md`。
+> 当前定位已升级为面向中大型、长期维护项目的工业级 Godot C# 框架；目标、质量标准和实施路线以 `FRAMEWORK_DESIGN_PLAN.md` 为准。
 
 GoDoFramework（简称 GoDo）是为 Godot 4.7 以上版本 C# 开发的游戏框架，目标是解决 Godot C# 开发中反复出现的痛点，统一代码风格，提升开发效率和运行性能，同时保证项目的鲁棒性与稳定性。
 
