@@ -16,6 +16,7 @@ SOLUTION_PATH = REPOSITORY_ROOT / "GoDoFramework.sln"
 REGRESSION_SCENES = (
     "EventChannelRegression.tscn",
     "ErrorHubRegression.tscn",
+    "LogHubRegression.tscn",
     "ServicesRegression.tscn",
     "ResourceKeyRegression.tscn",
     "ResourceRegistryRegression.tscn",

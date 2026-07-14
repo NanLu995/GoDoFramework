@@ -16,7 +16,7 @@ public sealed class BootProcedure : IProcedure
         ResourceRegistry.Load(ResourceHub.Load<ResourceManifest>(StarterGameKeys.ResourceManifest));
         _ = context.GetService<ISaveService>().Load(StarterGameKeys.SaveSlot, StarterGameKeys.SaveCodec);
         _ = context.GetService<ISettingsService>().LoadAndApply();
-        ErrorHub.Debug("StarterGame 启动检查完成", Name);
+        LogHub.Debug("StarterGame 启动检查完成", Name);
         context.RequestChange(new MainMenuProcedure());
         return Task.CompletedTask;
     }

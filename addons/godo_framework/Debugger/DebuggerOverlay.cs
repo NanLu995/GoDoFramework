@@ -14,6 +14,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private const double RefreshIntervalSeconds = 0.25;
     private const int MaxStoredWarnings = 16;
     private const int MaxDisplayedWarnings = 4;
+    private const int MaxDisplayedLogs = 5;
     private const float ExpandedMaxWidth = 380f;
     private const float ExpandedMaxHeight = 360f;
     private const float ScreenMargin = 12f;
@@ -141,6 +142,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         AppendAudioLine();
         AppendServicesLine();
         AppendEventsLine();
+        AppendLogs();
         AppendWarnings();
         _debuggerLabel.Text = _textBuilder.ToString();
     }
@@ -229,6 +231,28 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             _textBuilder.Append(error.Timestamp.ToString("HH:mm:ss"))
                 .Append(' ').Append('[').Append(error.Level).Append("] ")
                 .Append(error.Module).Append(": ").AppendLine(error.Message);
+        }
+    }
+
+    private void AppendLogs()
+    {
+        LogEntry[] logs = LogHub.GetDebugSnapshot();
+        if (logs.Length == 0)
+            return;
+
+        _textBuilder.AppendLine().AppendLine("【最近日志】");
+        int startIndex = Math.Max(0, logs.Length - MaxDisplayedLogs);
+        for (int i = startIndex; i < logs.Length; i++)
+        {
+            LogEntry log = logs[i];
+            _textBuilder.Append(log.TimestampUtc.ToLocalTime().ToString("HH:mm:ss"))
+                .Append(' ').Append('[').Append(log.Level).Append("] ")
+                .Append(log.Module).Append(": ");
+
+            if (!string.IsNullOrWhiteSpace(log.Context))
+                _textBuilder.Append('(').Append(log.Context).Append(") ");
+
+            _textBuilder.AppendLine(log.Message);
         }
     }
 

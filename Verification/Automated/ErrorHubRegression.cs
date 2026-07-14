@@ -64,7 +64,7 @@ public sealed partial class ErrorHubRegression : Node
         finally
         {
             ErrorHub.OnError -= OnError;
-            ErrorHub.MinLevel = ErrorLevel.Debug;
+            ErrorHub.MinLevel = ErrorLevel.Warning;
         }
     }
 
@@ -77,7 +77,7 @@ public sealed partial class ErrorHubRegression : Node
         ErrorHub.OnError += OnError;
         try
         {
-            ErrorHub.MinLevel = ErrorLevel.Debug;
+            ErrorHub.MinLevel = ErrorLevel.Warning;
             DateTime before = DateTime.UtcNow;
             ErrorHub.Report(expected, "Regression", context: "Structured");
 

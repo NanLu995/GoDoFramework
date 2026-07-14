@@ -55,14 +55,9 @@ public static class ErrorHub
 
     /// <summary>
     /// 低于此等级的错误将被静默丢弃。
-    /// 默认值：Debug 模式为 <see cref="ErrorLevel.Debug"/>，
-    /// Release 模式为 <see cref="ErrorLevel.Warning"/>。
+    /// 默认值为 <see cref="ErrorLevel.Warning"/>。
     /// </summary>
-#if DEBUG
-    public static ErrorLevel MinLevel { get; set; } = ErrorLevel.Debug;
-#else
     public static ErrorLevel MinLevel { get; set; } = ErrorLevel.Warning;
-#endif
 
     // ── 上报器管理 ────────────────────────────────────────────────────────────
 
@@ -144,6 +139,8 @@ public static class ErrorHub
         string module,
         string? context = null)
     {
+        if (!Enum.IsDefined(level))
+            throw new ArgumentOutOfRangeException(nameof(level), level, "未知错误等级。");
         if (level < MinLevel) return; // 提前过滤，避免无谓的 BuildReport 开销
 
         Submit(BuildReport(level, module, message, context, exception: null));
@@ -154,14 +151,6 @@ public static class ErrorHub
     /// </summary>
     public static void Warn(string message, string module, string? context = null)
         => Report(ErrorLevel.Warning, message, module, context);
-
-    /// <summary>
-    /// 上报一条 <see cref="ErrorLevel.Debug"/> 级别消息的便捷方法。
-    /// 在 Release 构建中，若 <see cref="MinLevel"/> 高于 Debug，则无任何开销。
-    /// </summary>
-    [System.Diagnostics.Conditional("DEBUG")]
-    public static void Debug(string message, string module, string? context = null)
-        => Report(ErrorLevel.Debug, message, module, context);
 
     /// <summary>
     /// 上报一条 <see cref="ErrorLevel.Fatal"/> 级别消息。
@@ -296,7 +285,7 @@ public static class ErrorHub
 #if DEBUG
             // 有异常时直接用异常自带的栈；没有异常时，只在 Fatal 级别才
             // 额外捕获当前调用栈（Environment.StackTrace 开销不小，
-            // 不应该让高频的 Debug/Warn 调用都承担这个成本）。
+            // 不应该让高频的 Warning 调用都承担这个成本）。
             StackTrace = exception?.StackTrace
                          ?? (level == ErrorLevel.Fatal ? System.Environment.StackTrace : null),
 #else
@@ -399,12 +388,6 @@ public static class ErrorHub
 
         switch (report.Level)
         {
-            case ErrorLevel.Debug:
-#if DEBUG
-                GD.Print(formatted);
-#endif
-                break;
-
             case ErrorLevel.Warning:
                 GD.PushWarning(formatted);
                 break;
@@ -451,7 +434,6 @@ public static class ErrorHub
     // （枚举 ToString 本身分配一次字符串，ToUpperInvariant 再分配一次）。
     private static string LevelLabel(ErrorLevel level) => level switch
     {
-        ErrorLevel.Debug   => "DEBUG",
         ErrorLevel.Warning => "WARNING",
         ErrorLevel.Error   => "ERROR",
         ErrorLevel.Fatal   => "FATAL",

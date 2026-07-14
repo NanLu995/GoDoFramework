@@ -5,9 +5,6 @@ namespace GoDo;
 /// </summary>
 public enum ErrorLevel
 {
-    /// <summary>仅在 Debug 模式下输出，Release 自动忽略。</summary>
-    Debug = 0,
-
     /// <summary>非致命警告，业务可继续运行。</summary>
     Warning = 1,
 

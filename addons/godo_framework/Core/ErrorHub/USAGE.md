@@ -19,17 +19,18 @@ catch (Exception exception)
 }
 
 ErrorHub.Warn("配置项缺失，使用默认值", "Config", context: "Audio.Volume");
-ErrorHub.Debug("资源已命中缓存", "Resources");
+LogHub.Debug("资源已命中缓存", "Resources");
 ErrorHub.Fatal("启动所需配置不可用", "Bootstrap");
 ```
 
 `Fatal` 只表示最高严重等级，**不会主动退出游戏**；是否调用 `GetTree().Quit()` 由业务边界决定。
 
+正常流程的开发诊断应使用 `LogHub.Debug` 或 `LogHub.Info`。ErrorHub 只接收 Warning、Error 与 Fatal 级别的异常和失败信息。
+
 ## 等级与过滤
 
 | 等级 | 用途 | Debug 默认 | Release 默认 |
 |---|---|---|---|
-| `Debug` | 开发期细节 | 输出 | 调用点被编译移除 |
 | `Warning` | 可恢复的异常情况 | 输出 | 输出 |
 | `Error` | 当前操作失败 | 输出 | 输出 |
 | `Fatal` | 最高严重等级 | 输出 | 输出 |
@@ -38,7 +39,7 @@ ErrorHub.Fatal("启动所需配置不可用", "Bootstrap");
 ErrorHub.MinLevel = ErrorLevel.Warning;
 ```
 
-`Debug()` 带 `[Conditional("DEBUG")]`，Release / ExportRelease 下连参数表达式也不会求值。过滤后的普通等级不会构造 `ErrorReport`。
+过滤后的等级不会构造 `ErrorReport`。
 
 ## 监听与生命周期
 

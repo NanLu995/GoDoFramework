@@ -68,6 +68,7 @@ public sealed partial class GoDoRuntime : Node
         _instance = this;
         MainThreadGuard.Initialize();
         ResourceHub.Initialize();
+        LogHub.Initialize();
     }
 
     /// <inheritdoc />
@@ -114,7 +115,7 @@ public sealed partial class GoDoRuntime : Node
         AddChild(_debuggerOverlay);
 #endif
 
-        ErrorHub.Debug("GoDo 运行时初始化完成", "Runtime");
+        LogHub.Debug("GoDo 运行时初始化完成", "Runtime");
     }
 
     /// <inheritdoc />
@@ -155,6 +156,7 @@ public sealed partial class GoDoRuntime : Node
             if (IsInstanceValid(_uiRoot))
                 _uiRoot.QueueFree();
             ResourceHub.Shutdown();
+            LogHub.Shutdown();
             ErrorHub.Shutdown();
             _instance = null;
             _sceneService = null;
