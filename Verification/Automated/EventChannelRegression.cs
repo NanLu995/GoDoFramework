@@ -23,6 +23,7 @@ public sealed partial class EventChannelRegression : Node
     {
         try
         {
+            Run("无数据事件派发", VerifyEmptyEventEmit);
             Run("优先级与同优先级顺序", VerifyPriorityOrder);
             Run("重复监听去重", VerifyDuplicateRegistration);
             Run("Once 与同类型重入", VerifyOnceWithReentrancy);
@@ -31,7 +32,7 @@ public sealed partial class EventChannelRegression : Node
             Run("EventScope 释放", VerifyEventScopeDispose);
             await RunAsync("Bind 跟随 Node 退出树解绑", VerifyNodeBindingAsync);
 
-            GD.Print($"[EventChannelRegression] PASS ({_passed}/7)");
+            GD.Print($"[EventChannelRegression] PASS ({_passed}/8)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -76,6 +77,24 @@ public sealed partial class EventChannelRegression : Node
             EventChannel.Off<TestEvent>(First);
             EventChannel.Off<TestEvent>(Second);
             EventChannel.Off<TestEvent>(Third);
+        }
+    }
+
+    private static void VerifyEmptyEventEmit()
+    {
+        int calls = 0;
+        void Handler(TestEvent _) => calls++;
+
+        try
+        {
+            EventChannel.On<TestEvent>(Handler);
+            EventChannel.Emit<TestEvent>();
+
+            AssertEqual(1, calls, "无数据事件没有派发给监听者");
+        }
+        finally
+        {
+            EventChannel.Off<TestEvent>(Handler);
         }
     }
 

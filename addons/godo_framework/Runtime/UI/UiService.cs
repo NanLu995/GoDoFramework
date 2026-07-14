@@ -27,7 +27,7 @@ public sealed partial class UiService : Node, IUiService
             throw new InvalidOperationException("UiService 和 UiRoot 必须完成场景树初始化。");
 
         _root = root;
-        EventChannel.Bind<MainSceneChangedEvent>(this, OnMainSceneChanged);
+        EventChannel.Bind<FrameworkMainSceneChangedEvent>(this, OnMainSceneChanged);
     }
 
     /// <inheritdoc />
@@ -188,7 +188,7 @@ public sealed partial class UiService : Node, IUiService
         }
     }
 
-    private void OnMainSceneChanged(MainSceneChangedEvent _)
+    private void OnMainSceneChanged(FrameworkMainSceneChangedEvent _)
     {
         for (int i = 0; i < _sceneViews.Count; i++)
         {

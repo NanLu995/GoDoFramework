@@ -37,7 +37,7 @@ ui/main_menu -> uid://...
 item/sword_iron -> res://Items/SwordIron.tres
 ```
 
-ResourceRegistry 是运行时映射表。业务代码通过语义 ID 解析 ResourceKey，再交给 ResourceHub 加载：
+ResourceRegistry 是运行时映射表。业务代码通过语义 ID 获取 ResourceKey，再交给 ResourceHub 加载：
 
 ```csharp
 ResourceManifest manifest =
@@ -46,7 +46,7 @@ ResourceManifest manifest =
 ResourceRegistry.Load(manifest);
 
 Texture2D icon = ResourceHub.Load<Texture2D>(
-    ResourceRegistry.Resolve("ui/icon_close"));
+    ResourceRegistry.GetKey("ui/icon_close"));
 ```
 
 语义：
@@ -55,10 +55,10 @@ Texture2D icon = ResourceHub.Load<Texture2D>(
 - `LoadMerge(manifests)` 会清空旧表并按顺序合并多个清单。
 - 重复 ID 以后者覆盖前者，并输出 Godot warning。
 - 空 ID 和 null 记录会跳过并输出 warning。
-- `Resolve(id)` 在未加载或找不到 ID 时抛出异常。
-- `TryResolve(id, out key)` 在未加载或找不到 ID 时返回 false。
+- `GetKey(id)` 在未加载或找不到 ID 时抛出异常。
+- `TryGetKey(id, out key)` 在未加载或找不到 ID 时返回 false。
 
-ResourceRegistry 只负责语义 ID 到 ResourceKey 的解析，不负责自动扫描目录、生成 Manifest、远程下载或热更新。
+ResourceRegistry 只负责语义 ID 到 ResourceKey 的获取，不负责自动扫描目录、生成 Manifest、远程下载或热更新。
 
 ## 同步加载
 
@@ -124,7 +124,7 @@ Godot_v4.7-stable_mono_win64_console.exe --headless --path . Verification/Automa
 
 成功退出码为 0，失败退出码为 1。
 
-`Verification/Automated/ResourceRegistryRegression.tscn` 验证未加载状态、清单加载、解析成功、解析失败、`TryResolve`、重复 ID 覆盖、合并加载和清空语义。
+`Verification/Automated/ResourceRegistryRegression.tscn` 验证未加载状态、清单加载、获取成功、获取失败、`TryGetKey`、重复 ID 覆盖、合并加载和清空语义。
 
 `Verification/Automated/ResourceHubRegression.tscn` 复用现有强类型 `.tres`，验证同步加载、无效与缺失资源、同步类型不匹配、异步请求合并、同路径类型冲突、异步期间同步冲突，以及完成操作从活动表清理；不调用 Shutdown。
 

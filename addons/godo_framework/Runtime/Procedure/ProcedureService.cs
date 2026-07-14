@@ -39,6 +39,10 @@ public sealed class ProcedureService : IProcedureService
         await ChangeSequenceAsync(next);
     }
 
+    /// <inheritdoc />
+    public Task ChangeAsync<TProcedure>() where TProcedure : IProcedure, new() =>
+        ChangeAsync(new TProcedure());
+
     internal void Shutdown()
     {
         MainThreadGuard.VerifyAccess();

@@ -15,4 +15,7 @@ public interface IProcedureService
 
     /// <summary>退出当前流程并进入目标流程。</summary>
     Task ChangeAsync(IProcedure next);
+
+    /// <summary>创建并进入无参构造的目标流程。</summary>
+    Task ChangeAsync<TProcedure>() where TProcedure : IProcedure, new();
 }

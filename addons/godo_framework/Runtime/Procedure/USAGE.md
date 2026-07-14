@@ -51,7 +51,13 @@ public sealed class MainMenuProcedure : IProcedure
 
 ```csharp
 IProcedureService procedures = Services.Get<IProcedureService>();
-await procedures.ChangeAsync(new MainMenuProcedure());
+await procedures.ChangeAsync<MainMenuProcedure>();
+```
+
+无参且具有 `public` 构造函数的 Procedure 可使用泛型重载；需要携带本次业务数据时，显式创建流程实例：
+
+```csharp
+await procedures.ChangeAsync(new ResultProcedure(score, isNewRecord));
 ```
 
 GoDoRuntime 只注册 `IProcedureService`，不会自动进入任何业务流程。游戏项目应在自己的启动场景或启动脚本中决定第一个 Procedure。
@@ -81,12 +87,14 @@ public interface IProcedureService
     IProcedure? Current { get; }
     bool IsChanging { get; }
     Task ChangeAsync(IProcedure next);
+    Task ChangeAsync<TProcedure>() where TProcedure : IProcedure, new();
 }
 ```
 
 - `Current`：当前已成功进入的流程；无流程或进入失败后为 `null`。
 - `IsChanging`：是否正在切换。
 - `ChangeAsync`：退出当前流程并进入目标流程。
+- `ChangeAsync<TProcedure>`：创建并进入具有 `public` 无参构造函数的目标流程；需要传递业务数据时使用实例重载。
 
 ### ProcedureContext
 
@@ -96,10 +104,11 @@ public sealed class ProcedureContext
     public TService GetService<TService>() where TService : class;
     public bool TryGetService<TService>(out TService? service) where TService : class;
     public void RequestChange(IProcedure next);
+    public void RequestChange<TProcedure>() where TProcedure : IProcedure, new();
 }
 ```
 
-Procedure 模块本身不直接依赖 Scene、UI、Audio、Save 等具体服务。业务 Procedure 可以通过 `ProcedureContext` 显式获取已注册服务，也可以通过 `RequestChange` 请求切换到下一个流程。
+Procedure 模块本身不直接依赖 Scene、UI、Audio、Save 等具体服务。业务 Procedure 可以通过 `ProcedureContext` 显式获取已注册服务，也可以通过 `RequestChange<TProcedure>()` 请求无参流程切换；需要传递业务数据时使用 `RequestChange(IProcedure next)`。
 
 ## 切换语义
 

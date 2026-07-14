@@ -75,7 +75,7 @@ public sealed partial class SceneService : Node, ISceneService
 
             Node newScene = InstantiateScene(packedScene, key);
             ReplaceCurrentScene(newScene, key, lifecycleVersion);
-            EventChannel.Emit(new MainSceneChangedEvent());
+            EventChannel.Emit<FrameworkMainSceneChangedEvent>();
             Progress = 1f;
             return newScene;
         }

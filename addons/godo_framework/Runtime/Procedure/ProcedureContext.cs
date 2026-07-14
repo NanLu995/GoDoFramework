@@ -30,4 +30,8 @@ public sealed class ProcedureContext
         ArgumentNullException.ThrowIfNull(next);
         _requestChange(next);
     }
+
+    /// <summary>创建并请求进入无参构造的目标流程。</summary>
+    public void RequestChange<TProcedure>() where TProcedure : IProcedure, new() =>
+        RequestChange(new TProcedure());
 }

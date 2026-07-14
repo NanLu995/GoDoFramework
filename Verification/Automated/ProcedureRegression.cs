@@ -19,6 +19,7 @@ public sealed partial class ProcedureRegression : Node
         {
             await RunAsync("初始状态为空", VerifyInitialStateAsync);
             await RunAsync("首次进入流程", VerifyFirstEnterAsync);
+            await RunAsync("泛型进入无参流程", VerifyGenericChangeAsync);
             await RunAsync("切换顺序", VerifyChangeOrderAsync);
             await RunAsync("并发切换拒绝", VerifyConcurrentChangeRejectionAsync);
             await RunAsync("Exit 失败保留旧流程", VerifyExitFailureAsync);
@@ -26,8 +27,9 @@ public sealed partial class ProcedureRegression : Node
             await RunAsync("Context 获取服务", VerifyContextServiceAccessAsync);
             await RunAsync("Enter 内请求后续流程", VerifyEnterRequestedChangeAsync);
             await RunAsync("当前流程方法请求切换", VerifyCurrentProcedureRequestedChangeAsync);
+            await RunAsync("Context 泛型请求无参流程", VerifyGenericRequestAsync);
 
-            GD.Print($"[ProcedureRegression] PASS ({_passed}/9)");
+            GD.Print($"[ProcedureRegression] PASS ({_passed}/11)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -63,6 +65,17 @@ public sealed partial class ProcedureRegression : Node
         Assert(!service.IsChanging, "首次进入完成后 IsChanging 未复位");
         Assert(procedure.EnterCount == 1, "首次进入没有调用 EnterAsync");
         Assert(procedure.ExitCount == 0, "首次进入不应调用 ExitAsync");
+    }
+
+    private static async Task VerifyGenericChangeAsync()
+    {
+        var service = new ProcedureService();
+
+        await service.ChangeAsync<ParameterlessProcedure>();
+
+        Assert(service.Current is ParameterlessProcedure, "泛型切换没有创建目标流程");
+        var procedure = (ParameterlessProcedure)service.Current!;
+        Assert(procedure.EnterCount == 1, "泛型切换没有调用 EnterAsync");
     }
 
     private static async Task VerifyChangeOrderAsync()
@@ -173,6 +186,18 @@ public sealed partial class ProcedureRegression : Node
         Assert(ReferenceEquals(next, service.Current), "当前流程方法 RequestChange 后 Current 不正确");
         Assert(log.Text == "Enter:Menu;Exit:Menu;Enter:Game;", $"当前流程方法请求切换顺序不正确: {log.Text}");
     }
+
+    private static async Task VerifyGenericRequestAsync()
+    {
+        var service = new ProcedureService();
+
+        await service.ChangeAsync(new GenericRequestProcedure());
+
+        Assert(service.Current is ParameterlessProcedure, "Context 泛型请求没有创建目标流程");
+        var procedure = (ParameterlessProcedure)service.Current!;
+        Assert(procedure.EnterCount == 1, "Context 泛型请求没有调用 EnterAsync");
+    }
+
     private static void Assert(bool condition, string message)
     {
         if (!condition)
@@ -227,6 +252,38 @@ public sealed partial class ProcedureRegression : Node
             _log?.Append($"Exit:{Name};");
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class ParameterlessProcedure : IProcedure
+    {
+        public ParameterlessProcedure()
+        {
+        }
+
+        public string Name => "Parameterless";
+
+        public int EnterCount { get; private set; }
+
+        public Task EnterAsync(ProcedureContext context)
+        {
+            EnterCount++;
+            return Task.CompletedTask;
+        }
+
+        public Task ExitAsync(ProcedureContext context) => Task.CompletedTask;
+    }
+
+    private sealed class GenericRequestProcedure : IProcedure
+    {
+        public string Name => "GenericRequest";
+
+        public Task EnterAsync(ProcedureContext context)
+        {
+            context.RequestChange<ParameterlessProcedure>();
+            return Task.CompletedTask;
+        }
+
+        public Task ExitAsync(ProcedureContext context) => Task.CompletedTask;
     }
 
     private sealed class RequestOnEnterProcedure : RecordingProcedure

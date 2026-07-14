@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Godot;
 
 #nullable enable
 
@@ -45,8 +44,8 @@ public static class ResourceRegistry
         _loaded = true;
     }
 
-    /// <summary>按语义 ID 解析资源键；未加载或找不到 ID 时抛出异常。</summary>
-    public static ResourceKey Resolve(string id)
+    /// <summary>按语义 ID 获取资源键；未加载或找不到 ID 时抛出异常。</summary>
+    public static ResourceKey GetKey(string id)
     {
         if (!_loaded)
             throw new InvalidOperationException("ResourceRegistry 尚未加载任何 ResourceManifest。");
@@ -57,8 +56,8 @@ public static class ResourceRegistry
         return key;
     }
 
-    /// <summary>按语义 ID 尝试解析资源键；未加载或找不到 ID 时返回 false。</summary>
-    public static bool TryResolve(string id, out ResourceKey key)
+    /// <summary>按语义 ID 尝试获取资源键；未加载或找不到 ID 时返回 false。</summary>
+    public static bool TryGetKey(string id, out ResourceKey key)
     {
         if (!_loaded)
         {

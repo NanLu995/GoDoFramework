@@ -18,8 +18,8 @@ public sealed partial class ResourceRegistryRegression : Node
         try
         {
             Run("未加载状态", VerifyUnloadedState);
-            Run("加载与解析", VerifyLoadAndResolve);
-            Run("TryResolve 缺失 ID", VerifyTryResolveMissing);
+            Run("加载与获取", VerifyLoadAndGetKey);
+            Run("TryGetKey 缺失 ID", VerifyTryGetKeyMissing);
             Run("重复 ID 覆盖", VerifyDuplicateOverride);
             Run("合并加载", VerifyLoadMerge);
             Run("清空", VerifyClear);
@@ -45,14 +45,14 @@ public sealed partial class ResourceRegistryRegression : Node
     private static void VerifyUnloadedState()
     {
         AssertThrows<InvalidOperationException>(
-            static () => ResourceRegistry.Resolve("existing"),
-            "未加载时 Resolve 没有失败");
-        Assert(!ResourceRegistry.TryResolve("existing", out ResourceKey key), "未加载时 TryResolve 返回 true");
-        Assert(!key.IsValid, "未加载时 TryResolve 输出了有效 ResourceKey");
+            static () => ResourceRegistry.GetKey("existing"),
+            "未加载时 GetKey 没有失败");
+        Assert(!ResourceRegistry.TryGetKey("existing", out ResourceKey key), "未加载时 TryGetKey 返回 true");
+        Assert(!key.IsValid, "未加载时 TryGetKey 输出了有效 ResourceKey");
         AssertEqual(0, ResourceRegistry.Count, "未加载时 Count 不为 0");
     }
 
-    private static void VerifyLoadAndResolve()
+    private static void VerifyLoadAndGetKey()
     {
         ResourceManifest manifest = CreateManifest(
             Entry("config/main", "res://Config/Main.tres"),
@@ -64,27 +64,27 @@ public sealed partial class ResourceRegistryRegression : Node
         AssertEqual(2, ResourceRegistry.Count, "空 Id 记录没有被跳过");
         AssertEqual(
             ResourceKey.FromPath("res://Config/Main.tres"),
-            ResourceRegistry.Resolve("config/main"),
+            ResourceRegistry.GetKey("config/main"),
             "res:// 记录解析错误");
         AssertEqual(
             ResourceKey.FromUid("uid://c8k2n4m8xj3fa"),
-            ResourceRegistry.Resolve("ui/close"),
+            ResourceRegistry.GetKey("ui/close"),
             "uid:// 记录解析错误");
-        Assert(ResourceRegistry.TryResolve("ui/close", out ResourceKey key), "TryResolve 没有找到已有 ID");
-        Assert(key.IsUid, "TryResolve 返回的 UID key 没有标记 IsUid");
+        Assert(ResourceRegistry.TryGetKey("ui/close", out ResourceKey key), "TryGetKey 没有找到已有 ID");
+        Assert(key.IsUid, "TryGetKey 返回的 UID key 没有标记 IsUid");
 
         KeyNotFoundException exception = AssertThrows<KeyNotFoundException>(
-            static () => ResourceRegistry.Resolve("missing"),
+            static () => ResourceRegistry.GetKey("missing"),
             "缺失 ID 没有抛出 KeyNotFoundException");
         Assert(exception.Message.Contains("missing", StringComparison.Ordinal), "缺失 ID 异常没有包含 ID");
     }
 
-    private static void VerifyTryResolveMissing()
+    private static void VerifyTryGetKeyMissing()
     {
         ResourceRegistry.Load(CreateManifest(Entry("known", "res://Known.tres")));
 
-        Assert(!ResourceRegistry.TryResolve("missing", out ResourceKey key), "缺失 ID TryResolve 返回 true");
-        Assert(!key.IsValid, "缺失 ID TryResolve 输出了有效 ResourceKey");
+        Assert(!ResourceRegistry.TryGetKey("missing", out ResourceKey key), "缺失 ID TryGetKey 返回 true");
+        Assert(!key.IsValid, "缺失 ID TryGetKey 输出了有效 ResourceKey");
     }
 
     private static void VerifyDuplicateOverride()
@@ -94,7 +94,7 @@ public sealed partial class ResourceRegistryRegression : Node
             Entry("same", "uid://second")));
 
         AssertEqual(1, ResourceRegistry.Count, "重复 ID 没有覆盖为单条记录");
-        AssertEqual(ResourceKey.FromUid("uid://second"), ResourceRegistry.Resolve("same"), "重复 ID 没有以后者覆盖前者");
+        AssertEqual(ResourceKey.FromUid("uid://second"), ResourceRegistry.GetKey("same"), "重复 ID 没有以后者覆盖前者");
     }
 
     private static void VerifyLoadMerge()
@@ -105,8 +105,8 @@ public sealed partial class ResourceRegistryRegression : Node
         ResourceRegistry.LoadMerge(new[] { first, second });
 
         AssertEqual(2, ResourceRegistry.Count, "LoadMerge 没有合并多个清单");
-        AssertEqual(ResourceKey.FromPath("res://A.tres"), ResourceRegistry.Resolve("a"), "LoadMerge 第一份清单解析错误");
-        AssertEqual(ResourceKey.FromUid("uid://b"), ResourceRegistry.Resolve("b"), "LoadMerge 第二份清单解析错误");
+        AssertEqual(ResourceKey.FromPath("res://A.tres"), ResourceRegistry.GetKey("a"), "LoadMerge 第一份清单获取错误");
+        AssertEqual(ResourceKey.FromUid("uid://b"), ResourceRegistry.GetKey("b"), "LoadMerge 第二份清单获取错误");
     }
 
     private static void VerifyClear()
@@ -115,7 +115,7 @@ public sealed partial class ResourceRegistryRegression : Node
         ResourceRegistry.Clear();
 
         AssertEqual(0, ResourceRegistry.Count, "Clear 后 Count 不为 0");
-        Assert(!ResourceRegistry.TryResolve("known", out _), "Clear 后 TryResolve 仍能解析旧 ID");
+        Assert(!ResourceRegistry.TryGetKey("known", out _), "Clear 后 TryGetKey 仍能获取旧 ID");
     }
 
     private static ResourceManifest CreateManifest(params ResourceManifestEntry[] entries)

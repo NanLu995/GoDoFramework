@@ -6,7 +6,9 @@ using GoDo;
 
 namespace StarterGame;
 
-/// <summary>通过 EventChannel 接收分数变化并刷新显示。</summary>
+/// <summary>
+/// 通过 EventChannel 接收分数变化并刷新显示。
+/// </summary>
 public sealed partial class ScorePanel : Control
 {
     private Label? _scoreLabel;

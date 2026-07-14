@@ -81,8 +81,11 @@ public sealed class SessionObserver : IDisposable
 | `Once<T>(handler)` | 成功派发一次后自动移除；未触发前仍需管理生命周期 |
 | `Off<T>(handler)` | 移除指定监听 |
 | `Bind<T>(node, handler, priority)` | 跟随 Node 退出树自动解绑 |
-| `Emit<T>(evt)` | 同步派发事件 |
+| `Emit<T>(evt)` | 同步派发携带数据的事件 |
+| `Emit<T>()` | 同步派发不携带数据的事件 |
 | `EventScope` | 管理纯 C# 对象的多项订阅 |
+
+无数据事件可使用 `Emit<T>()`；携带数据的事件仍应显式构造事件值后传给 `Emit<T>(evt)`。
 
 - `priority` 越小越先执行；相同优先级保持注册顺序。
 - 派发是同步的；`Emit` 返回时本轮监听已经执行完成。
@@ -107,7 +110,7 @@ public sealed class SessionObserver : IDisposable
 Godot_v4.7-stable_mono_win64_console.exe --headless --path . Verification/Automated/EventChannelRegression.tscn
 ```
 
-全部通过时进程退出码为 0；任一断言失败时退出码为 1。当前 runner 已通过 `dotnet build` 编译，并在 Godot 4.7 Mono Headless 中完成 7/7 项验证。
+全部通过时进程退出码为 0；任一断言失败时退出码为 1。当前 runner 已通过 `dotnet build` 编译；本次新增无数据事件派发用例，完整 Headless 回归待运行环境恢复后执行。
 
 ## 常见误用
 

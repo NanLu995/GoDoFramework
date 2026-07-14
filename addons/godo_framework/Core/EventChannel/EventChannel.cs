@@ -39,6 +39,11 @@ namespace GoDo
         }
 
         /// <summary>
+        /// 广播一个不携带数据的事件给所有监听者。
+        /// </summary>
+        public static void Emit<T>() where T : struct, IEventMessage => Emit(new T());
+
+        /// <summary>
         /// 持续监听某类事件。
         /// priority 越小越先执行，默认 0。
         /// </summary>

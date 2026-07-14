@@ -59,13 +59,13 @@ public sealed partial class ResultView : Control
     private void OnRetryPressed()
     {
         SetButtonsDisabled(true);
-        EventChannel.Emit(new StarterRetrySelectedEvent());
+        EventChannel.Emit<StarterRetrySelectedEvent>();
     }
 
     private void OnMenuPressed()
     {
         SetButtonsDisabled(true);
-        EventChannel.Emit(new StarterReturnToMenuSelectedEvent());
+        EventChannel.Emit<StarterReturnToMenuSelectedEvent>();
     }
 
     private void SetButtonsDisabled(bool disabled)
