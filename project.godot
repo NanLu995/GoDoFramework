@@ -16,9 +16,9 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 [autoload]
 
-GoDoRuntime="*res://addons/godo_framework/Core/GoDoRuntime.tscn"
-GuideCs="*uid://dwc608aemhafg"
 GUIDE="*uid://p2jwrgjcbexr"
+GuideCs="*uid://dwc608aemhafg"
+GoDoRuntime="*res://addons/godo_framework/Core/GoDoRuntime.tscn"
 PhantomCameraManager="*uid://duq6jhf6unyis"
 
 [display]
