@@ -1,15 +1,15 @@
-[gd_resource type="Resource" script_class="GuideInputProfile" load_steps=23 format=3]
+[gd_resource type="Resource" script_class="GuideInputProfile" format=3 uid="uid://3ob8kmxjdond"]
 
-[ext_resource type="Script" path="res://addons/godo_guide_input/Runtime/GuideInputProfile.cs" id="1_profile"]
-[ext_resource type="Script" path="res://addons/godo_guide_input/Runtime/GuideInputActionBinding.cs" id="2_action_binding"]
-[ext_resource type="Script" path="res://addons/godo_guide_input/Runtime/GuideInputContextBinding.cs" id="3_context_binding"]
-[ext_resource type="Script" path="res://addons/godo_guide_input/Runtime/GuideInputBindingDefinition.cs" id="10_binding_definition"]
+[ext_resource type="Script" uid="uid://b57465xedseri" path="res://addons/godo_guide_input/Runtime/GuideInputProfile.cs" id="1_profile"]
+[ext_resource type="Script" uid="uid://u4c73ov3p3d7" path="res://addons/godo_guide_input/Runtime/GuideInputActionBinding.cs" id="2_action_binding"]
+[ext_resource type="Script" uid="uid://thxhmynasb68" path="res://addons/godo_guide_input/Runtime/GuideInputContextBinding.cs" id="3_context_binding"]
 [ext_resource type="Resource" path="res://Templates/Demo3D/Input/Move.tres" id="4_move"]
 [ext_resource type="Resource" path="res://Templates/Demo3D/Input/Look.tres" id="5_look"]
 [ext_resource type="Resource" path="res://Templates/Demo3D/Input/Jump.tres" id="6_jump"]
 [ext_resource type="Resource" path="res://Templates/Demo3D/Input/ReleasePointer.tres" id="7_release"]
-[ext_resource type="Resource" path="res://Templates/Demo3D/Input/GameplayContext.tres" id="8_gameplay"]
+[ext_resource type="Resource" uid="uid://y7ctbslaibyj" path="res://Templates/Demo3D/Input/GameplayContext.tres" id="8_gameplay"]
 [ext_resource type="Resource" path="res://Templates/Demo3D/Input/ResultContext.tres" id="9_result"]
+[ext_resource type="Script" uid="uid://d0gt5myw54f3n" path="res://addons/godo_guide_input/Runtime/GuideInputBindingDefinition.cs" id="10_binding_definition"]
 
 [sub_resource type="Resource" id="MoveBinding"]
 script = ExtResource("2_action_binding")
@@ -31,29 +31,11 @@ script = ExtResource("2_action_binding")
 ActionId = "gameplay.release_pointer"
 GuideActionResource = ExtResource("7_release")
 
-[sub_resource type="Resource" id="GameplayBinding"]
-script = ExtResource("3_context_binding")
-ContextId = "gameplay"
-GuideContextResource = ExtResource("8_gameplay")
-
-[sub_resource type="Resource" id="ResultBinding"]
-script = ExtResource("3_context_binding")
-ContextId = "result"
-GuideContextResource = ExtResource("9_result")
-
-[sub_resource type="Resource" id="JumpPrimaryBinding"]
-script = ExtResource("10_binding_definition")
-BindingId = "gameplay.jump.primary"
-ContextId = "gameplay"
-ActionId = "gameplay.jump"
-MappingIndex = 0
-
 [sub_resource type="Resource" id="MoveForwardBinding"]
 script = ExtResource("10_binding_definition")
 BindingId = "gameplay.move.forward"
 ContextId = "gameplay"
 ActionId = "gameplay.move"
-MappingIndex = 0
 
 [sub_resource type="Resource" id="MoveBackwardBinding"]
 script = ExtResource("10_binding_definition")
@@ -88,7 +70,6 @@ script = ExtResource("10_binding_definition")
 BindingId = "gameplay.look.mouse"
 ContextId = "gameplay"
 ActionId = "gameplay.look"
-MappingIndex = 0
 
 [sub_resource type="Resource" id="LookGamepadBinding"]
 script = ExtResource("10_binding_definition")
@@ -97,12 +78,28 @@ ContextId = "gameplay"
 ActionId = "gameplay.look"
 MappingIndex = 1
 
+[sub_resource type="Resource" id="JumpPrimaryBinding"]
+script = ExtResource("10_binding_definition")
+BindingId = "gameplay.jump.primary"
+ContextId = "gameplay"
+ActionId = "gameplay.jump"
+
 [sub_resource type="Resource" id="JumpGamepadBinding"]
 script = ExtResource("10_binding_definition")
 BindingId = "gameplay.jump.gamepad"
 ContextId = "gameplay"
 ActionId = "gameplay.jump"
 MappingIndex = 1
+
+[sub_resource type="Resource" id="GameplayBinding"]
+script = ExtResource("3_context_binding")
+ContextId = "gameplay"
+GuideContextResource = ExtResource("8_gameplay")
+
+[sub_resource type="Resource" id="ResultBinding"]
+script = ExtResource("3_context_binding")
+ContextId = "result"
+GuideContextResource = ExtResource("9_result")
 
 [resource]
 script = ExtResource("1_profile")
