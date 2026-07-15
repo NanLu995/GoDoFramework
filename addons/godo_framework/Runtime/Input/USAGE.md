@@ -53,6 +53,18 @@ Vector2 move = frame.Axis2(GameInput.Move);
 - Frame 是当前渲染帧的轻量句柄，不复制 Action 集合；跨帧保存后再次读取会失败。
 - 后端首次成功采样前不能读取 Frame。
 
+### 活动设备
+
+`ActiveDevice` 返回后端最近识别到的键鼠、手柄或触摸类别；尚未观察到有效输入时为 `Unknown`。
+支持可靠跟踪的后端会声明 `InputBackendCapabilities.DeviceTracking`。
+
+```csharp
+EventChannel.Bind<InputDeviceChangedEvent>(this, OnInputDeviceChanged);
+```
+
+`InputDeviceChangedEvent` 只在一次成功采样提交后且类别确实变化时发布，携带 `Previous` 与 `Current`；
+相同设备的连续输入不会重复通知。具体提示文字、图标和排版属于游戏 UI。
+
 ### Context 栈
 
 ```csharp
@@ -108,6 +120,7 @@ InputFrame 表示最近完成的渲染帧采样。需要驱动物理的控制器
 - 每帧使用预分配样本和状态数组，成功采样后原子提交。
 - 同帧重复读取只访问缓存，不再次调用后端。
 - 当前假后端回归要求 10,000 次 `Axis2` 读取产生 0 bytes 托管分配。
+- 设备类别只在已有采样提交时比较；事件只在类别变化时派发，不增加输入热路径集合分配。
 - Context 变化属于低频路径，允许创建小型临时数组以保证提交前状态不变。
 
 ## 验证
@@ -118,6 +131,6 @@ InputFrame 表示最近完成的渲染帧采样。需要驱动物理的控制器
 Verification/Automated/InputServiceRegression.tscn
 ```
 
-覆盖 ID、后端缺失、首次采样、Bool/Axis 状态、Frame 过期、Context 组合与误用、失败原子性、
+覆盖 ID、后端缺失、首次采样、Bool/Axis 状态、活动设备变化、Frame 过期、Context 组合与误用、失败原子性、
 重复后端/布局拒绝、热读取分配和关闭幂等。`InputRuntimeRegression.tscn` 额外验证 GoDoRuntime 注册、自动采样与关闭。
-GUIDE、真实设备、窗口失焦以及渲染/物理时序将在后续批次手动验证。
+GUIDE 回归覆盖设备阈值和跟踪节点清理；真实设备、窗口失焦以及渲染/物理时序仍需手动验证。

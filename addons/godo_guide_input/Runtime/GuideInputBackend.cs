@@ -10,6 +10,10 @@ namespace GoDo.GuideInput;
 /// <summary>把 G.U.I.D.E Action 和 Mapping Context 适配到 GoDo IInputBackend。</summary>
 public sealed class GuideInputBackend : IInputBackend
 {
+    private const int EmulatedDeviceId = -1;
+    private const float PointerMotionThresholdSquared = 1f;
+    private const float GamepadAxisThreshold = 0.25f;
+
     private readonly GuideInputProfile _profile;
     private readonly List<GuideAction> _actions = new();
     private readonly Dictionary<InputContextId, GuideMappingContext> _contexts = new();
@@ -18,13 +22,15 @@ public sealed class GuideInputBackend : IInputBackend
     private InputActionDescriptor[] _actionDescriptors = Array.Empty<InputActionDescriptor>();
     private InputContextId[] _contextIds = Array.Empty<InputContextId>();
     private InputActionSample[] _cachedSamples = Array.Empty<InputActionSample>();
+    private GuideInputDeviceTracker? _deviceTracker;
+    private InputDeviceKind _activeDevice;
     private bool _initialized;
 
     /// <inheritdoc />
-    public InputBackendCapabilities Capabilities => InputBackendCapabilities.None;
+    public InputBackendCapabilities Capabilities => InputBackendCapabilities.DeviceTracking;
 
     /// <inheritdoc />
-    public InputDeviceKind ActiveDevice => InputDeviceKind.Unknown;
+    public InputDeviceKind ActiveDevice => _activeDevice;
 
     /// <inheritdoc />
     public IReadOnlyList<InputActionDescriptor> Actions => _actionDescriptors;
@@ -52,9 +58,12 @@ public sealed class GuideInputBackend : IInputBackend
             BuildContexts();
             AttachSubscriptions();
             _initialized = true;
+            AttachDeviceTracker();
         }
         catch
         {
+            _initialized = false;
+            DetachDeviceTracker();
             DetachSubscriptions();
             ClearRuntimeState();
             throw;
@@ -126,6 +135,7 @@ public sealed class GuideInputBackend : IInputBackend
         }
         finally
         {
+            DetachDeviceTracker();
             DetachSubscriptions();
             ClearRuntimeState();
             _initialized = false;
@@ -278,6 +288,69 @@ public sealed class GuideInputBackend : IInputBackend
         _actionDescriptors = Array.Empty<InputActionDescriptor>();
         _contextIds = Array.Empty<InputContextId>();
         _cachedSamples = Array.Empty<InputActionSample>();
+        _activeDevice = InputDeviceKind.Unknown;
+    }
+
+    internal void ObserveInputEvent(InputEvent inputEvent)
+    {
+        if (!_initialized || inputEvent.Device == EmulatedDeviceId)
+            return;
+
+        switch (inputEvent)
+        {
+            case InputEventKey key when key.Pressed && !key.Echo:
+            case InputEventMouseButton { Pressed: true }:
+                _activeDevice = InputDeviceKind.KeyboardMouse;
+                break;
+            case InputEventMouseMotion mouseMotion
+                when mouseMotion.Relative.LengthSquared() >= PointerMotionThresholdSquared:
+                _activeDevice = InputDeviceKind.KeyboardMouse;
+                break;
+            case InputEventJoypadButton joyButton when joyButton.Pressed:
+                _activeDevice = joyButton.Device < EmulatedDeviceId
+                    ? InputDeviceKind.Touch
+                    : InputDeviceKind.Gamepad;
+                break;
+            case InputEventJoypadMotion joyMotion
+                when Mathf.Abs(joyMotion.AxisValue) >= GamepadAxisThreshold:
+                _activeDevice = joyMotion.Device < EmulatedDeviceId
+                    ? InputDeviceKind.Touch
+                    : InputDeviceKind.Gamepad;
+                break;
+            case InputEventScreenTouch { Pressed: true }:
+                _activeDevice = InputDeviceKind.Touch;
+                break;
+            case InputEventScreenDrag screenDrag
+                when screenDrag.ScreenRelative.LengthSquared() >= PointerMotionThresholdSquared:
+                _activeDevice = InputDeviceKind.Touch;
+                break;
+        }
+    }
+
+    private void AttachDeviceTracker()
+    {
+        if (Engine.GetMainLoop() is not SceneTree tree)
+            throw new InvalidOperationException("GUIDE 设备跟踪需要有效的 SceneTree。");
+        Node runtime = tree.Root.GetNodeOrNull<Node>("GoDoRuntime") ??
+            throw new InvalidOperationException("GUIDE 设备跟踪需要已就绪的 GoDoRuntime。");
+        if (GodotObject.IsInstanceValid(runtime.GetNodeOrNull<Node>(GuideInputDeviceTracker.NodeName)))
+            throw new InvalidOperationException("GUIDE 设备跟踪节点已经存在。");
+
+        var tracker = new GuideInputDeviceTracker();
+        tracker.Initialize(this);
+        runtime.AddChild(tracker);
+        _deviceTracker = tracker;
+    }
+
+    private void DetachDeviceTracker()
+    {
+        GuideInputDeviceTracker? tracker = _deviceTracker;
+        _deviceTracker = null;
+        if (!GodotObject.IsInstanceValid(tracker))
+            return;
+
+        tracker!.Stop();
+        tracker.QueueFree();
     }
 
     private void OnTriggered(int index)

@@ -15,6 +15,7 @@ public sealed class InputService : IInputService
     private IInputBackend? _backend;
     private InputActionSample[] _sampleBuffer = Array.Empty<InputActionSample>();
     private InputActionState[] _states = Array.Empty<InputActionState>();
+    private InputDeviceKind _observedDevice;
     private ulong _sequence;
     private bool _hasSample;
 
@@ -151,6 +152,7 @@ public sealed class InputService : IInputService
             _states = states;
             _sampleBuffer = new InputActionSample[states.Length];
             _backend = backend;
+            _observedDevice = InputDeviceKind.Unknown;
             _sequence = 0;
             _hasSample = false;
         }
@@ -170,11 +172,15 @@ public sealed class InputService : IInputService
     {
         MainThreadGuard.VerifyAccess();
         IInputBackend backend = VerifyReady();
+        InputDeviceKind activeDevice;
 
         try
         {
             backend.Sample(_sampleBuffer);
             ValidateSamples(_sampleBuffer);
+            activeDevice = backend.ActiveDevice;
+            if (!Enum.IsDefined(activeDevice))
+                throw new InvalidOperationException($"输入后端返回了无效设备类别: {activeDevice}");
         }
         catch (Exception exception)
         {
@@ -195,6 +201,12 @@ public sealed class InputService : IInputService
 
         _sequence++;
         _hasSample = true;
+        if (activeDevice != _observedDevice)
+        {
+            InputDeviceKind previous = _observedDevice;
+            _observedDevice = activeDevice;
+            EventChannel.Emit(new InputDeviceChangedEvent(previous, activeDevice));
+        }
     }
 
     internal void Shutdown()
@@ -209,6 +221,7 @@ public sealed class InputService : IInputService
         _contextStack.Clear();
         _sampleBuffer = Array.Empty<InputActionSample>();
         _states = Array.Empty<InputActionState>();
+        _observedDevice = InputDeviceKind.Unknown;
         _sequence = 0;
         _hasSample = false;
     }

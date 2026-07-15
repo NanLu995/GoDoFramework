@@ -1,6 +1,6 @@
 # InputService 设计草案
 
-> 状态：核心 ID、InputFrame、Context 栈、假后端回归、GoDoRuntime 生命周期、GUIDE 首版适配与 Demo3D 真实 Profile 已完成；改键、设备检测和真机手柄体验尚未接入。本文不代表稳定基线。
+> 状态：核心 ID、InputFrame、Context 栈、假后端回归、GoDoRuntime 生命周期、GUIDE 首版适配、设备检测与 Demo3D 真实 Profile 已完成；改键和跨平台真机体验尚未接入。本文不代表稳定基线。
 
 ## 1. 要解决的问题
 
@@ -216,6 +216,10 @@ public interface IInputRebinding
 第一版记录最后产生有效输入的设备类别，并在类别变化时发布事实通知。设备切换只在输入超过有效阈值时发生，
 避免手柄摇杆噪声使键鼠提示来回闪烁。
 
+GUIDE 适配采用长期原始事件监听节点：手柄轴阈值为 `0.25`，指针/触摸位移阈值为 1 像素；忽略 Godot
+`device == -1` 的模拟事件，GUIDE 虚拟摇杆归为触摸。核心在成功采样提交后比较类别，并通过
+`InputDeviceChangedEvent` 仅发布实际变化；同类连续输入不重复通知。
+
 输入提示 UI 可以根据 `ActiveDevice` 与改键查询结果选择显示内容，但图标资源、排版和本地化属于业务 UI。
 震动能力后置；后续可基于 `InputBackendCapabilities.Rumble` 增加独立、可停止的轻量 API，不在第一版预留复杂效果系统。
 
@@ -337,4 +341,5 @@ Godot 手动验证：
 2. 接入 GoDoRuntime 生命周期，但尚不改 Demo3D。（已完成）
 3. 新建 `godo_guide_input` 可选适配包，复用 InputLab 证据。（已完成）
 4. 将 Demo3D 的移动、视角、跳跃、鼠标释放和 Result 隔离迁移为业务使用示例。（已完成）
-5. 完成改键与设备切换；验证后再决定是否进入“首版完成”。
+5. 完成设备检测、变化通知与 Demo3D 状态展示。（已完成，真实设备手动验证待执行）
+6. 完成改键与输入提示查询；验证后再决定是否进入“首版完成”。

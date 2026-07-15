@@ -33,6 +33,7 @@ Templates/Demo3D/Boot/Boot.tscn
 - `PhantomCameraRig`：把 CameraService 的激活/停用转换为 Phantom Camera 优先级。
 - `InputService`：向业务代码提供 Move、Look、Jump 等语义输入，不暴露 GUIDE 类型。
 - `godo_guide_input`：把 GUIDE Action / Mapping Context 转换为 InputService 快照。
+- Gameplay HUD：监听 `InputDeviceChangedEvent`，显示当前键鼠、手柄或触摸类别。
 
 角色控制、视角协调和收集判定属于具体玩法，保留在 `Demo3D` 业务层。`PlayerController` 只从 `IInputService` 读取输入，仍通过 Phantom C# Wrapper 修改第三人称旋转；InputService 与 CameraService 彼此不依赖。
 

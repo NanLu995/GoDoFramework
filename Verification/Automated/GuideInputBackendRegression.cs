@@ -38,10 +38,11 @@ public sealed partial class GuideInputBackendRegression : Node
             VerifyGameplayContext();
             VerifyMenuIsolation();
             VerifyLookSampling();
+            VerifyDeviceTracking();
             MeasureBackendAllocations();
             VerifyShutdown();
 
-            GD.Print("[GuideInputBackendRegression] PASS (5/5)");
+            GD.Print("[GuideInputBackendRegression] PASS (6/6)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -94,9 +95,41 @@ public sealed partial class GuideInputBackendRegression : Node
 
     private void VerifyShutdown()
     {
+        GuideInputDeviceTracker tracker = GetNode<GuideInputDeviceTracker>(
+            $"/root/GoDoRuntime/{GuideInputDeviceTracker.NodeName}");
         _service!.Shutdown();
         Assert(!_service.IsReady, "关闭后 InputService 仍处于就绪状态");
         Assert(Guide.GetEnabledMappingContexts().Count == 0, "关闭后 GUIDE Context 没有清空");
+        Assert(tracker.IsQueuedForDeletion(), "关闭后设备跟踪节点没有进入释放队列");
+    }
+
+    private void VerifyDeviceTracking()
+    {
+        Assert(
+            (_service!.Capabilities & InputBackendCapabilities.DeviceTracking) != 0,
+            "GUIDE 后端没有声明 DeviceTracking 能力");
+        GuideInputDeviceTracker tracker = GetNode<GuideInputDeviceTracker>(
+            $"/root/GoDoRuntime/{GuideInputDeviceTracker.NodeName}");
+
+        tracker._Input(new InputEventJoypadMotion { Device = 0, AxisValue = 0.24f });
+        _service.Update();
+        Assert(_service.ActiveDevice == InputDeviceKind.Unknown, "摇杆噪声错误切换到手柄");
+
+        tracker._Input(new InputEventJoypadMotion { Device = 0, AxisValue = 0.25f });
+        _service.Update();
+        Assert(_service.ActiveDevice == InputDeviceKind.Gamepad, "有效摇杆输入没有切换到手柄");
+
+        tracker._Input(new InputEventMouseButton { Device = -1, Pressed = true });
+        _service.Update();
+        Assert(_service.ActiveDevice == InputDeviceKind.Gamepad, "模拟鼠标事件错误覆盖了实体设备");
+
+        tracker._Input(new InputEventKey { Pressed = true, Echo = false });
+        _service.Update();
+        Assert(_service.ActiveDevice == InputDeviceKind.KeyboardMouse, "键盘输入没有切换设备");
+
+        tracker._Input(new InputEventJoypadButton { Device = -2, Pressed = true });
+        _service.Update();
+        Assert(_service.ActiveDevice == InputDeviceKind.Touch, "虚拟摇杆没有归类为触摸");
     }
 
     private void MeasureBackendAllocations()

@@ -20,6 +20,8 @@ public sealed partial class InputServiceRegression : Node
     private static readonly InputContextId Debug = InputContextId.Create("debug");
 
     private int _passed;
+    private int _deviceChangeCount;
+    private InputDeviceChangedEvent _lastDeviceChange;
     private InputService _service = null!;
 
     /// <inheritdoc />
@@ -30,6 +32,7 @@ public sealed partial class InputServiceRegression : Node
             Run("Action 与 Context ID", VerifyIds);
             Run("未安装后端失败", VerifyMissingBackend);
             Run("安装与首次采样", VerifyInstallAndFirstSample);
+            Run("活动设备变化通知", VerifyDeviceChangeNotification);
             Run("Action 状态与各类轴值", VerifyActionStates);
             Run("未知 Action 与类型错误", VerifyActionFailures);
             Run("旧 Frame 失效", VerifyStaleFrame);
@@ -42,7 +45,7 @@ public sealed partial class InputServiceRegression : Node
             Run("关闭幂等", VerifyShutdown);
 
             _service.Shutdown();
-            GD.Print($"[InputServiceRegression] PASS ({_passed}/13)");
+            GD.Print($"[InputServiceRegression] PASS ({_passed}/14)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -135,6 +138,42 @@ public sealed partial class InputServiceRegression : Node
         InputFrame released = _service.Frame;
         Assert(!released.Pressed(Jump), "释放后 Jump 仍处于按下状态");
         Assert(released.JustReleased(Jump), "释放没有产生 JustReleased");
+    }
+
+    private void VerifyDeviceChangeNotification()
+    {
+        _deviceChangeCount = 0;
+        _lastDeviceChange = default;
+        EventChannel.On<InputDeviceChangedEvent>(OnInputDeviceChanged);
+        try
+        {
+            FakeInputBackend backend = InstallDefaultBackend();
+            AssertEqual(0, _deviceChangeCount, "安装阶段提前发布了设备变化");
+
+            _service.Update();
+            AssertEqual(1, _deviceChangeCount, "首次采样没有发布活动设备");
+            AssertEqual(InputDeviceKind.Unknown, _lastDeviceChange.Previous, "首次设备变化的 Previous 错误");
+            AssertEqual(InputDeviceKind.Gamepad, _lastDeviceChange.Current, "首次设备变化的 Current 错误");
+
+            _service.Update();
+            AssertEqual(1, _deviceChangeCount, "相同设备重复发布变化");
+
+            backend.ActiveDevice = InputDeviceKind.KeyboardMouse;
+            _service.Update();
+            AssertEqual(2, _deviceChangeCount, "设备切换没有发布变化");
+            AssertEqual(InputDeviceKind.Gamepad, _lastDeviceChange.Previous, "切换后的 Previous 错误");
+            AssertEqual(InputDeviceKind.KeyboardMouse, _lastDeviceChange.Current, "切换后的 Current 错误");
+        }
+        finally
+        {
+            EventChannel.Off<InputDeviceChangedEvent>(OnInputDeviceChanged);
+        }
+    }
+
+    private void OnInputDeviceChanged(InputDeviceChangedEvent evt)
+    {
+        _deviceChangeCount++;
+        _lastDeviceChange = evt;
     }
 
     private void VerifyActionFailures()
