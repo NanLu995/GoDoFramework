@@ -26,6 +26,7 @@ public sealed partial class GoDoRuntime : Node
     private static GoDoRuntime? _instance;
     private bool _subscribed;
     private SceneService? _sceneService;
+    private CameraService? _cameraService;
     private AudioService? _audioService;
     private UiService? _uiService;
     private UiRoot? _uiRoot;
@@ -100,6 +101,8 @@ public sealed partial class GoDoRuntime : Node
         CallDeferred(MethodName.ReparentUiRoot);
 
         Services.Register<ISceneService>(_sceneService);
+        _cameraService = new CameraService();
+        Services.Register<ICameraService>(_cameraService);
         Services.Register<IAudioService>(_audioService);
         Services.Register<IUiService>(_uiService);
         _saveService = new SaveService();
@@ -149,6 +152,11 @@ public sealed partial class GoDoRuntime : Node
                 Services.Unregister<IUiService>(_uiService);
             if (IsInstanceValid(_audioService))
                 Services.Unregister<IAudioService>(_audioService);
+            if (_cameraService != null)
+            {
+                _cameraService.Shutdown();
+                Services.Unregister<ICameraService>(_cameraService);
+            }
             if (IsInstanceValid(_sceneService))
                 Services.Unregister<ISceneService>(_sceneService);
 
@@ -160,6 +168,7 @@ public sealed partial class GoDoRuntime : Node
             ErrorHub.Shutdown();
             _instance = null;
             _sceneService = null;
+            _cameraService = null;
             _audioService = null;
             _uiService = null;
             _uiRoot = null;

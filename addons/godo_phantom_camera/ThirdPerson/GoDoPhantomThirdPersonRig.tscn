@@ -1,0 +1,33 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="1_pcam"]
+[ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="2_host"]
+[ext_resource type="Script" path="res://addons/godo_phantom_camera/Runtime/PhantomCameraRig.cs" id="3_rig"]
+
+[node name="GoDoPhantomThirdPersonRig" type="Node3D" node_paths=PackedStringArray("PhantomCameraNode")]
+script = ExtResource("3_rig")
+RigId = "gameplay"
+PhantomCameraNode = NodePath("ThirdPersonPcam")
+ActivePriority = 20
+
+[node name="MainCamera3D" type="Camera3D" parent="."]
+current = true
+
+[node name="PhantomCameraHost" type="Node" parent="MainCamera3D"]
+script = ExtResource("2_host")
+
+[node name="ThirdPersonPcam" type="Node3D" parent="."]
+position = Vector3(0, 2.2, 5.5)
+rotation_degrees = Vector3(-15, 0, 0)
+script = ExtResource("1_pcam")
+priority = 0
+follow_mode = 6
+follow_damping = true
+follow_damping_value = Vector3(0.15, 0.15, 0.15)
+follow_distance = 5.5
+spring_length = 5.5
+collision_mask = 1
+margin = 0.1
+align_transform_with_view = Callable()
+align_position_with_view = Callable()
+align_rotation_with_view = Callable()
