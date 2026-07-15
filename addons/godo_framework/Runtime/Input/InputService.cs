@@ -64,6 +64,21 @@ public sealed class InputService : IInputService
     }
 
     /// <inheritdoc />
+    public bool TryGetRebinding(out IInputRebinding? rebinding)
+    {
+        MainThreadGuard.VerifyAccess();
+        if (_backend is IInputRebindingBackend rebindingBackend &&
+            (_backend.Capabilities & InputBackendCapabilities.Rebinding) != 0)
+        {
+            rebinding = rebindingBackend.Rebinding;
+            return true;
+        }
+
+        rebinding = null;
+        return false;
+    }
+
+    /// <inheritdoc />
     public void SetBaseContext(InputContextId context)
     {
         MainThreadGuard.VerifyAccess();
@@ -303,6 +318,14 @@ public sealed class InputService : IInputService
         out HashSet<InputContextId> contexts,
         out InputActionState[] states)
     {
+        bool declaresRebinding = (backend.Capabilities & InputBackendCapabilities.Rebinding) != 0;
+        bool providesRebinding = backend is IInputRebindingBackend;
+        if (declaresRebinding != providesRebinding)
+        {
+            throw new InputOperationException(
+                "输入后端的 Rebinding 能力标志与 IInputRebindingBackend 实现不一致。");
+        }
+
         IReadOnlyList<InputActionDescriptor> actions = backend.Actions ??
             throw new InputOperationException("输入后端返回了 null Action 集合。");
         IReadOnlyList<InputContextId> backendContexts = backend.Contexts ??

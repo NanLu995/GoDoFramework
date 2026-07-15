@@ -2,7 +2,7 @@
 
 ## 定位
 
-InputService 为业务层提供语义 Action 的当前帧只读快照和 Context 栈。它集中采样一个可替换后端，
+InputService 为业务层提供语义 Action 的当前帧只读快照、Context 栈和可选运行时重绑定边界。它集中采样一个可替换后端，
 使角色、摄像机协调代码和 UI 不直接依赖具体按键、Godot InputMap 或第三方输入插件类型。
 
 当前已完成核心 ID、Frame、Context、后端边界和 GoDoRuntime 生命周期接入。可选包
@@ -79,6 +79,28 @@ input.PopContext(GameInput.PauseMenu);
 - 同一个 ID 不能重复入栈；Pop 必须与栈顶 ID 严格匹配。
 - 后端原子应用失败时，GoDo Context 栈保持不变。
 
+### 运行时重绑定
+
+支持改键的后端声明 `InputBackendCapabilities.Rebinding`，并通过可选接口暴露能力：
+
+```csharp
+if (!input.TryGetRebinding(out IInputRebinding? rebinding))
+    return;
+
+InputBindingId jumpPrimary = InputBindingId.Create("gameplay.jump.primary");
+InputBindingInfo current = rebinding.GetBinding(jumpPrimary);
+InputBindingCandidate? candidate = await rebinding.CaptureAsync(jumpPrimary);
+if (candidate != null && rebinding.FindConflicts(jumpPrimary, candidate).Count == 0)
+    rebinding.Apply(jumpPrimary, candidate);
+```
+
+- `InputBindingId` 是业务稳定 ID，不应由插件资源路径、显示文字或数组位置临时拼接。
+- `GetBindings` / `GetBinding` 返回当前值、默认值、设备类别和玩家显示文字。
+- 同一后端同时只允许一个 `CaptureAsync`；`CancelCapture` 结束当前捕获并使任务返回 null。
+- `InputBindingCandidate` 隐藏具体后端对象，只能交回创建它的后端。
+- `FindConflicts` 只返回事实；`Apply` 和 `RestoreDefault` 不自动覆盖其他槽位。
+- 当前契约只负责本次运行内的改键。配置导入、导出与磁盘持久化尚未开放。
+
 ### IInputBackend
 
 `IInputBackend` 是可选适配包的扩展边界，不是业务 API。后端必须：
@@ -97,6 +119,7 @@ input.PopContext(GameInput.PauseMenu);
 - 读取未知 Action、错误 Axis 类型或过期 Frame。
 - 使用未知 Context、重复 Push、错误 Pop 或后端应用失败。
 - 后端重复安装、布局重复、初始化或采样失败。
+- 未注册 Binding、重复捕获、候选来自其他后端或重绑定应用失败。
 
 默认 ID 和无效枚举属于参数错误，抛出 `ArgumentException` / `ArgumentOutOfRangeException`。
 采样失败不会推进 Frame 序号或覆盖上一帧；调用边界不先重复上报 ErrorHub。
@@ -105,6 +128,7 @@ input.PopContext(GameInput.PauseMenu);
 
 - InputService 由 GoDoRuntime 创建并按 `IInputService` 注册；后端就绪后由 GoDoRuntime 每帧调用一次采样。
 - 所有服务 API、后端初始化、采样、Context 和关闭操作仅允许 Godot 主线程调用。
+- 重绑定捕获任务由后端信号在主线程完成；服务关闭前必须取消未完成捕获。
 - 每个服务实例第一版只允许安装一个后端，不支持运行时替换。
 - `Shutdown()` 清理后端、Action、Context 和快照状态，并允许重复调用。
 
@@ -122,6 +146,7 @@ InputFrame 表示最近完成的渲染帧采样。需要驱动物理的控制器
 - 当前假后端回归要求 10,000 次 `Axis2` 读取产生 0 bytes 托管分配。
 - 设备类别只在已有采样提交时比较；事件只在类别变化时派发，不增加输入热路径集合分配。
 - Context 变化属于低频路径，允许创建小型临时数组以保证提交前状态不变。
+- 查询、捕获、冲突检查和应用绑定属于设置界面低频路径，允许创建结果数组和异步完成对象，不进入每帧采样。
 
 ## 验证
 
@@ -131,6 +156,6 @@ InputFrame 表示最近完成的渲染帧采样。需要驱动物理的控制器
 Verification/Automated/InputServiceRegression.tscn
 ```
 
-覆盖 ID、后端缺失、首次采样、Bool/Axis 状态、活动设备变化、Frame 过期、Context 组合与误用、失败原子性、
-重复后端/布局拒绝、热读取分配和关闭幂等。`InputRuntimeRegression.tscn` 额外验证 GoDoRuntime 注册、自动采样与关闭。
-GUIDE 回归覆盖设备阈值和跟踪节点清理；真实设备、窗口失焦以及渲染/物理时序仍需手动验证。
+覆盖 ID、后端缺失、首次采样、Bool/Axis 状态、活动设备变化、可选重绑定能力、Frame 过期、Context 组合与误用、
+失败原子性、重复后端/布局拒绝、热读取分配和关闭幂等。`InputRuntimeRegression.tscn` 额外验证 GoDoRuntime 注册、自动采样与关闭。
+GUIDE 回归覆盖捕获、冲突、应用、恢复、取消、设备阈值和跟踪节点清理；真实设备、窗口失焦以及渲染/物理时序仍需手动验证。

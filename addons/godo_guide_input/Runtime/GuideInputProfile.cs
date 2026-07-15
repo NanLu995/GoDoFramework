@@ -14,4 +14,8 @@ public sealed partial class GuideInputProfile : Resource
     /// <summary>可由 InputService Context 栈激活的 Mapping Context 映射。</summary>
     [Export]
     public Array<GuideInputContextBinding> Contexts { get; set; } = new();
+
+    /// <summary>显式公开给业务层的稳定运行时重绑定槽位。</summary>
+    [Export]
+    public Array<GuideInputBindingDefinition> Bindings { get; set; } = new();
 }

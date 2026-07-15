@@ -8,7 +8,7 @@ using GuideCs;
 namespace GoDo.GuideInput;
 
 /// <summary>把 G.U.I.D.E Action 和 Mapping Context 适配到 GoDo IInputBackend。</summary>
-public sealed class GuideInputBackend : IInputBackend
+public sealed class GuideInputBackend : IInputBackend, IInputRebindingBackend
 {
     private const int EmulatedDeviceId = -1;
     private const float PointerMotionThresholdSquared = 1f;
@@ -16,6 +16,7 @@ public sealed class GuideInputBackend : IInputBackend
 
     private readonly GuideInputProfile _profile;
     private readonly List<GuideAction> _actions = new();
+    private readonly Dictionary<InputActionId, GuideAction> _actionsById = new();
     private readonly Dictionary<InputContextId, GuideMappingContext> _contexts = new();
     private readonly List<GuideMappingContext> _activeContexts = new();
     private readonly List<ActionSubscription> _subscriptions = new();
@@ -23,11 +24,17 @@ public sealed class GuideInputBackend : IInputBackend
     private InputContextId[] _contextIds = Array.Empty<InputContextId>();
     private InputActionSample[] _cachedSamples = Array.Empty<InputActionSample>();
     private GuideInputDeviceTracker? _deviceTracker;
+    private GuideInputRebinding? _rebinding;
     private InputDeviceKind _activeDevice;
     private bool _initialized;
 
     /// <inheritdoc />
-    public InputBackendCapabilities Capabilities => InputBackendCapabilities.DeviceTracking;
+    public InputBackendCapabilities Capabilities =>
+        InputBackendCapabilities.DeviceTracking | InputBackendCapabilities.Rebinding;
+
+    /// <inheritdoc />
+    public IInputRebinding Rebinding => _rebinding ??
+        throw new InputOperationException("GUIDE 重绑定尚未初始化或已经关闭。");
 
     /// <inheritdoc />
     public InputDeviceKind ActiveDevice => _activeDevice;
@@ -59,10 +66,12 @@ public sealed class GuideInputBackend : IInputBackend
             AttachSubscriptions();
             _initialized = true;
             AttachDeviceTracker();
+            AttachRebinding();
         }
         catch
         {
             _initialized = false;
+            DetachRebinding();
             DetachDeviceTracker();
             DetachSubscriptions();
             ClearRuntimeState();
@@ -135,6 +144,7 @@ public sealed class GuideInputBackend : IInputBackend
         }
         finally
         {
+            DetachRebinding();
             DetachDeviceTracker();
             DetachSubscriptions();
             ClearRuntimeState();
@@ -167,6 +177,7 @@ public sealed class GuideInputBackend : IInputBackend
                 throw new InvalidOperationException($"无法包装 GUIDE Action Resource，位置: {index}");
             InputActionValueType valueType = ConvertValueType(action.ActionValueType, actionId);
             _actions.Add(action);
+            _actionsById.Add(actionId, action);
             descriptors[index] = new InputActionDescriptor(actionId, valueType);
         }
 
@@ -284,6 +295,7 @@ public sealed class GuideInputBackend : IInputBackend
     {
         _activeContexts.Clear();
         _actions.Clear();
+        _actionsById.Clear();
         _contexts.Clear();
         _actionDescriptors = Array.Empty<InputActionDescriptor>();
         _contextIds = Array.Empty<InputContextId>();
@@ -351,6 +363,20 @@ public sealed class GuideInputBackend : IInputBackend
 
         tracker!.Stop();
         tracker.QueueFree();
+    }
+
+    private void AttachRebinding()
+    {
+        var rebinding = new GuideInputRebinding(_profile, _actionsById, _contexts);
+        rebinding.Initialize();
+        _rebinding = rebinding;
+    }
+
+    private void DetachRebinding()
+    {
+        GuideInputRebinding? rebinding = _rebinding;
+        _rebinding = null;
+        rebinding?.Shutdown();
     }
 
     private void OnTriggered(int index)

@@ -13,9 +13,9 @@ Templates/Demo3D/Boot/Boot.tscn
 ## 操作
 
 - `WASD`：移动
-- `空格`：跳跃
+- `空格`：默认跳跃；可在 HUD 中运行时改绑
 - 鼠标：旋转视角
-- `Esc`：释放鼠标
+- `Esc`：释放鼠标；改键捕获中用于取消
 - 手柄左摇杆：移动
 - 手柄右摇杆：旋转视角
 - 手柄 A：跳跃
@@ -34,6 +34,7 @@ Templates/Demo3D/Boot/Boot.tscn
 - `InputService`：向业务代码提供 Move、Look、Jump 等语义输入，不暴露 GUIDE 类型。
 - `godo_guide_input`：把 GUIDE Action / Mapping Context 转换为 InputService 快照。
 - Gameplay HUD：监听 `InputDeviceChangedEvent`，显示当前键鼠、手柄或触摸类别。
+- Gameplay HUD：通过 `IInputRebinding` 查询、捕获、检查冲突、应用或恢复跳跃主绑定，不接触 GUIDE 类型。
 
 角色控制、视角协调和收集判定属于具体玩法，保留在 `Demo3D` 业务层。`PlayerController` 只从 `IInputService` 读取输入，仍通过 Phantom C# Wrapper 修改第三人称旋转；InputService 与 CameraService 彼此不依赖。
 
@@ -57,13 +58,16 @@ CharacterBody3D + Phantom Camera
 
 1. `Input/Demo3DInput.cs`：游戏自己定义稳定的 Action / Context ID。
 2. `Input/GameplayContext.tres`：配置 WASD、鼠标、摇杆和按钮的 GUIDE 映射、死区及灵敏度。
-3. `Input/Demo3DInputProfile.tres`：把 GoDo ID 对应到 GUIDE Resource。
+3. `Input/Demo3DInputProfile.tres`：把 GoDo Action / Context / Binding ID 对应到 GUIDE Resource 与可改键槽位。
 4. `Boot/Boot.tscn`：启动时用 `GuideInputBackendInstaller` 安装一次后端。
 5. `Gameplay/GameplayProcedure.cs`：进入玩法时启用 Gameplay Context。
 6. `Gameplay/PlayerController.cs`：在 `_Process` 读取快照，在 `_PhysicsProcess` 消费移动与跳跃。
-7. `Result/ResultProcedure.cs`：切到空的 Result Context，停用角色输入并释放鼠标。
+7. `Gameplay/GameplayHud.cs`：使用 GoDo 重绑定接口完成跳跃键查询、捕获、冲突提示和恢复默认。
+8. `Result/ResultProcedure.cs`：切到空的 Result Context，停用角色输入并释放鼠标。
 
 要增加一个输入，顺序是：先在 `Demo3DInput.cs` 增加语义 ID，再创建 GUIDE Action 并加入 Context，随后加入 Profile，最后由业务脚本读取。不要让业务脚本直接读取 GUIDE Action，否则会绕过 GoDo 的后端边界。
+
+当前改键只在本次运行内有效，重启 Demo 后恢复 Resource 中的默认绑定；配置持久化属于下一批框架能力。
 
 ## 插件边界
 

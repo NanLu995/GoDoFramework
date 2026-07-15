@@ -1,3 +1,5 @@
+#nullable enable
+
 namespace GoDo;
 
 /// <summary>面向业务层的语义输入快照与 Context 服务。</summary>
@@ -14,6 +16,9 @@ public interface IInputService
 
     /// <summary>当前后端能力；后端未就绪时为 None。</summary>
     InputBackendCapabilities Capabilities { get; }
+
+    /// <summary>在当前后端支持时取得运行时重绑定能力。</summary>
+    bool TryGetRebinding(out IInputRebinding? rebinding);
 
     /// <summary>设置栈底 Context，并移除所有临时 Context。</summary>
     void SetBaseContext(InputContextId context);

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Godot;
 using GoDo;
 using GoDo.GuideInput;
@@ -17,12 +19,14 @@ public sealed partial class GuideInputBackendRegression : Node
     private static readonly InputActionId Confirm = InputActionId.Create("ui.confirm");
     private static readonly InputContextId Gameplay = InputContextId.Create("gameplay");
     private static readonly InputContextId Menu = InputContextId.Create("menu");
+    private static readonly InputBindingId JumpKeyboard = InputBindingId.Create("gameplay.jump.keyboard");
+    private static readonly InputBindingId ConfirmKeyboard = InputBindingId.Create("ui.confirm.keyboard");
 
     private InputService? _service;
     private Node _guideNode = null!;
 
     /// <inheritdoc />
-    public override void _Ready()
+    public override async void _Ready()
     {
         try
         {
@@ -34,15 +38,22 @@ public sealed partial class GuideInputBackendRegression : Node
             var installer = new GuideInputBackendInstaller { Profile = profile };
             AddChild(installer);
 
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
             Assert(_service.IsReady, "Installer 没有安装 GUIDE 后端");
             VerifyGameplayContext();
+            await AdvanceInputFrames();
+            Assert(!_service.Frame.Pressed(Jump), "Jump 释放后缓存仍处于按下状态");
             VerifyMenuIsolation();
+            await AdvanceInputFrames();
             VerifyLookSampling();
             VerifyDeviceTracking();
+            await VerifyRebinding();
             MeasureBackendAllocations();
             VerifyShutdown();
 
-            GD.Print("[GuideInputBackendRegression] PASS (6/6)");
+            GD.Print("[GuideInputBackendRegression] PASS (7/7)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -132,6 +143,76 @@ public sealed partial class GuideInputBackendRegression : Node
         Assert(_service.ActiveDevice == InputDeviceKind.Touch, "虚拟摇杆没有归类为触摸");
     }
 
+    private async Task VerifyRebinding()
+    {
+        Assert(
+            (_service!.Capabilities & InputBackendCapabilities.Rebinding) != 0,
+            "GUIDE 后端没有声明 Rebinding 能力");
+        Assert(_service.TryGetRebinding(out IInputRebinding? rebinding), "GUIDE 后端没有提供重绑定接口");
+
+        InputBindingInfo initial = rebinding!.GetBinding(JumpKeyboard);
+        Assert(initial.CurrentDisplayText == "Space", "Jump 默认绑定显示错误");
+        Assert(initial.IsDefault, "Jump 初始绑定没有标记为默认值");
+        Assert(rebinding.GetBindings(Gameplay).Count == 1, "Gameplay 重绑定槽位数量错误");
+
+        InputBindingCandidate space = await CaptureKey(rebinding, JumpKeyboard, Key.Space);
+        IReadOnlyList<InputBindingInfo> conflicts = rebinding.FindConflicts(JumpKeyboard, space);
+        Assert(conflicts.Count == 1, "Space 冲突数量错误");
+        Assert(conflicts[0].BindingId == ConfirmKeyboard, "Space 没有命中 Menu Confirm 冲突");
+
+        InputBindingCandidate keyJ = await CaptureKey(rebinding, JumpKeyboard, Key.J);
+        Assert(rebinding.FindConflicts(JumpKeyboard, keyJ).Count == 0, "J 错误报告冲突");
+        rebinding.Apply(JumpKeyboard, keyJ);
+        Assert(rebinding.GetBinding(JumpKeyboard).CurrentDisplayText == "J", "应用后绑定查询没有更新");
+
+        _service.SetBaseContext(Gameplay);
+        _service.Update();
+        Assert(!_service.Frame.Pressed(Jump), "改绑测试前 Jump 缓存仍处于按下状态");
+        InjectKey(Key.Space, pressed: true);
+        EvaluateAndSample();
+        Assert(!_service.Frame.Pressed(Jump), "改绑后 Space 仍触发 Jump");
+        InjectKey(Key.Space, pressed: false);
+        EvaluateAndSample();
+        await AdvanceInputFrames();
+        InjectKey(Key.J, pressed: true);
+        EvaluateAndSample();
+        Assert(_service.Frame.Pressed(Jump), "改绑后 J 没有触发 Jump");
+        InjectKey(Key.J, pressed: false);
+        EvaluateAndSample();
+        await AdvanceInputFrames();
+
+        rebinding.RestoreDefault(JumpKeyboard);
+        Assert(rebinding.GetBinding(JumpKeyboard).IsDefault, "恢复后 Jump 不是默认绑定");
+
+        Task<InputBindingCandidate?> cancelled = rebinding.CaptureAsync(JumpKeyboard);
+        Assert(rebinding.IsCapturing, "捕获开始后 IsCapturing 为 false");
+        rebinding.CancelCapture();
+        Assert(await cancelled == null, "取消捕获没有返回 null");
+        Assert(!rebinding.IsCapturing, "取消后 IsCapturing 仍为 true");
+    }
+
+    private Task<InputBindingCandidate> CaptureKey(
+        IInputRebinding rebinding,
+        InputBindingId binding,
+        Key key)
+    {
+        Task<InputBindingCandidate?> capture = rebinding.CaptureAsync(binding);
+        GuideInputDetector detector = GetNode<GuideInputDetector>(
+            $"/root/GoDoRuntime/{GuideInputRebinding.DetectorNodeName}");
+        detector.AbortDetection();
+        var detected = new GuideInputKey
+        {
+            Key = key,
+            AllowAdditionalModifiers = true,
+        };
+        detector.BaseGuideDetector.EmitSignal("input_detected", detected.BaseGuideObject);
+
+        return AwaitCandidate(capture);
+    }
+
+    private static async Task<InputBindingCandidate> AwaitCandidate(Task<InputBindingCandidate?> capture) =>
+        await capture ?? throw new InvalidOperationException("模拟输入捕获错误返回 null。");
+
     private void MeasureBackendAllocations()
     {
         for (int index = 0; index < 10; index++)
@@ -150,6 +231,12 @@ public sealed partial class GuideInputBackendRegression : Node
         _service!.Update();
     }
 
+    private async Task AdvanceInputFrames()
+    {
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+    }
+
     private static GuideInputProfile CreateProfile()
     {
         var profile = new GuideInputProfile();
@@ -158,6 +245,8 @@ public sealed partial class GuideInputBackendRegression : Node
         profile.Actions.Add(CreateAction("ui.confirm", "confirm.tres"));
         profile.Contexts.Add(CreateContext("gameplay", "gameplay_context.tres"));
         profile.Contexts.Add(CreateContext("menu", "menu_context.tres"));
+        profile.Bindings.Add(CreateBinding("gameplay.jump.keyboard", "gameplay", "gameplay.jump", 0));
+        profile.Bindings.Add(CreateBinding("ui.confirm.keyboard", "menu", "ui.confirm", 0));
         return profile;
     }
 
@@ -171,6 +260,18 @@ public sealed partial class GuideInputBackendRegression : Node
     {
         ContextId = id,
         GuideContextResource = LoadResource(fileName),
+    };
+
+    private static GuideInputBindingDefinition CreateBinding(
+        string bindingId,
+        string contextId,
+        string actionId,
+        int mappingIndex) => new()
+    {
+        BindingId = bindingId,
+        ContextId = contextId,
+        ActionId = actionId,
+        MappingIndex = mappingIndex,
     };
 
     private static Resource LoadResource(string fileName) =>

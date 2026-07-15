@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Godot;
 using GoDo;
 
@@ -18,6 +19,7 @@ public sealed partial class InputServiceRegression : Node
     private static readonly InputContextId Overlay = InputContextId.Create("overlay");
     private static readonly InputContextId Pause = InputContextId.Create("pause");
     private static readonly InputContextId Debug = InputContextId.Create("debug");
+    private static readonly InputBindingId JumpKeyboard = InputBindingId.Create("gameplay.jump.keyboard");
 
     private int _passed;
     private int _deviceChangeCount;
@@ -32,6 +34,7 @@ public sealed partial class InputServiceRegression : Node
             Run("Action 与 Context ID", VerifyIds);
             Run("未安装后端失败", VerifyMissingBackend);
             Run("安装与首次采样", VerifyInstallAndFirstSample);
+            Run("重绑定可选能力", VerifyRebindingCapability);
             Run("活动设备变化通知", VerifyDeviceChangeNotification);
             Run("Action 状态与各类轴值", VerifyActionStates);
             Run("未知 Action 与类型错误", VerifyActionFailures);
@@ -45,7 +48,7 @@ public sealed partial class InputServiceRegression : Node
             Run("关闭幂等", VerifyShutdown);
 
             _service.Shutdown();
-            GD.Print($"[InputServiceRegression] PASS ({_passed}/14)");
+            GD.Print($"[InputServiceRegression] PASS ({_passed}/15)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -87,8 +90,30 @@ public sealed partial class InputServiceRegression : Node
         Assert(!_service.IsReady, "未安装后端时 IsReady 为 true");
         AssertEqual(InputDeviceKind.Unknown, _service.ActiveDevice, "未安装后端时设备类型错误");
         AssertEqual(InputBackendCapabilities.None, _service.Capabilities, "未安装后端时能力错误");
+        Assert(!_service.TryGetRebinding(out IInputRebinding? rebinding), "未安装后端时返回了重绑定能力");
+        Assert(rebinding == null, "未安装后端时返回了重绑定实例");
         AssertThrows<InputOperationException>(() => _ = _service.Frame, "未安装后端仍能读取 Frame");
         AssertThrows<InputOperationException>(() => _service.SetBaseContext(Gameplay), "未安装后端仍能设置 Context");
+    }
+
+    private void VerifyRebindingCapability()
+    {
+        FakeInputBackend backend = InstallDefaultBackend();
+        Assert(_service.TryGetRebinding(out IInputRebinding? rebinding), "支持改键的后端未暴露重绑定能力");
+        Assert(ReferenceEquals(backend.Rebinding, rebinding), "InputService 没有返回后端重绑定实例");
+
+        InputBindingInfo info = rebinding!.GetBinding(JumpKeyboard);
+        AssertEqual(JumpKeyboard, info.BindingId, "重绑定查询返回了错误 ID");
+        AssertEqual("Space", info.CurrentDisplayText, "重绑定查询返回了错误显示文本");
+
+        InputBindingCandidate? candidate = rebinding.CaptureAsync(JumpKeyboard).GetAwaiter().GetResult();
+        Assert(candidate != null, "重绑定捕获错误返回 null");
+        AssertEqual("J", candidate!.DisplayText, "重绑定捕获返回了错误候选");
+        AssertEqual(0, rebinding.FindConflicts(JumpKeyboard, candidate).Count, "无冲突候选返回了冲突");
+        rebinding.Apply(JumpKeyboard, candidate);
+        AssertEqual(1, backend.Rebinding.ApplyCount, "重绑定没有应用到后端");
+        rebinding.RestoreDefault(JumpKeyboard);
+        AssertEqual(1, backend.Rebinding.RestoreCount, "重绑定没有恢复默认值");
     }
 
     private void VerifyInstallAndFirstSample()
@@ -290,6 +315,13 @@ public sealed partial class InputServiceRegression : Node
         AssertEqual(0, installed.ShutdownCount, "拒绝第二后端时关闭了现有后端");
 
         _service.Shutdown();
+        var inconsistentCapabilities = FakeInputBackend.CreateDefault();
+        inconsistentCapabilities.Capabilities = InputBackendCapabilities.DeviceTracking;
+        AssertThrows<InputOperationException>(
+            () => _service.InstallBackend(inconsistentCapabilities),
+            "允许安装能力标志与接口不一致的后端");
+        AssertEqual(1, inconsistentCapabilities.ShutdownCount, "能力不一致的后端没有清理");
+
         var duplicateActions = new FakeInputBackend(
             new[]
             {
@@ -380,7 +412,7 @@ public sealed partial class InputServiceRegression : Node
         throw new InvalidOperationException(message);
     }
 
-    private sealed class FakeInputBackend : IInputBackend
+    private sealed class FakeInputBackend : IInputBackend, IInputRebindingBackend
     {
         private readonly InputActionDescriptor[] _actions;
         private readonly InputContextId[] _contexts;
@@ -392,6 +424,8 @@ public sealed partial class InputServiceRegression : Node
         public IReadOnlyList<InputActionDescriptor> Actions => _actions;
         public IReadOnlyList<InputContextId> Contexts => _contexts;
         public List<InputContextId> ActiveContexts { get; } = new();
+        public FakeInputRebinding Rebinding { get; } = new();
+        IInputRebinding IInputRebindingBackend.Rebinding => Rebinding;
         public int InitializeCount { get; private set; }
         public int SampleCount { get; private set; }
         public int ShutdownCount { get; private set; }
@@ -447,5 +481,76 @@ public sealed partial class InputServiceRegression : Node
         public void Shutdown() => ShutdownCount++;
 
         public void SetSample(int index, InputActionSample sample) => _samples[index] = sample;
+    }
+
+    private sealed class FakeInputRebinding : IInputRebinding
+    {
+        private static readonly InputBindingInfo JumpInfo = new(
+            JumpKeyboard,
+            Gameplay,
+            Jump,
+            "Jump",
+            "Gameplay",
+            InputDeviceKind.KeyboardMouse,
+            "Space",
+            "Space",
+            isDefault: true);
+
+        public bool IsCapturing => false;
+        public int ApplyCount { get; private set; }
+        public int RestoreCount { get; private set; }
+
+        public IReadOnlyList<InputBindingInfo> GetBindings(InputContextId context) =>
+            context == Gameplay ? new[] { JumpInfo } : Array.Empty<InputBindingInfo>();
+
+        public InputBindingInfo GetBinding(InputBindingId binding)
+        {
+            if (binding != JumpKeyboard)
+                throw new InputOperationException($"输入 Binding 未注册: {binding.Value}");
+
+            return JumpInfo;
+        }
+
+        public Task<InputBindingCandidate?> CaptureAsync(InputBindingId binding)
+        {
+            _ = GetBinding(binding);
+            return Task.FromResult<InputBindingCandidate?>(new FakeCandidate());
+        }
+
+        public void CancelCapture()
+        {
+        }
+
+        public IReadOnlyList<InputBindingInfo> FindConflicts(
+            InputBindingId binding,
+            InputBindingCandidate candidate)
+        {
+            _ = GetBinding(binding);
+            ArgumentNullException.ThrowIfNull(candidate);
+            return Array.Empty<InputBindingInfo>();
+        }
+
+        public void Apply(InputBindingId binding, InputBindingCandidate candidate)
+        {
+            _ = GetBinding(binding);
+            if (candidate is not FakeCandidate)
+                throw new InputOperationException("候选输入不属于当前后端。");
+
+            ApplyCount++;
+        }
+
+        public void RestoreDefault(InputBindingId binding)
+        {
+            _ = GetBinding(binding);
+            RestoreCount++;
+        }
+    }
+
+    private sealed class FakeCandidate : InputBindingCandidate
+    {
+        public FakeCandidate()
+            : base(InputDeviceKind.KeyboardMouse, "J")
+        {
+        }
     }
 }

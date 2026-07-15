@@ -13,12 +13,16 @@ mouse_filter = 2
 script = ExtResource("1_hud")
 ProgressLabelPath = NodePath("Margin/VBox/ProgressLabel")
 DeviceLabelPath = NodePath("Margin/VBox/DeviceLabel")
+JumpBindingLabelPath = NodePath("Margin/VBox/RebindPanel/RebindVBox/JumpBindingLabel")
+RebindJumpButtonPath = NodePath("Margin/VBox/RebindPanel/RebindVBox/ButtonRow/RebindJumpButton")
+RestoreJumpButtonPath = NodePath("Margin/VBox/RebindPanel/RebindVBox/ButtonRow/RestoreJumpButton")
+RebindStatusLabelPath = NodePath("Margin/VBox/RebindPanel/RebindVBox/RebindStatusLabel")
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 150.0
+offset_bottom = 300.0
 grow_horizontal = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 20
@@ -46,4 +50,33 @@ text = "输入设备：等待输入"
 [node name="HintLabel" type="Label" parent="Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.8, 0.85, 1)
-text = "WASD 移动 · 空格跳跃 · 鼠标旋转视角 · Esc 释放鼠标"
+text = "WASD 移动 · 当前绑定跳跃 · 鼠标旋转视角 · Esc 释放鼠标/取消改键"
+
+[node name="RebindPanel" type="PanelContainer" parent="Margin/VBox"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+
+[node name="RebindVBox" type="VBoxContainer" parent="Margin/VBox/RebindPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="JumpBindingLabel" type="Label" parent="Margin/VBox/RebindPanel/RebindVBox"]
+layout_mode = 2
+text = "跳跃主绑定：Space"
+
+[node name="ButtonRow" type="HBoxContainer" parent="Margin/VBox/RebindPanel/RebindVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="RebindJumpButton" type="Button" parent="Margin/VBox/RebindPanel/RebindVBox/ButtonRow"]
+layout_mode = 2
+text = "重新绑定跳跃"
+
+[node name="RestoreJumpButton" type="Button" parent="Margin/VBox/RebindPanel/RebindVBox/ButtonRow"]
+layout_mode = 2
+text = "恢复默认"
+
+[node name="RebindStatusLabel" type="Label" parent="Margin/VBox/RebindPanel/RebindVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.86, 0.92, 1)
+text = "Esc 释放鼠标后可点击按钮体验运行时改键"

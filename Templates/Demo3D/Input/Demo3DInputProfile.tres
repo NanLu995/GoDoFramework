@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="GuideInputProfile" load_steps=13 format=3]
+[gd_resource type="Resource" script_class="GuideInputProfile" load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://addons/godo_guide_input/Runtime/GuideInputProfile.cs" id="1_profile"]
 [ext_resource type="Script" path="res://addons/godo_guide_input/Runtime/GuideInputActionBinding.cs" id="2_action_binding"]
 [ext_resource type="Script" path="res://addons/godo_guide_input/Runtime/GuideInputContextBinding.cs" id="3_context_binding"]
+[ext_resource type="Script" path="res://addons/godo_guide_input/Runtime/GuideInputBindingDefinition.cs" id="10_binding_definition"]
 [ext_resource type="Resource" path="res://Templates/Demo3D/Input/Move.tres" id="4_move"]
 [ext_resource type="Resource" path="res://Templates/Demo3D/Input/Look.tres" id="5_look"]
 [ext_resource type="Resource" path="res://Templates/Demo3D/Input/Jump.tres" id="6_jump"]
@@ -40,7 +41,71 @@ script = ExtResource("3_context_binding")
 ContextId = "result"
 GuideContextResource = ExtResource("9_result")
 
+[sub_resource type="Resource" id="JumpPrimaryBinding"]
+script = ExtResource("10_binding_definition")
+BindingId = "gameplay.jump.primary"
+ContextId = "gameplay"
+ActionId = "gameplay.jump"
+MappingIndex = 0
+
+[sub_resource type="Resource" id="MoveForwardBinding"]
+script = ExtResource("10_binding_definition")
+BindingId = "gameplay.move.forward"
+ContextId = "gameplay"
+ActionId = "gameplay.move"
+MappingIndex = 0
+
+[sub_resource type="Resource" id="MoveBackwardBinding"]
+script = ExtResource("10_binding_definition")
+BindingId = "gameplay.move.backward"
+ContextId = "gameplay"
+ActionId = "gameplay.move"
+MappingIndex = 1
+
+[sub_resource type="Resource" id="MoveLeftBinding"]
+script = ExtResource("10_binding_definition")
+BindingId = "gameplay.move.left"
+ContextId = "gameplay"
+ActionId = "gameplay.move"
+MappingIndex = 2
+
+[sub_resource type="Resource" id="MoveRightBinding"]
+script = ExtResource("10_binding_definition")
+BindingId = "gameplay.move.right"
+ContextId = "gameplay"
+ActionId = "gameplay.move"
+MappingIndex = 3
+
+[sub_resource type="Resource" id="MoveGamepadBinding"]
+script = ExtResource("10_binding_definition")
+BindingId = "gameplay.move.gamepad"
+ContextId = "gameplay"
+ActionId = "gameplay.move"
+MappingIndex = 4
+
+[sub_resource type="Resource" id="LookMouseBinding"]
+script = ExtResource("10_binding_definition")
+BindingId = "gameplay.look.mouse"
+ContextId = "gameplay"
+ActionId = "gameplay.look"
+MappingIndex = 0
+
+[sub_resource type="Resource" id="LookGamepadBinding"]
+script = ExtResource("10_binding_definition")
+BindingId = "gameplay.look.gamepad"
+ContextId = "gameplay"
+ActionId = "gameplay.look"
+MappingIndex = 1
+
+[sub_resource type="Resource" id="JumpGamepadBinding"]
+script = ExtResource("10_binding_definition")
+BindingId = "gameplay.jump.gamepad"
+ContextId = "gameplay"
+ActionId = "gameplay.jump"
+MappingIndex = 1
+
 [resource]
 script = ExtResource("1_profile")
 Actions = Array[ExtResource("2_action_binding")]([SubResource("MoveBinding"), SubResource("LookBinding"), SubResource("JumpBinding"), SubResource("ReleasePointerBinding")])
 Contexts = Array[ExtResource("3_context_binding")]([SubResource("GameplayBinding"), SubResource("ResultBinding")])
+Bindings = Array[ExtResource("10_binding_definition")]([SubResource("MoveForwardBinding"), SubResource("MoveBackwardBinding"), SubResource("MoveLeftBinding"), SubResource("MoveRightBinding"), SubResource("MoveGamepadBinding"), SubResource("LookMouseBinding"), SubResource("LookGamepadBinding"), SubResource("JumpPrimaryBinding"), SubResource("JumpGamepadBinding")])
