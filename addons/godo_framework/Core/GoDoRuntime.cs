@@ -27,6 +27,7 @@ public sealed partial class GoDoRuntime : Node
     private bool _subscribed;
     private SceneService? _sceneService;
     private CameraService? _cameraService;
+    private InputService? _inputService;
     private AudioService? _audioService;
     private UiService? _uiService;
     private UiRoot? _uiRoot;
@@ -103,6 +104,8 @@ public sealed partial class GoDoRuntime : Node
         Services.Register<ISceneService>(_sceneService);
         _cameraService = new CameraService();
         Services.Register<ICameraService>(_cameraService);
+        _inputService = new InputService();
+        Services.Register<IInputService>(_inputService);
         Services.Register<IAudioService>(_audioService);
         Services.Register<IUiService>(_uiService);
         _saveService = new SaveService();
@@ -125,6 +128,8 @@ public sealed partial class GoDoRuntime : Node
     public override void _Process(double delta)
     {
         ResourceHub.Update();
+        if (_inputService?.IsReady == true)
+            _inputService.Update();
         ErrorHub.FlushPending();
     }
 
@@ -152,6 +157,11 @@ public sealed partial class GoDoRuntime : Node
                 Services.Unregister<IUiService>(_uiService);
             if (IsInstanceValid(_audioService))
                 Services.Unregister<IAudioService>(_audioService);
+            if (_inputService != null)
+            {
+                _inputService.Shutdown();
+                Services.Unregister<IInputService>(_inputService);
+            }
             if (_cameraService != null)
             {
                 _cameraService.Shutdown();
@@ -169,6 +179,7 @@ public sealed partial class GoDoRuntime : Node
             _instance = null;
             _sceneService = null;
             _cameraService = null;
+            _inputService = null;
             _audioService = null;
             _uiService = null;
             _uiRoot = null;

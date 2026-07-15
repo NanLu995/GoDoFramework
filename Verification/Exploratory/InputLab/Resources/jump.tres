@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GUIDEAction" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/guideCS/guide/guide_action.gd" id="1_action"]
+
+[resource]
+script = ExtResource("1_action")
+name = &"input_lab/jump"
+action_value_type = 0
+block_lower_priority_actions = true
+emit_as_godot_actions = false
+is_remappable = true
+display_name = "Jump"
+display_category = "Gameplay"

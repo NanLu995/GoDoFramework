@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="GUIDEMappingContext" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://addons/guideCS/guide/guide_mapping_context.gd" id="1_context"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/guide_action_mapping.gd" id="2_action_mapping"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/guide_input_mapping.gd" id="3_input_mapping"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/inputs/guide_input_key.gd" id="4_key"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/modifiers/guide_modifier.gd" id="5_modifier"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/triggers/guide_trigger.gd" id="6_trigger"]
+[ext_resource type="Resource" path="res://Verification/Exploratory/InputLab/Resources/confirm.tres" id="7_confirm"]
+
+[sub_resource type="Resource" id="ConfirmInput"]
+script = ExtResource("4_key")
+key = 32
+allow_additional_modifiers = true
+
+[sub_resource type="Resource" id="ConfirmInputMapping"]
+script = ExtResource("3_input_mapping")
+is_remappable = true
+input = SubResource("ConfirmInput")
+modifiers = Array[ExtResource("5_modifier")]([])
+triggers = Array[ExtResource("6_trigger")]([])
+
+[sub_resource type="Resource" id="ConfirmMapping"]
+script = ExtResource("2_action_mapping")
+action = ExtResource("7_confirm")
+input_mappings = Array[ExtResource("3_input_mapping")]([SubResource("ConfirmInputMapping")])
+
+[resource]
+script = ExtResource("1_context")
+display_name = "InputLab Menu"
+mappings = Array[ExtResource("2_action_mapping")]([SubResource("ConfirmMapping")])

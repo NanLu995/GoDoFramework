@@ -16,7 +16,10 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 [autoload]
 
+GUIDE="*res://addons/guideCS/guide/guide.gd"
+GuideCs="*res://addons/guideCS/Guide.cs"
 GoDoRuntime="*res://addons/godo_framework/Core/GoDoRuntime.tscn"
+PhantomCameraManager="*uid://duq6jhf6unyis"
 
 [display]
 
@@ -29,7 +32,7 @@ project/assembly_name="GoDoFramework"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/godo_framework/plugin.cfg")
+enabled=PackedStringArray("res://addons/godo_framework/plugin.cfg", "res://addons/godo_phantom_camera/plugin.cfg", "res://addons/guideCS/guide/plugin.cfg", "res://addons/guideCS/plugin.cfg", "res://addons/phantom_camera/plugin.cfg")
 
 [physics]
 

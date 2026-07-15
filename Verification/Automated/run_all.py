@@ -25,6 +25,12 @@ REGRESSION_SCENES = (
     "SaveServiceRegression.tscn",
     "ConfigRegression.tscn",
     "ProcedureRegression.tscn",
+    "CameraServiceRegression.tscn",
+    "InputServiceRegression.tscn",
+    "InputRuntimeRegression.tscn",
+    "GuideInputBackendRegression.tscn",
+    "Demo3DInputProfileRegression.tscn",
+    "PhantomCameraRigRegression.tscn",
 )
 
 

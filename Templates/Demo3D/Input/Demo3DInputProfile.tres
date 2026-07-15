@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="GuideInputProfile" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://addons/godo_guide_input/Runtime/GuideInputProfile.cs" id="1_profile"]
+[ext_resource type="Script" path="res://addons/godo_guide_input/Runtime/GuideInputActionBinding.cs" id="2_action_binding"]
+[ext_resource type="Script" path="res://addons/godo_guide_input/Runtime/GuideInputContextBinding.cs" id="3_context_binding"]
+[ext_resource type="Resource" path="res://Templates/Demo3D/Input/Move.tres" id="4_move"]
+[ext_resource type="Resource" path="res://Templates/Demo3D/Input/Look.tres" id="5_look"]
+[ext_resource type="Resource" path="res://Templates/Demo3D/Input/Jump.tres" id="6_jump"]
+[ext_resource type="Resource" path="res://Templates/Demo3D/Input/ReleasePointer.tres" id="7_release"]
+[ext_resource type="Resource" path="res://Templates/Demo3D/Input/GameplayContext.tres" id="8_gameplay"]
+[ext_resource type="Resource" path="res://Templates/Demo3D/Input/ResultContext.tres" id="9_result"]
+
+[sub_resource type="Resource" id="MoveBinding"]
+script = ExtResource("2_action_binding")
+ActionId = "gameplay.move"
+GuideActionResource = ExtResource("4_move")
+
+[sub_resource type="Resource" id="LookBinding"]
+script = ExtResource("2_action_binding")
+ActionId = "gameplay.look"
+GuideActionResource = ExtResource("5_look")
+
+[sub_resource type="Resource" id="JumpBinding"]
+script = ExtResource("2_action_binding")
+ActionId = "gameplay.jump"
+GuideActionResource = ExtResource("6_jump")
+
+[sub_resource type="Resource" id="ReleasePointerBinding"]
+script = ExtResource("2_action_binding")
+ActionId = "gameplay.release_pointer"
+GuideActionResource = ExtResource("7_release")
+
+[sub_resource type="Resource" id="GameplayBinding"]
+script = ExtResource("3_context_binding")
+ContextId = "gameplay"
+GuideContextResource = ExtResource("8_gameplay")
+
+[sub_resource type="Resource" id="ResultBinding"]
+script = ExtResource("3_context_binding")
+ContextId = "result"
+GuideContextResource = ExtResource("9_result")
+
+[resource]
+script = ExtResource("1_profile")
+Actions = Array[ExtResource("2_action_binding")]([SubResource("MoveBinding"), SubResource("LookBinding"), SubResource("JumpBinding"), SubResource("ReleasePointerBinding")])
+Contexts = Array[ExtResource("3_context_binding")]([SubResource("GameplayBinding"), SubResource("ResultBinding")])

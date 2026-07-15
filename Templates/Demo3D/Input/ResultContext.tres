@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="GUIDEMappingContext" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/guideCS/guide/guide_mapping_context.gd" id="1_context"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/guide_action_mapping.gd" id="2_action_mapping"]
+
+[resource]
+script = ExtResource("1_context")
+display_name = "Demo3D Result"
+mappings = Array[ExtResource("2_action_mapping")]([])

@@ -1,0 +1,201 @@
+[gd_resource type="Resource" script_class="GUIDEMappingContext" load_steps=40 format=3]
+
+[ext_resource type="Script" path="res://addons/guideCS/guide/guide_mapping_context.gd" id="1_context"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/guide_action_mapping.gd" id="2_action_mapping"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/guide_input_mapping.gd" id="3_input_mapping"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/inputs/guide_input_key.gd" id="4_key"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/inputs/guide_input_joy_axis_2d.gd" id="5_joy_axis"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/inputs/guide_input_joy_button.gd" id="6_joy_button"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/inputs/guide_input_mouse_axis_2d.gd" id="7_mouse_axis"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/modifiers/guide_modifier.gd" id="8_modifier"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/modifiers/guide_modifier_input_swizzle.gd" id="9_swizzle"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/modifiers/guide_modifier_negate.gd" id="10_negate"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/modifiers/guide_modifier_deadzone.gd" id="11_deadzone"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/modifiers/guide_modifier_scale.gd" id="12_scale"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/triggers/guide_trigger.gd" id="13_trigger"]
+[ext_resource type="Resource" path="res://Templates/Demo3D/Input/Move.tres" id="14_move"]
+[ext_resource type="Resource" path="res://Templates/Demo3D/Input/Look.tres" id="15_look"]
+[ext_resource type="Resource" path="res://Templates/Demo3D/Input/Jump.tres" id="16_jump"]
+[ext_resource type="Resource" path="res://Templates/Demo3D/Input/ReleasePointer.tres" id="17_release"]
+
+[sub_resource type="Resource" id="MoveForwardInput"]
+script = ExtResource("4_key")
+key = 87
+allow_additional_modifiers = true
+
+[sub_resource type="Resource" id="MoveForwardSwizzle"]
+script = ExtResource("9_swizzle")
+order = 0
+
+[sub_resource type="Resource" id="MoveForwardNegate"]
+script = ExtResource("10_negate")
+x = false
+y = true
+z = false
+
+[sub_resource type="Resource" id="MoveForwardMapping"]
+script = ExtResource("3_input_mapping")
+is_remappable = true
+input = SubResource("MoveForwardInput")
+modifiers = Array[ExtResource("8_modifier")]([SubResource("MoveForwardSwizzle"), SubResource("MoveForwardNegate")])
+triggers = Array[ExtResource("13_trigger")]([])
+
+[sub_resource type="Resource" id="MoveBackwardInput"]
+script = ExtResource("4_key")
+key = 83
+allow_additional_modifiers = true
+
+[sub_resource type="Resource" id="MoveBackwardSwizzle"]
+script = ExtResource("9_swizzle")
+order = 0
+
+[sub_resource type="Resource" id="MoveBackwardMapping"]
+script = ExtResource("3_input_mapping")
+is_remappable = true
+input = SubResource("MoveBackwardInput")
+modifiers = Array[ExtResource("8_modifier")]([SubResource("MoveBackwardSwizzle")])
+triggers = Array[ExtResource("13_trigger")]([])
+
+[sub_resource type="Resource" id="MoveLeftInput"]
+script = ExtResource("4_key")
+key = 65
+allow_additional_modifiers = true
+
+[sub_resource type="Resource" id="MoveLeftNegate"]
+script = ExtResource("10_negate")
+x = true
+y = false
+z = false
+
+[sub_resource type="Resource" id="MoveLeftMapping"]
+script = ExtResource("3_input_mapping")
+is_remappable = true
+input = SubResource("MoveLeftInput")
+modifiers = Array[ExtResource("8_modifier")]([SubResource("MoveLeftNegate")])
+triggers = Array[ExtResource("13_trigger")]([])
+
+[sub_resource type="Resource" id="MoveRightInput"]
+script = ExtResource("4_key")
+key = 68
+allow_additional_modifiers = true
+
+[sub_resource type="Resource" id="MoveRightMapping"]
+script = ExtResource("3_input_mapping")
+is_remappable = true
+input = SubResource("MoveRightInput")
+modifiers = Array[ExtResource("8_modifier")]([])
+triggers = Array[ExtResource("13_trigger")]([])
+
+[sub_resource type="Resource" id="MoveJoyInput"]
+script = ExtResource("5_joy_axis")
+joy_index = -2
+x = 0
+y = 1
+
+[sub_resource type="Resource" id="MoveJoyDeadzone"]
+script = ExtResource("11_deadzone")
+lower_threshold = 0.18
+upper_threshold = 1.0
+
+[sub_resource type="Resource" id="MoveJoyMapping"]
+script = ExtResource("3_input_mapping")
+is_remappable = true
+input = SubResource("MoveJoyInput")
+modifiers = Array[ExtResource("8_modifier")]([SubResource("MoveJoyDeadzone")])
+triggers = Array[ExtResource("13_trigger")]([])
+
+[sub_resource type="Resource" id="MoveActionMapping"]
+script = ExtResource("2_action_mapping")
+action = ExtResource("14_move")
+input_mappings = Array[ExtResource("3_input_mapping")]([SubResource("MoveForwardMapping"), SubResource("MoveBackwardMapping"), SubResource("MoveLeftMapping"), SubResource("MoveRightMapping"), SubResource("MoveJoyMapping")])
+
+[sub_resource type="Resource" id="LookMouseInput"]
+script = ExtResource("7_mouse_axis")
+
+[sub_resource type="Resource" id="LookMouseScale"]
+script = ExtResource("12_scale")
+scale = Vector3(-0.05, -0.05, 1)
+apply_delta_time = false
+
+[sub_resource type="Resource" id="LookMouseMapping"]
+script = ExtResource("3_input_mapping")
+input = SubResource("LookMouseInput")
+modifiers = Array[ExtResource("8_modifier")]([SubResource("LookMouseScale")])
+triggers = Array[ExtResource("13_trigger")]([])
+
+[sub_resource type="Resource" id="LookJoyInput"]
+script = ExtResource("5_joy_axis")
+joy_index = -2
+x = 2
+y = 3
+
+[sub_resource type="Resource" id="LookJoyDeadzone"]
+script = ExtResource("11_deadzone")
+lower_threshold = 0.15
+upper_threshold = 1.0
+
+[sub_resource type="Resource" id="LookJoyScale"]
+script = ExtResource("12_scale")
+scale = Vector3(-120, -90, 1)
+apply_delta_time = true
+
+[sub_resource type="Resource" id="LookJoyMapping"]
+script = ExtResource("3_input_mapping")
+input = SubResource("LookJoyInput")
+modifiers = Array[ExtResource("8_modifier")]([SubResource("LookJoyDeadzone"), SubResource("LookJoyScale")])
+triggers = Array[ExtResource("13_trigger")]([])
+
+[sub_resource type="Resource" id="LookActionMapping"]
+script = ExtResource("2_action_mapping")
+action = ExtResource("15_look")
+input_mappings = Array[ExtResource("3_input_mapping")]([SubResource("LookMouseMapping"), SubResource("LookJoyMapping")])
+
+[sub_resource type="Resource" id="JumpKeyInput"]
+script = ExtResource("4_key")
+key = 32
+allow_additional_modifiers = true
+
+[sub_resource type="Resource" id="JumpKeyMapping"]
+script = ExtResource("3_input_mapping")
+is_remappable = true
+input = SubResource("JumpKeyInput")
+modifiers = Array[ExtResource("8_modifier")]([])
+triggers = Array[ExtResource("13_trigger")]([])
+
+[sub_resource type="Resource" id="JumpJoyInput"]
+script = ExtResource("6_joy_button")
+joy_index = -2
+button = 0
+
+[sub_resource type="Resource" id="JumpJoyMapping"]
+script = ExtResource("3_input_mapping")
+is_remappable = true
+input = SubResource("JumpJoyInput")
+modifiers = Array[ExtResource("8_modifier")]([])
+triggers = Array[ExtResource("13_trigger")]([])
+
+[sub_resource type="Resource" id="JumpActionMapping"]
+script = ExtResource("2_action_mapping")
+action = ExtResource("16_jump")
+input_mappings = Array[ExtResource("3_input_mapping")]([SubResource("JumpKeyMapping"), SubResource("JumpJoyMapping")])
+
+[sub_resource type="Resource" id="ReleasePointerInput"]
+script = ExtResource("4_key")
+key = 4194305
+allow_additional_modifiers = true
+
+[sub_resource type="Resource" id="ReleasePointerInputMapping"]
+script = ExtResource("3_input_mapping")
+input = SubResource("ReleasePointerInput")
+modifiers = Array[ExtResource("8_modifier")]([])
+triggers = Array[ExtResource("13_trigger")]([])
+
+[sub_resource type="Resource" id="ReleasePointerActionMapping"]
+script = ExtResource("2_action_mapping")
+action = ExtResource("17_release")
+input_mappings = Array[ExtResource("3_input_mapping")]([SubResource("ReleasePointerInputMapping")])
+
+[resource]
+script = ExtResource("1_context")
+display_name = "Demo3D Gameplay"
+mappings = Array[ExtResource("2_action_mapping")]([SubResource("MoveActionMapping"), SubResource("LookActionMapping"), SubResource("JumpActionMapping"), SubResource("ReleasePointerActionMapping")])

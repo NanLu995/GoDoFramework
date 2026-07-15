@@ -1,0 +1,66 @@
+[gd_resource type="Resource" script_class="GUIDEMappingContext" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://addons/guideCS/guide/guide_mapping_context.gd" id="1_context"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/guide_action_mapping.gd" id="2_action_mapping"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/guide_input_mapping.gd" id="3_input_mapping"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/inputs/guide_input_mouse_axis_2d.gd" id="4_mouse"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/inputs/guide_input_joy_axis_2d.gd" id="5_joy"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/inputs/guide_input_key.gd" id="6_key"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/modifiers/guide_modifier_deadzone.gd" id="7_deadzone"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/modifiers/guide_modifier.gd" id="8_modifier"]
+[ext_resource type="Script" path="res://addons/guideCS/guide/triggers/guide_trigger.gd" id="9_trigger"]
+[ext_resource type="Resource" path="res://Verification/Exploratory/InputLab/Resources/look.tres" id="10_look"]
+[ext_resource type="Resource" path="res://Verification/Exploratory/InputLab/Resources/jump.tres" id="11_jump"]
+
+[sub_resource type="Resource" id="MouseInput"]
+script = ExtResource("4_mouse")
+
+[sub_resource type="Resource" id="MouseMapping"]
+script = ExtResource("3_input_mapping")
+input = SubResource("MouseInput")
+modifiers = Array[ExtResource("8_modifier")]([])
+triggers = Array[ExtResource("9_trigger")]([])
+
+[sub_resource type="Resource" id="JoyInput"]
+script = ExtResource("5_joy")
+joy_index = -2
+x = 2
+y = 3
+
+[sub_resource type="Resource" id="JoyDeadzone"]
+script = ExtResource("7_deadzone")
+lower_threshold = 0.15
+upper_threshold = 1.0
+
+[sub_resource type="Resource" id="JoyMapping"]
+script = ExtResource("3_input_mapping")
+input = SubResource("JoyInput")
+modifiers = Array[ExtResource("8_modifier")]([SubResource("JoyDeadzone")])
+triggers = Array[ExtResource("9_trigger")]([])
+
+[sub_resource type="Resource" id="LookMapping"]
+script = ExtResource("2_action_mapping")
+action = ExtResource("10_look")
+input_mappings = Array[ExtResource("3_input_mapping")]([SubResource("MouseMapping"), SubResource("JoyMapping")])
+
+[sub_resource type="Resource" id="JumpInput"]
+script = ExtResource("6_key")
+key = 32
+allow_additional_modifiers = true
+
+[sub_resource type="Resource" id="JumpInputMapping"]
+script = ExtResource("3_input_mapping")
+is_remappable = true
+input = SubResource("JumpInput")
+modifiers = Array[ExtResource("8_modifier")]([])
+triggers = Array[ExtResource("9_trigger")]([])
+
+[sub_resource type="Resource" id="JumpMapping"]
+script = ExtResource("2_action_mapping")
+action = ExtResource("11_jump")
+input_mappings = Array[ExtResource("3_input_mapping")]([SubResource("JumpInputMapping")])
+
+[resource]
+script = ExtResource("1_context")
+display_name = "InputLab Gameplay"
+mappings = Array[ExtResource("2_action_mapping")]([SubResource("LookMapping"), SubResource("JumpMapping")])
