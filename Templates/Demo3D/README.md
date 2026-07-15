@@ -59,15 +59,15 @@ CharacterBody3D + Phantom Camera
 1. `Input/Demo3DInput.cs`：游戏自己定义稳定的 Action / Context ID。
 2. `Input/GameplayContext.tres`：配置 WASD、鼠标、摇杆和按钮的 GUIDE 映射、死区及灵敏度。
 3. `Input/Demo3DInputProfile.tres`：把 GoDo Action / Context / Binding ID 对应到 GUIDE Resource 与可改键槽位。
-4. `Boot/Boot.tscn`：启动时用 `GuideInputBackendInstaller` 安装一次后端。
+4. `Boot/Boot.tscn`：启动时用 `GuideInputBackendInstaller` 安装一次后端，并在进入流程前加载已保存绑定。
 5. `Gameplay/GameplayProcedure.cs`：进入玩法时启用 Gameplay Context。
 6. `Gameplay/PlayerController.cs`：在 `_Process` 读取快照，在 `_PhysicsProcess` 消费移动与跳跃。
-7. `Gameplay/GameplayHud.cs`：使用 GoDo 重绑定接口完成跳跃键查询、捕获、冲突提示和恢复默认。
+7. `Gameplay/GameplayHud.cs`：使用 GoDo 重绑定与持久化接口完成跳跃键查询、捕获、冲突提示、保存和恢复默认。
 8. `Result/ResultProcedure.cs`：切到空的 Result Context，停用角色输入并释放鼠标。
 
 要增加一个输入，顺序是：先在 `Demo3DInput.cs` 增加语义 ID，再创建 GUIDE Action 并加入 Context，随后加入 Profile，最后由业务脚本读取。不要让业务脚本直接读取 GUIDE Action，否则会绕过 GoDo 的后端边界。
 
-当前改键只在本次运行内有效，重启 Demo 后恢复 Resource 中的默认绑定；配置持久化属于下一批框架能力。
+改键与恢复默认都会立即写入独立的 `godo-input-bindings` SaveService 槽位；重启 Demo 后会恢复上次保存的结果。正式配置损坏时会尝试备份；正式配置与备份都不可用时上报错误并继续使用当前默认绑定。
 
 ## 插件边界
 

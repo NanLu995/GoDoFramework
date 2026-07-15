@@ -92,6 +92,10 @@ public sealed partial class InputServiceRegression : Node
         AssertEqual(InputBackendCapabilities.None, _service.Capabilities, "未安装后端时能力错误");
         Assert(!_service.TryGetRebinding(out IInputRebinding? rebinding), "未安装后端时返回了重绑定能力");
         Assert(rebinding == null, "未安装后端时返回了重绑定实例");
+        Assert(
+            !_service.TryGetRebindingPersistence(out IInputRebindingPersistence? persistence),
+            "未安装后端时返回了绑定持久化能力");
+        Assert(persistence == null, "未安装后端时返回了绑定持久化实例");
         AssertThrows<InputOperationException>(() => _ = _service.Frame, "未安装后端仍能读取 Frame");
         AssertThrows<InputOperationException>(() => _service.SetBaseContext(Gameplay), "未安装后端仍能设置 Context");
     }
@@ -114,6 +118,15 @@ public sealed partial class InputServiceRegression : Node
         AssertEqual(1, backend.Rebinding.ApplyCount, "重绑定没有应用到后端");
         rebinding.RestoreDefault(JumpKeyboard);
         AssertEqual(1, backend.Rebinding.RestoreCount, "重绑定没有恢复默认值");
+
+        Assert(
+            _service.TryGetRebindingPersistence(out IInputRebindingPersistence? persistence),
+            "支持持久化的后端未暴露绑定持久化能力");
+        Assert(ReferenceEquals(backend.Persistence, persistence), "InputService 没有返回后端持久化实例");
+        AssertEqual(InputBindingLoadStatus.Loaded, persistence!.LoadAndApply(), "持久化加载状态错误");
+        persistence.Save();
+        AssertEqual(1, backend.Persistence.LoadCount, "持久化没有调用后端加载");
+        AssertEqual(1, backend.Persistence.SaveCount, "持久化没有调用后端保存");
     }
 
     private void VerifyInstallAndFirstSample()
@@ -123,7 +136,9 @@ public sealed partial class InputServiceRegression : Node
         Assert(_service.IsReady, "安装后端后 IsReady 为 false");
         AssertEqual(InputDeviceKind.Gamepad, _service.ActiveDevice, "活动设备没有来自后端");
         AssertEqual(
-            InputBackendCapabilities.DeviceTracking | InputBackendCapabilities.Rebinding,
+            InputBackendCapabilities.DeviceTracking |
+            InputBackendCapabilities.Rebinding |
+            InputBackendCapabilities.RebindingPersistence,
             _service.Capabilities,
             "后端能力没有透传");
         AssertEqual(1, backend.InitializeCount, "后端没有初始化一次");
@@ -322,6 +337,12 @@ public sealed partial class InputServiceRegression : Node
             "允许安装能力标志与接口不一致的后端");
         AssertEqual(1, inconsistentCapabilities.ShutdownCount, "能力不一致的后端没有清理");
 
+        var missingPersistence = new MissingPersistenceBackend();
+        AssertThrows<InputOperationException>(
+            () => _service.InstallBackend(missingPersistence),
+            "允许安装声明持久化能力但没有实现接口的后端");
+        AssertEqual(1, missingPersistence.ShutdownCount, "缺少持久化接口的后端没有清理");
+
         var duplicateActions = new FakeInputBackend(
             new[]
             {
@@ -412,20 +433,27 @@ public sealed partial class InputServiceRegression : Node
         throw new InvalidOperationException(message);
     }
 
-    private sealed class FakeInputBackend : IInputBackend, IInputRebindingBackend
+    private sealed class FakeInputBackend :
+        IInputBackend,
+        IInputRebindingBackend,
+        IInputRebindingPersistenceBackend
     {
         private readonly InputActionDescriptor[] _actions;
         private readonly InputContextId[] _contexts;
         private readonly InputActionSample[] _samples;
 
         public InputBackendCapabilities Capabilities { get; set; } =
-            InputBackendCapabilities.DeviceTracking | InputBackendCapabilities.Rebinding;
+            InputBackendCapabilities.DeviceTracking |
+            InputBackendCapabilities.Rebinding |
+            InputBackendCapabilities.RebindingPersistence;
         public InputDeviceKind ActiveDevice { get; set; } = InputDeviceKind.Gamepad;
         public IReadOnlyList<InputActionDescriptor> Actions => _actions;
         public IReadOnlyList<InputContextId> Contexts => _contexts;
         public List<InputContextId> ActiveContexts { get; } = new();
         public FakeInputRebinding Rebinding { get; } = new();
         IInputRebinding IInputRebindingBackend.Rebinding => Rebinding;
+        public FakeInputRebindingPersistence Persistence { get; } = new();
+        IInputRebindingPersistence IInputRebindingPersistenceBackend.RebindingPersistence => Persistence;
         public int InitializeCount { get; private set; }
         public int SampleCount { get; private set; }
         public int ShutdownCount { get; private set; }
@@ -544,6 +572,50 @@ public sealed partial class InputServiceRegression : Node
             _ = GetBinding(binding);
             RestoreCount++;
         }
+    }
+
+    private sealed class FakeInputRebindingPersistence : IInputRebindingPersistence
+    {
+        public int LoadCount { get; private set; }
+        public int SaveCount { get; private set; }
+
+        public InputBindingLoadStatus LoadAndApply()
+        {
+            LoadCount++;
+            return InputBindingLoadStatus.Loaded;
+        }
+
+        public void Save() => SaveCount++;
+    }
+
+    private sealed class MissingPersistenceBackend : IInputBackend, IInputRebindingBackend
+    {
+        private static readonly InputActionDescriptor[] ActionDescriptors =
+        {
+            new(Jump, InputActionValueType.Bool),
+        };
+        private static readonly InputContextId[] ContextDescriptors = { Gameplay };
+
+        public InputBackendCapabilities Capabilities =>
+            InputBackendCapabilities.Rebinding | InputBackendCapabilities.RebindingPersistence;
+        public InputDeviceKind ActiveDevice => InputDeviceKind.Unknown;
+        public IReadOnlyList<InputActionDescriptor> Actions => ActionDescriptors;
+        public IReadOnlyList<InputContextId> Contexts => ContextDescriptors;
+        public IInputRebinding Rebinding { get; } = new FakeInputRebinding();
+        public int ShutdownCount { get; private set; }
+
+        public void Initialize()
+        {
+        }
+
+        public void ApplyContexts(ReadOnlySpan<InputContextId> contexts)
+        {
+        }
+
+        public void Sample(Span<InputActionSample> destination) =>
+            destination[0] = new InputActionSample(Vector3.Zero, pressed: false);
+
+        public void Shutdown() => ShutdownCount++;
     }
 
     private sealed class FakeCandidate : InputBindingCandidate

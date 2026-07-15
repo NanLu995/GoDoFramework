@@ -99,7 +99,22 @@ if (candidate != null && rebinding.FindConflicts(jumpPrimary, candidate).Count =
 - 同一后端同时只允许一个 `CaptureAsync`；`CancelCapture` 结束当前捕获并使任务返回 null。
 - `InputBindingCandidate` 隐藏具体后端对象，只能交回创建它的后端。
 - `FindConflicts` 只返回事实；`Apply` 和 `RestoreDefault` 不自动覆盖其他槽位。
-- 当前契约只负责本次运行内的改键。配置导入、导出与磁盘持久化尚未开放。
+
+支持可靠存储的后端额外声明 `RebindingPersistence`：
+
+```csharp
+if (input.TryGetRebindingPersistence(out IInputRebindingPersistence? persistence))
+{
+    InputBindingLoadStatus status = persistence.LoadAndApply();
+    // Apply / RestoreDefault 成功后，由设置界面在合适时机调用：
+    persistence.Save();
+}
+```
+
+- `LoadAndApply` 在没有配置时应用默认绑定并返回 `DefaultsApplied`。
+- 正式配置与备份的具体可靠性由后端存储实现负责；GUIDE 适配使用 SaveService。
+- `Save` 失败不会撤销本次运行内已经应用的绑定，调用方应明确提示玩家。
+- 保存时机由游戏决定，InputService 不在每次 Apply 后隐式写盘。
 
 ### IInputBackend
 
@@ -120,15 +135,18 @@ if (candidate != null && rebinding.FindConflicts(jumpPrimary, candidate).Count =
 - 使用未知 Context、重复 Push、错误 Pop 或后端应用失败。
 - 后端重复安装、布局重复、初始化或采样失败。
 - 未注册 Binding、重复捕获、候选来自其他后端或重绑定应用失败。
+- 后端声明重绑定能力却未实现对应接口，或声明持久化但未同时支持重绑定。
 
 默认 ID 和无效枚举属于参数错误，抛出 `ArgumentException` / `ArgumentOutOfRangeException`。
 采样失败不会推进 Frame 序号或覆盖上一帧；调用边界不先重复上报 ErrorHub。
+持久化的编解码或磁盘失败沿用具体存储实现的异常；GUIDE 适配会抛出 `SaveException`。
 
 ## 生命周期与线程
 
 - InputService 由 GoDoRuntime 创建并按 `IInputService` 注册；后端就绪后由 GoDoRuntime 每帧调用一次采样。
 - 所有服务 API、后端初始化、采样、Context 和关闭操作仅允许 Godot 主线程调用。
 - 重绑定捕获任务由后端信号在主线程完成；服务关闭前必须取消未完成捕获。
+- 绑定加载应在后端安装完成后、进入依赖输入的游戏流程前执行；保存只在玩家确认设置时调用。
 - 每个服务实例第一版只允许安装一个后端，不支持运行时替换。
 - `Shutdown()` 清理后端、Action、Context 和快照状态，并允许重复调用。
 
@@ -147,6 +165,7 @@ InputFrame 表示最近完成的渲染帧采样。需要驱动物理的控制器
 - 设备类别只在已有采样提交时比较；事件只在类别变化时派发，不增加输入热路径集合分配。
 - Context 变化属于低频路径，允许创建小型临时数组以保证提交前状态不变。
 - 查询、捕获、冲突检查和应用绑定属于设置界面低频路径，允许创建结果数组和异步完成对象，不进入每帧采样。
+- 配置 Resource 编解码和磁盘 I/O 是同步低频路径，不得从每帧更新或滑块连续变化中调用。
 
 ## 验证
 
@@ -156,6 +175,6 @@ InputFrame 表示最近完成的渲染帧采样。需要驱动物理的控制器
 Verification/Automated/InputServiceRegression.tscn
 ```
 
-覆盖 ID、后端缺失、首次采样、Bool/Axis 状态、活动设备变化、可选重绑定能力、Frame 过期、Context 组合与误用、
+覆盖 ID、后端缺失、首次采样、Bool/Axis 状态、活动设备变化、可选重绑定与持久化能力、Frame 过期、Context 组合与误用、
 失败原子性、重复后端/布局拒绝、热读取分配和关闭幂等。`InputRuntimeRegression.tscn` 额外验证 GoDoRuntime 注册、自动采样与关闭。
-GUIDE 回归覆盖捕获、冲突、应用、恢复、取消、设备阈值和跟踪节点清理；真实设备、窗口失焦以及渲染/物理时序仍需手动验证。
+GUIDE 回归覆盖捕获、冲突、应用、恢复、取消、保存加载、备份恢复、未知版本、设备阈值和跟踪节点清理；真实设备、窗口失焦以及渲染/物理时序仍需手动验证。

@@ -79,6 +79,21 @@ public sealed class InputService : IInputService
     }
 
     /// <inheritdoc />
+    public bool TryGetRebindingPersistence(out IInputRebindingPersistence? persistence)
+    {
+        MainThreadGuard.VerifyAccess();
+        if (_backend is IInputRebindingPersistenceBackend persistenceBackend &&
+            (_backend.Capabilities & InputBackendCapabilities.RebindingPersistence) != 0)
+        {
+            persistence = persistenceBackend.RebindingPersistence;
+            return true;
+        }
+
+        persistence = null;
+        return false;
+    }
+
+    /// <inheritdoc />
     public void SetBaseContext(InputContextId context)
     {
         MainThreadGuard.VerifyAccess();
@@ -324,6 +339,20 @@ public sealed class InputService : IInputService
         {
             throw new InputOperationException(
                 "输入后端的 Rebinding 能力标志与 IInputRebindingBackend 实现不一致。");
+        }
+
+        bool declaresPersistence =
+            (backend.Capabilities & InputBackendCapabilities.RebindingPersistence) != 0;
+        bool providesPersistence = backend is IInputRebindingPersistenceBackend;
+        if (declaresPersistence && !providesPersistence)
+        {
+            throw new InputOperationException(
+                "输入后端声明 RebindingPersistence 时必须实现 IInputRebindingPersistenceBackend。");
+        }
+        if (declaresPersistence && !declaresRebinding)
+        {
+            throw new InputOperationException(
+                "输入后端声明 RebindingPersistence 时必须同时支持 Rebinding。");
         }
 
         IReadOnlyList<InputActionDescriptor> actions = backend.Actions ??

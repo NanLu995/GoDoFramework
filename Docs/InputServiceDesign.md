@@ -1,6 +1,6 @@
 # InputService 设计草案
 
-> 状态：核心 ID、InputFrame、Context 栈、假后端回归、GoDoRuntime 生命周期、GUIDE 首版适配、设备检测、运行时改键闭环与 Demo3D 真实 Profile 已完成；改键持久化、输入提示查询和跨平台真机体验尚未接入。本文不代表稳定基线。
+> 状态：核心 ID、InputFrame、Context 栈、假后端回归、GoDoRuntime 生命周期、GUIDE 首版适配、设备检测、运行时改键、SaveService 持久化与 Demo3D 真实 Profile 已完成；输入提示查询和跨平台真机体验尚未接入。本文不代表稳定基线。
 
 ## 1. 要解决的问题
 
@@ -211,7 +211,10 @@ public interface IInputRebinding
 - 冲突如何处理由游戏 UI 决定，服务只返回事实，不擅自覆盖另一绑定。
 - `InputBindingId` 由 Profile 显式映射到后端槽位，不能依赖显示名或运行时数组顺序。
 - 候选输入只公开设备类别和显示文本；实际 GUIDE 输入对象保留在适配器内部。
-- 第一批只保证本次运行内查询、捕获、冲突、应用、恢复和取消；配置编解码与 Save/Settings 接入下一批处理。
+- `IInputRebindingPersistence` 是独立可选能力；加载返回默认、正式文件或备份来源，保存时机由游戏 UI 决定。
+- Input 核心不直接依赖 Save；GUIDE 适配层显式接收 SaveService，并用独立槽位保存数据版本 1 的原生配置 Payload。
+- 保存失败不撤销已生效的运行时绑定；加载或应用失败保持此前绑定，异常由调用方上报。
+- GUIDE Resource 反序列化后必须移除插件的运行时使用标记，再由 GUIDE 重新建立输入状态。
 - GUIDE 应用配置时需要清空并恢复当前 Context，规避当前版本复用旧有效 Mapping 的缓存行为；应用失败必须回滚旧配置。
 
 ## 9. 设备体验

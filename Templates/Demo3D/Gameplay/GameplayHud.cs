@@ -27,6 +27,7 @@ public sealed partial class GameplayHud : Control
     private Button? _restoreJumpButton;
     private Label? _rebindStatusLabel;
     private IInputRebinding? _rebinding;
+    private IInputRebindingPersistence? _rebindingPersistence;
     private bool _captureOwned;
 
     public override void _Ready()
@@ -45,6 +46,8 @@ public sealed partial class GameplayHud : Control
         IInputService input = Services.Get<IInputService>();
         if (!input.TryGetRebinding(out _rebinding))
             throw new InvalidOperationException("Demo3D 需要支持重绑定的输入后端。");
+        if (!input.TryGetRebindingPersistence(out _rebindingPersistence))
+            throw new InvalidOperationException("Demo3D 需要支持持久化的输入后端。");
 
         EventChannel.Bind<CollectionProgressChangedEvent>(this, OnCollectionProgressChanged);
         EventChannel.Bind<InputDeviceChangedEvent>(this, OnInputDeviceChanged);
@@ -65,6 +68,7 @@ public sealed partial class GameplayHud : Control
 
         _captureOwned = false;
         _rebinding = null;
+        _rebindingPersistence = null;
     }
 
     private void OnCollectionProgressChanged(CollectionProgressChangedEvent evt)
@@ -79,6 +83,7 @@ public sealed partial class GameplayHud : Control
         if (_rebinding == null || _captureOwned)
             return;
 
+        _rebindJumpButton!.ReleaseFocus();
         _captureOwned = true;
         SetRebindControlsEnabled(false);
         _rebindStatusLabel!.Text = "等待新输入…按 Esc 取消";
@@ -100,7 +105,7 @@ public sealed partial class GameplayHud : Control
             }
 
             _rebinding.Apply(JumpPrimaryBinding, candidate);
-            _rebindStatusLabel.Text = $"已改为：{candidate.DisplayText}（本次运行有效）";
+            SaveBindings($"已改为并保存：{candidate.DisplayText}");
         }
         catch (Exception exception)
         {
@@ -122,10 +127,11 @@ public sealed partial class GameplayHud : Control
         if (_rebinding == null || _captureOwned)
             return;
 
+        _restoreJumpButton!.ReleaseFocus();
         try
         {
             _rebinding.RestoreDefault(JumpPrimaryBinding);
-            _rebindStatusLabel!.Text = "已恢复默认绑定";
+            SaveBindings("已恢复并保存默认绑定");
             RefreshJumpBinding();
         }
         catch (Exception exception)
@@ -139,6 +145,19 @@ public sealed partial class GameplayHud : Control
         InputBindingInfo info = _rebinding!.GetBinding(JumpPrimaryBinding);
         string current = string.IsNullOrEmpty(info.CurrentDisplayText) ? "未绑定" : info.CurrentDisplayText;
         _jumpBindingLabel!.Text = $"跳跃主绑定：{current}";
+    }
+
+    private void SaveBindings(string successMessage)
+    {
+        try
+        {
+            _rebindingPersistence!.Save();
+            _rebindStatusLabel!.Text = successMessage;
+        }
+        catch (Exception exception)
+        {
+            _rebindStatusLabel!.Text = $"绑定已生效，但保存失败：{exception.Message}";
+        }
     }
 
     private void SetRebindControlsEnabled(bool enabled)

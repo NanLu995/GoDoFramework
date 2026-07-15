@@ -196,6 +196,41 @@ internal sealed class GuideInputRebinding : IInputRebinding
         ApplyChange(() => _remapper.RestoreDefaultFor(entry.Item));
     }
 
+    internal GuideRemappingConfig GetConfiguration()
+    {
+        VerifyReady();
+        return _remapper.GetMappingConfig();
+    }
+
+    internal void ApplyConfiguration(GuideRemappingConfig configuration)
+    {
+        VerifyReady();
+        ArgumentNullException.ThrowIfNull(configuration);
+        GuideRemappingConfig previousConfig = _remapper.GetMappingConfig();
+        List<GuideMappingContext> activeContexts = Guide.GetEnabledMappingContexts();
+        try
+        {
+            _remapper.Initialize(_guideContexts, configuration);
+            ApplyGuideConfig(configuration, activeContexts);
+        }
+        catch (Exception applyException)
+        {
+            try
+            {
+                _remapper.Initialize(_guideContexts, previousConfig);
+                ApplyGuideConfig(previousConfig, activeContexts);
+            }
+            catch (Exception rollbackException)
+            {
+                throw new InputOperationException(
+                    "GUIDE 输入配置加载与回滚均失败，当前映射状态不可确认。",
+                    new AggregateException(applyException, rollbackException));
+            }
+
+            throw new InputOperationException("GUIDE 输入配置加载失败，已恢复原绑定。", applyException);
+        }
+    }
+
     private void BuildBindings()
     {
         var targets = new HashSet<BindingTarget>();

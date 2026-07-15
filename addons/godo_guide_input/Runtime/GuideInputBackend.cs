@@ -8,13 +8,18 @@ using GuideCs;
 namespace GoDo.GuideInput;
 
 /// <summary>把 G.U.I.D.E Action 和 Mapping Context 适配到 GoDo IInputBackend。</summary>
-public sealed class GuideInputBackend : IInputBackend, IInputRebindingBackend
+public sealed class GuideInputBackend :
+    IInputBackend,
+    IInputRebindingBackend,
+    IInputRebindingPersistenceBackend
 {
     private const int EmulatedDeviceId = -1;
     private const float PointerMotionThresholdSquared = 1f;
     private const float GamepadAxisThreshold = 0.25f;
 
     private readonly GuideInputProfile _profile;
+    private readonly ISaveService? _saveService;
+    private readonly SaveSlot _persistenceSlot;
     private readonly List<GuideAction> _actions = new();
     private readonly Dictionary<InputActionId, GuideAction> _actionsById = new();
     private readonly Dictionary<InputContextId, GuideMappingContext> _contexts = new();
@@ -25,16 +30,23 @@ public sealed class GuideInputBackend : IInputBackend, IInputRebindingBackend
     private InputActionSample[] _cachedSamples = Array.Empty<InputActionSample>();
     private GuideInputDeviceTracker? _deviceTracker;
     private GuideInputRebinding? _rebinding;
+    private GuideInputRebindingPersistence? _rebindingPersistence;
     private InputDeviceKind _activeDevice;
     private bool _initialized;
 
     /// <inheritdoc />
     public InputBackendCapabilities Capabilities =>
-        InputBackendCapabilities.DeviceTracking | InputBackendCapabilities.Rebinding;
+        InputBackendCapabilities.DeviceTracking |
+        InputBackendCapabilities.Rebinding |
+        (_saveService == null ? InputBackendCapabilities.None : InputBackendCapabilities.RebindingPersistence);
 
     /// <inheritdoc />
     public IInputRebinding Rebinding => _rebinding ??
         throw new InputOperationException("GUIDE 重绑定尚未初始化或已经关闭。");
+
+    /// <inheritdoc />
+    public IInputRebindingPersistence RebindingPersistence => _rebindingPersistence ??
+        throw new InputOperationException("GUIDE 重绑定持久化尚未初始化、未配置或已经关闭。");
 
     /// <inheritdoc />
     public InputDeviceKind ActiveDevice => _activeDevice;
@@ -52,6 +64,21 @@ public sealed class GuideInputBackend : IInputBackend, IInputRebindingBackend
         _profile = profile;
     }
 
+    /// <summary>创建使用固定 Profile 与可靠绑定存储的 GUIDE 后端。</summary>
+    public GuideInputBackend(
+        GuideInputProfile profile,
+        ISaveService saveService,
+        SaveSlot persistenceSlot)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        ArgumentNullException.ThrowIfNull(saveService);
+        if (!persistenceSlot.IsValid)
+            throw new ArgumentException("输入绑定持久化槽位不能为空。", nameof(persistenceSlot));
+        _profile = profile;
+        _saveService = saveService;
+        _persistenceSlot = persistenceSlot;
+    }
+
     /// <inheritdoc />
     public void Initialize()
     {
@@ -67,10 +94,12 @@ public sealed class GuideInputBackend : IInputBackend, IInputRebindingBackend
             _initialized = true;
             AttachDeviceTracker();
             AttachRebinding();
+            AttachRebindingPersistence();
         }
         catch
         {
             _initialized = false;
+            DetachRebindingPersistence();
             DetachRebinding();
             DetachDeviceTracker();
             DetachSubscriptions();
@@ -144,6 +173,7 @@ public sealed class GuideInputBackend : IInputBackend, IInputRebindingBackend
         }
         finally
         {
+            DetachRebindingPersistence();
             DetachRebinding();
             DetachDeviceTracker();
             DetachSubscriptions();
@@ -378,6 +408,21 @@ public sealed class GuideInputBackend : IInputBackend, IInputRebindingBackend
         _rebinding = null;
         rebinding?.Shutdown();
     }
+
+    private void AttachRebindingPersistence()
+    {
+        if (_saveService == null)
+            return;
+
+        GuideInputRebinding rebinding = _rebinding ??
+            throw new InvalidOperationException("GUIDE 重绑定必须先于持久化初始化。");
+        _rebindingPersistence = new GuideInputRebindingPersistence(
+            rebinding,
+            _saveService,
+            _persistenceSlot);
+    }
+
+    private void DetachRebindingPersistence() => _rebindingPersistence = null;
 
     private void OnTriggered(int index)
     {

@@ -5,6 +5,7 @@ using Godot;
 using GoDo;
 using GoDo.GuideInput;
 using GuideCs;
+using GodotFileAccess = Godot.FileAccess;
 
 #nullable enable
 
@@ -14,6 +15,8 @@ namespace GoDoFramework.Verification;
 public sealed partial class GuideInputBackendRegression : Node
 {
     private const string FixtureRoot = "res://Verification/Automated/Fixtures/GuideInput";
+    private const string PersistenceSlotName = "godo-regression-input-bindings";
+    private static readonly SaveSlot PersistenceSlot = SaveSlot.Create(PersistenceSlotName);
     private static readonly InputActionId Look = InputActionId.Create("gameplay.look");
     private static readonly InputActionId Jump = InputActionId.Create("gameplay.jump");
     private static readonly InputActionId Confirm = InputActionId.Create("ui.confirm");
@@ -23,6 +26,7 @@ public sealed partial class GuideInputBackendRegression : Node
     private static readonly InputBindingId ConfirmKeyboard = InputBindingId.Create("ui.confirm.keyboard");
 
     private InputService? _service;
+    private ISaveService? _saveService;
     private Node _guideNode = null!;
 
     /// <inheritdoc />
@@ -33,9 +37,19 @@ public sealed partial class GuideInputBackendRegression : Node
             _guideNode = GetNode<Node>("/root/GUIDE");
             _service = Services.Get<IInputService>() as InputService ??
                 throw new InvalidOperationException("IInputService 不是 InputService 实例。");
+            _saveService = Services.Get<ISaveService>();
+            _saveService.Delete(PersistenceSlot);
 
             GuideInputProfile profile = CreateProfile();
-            var installer = new GuideInputBackendInstaller { Profile = profile };
+            Assert(
+                (new GuideInputBackend(profile).Capabilities &
+                    InputBackendCapabilities.RebindingPersistence) == 0,
+                "未配置 SaveService 的旧构造方式错误声明了持久化能力");
+            var installer = new GuideInputBackendInstaller
+            {
+                Profile = profile,
+                PersistenceSlot = PersistenceSlotName,
+            };
             AddChild(installer);
 
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -50,10 +64,11 @@ public sealed partial class GuideInputBackendRegression : Node
             VerifyLookSampling();
             VerifyDeviceTracking();
             await VerifyRebinding();
+            await VerifyPersistence();
             MeasureBackendAllocations();
             VerifyShutdown();
 
-            GD.Print("[GuideInputBackendRegression] PASS (7/7)");
+            GD.Print("[GuideInputBackendRegression] PASS (8/8)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -61,6 +76,17 @@ public sealed partial class GuideInputBackendRegression : Node
             _service?.Shutdown();
             GD.PushError($"[GuideInputBackendRegression] FAIL: {exception}");
             GetTree().Quit(1);
+        }
+        finally
+        {
+            try
+            {
+                _saveService?.Delete(PersistenceSlot);
+            }
+            catch (Exception cleanupException)
+            {
+                GD.PushError($"[GuideInputBackendRegression] 清理持久化测试槽位失败: {cleanupException}");
+            }
         }
     }
 
@@ -191,6 +217,58 @@ public sealed partial class GuideInputBackendRegression : Node
         Assert(!rebinding.IsCapturing, "取消后 IsCapturing 仍为 true");
     }
 
+    private async Task VerifyPersistence()
+    {
+        Assert(
+            (_service!.Capabilities & InputBackendCapabilities.RebindingPersistence) != 0,
+            "GUIDE 后端没有声明 RebindingPersistence 能力");
+        Assert(
+            _service.TryGetRebindingPersistence(out IInputRebindingPersistence? persistence),
+            "GUIDE 后端没有提供绑定持久化接口");
+        Assert(_service.TryGetRebinding(out IInputRebinding? rebinding), "GUIDE 后端没有提供重绑定接口");
+
+        InputBindingCandidate keyJ = await CaptureKey(rebinding!, JumpKeyboard, Key.J);
+        rebinding!.Apply(JumpKeyboard, keyJ);
+        persistence!.Save();
+        rebinding.RestoreDefault(JumpKeyboard);
+        Assert(rebinding.GetBinding(JumpKeyboard).IsDefault, "持久化加载前没有恢复默认绑定");
+
+        InputBindingLoadStatus loaded = persistence.LoadAndApply();
+        Assert(loaded == InputBindingLoadStatus.Loaded, "正式绑定配置加载状态错误");
+        Assert(rebinding.GetBinding(JumpKeyboard).CurrentDisplayText == "J", "保存的 J 绑定没有恢复");
+
+        persistence.Save();
+        rebinding.RestoreDefault(JumpKeyboard);
+        persistence.Save();
+        CorruptPrimaryPersistenceFile();
+
+        InputBindingLoadStatus recovered = persistence.LoadAndApply();
+        Assert(recovered == InputBindingLoadStatus.RecoveredFromBackup, "损坏正式配置没有从备份恢复");
+        Assert(rebinding.GetBinding(JumpKeyboard).CurrentDisplayText == "J", "备份没有恢复 J 绑定");
+
+        var guideRebinding = (GuideInputRebinding)rebinding;
+        var codec = new GuideInputRemappingCodec();
+        _saveService!.Save(PersistenceSlot, guideRebinding.GetConfiguration(), 99, codec);
+        _saveService.Save(PersistenceSlot, guideRebinding.GetConfiguration(), 99, codec);
+        AssertThrows<SaveException>(
+            () => persistence.LoadAndApply(),
+            "未知版本的正式配置与备份没有失败");
+        Assert(rebinding.GetBinding(JumpKeyboard).CurrentDisplayText == "J", "加载失败改变了当前绑定");
+
+        _saveService.Delete(PersistenceSlot);
+        InputBindingLoadStatus defaults = persistence.LoadAndApply();
+        Assert(defaults == InputBindingLoadStatus.DefaultsApplied, "缺少配置时加载状态错误");
+        Assert(rebinding.GetBinding(JumpKeyboard).IsDefault, "缺少配置时没有应用默认绑定");
+    }
+
+    private static void CorruptPrimaryPersistenceFile()
+    {
+        string path = $"user://saves/{PersistenceSlotName}.gdsave";
+        using GodotFileAccess file = GodotFileAccess.Open(path, GodotFileAccess.ModeFlags.Write) ??
+            throw new InvalidOperationException("无法打开绑定配置正式文件进行损坏模拟。");
+        file.StoreBuffer(new byte[] { 1, 2, 3 });
+    }
+
     private Task<InputBindingCandidate> CaptureKey(
         IInputRebinding rebinding,
         InputBindingId binding,
@@ -292,5 +370,20 @@ public sealed partial class GuideInputBackendRegression : Node
     {
         if (!condition)
             throw new InvalidOperationException(message);
+    }
+
+    private static void AssertThrows<TException>(Action action, string message)
+        where TException : Exception
+    {
+        try
+        {
+            action();
+        }
+        catch (TException)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(message);
     }
 }

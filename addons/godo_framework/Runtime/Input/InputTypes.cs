@@ -59,4 +59,7 @@ public enum InputBackendCapabilities
 
     /// <summary>支持游戏手柄震动。</summary>
     Rumble = 1 << 2,
+
+    /// <summary>支持可靠保存和加载运行时绑定。</summary>
+    RebindingPersistence = 1 << 3,
 }

@@ -20,6 +20,9 @@ public interface IInputService
     /// <summary>在当前后端支持时取得运行时重绑定能力。</summary>
     bool TryGetRebinding(out IInputRebinding? rebinding);
 
+    /// <summary>在当前后端支持时取得绑定持久化能力。</summary>
+    bool TryGetRebindingPersistence(out IInputRebindingPersistence? persistence);
+
     /// <summary>设置栈底 Context，并移除所有临时 Context。</summary>
     void SetBaseContext(InputContextId context);
 
