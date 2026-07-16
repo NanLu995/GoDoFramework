@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://Templates/Demo3D/Gameplay/GameplayHud.cs" id="1_hud"]
 [ext_resource type="Script" path="res://Templates/Demo3D/Gameplay/LocalizationVerificationPanel.cs" id="2_localization"]
+[ext_resource type="Script" path="res://Templates/Demo3D/Gameplay/SchedulerVerificationPanel.cs" id="3_scheduler"]
 
 [node name="GameplayHud" type="Control"]
 layout_mode = 3
@@ -207,4 +208,95 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.86, 0.92, 1)
 auto_translate_mode = 2
 text = "Use the controls above, then restart Demo3D after saving."
+autowrap_mode = 2
+
+[node name="SchedulerVerificationPanel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(500, 0)
+process_mode = 3
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -370.0
+offset_right = 520.0
+offset_bottom = -20.0
+grow_vertical = 0
+script = ExtResource("3_scheduler")
+ClockStatusLabelPath = NodePath("Margin/VBox/ClockStatusLabel")
+RuntimeStatusLabelPath = NodePath("Margin/VBox/RuntimeStatusLabel")
+OperationStatusLabelPath = NodePath("Margin/VBox/OperationStatusLabel")
+StartButtonPath = NodePath("Margin/VBox/CounterRow/StartButton")
+StopButtonPath = NodePath("Margin/VBox/CounterRow/StopButton")
+PauseButtonPath = NodePath("Margin/VBox/ClockControlRow/PauseButton")
+SlowMotionButtonPath = NodePath("Margin/VBox/ClockControlRow/SlowMotionButton")
+OwnerCleanupButtonPath = NodePath("Margin/VBox/DiagnosticRow/OwnerCleanupButton")
+StallButtonPath = NodePath("Margin/VBox/DiagnosticRow/StallButton")
+
+[node name="Margin" type="MarginContainer" parent="SchedulerVerificationPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
+
+[node name="VBox" type="VBoxContainer" parent="SchedulerVerificationPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="SchedulerVerificationPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Scheduler 人工验证"
+
+[node name="ClockStatusLabel" type="Label" parent="SchedulerVerificationPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.85, 1, 1)
+text = "游戏时间：0 | 非缩放时间：0 | 真实时间：0"
+
+[node name="RuntimeStatusLabel" type="Label" parent="SchedulerVerificationPanel/Margin/VBox"]
+layout_mode = 2
+text = "场景暂停：否 | 时间倍率：1.00"
+
+[node name="CounterRow" type="HBoxContainer" parent="SchedulerVerificationPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="StartButton" type="Button" parent="SchedulerVerificationPanel/Margin/VBox/CounterRow"]
+layout_mode = 2
+text = "开始计数"
+
+[node name="StopButton" type="Button" parent="SchedulerVerificationPanel/Margin/VBox/CounterRow"]
+layout_mode = 2
+text = "停止计数"
+
+[node name="ClockControlRow" type="HBoxContainer" parent="SchedulerVerificationPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PauseButton" type="Button" parent="SchedulerVerificationPanel/Margin/VBox/ClockControlRow"]
+layout_mode = 2
+text = "暂停场景"
+
+[node name="SlowMotionButton" type="Button" parent="SchedulerVerificationPanel/Margin/VBox/ClockControlRow"]
+layout_mode = 2
+text = "慢动作 x0.25"
+
+[node name="DiagnosticRow" type="HBoxContainer" parent="SchedulerVerificationPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="OwnerCleanupButton" type="Button" parent="SchedulerVerificationPanel/Margin/VBox/DiagnosticRow"]
+layout_mode = 2
+text = "验证 Owner 清理"
+
+[node name="StallButton" type="Button" parent="SchedulerVerificationPanel/Margin/VBox/DiagnosticRow"]
+layout_mode = 2
+text = "模拟卡顿 750 毫秒"
+
+[node name="OperationStatusLabel" type="Label" parent="SchedulerVerificationPanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.86, 0.92, 1)
+text = "开始计数后，请依次测试场景暂停、慢动作、窗口焦点变化和主线程卡顿。"
 autowrap_mode = 2

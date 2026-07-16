@@ -1,6 +1,6 @@
 # SchedulerService 使用指南
 
-> 当前状态：首版完成。运行时核心已接入 GoDoRuntime，并注册 `ISchedulerService`；自动回归已覆盖人工时钟、真实帧采样、暂停、TimeScale、Owner、退出清理、Debug/Release 稳态性能与 Debug-only 快照。真实游戏与跨平台手动验证尚未完成，因此不标记为稳定基线。
+> 当前状态：首版完成。运行时核心已接入 GoDoRuntime，并注册 `ISchedulerService`；自动回归已覆盖人工时钟、真实帧采样、暂停、TimeScale、Owner、退出清理、Debug/Release 稳态性能与 Debug-only 快照。Windows Demo3D 已完成人工验收；真实项目长期体验与跨平台验证尚未完成，因此不标记为稳定基线。
 
 ## 定位
 
@@ -107,4 +107,4 @@ Debug 构建中的 `SchedulerService` 提供 internal 只读快照，包含：
 
 `Verification/Performance/SchedulerBenchmark.tscn` 验证 1,000 个等待任务的空闲热路径、10,000 次创建取消、队列压缩和 1,000 个任务同轮派发。
 
-仍需手动验证窗口失焦/最小化、暂停菜单和慢动作体验，以及低 FPS、长卡帧下的回调节奏。
+Windows Demo3D 人工验收已覆盖暂停/恢复、慢动作、窗口失焦/最小化、Owner 清理、750 毫秒主线程卡顿恢复和 Debugger 快照观察。持续低 FPS、真实项目长期体验与其他平台行为仍需后续验证。

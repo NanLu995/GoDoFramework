@@ -1,6 +1,6 @@
 # SchedulerService 设计草案
 
-> 状态：首版完成；人工时钟核心、完整调度状态、DelayAsync、跨线程取消、Owner 生命周期、真实时间采样、GoDoRuntime 接入、Shutdown、Debug/Release 稳态性能基准与 Debug-only 快照已完成。Debugger UI 展示和真实游戏/跨平台验证尚未完成，不代表稳定 public API。
+> 状态：首版完成；人工时钟核心、完整调度状态、DelayAsync、跨线程取消、Owner 生命周期、真实时间采样、GoDoRuntime 接入、Shutdown、Debug/Release 稳态性能基准与 Debug-only 快照已完成。Windows Demo3D 已完成人工验收；真实项目长期体验与跨平台验证尚未完成，不代表稳定 public API。
 
 ## 1. 要解决的问题
 
@@ -275,10 +275,10 @@ Scheduler 的时间推进逻辑应允许测试传入人工 delta 和单调时间
 
 ### 13.3 手动验证
 
-- 编辑器暂停菜单与慢动作体验；
-- 窗口失焦、最小化和恢复后的 RealTime 行为；
-- 低 FPS 与长卡帧下的回调节奏；
-- Debugger 快照可读性。
+- 编辑器暂停菜单与慢动作体验（Windows Demo3D 已验证）；
+- 窗口失焦、最小化和恢复后的 RealTime 行为（Windows Demo3D 已验证）；
+- 低 FPS 与长卡帧下的回调节奏（750 毫秒主线程卡顿已验证，持续低 FPS 待真实项目验证）；
+- Debugger 快照可读性（Windows Demo3D 已验证）。
 
 ## 14. 实现顺序
 
