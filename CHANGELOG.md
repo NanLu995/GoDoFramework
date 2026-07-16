@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.4.0
+
+- 新增统一 `SchedulerService`，支持一次性与重复调度、取消、独立暂停、剩余时间查询和可取消 `DelayAsync`。
+- Scheduler 提供 GameTime、UnscaledGameTime、RealTime 三种时间语义，以及 Process/Physics 两种派发阶段。
+- 调度任务支持绑定场景 Owner，Owner 退出树时自动取消；框架退出会可靠取消全部任务与未完成异步等待。
+- Scheduler 完成确定性核心回归、真实帧 Headless 回归、Debug/Release 性能基准和 Debug-only 诊断快照。
+- Demo3D 将输入绑定加载移入 `BootProcedure`，使启动场景只负责进入顶层流程。
+- 核心无第三方依赖构建改用独立配置输出，避免覆盖完整工作区的 Debug 程序集。
+
 ## 0.3.0
 
 - Procedure 新增无参泛型 `ChangeAsync<TProcedure>()` 与 `RequestChange<TProcedure>()` 便捷重载；带业务参数的流程继续通过显式实例切换。
