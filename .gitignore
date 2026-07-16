@@ -3,6 +3,10 @@
 /android/
 /release/dist/
 
+# Python verification cache
+__pycache__/
+*.py[cod]
+
 # Third-party Godot plugins are installed locally and are not vendored here.
 /addons/guideCS/
 /addons/phantom_camera/

@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="GoDoFramework"
-run/main_scene="uid://bs60e4efgaugk"
+run/main_scene="uid://bjrtjk0nd7c4l"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 [autoload]

@@ -7,27 +7,21 @@
 按任务范围读取，不要全量浏览：
 
 1. 修改 `addons/godo_framework/`：先读 `ARCHITECTURE.md` 和对应模块 `USAGE.md`。
-2. 使用 StarterGame 模板：先读 `Templates/StarterGame/README.md` 和 `PROJECT_STRUCTURE.md`。
+2. 参考 Demo3D：先读 `Templates/Demo3D/README.md`（如存在）和 `PROJECT_STRUCTURE.md`，并确认已安装其可选依赖。
 3. 新增流程、界面、存档或配置：先读 `Docs/Recipes/` 下对应菜谱。
 4. 不确定 Godot API：先查项目现有实现，再查离线 Godot 4.7 文档，最后用编译验证。
 
 ## 项目边界
 
 - `GoDo.*` 只放跨游戏复用机制，不放玩法概念。
-- 游戏业务代码放在项目自己的命名空间，例如 `StarterGame`、`MyGame`。
+- 游戏业务代码放在项目自己的命名空间，例如 `MyGame`。
 - 默认不要改 `addons/godo_framework/`。只有用户明确要求修改框架能力时才进入框架源码。
 - 不修改 `project.godot`、`.csproj` 或 Autoload 配置，除非用户明确要求。
 - 不新增 NuGet 包，除非先说明原因并获得确认。
 
 ## 推荐游戏入口
 
-模板入口是：
-
-```text
-Templates/StarterGame/Boot.tscn
-```
-
-真实游戏可以复制后改名为项目入口，例如：
+真实游戏自行创建项目入口，例如：
 
 ```text
 Boot.tscn

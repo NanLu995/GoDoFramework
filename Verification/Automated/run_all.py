@@ -13,7 +13,8 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SOLUTION_PATH = REPOSITORY_ROOT / "GoDoFramework.sln"
-REGRESSION_SCENES = (
+CORE_PACKAGE_SCRIPT = REPOSITORY_ROOT / "Verification" / "Package" / "verify_core_package.py"
+WORKBENCH_REGRESSION_SCENES = (
     "EventChannelRegression.tscn",
     "ErrorHubRegression.tscn",
     "LogHubRegression.tscn",
@@ -28,10 +29,30 @@ REGRESSION_SCENES = (
     "CameraServiceRegression.tscn",
     "InputServiceRegression.tscn",
     "InputRuntimeRegression.tscn",
-    "GuideInputBackendRegression.tscn",
-    "Demo3DInputProfileRegression.tscn",
-    "PhantomCameraRigRegression.tscn",
 )
+SUITE_SCENES = {
+    "core": WORKBENCH_REGRESSION_SCENES,
+    "guide": ("GuideInputBackendRegression.tscn",),
+    "phantom": ("PhantomCameraRigRegression.tscn",),
+    "demo": ("Demo3DInputProfileRegression.tscn",),
+    "all": WORKBENCH_REGRESSION_SCENES + (
+        "GuideInputBackendRegression.tscn",
+        "Demo3DInputProfileRegression.tscn",
+        "PhantomCameraRigRegression.tscn",
+    ),
+}
+OPTIONAL_DEPENDENCIES = {
+    "GUIDE / G.U.I.D.E-CSharp": (
+        "addons/guideCS/plugin.cfg",
+        "addons/guideCS/guide/plugin.cfg",
+    ),
+    "Phantom Camera": ("addons/phantom_camera/plugin.cfg",),
+}
+SUITE_DEPENDENCIES = {
+    "guide": ("GUIDE / G.U.I.D.E-CSharp",),
+    "phantom": ("Phantom Camera",),
+    "demo": ("GUIDE / G.U.I.D.E-CSharp", "Phantom Camera"),
+}
 
 
 def configure_console_encoding() -> None:
@@ -52,7 +73,13 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--skip-build",
         action="store_true",
-        help="跳过 dotnet build；仅在已经完成编译时使用。",
+        help="跳过集成工作区的 dotnet build；仅在已经完成编译时使用。",
+    )
+    parser.add_argument(
+        "--suite",
+        choices=("core", "guide", "phantom", "demo", "all"),
+        default="all",
+        help="验证分组；默认 all。",
     )
     parser.add_argument(
         "--timeout",
@@ -129,6 +156,124 @@ def find_summary(output: str) -> str:
     return summaries[-1] if summaries else "未找到 PASS 汇总行"
 
 
+def find_missing_optional_dependencies(dependency_names: tuple[str, ...] | None = None) -> list[str]:
+    missing: list[str] = []
+    for name, paths in OPTIONAL_DEPENDENCIES.items():
+        if dependency_names is not None and name not in dependency_names:
+            continue
+        absent_paths = [path for path in paths if not (REPOSITORY_ROOT / path).is_file()]
+        if absent_paths:
+            missing.append(f"{name}（缺少：{', '.join(absent_paths)}）")
+    return missing
+
+
+def run_core_package(godot_path: Path, timeout: int) -> bool:
+    print("[CORE] 验证干净核心包")
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(CORE_PACKAGE_SCRIPT),
+            "--godot",
+            str(godot_path),
+            "--timeout",
+            str(timeout),
+        ],
+        cwd=REPOSITORY_ROOT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if result.returncode == 0:
+        print("[CORE] PASS")
+        return True
+
+    print(f"[CORE] FAIL (exit={result.returncode})", file=sys.stderr)
+    return False
+
+
+def run_demo_scene(godot_path: Path, timeout: int) -> tuple[bool, str]:
+    try:
+        result = subprocess.run(
+            [
+                str(godot_path),
+                "--headless",
+                "--path",
+                str(REPOSITORY_ROOT),
+                "--quit-after",
+                "5",
+                "res://Templates/Demo3D/Boot/Boot.tscn",
+            ],
+            cwd=REPOSITORY_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exception:
+        output = (exception.stdout or "") + (exception.stderr or "")
+        return False, output + f"\n超时：{timeout} 秒"
+
+    return result.returncode == 0, result.stdout + result.stderr
+
+
+def run_workbench_suite(
+    suite: str,
+    godot_path: Path,
+    skip_build: bool,
+    timeout: int,
+) -> bool:
+    if not skip_build and not build_project():
+        return False
+
+    failures: list[str] = []
+    for scene_name in SUITE_SCENES[suite]:
+        print(f"[RUN] {scene_name}")
+        passed, output = run_scene(godot_path, scene_name, timeout)
+        if passed:
+            print(f"[PASS] {scene_name}: {find_summary(output)}")
+            continue
+
+        failures.append(scene_name)
+        print(f"[FAIL] {scene_name}", file=sys.stderr)
+        print(output, file=sys.stderr)
+
+    if suite in ("demo", "all"):
+        print("[RUN] Demo3D Boot")
+        passed, output = run_demo_scene(godot_path, timeout)
+        if passed:
+            print("[PASS] Demo3D Boot")
+        else:
+            failures.append("Demo3D Boot")
+            print("[FAIL] Demo3D Boot", file=sys.stderr)
+            print(output, file=sys.stderr)
+
+    passed_count = len(SUITE_SCENES[suite]) + (1 if suite in ("demo", "all") else 0) - len(failures)
+    total_count = len(SUITE_SCENES[suite]) + (1 if suite in ("demo", "all") else 0)
+    print(f"[SUMMARY] {passed_count}/{total_count} workbench checks passed")
+    if failures:
+        print(f"[SUMMARY] failed: {', '.join(failures)}", file=sys.stderr)
+        return False
+    return True
+
+
+def run_all_suites(godot_path: Path, skip_build: bool, timeout: int) -> bool:
+    if not skip_build and not build_project():
+        return False
+
+    success = run_workbench_suite("core", godot_path, True, timeout)
+    for suite in ("guide", "phantom", "demo"):
+        missing_dependencies = find_missing_optional_dependencies(SUITE_DEPENDENCIES[suite])
+        if missing_dependencies:
+            print(f"[SKIP] {suite} 集成验证未配置：")
+            for dependency in missing_dependencies:
+                print(f"[SKIP] {dependency}")
+            continue
+
+        success = run_workbench_suite(suite, godot_path, True, timeout) and success
+    return success
+
+
 def main() -> int:
     configure_console_encoding()
     arguments = parse_arguments()
@@ -138,27 +283,28 @@ def main() -> int:
     godot_path = resolve_godot_path(arguments.godot)
     print(f"[GODOT] {godot_path}")
 
-    if not arguments.skip_build and not build_project():
-        return 1
+    if arguments.suite == "core":
+        return 0 if run_core_package(godot_path, arguments.timeout) else 1
 
-    failures: list[str] = []
-    for scene_name in REGRESSION_SCENES:
-        print(f"[RUN] {scene_name}")
-        passed, output = run_scene(godot_path, scene_name, arguments.timeout)
-        if passed:
-            print(f"[PASS] {scene_name}: {find_summary(output)}")
-            continue
+    if arguments.suite == "all":
+        if not run_core_package(godot_path, arguments.timeout):
+            return 1
 
-        failures.append(scene_name)
-        print(f"[FAIL] {scene_name}", file=sys.stderr)
-        print(output, file=sys.stderr)
+        return 0 if run_all_suites(godot_path, arguments.skip_build, arguments.timeout) else 1
 
-    passed_count = len(REGRESSION_SCENES) - len(failures)
-    print(f"[SUMMARY] {passed_count}/{len(REGRESSION_SCENES)} scenes passed")
-    if failures:
-        print(f"[SUMMARY] failed: {', '.join(failures)}", file=sys.stderr)
-        return 1
-    return 0
+    missing_dependencies = find_missing_optional_dependencies(SUITE_DEPENDENCIES[arguments.suite])
+    if missing_dependencies:
+        details = "；".join(missing_dependencies)
+        raise RuntimeError(
+            f"{arguments.suite} 集成验证缺少所需依赖：{details}。"
+        )
+
+    return 0 if run_workbench_suite(
+        arguments.suite,
+        godot_path,
+        arguments.skip_build,
+        arguments.timeout,
+    ) else 1
 
 
 if __name__ == "__main__":

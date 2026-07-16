@@ -3,5 +3,25 @@
     <TargetFramework>net8.0</TargetFramework>
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
+    <GoDoIncludeGuideInput Condition="'$(GoDoIncludeGuideInput)' == '' and Exists('addons/guideCS/plugin.cfg') and Exists('addons/guideCS/guide/plugin.cfg')">true</GoDoIncludeGuideInput>
+    <GoDoIncludePhantomCamera Condition="'$(GoDoIncludePhantomCamera)' == '' and Exists('addons/phantom_camera/plugin.cfg')">true</GoDoIncludePhantomCamera>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(GoDoIncludeGuideInput)' != 'true'">
+    <Compile Remove="addons/guideCS/**/*.cs" />
+    <Compile Remove="addons/godo_guide_input/**/*.cs" />
+    <Compile Remove="Verification/Automated/GuideInputBackendRegression.cs" />
+    <Compile Remove="Verification/Exploratory/InputLab/GuideInputLab.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(GoDoIncludePhantomCamera)' != 'true'">
+    <Compile Remove="addons/phantom_camera/**/*.cs" />
+    <Compile Remove="addons/godo_phantom_camera/**/*.cs" />
+    <Compile Remove="Verification/Automated/PhantomCameraRigRegression.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(GoDoIncludeGuideInput)' != 'true' or '$(GoDoIncludePhantomCamera)' != 'true'">
+    <Compile Remove="Templates/Demo3D/**/*.cs" />
+    <Compile Remove="Verification/Automated/Demo3DInputProfileRegression.cs" />
+  </ItemGroup>
 </Project>

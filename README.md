@@ -21,5 +21,5 @@ GoDoFramework 是面向 Godot 4.7 C# / .NET 的轻量游戏开发框架，用于
 
 ## 快速上手模板
 
-- `Templates/StarterGame/`：可复制的 Starter 模板，展示 Procedure、Scene、UI、Audio、Save、Settings、Config、EventChannel、ErrorHub 和 Services 的组合用法。
-- `Demo/`：框架能力验证 Demo，偏演示与验证；新项目建议优先参考 Starter 模板。
+- `Templates/Demo3D/`：框架能力验证 Demo，演示 Procedure、Scene、UI、Audio、Input、Camera、Save、Settings、Config、EventChannel、ErrorHub 和 Services 的组合用法；它依赖 GUIDE / G.U.I.D.E-CSharp 与 Phantom Camera。
+- 新项目请按 `AI_GAMEDEV_GUIDE.md` 和 `PROJECT_STRUCTURE.md` 建立自己的业务目录与启动场景，不直接依赖仓库模板。

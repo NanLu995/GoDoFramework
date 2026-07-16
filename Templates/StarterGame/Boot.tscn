@@ -1,6 +1,0 @@
-[gd_scene format=3 uid="uid://bs60e4efgaugk"]
-
-[ext_resource type="Script" uid="uid://bghokj8vqxwv6" path="res://Templates/StarterGame/Boot.cs" id="1_boot"]
-
-[node name="Boot" type="Node" unique_id=399384246]
-script = ExtResource("1_boot")

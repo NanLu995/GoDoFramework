@@ -18,10 +18,10 @@ Audio/
 
 脚本跟随功能模块走，不强制集中到全局 `Scripts/`。原因是维护一个功能时，最重要的是看到它的场景、UI、流程脚本和局部资源，而不是按文件类型分散查找。
 
-## StarterGame 当前结构
+## 推荐项目结构
 
 ```text
-Templates/StarterGame/
+res://
 ├── Boot.tscn
 ├── Boot.cs
 ├── Audio/
@@ -33,7 +33,7 @@ Templates/StarterGame/
 
 目录职责：
 
-- `Boot.tscn` / `Boot.cs`：模板入口，只启动第一个业务 Procedure。
+- `Boot.tscn` / `Boot.cs`：项目入口，只启动第一个业务 Procedure。
 - `Audio/`：全局复用音频资源。
 - `Shared/`：跨模块共享的资源键、配置、存档、事件、启动流程。
 - `MainMenu/`：主菜单流程、场景和脚本。
@@ -73,7 +73,7 @@ Inventory/
 
 不要把所有脚本都丢进 `Shared/`。如果一个类型只有某个功能使用，它应该留在功能目录。
 
-复制模板到新目录时，优先修改 `Shared/StarterGameKeys.cs` 中的 `Root` 常量，让业务资源键继续从模块相对路径生成。不要在业务代码里到处散落完整 `res://` 路径。
+项目根目录变化时，优先通过业务资源键集中维护相对路径，不要在业务代码里到处散落完整 `res://` 路径。
 
 ## 什么时候用全局资产目录
 
