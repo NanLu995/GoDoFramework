@@ -82,7 +82,7 @@ Debug 构建中的 `SchedulerService` 提供 internal 只读快照，包含：
 - 累计取消、其中 Owner 自动取消与 callback 异常取消数量；
 - 下一任务在自身时钟中的剩余时间。
 
-快照只在被查询时 O(n) 遍历活动条目，不在每帧维护分组统计。类型和入口都位于 `#if DEBUG`，Release 不包含。当前尚未显示在 Debugger 面板，后续与 Input 诊断面板优化统一接入。
+快照只在被查询时 O(n) 遍历活动条目，不在每帧维护分组统计。类型和入口都位于 `#if DEBUG`，Release 不包含。GoDo Debugger 的 `运行时 / Scheduler` 页面每 0.25 秒按需读取一次当前快照，折叠或查看其他页面时不查询。
 
 ## 当前验证
 

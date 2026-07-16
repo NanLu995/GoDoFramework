@@ -37,6 +37,9 @@ PanelPath = NodePath("Panel")
 ToggleButtonPath = NodePath("Panel/Margin/VBox/Header/FpsButton")
 ContentPath = NodePath("Panel/Margin/VBox/Content")
 DebuggerLabelPath = NodePath("Panel/Margin/VBox/Content/DebuggerLabel")
+TitleLabelPath = NodePath("Panel/Margin/VBox/Header/TitleLabel")
+CategoryTabsPath = NodePath("Panel/Margin/VBox/CategoryTabs")
+PageTabsPath = NodePath("Panel/Margin/VBox/PageTabs")
 
 [node name="Panel" type="PanelContainer" parent="."]
 offset_left = 12.0
@@ -72,6 +75,34 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
 text = "FPS: 0"
 
+[node name="TitleLabel" type="Label" parent="Panel/Margin/VBox/Header"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.68, 0.78, 0.9, 1)
+theme_override_font_sizes/font_size = 14
+text = "GoDo Debugger"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="CategoryTabs" type="TabBar" parent="Panel/Margin/VBox"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 30)
+theme_override_colors/font_selected_color = Color(0.92, 0.97, 1, 1)
+theme_override_colors/font_unselected_color = Color(0.58, 0.66, 0.76, 1)
+theme_override_font_sizes/font_size = 14
+scrolling_enabled = true
+
+[node name="PageTabs" type="TabBar" parent="Panel/Margin/VBox"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
+theme_override_colors/font_selected_color = Color(0.86, 0.94, 1, 1)
+theme_override_colors/font_unselected_color = Color(0.52, 0.6, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+scrolling_enabled = true
+
 [node name="Content" type="ScrollContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -80,7 +111,7 @@ horizontal_scroll_mode = 0
 [node name="DebuggerLabel" type="Label" parent="Panel/Margin/VBox/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/line_spacing = 3
+theme_override_constants/line_spacing = 1
 theme_override_font_sizes/font_size = 14
 text = "Loading debugger..."
 autowrap_mode = 2

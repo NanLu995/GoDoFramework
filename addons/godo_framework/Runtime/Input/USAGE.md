@@ -167,6 +167,12 @@ InputFrame 表示最近完成的渲染帧采样。需要驱动物理的控制器
 - 查询、捕获、冲突检查和应用绑定属于设置界面低频路径，允许创建结果数组和异步完成对象，不进入每帧采样。
 - 配置 Resource 编解码和磁盘 I/O 是同步低频路径，不得从每帧更新或滑块连续变化中调用。
 
+## Debug 诊断
+
+Debug 构建中的 `InputService` 提供 internal 只读快照，包含后端类型、活动设备、能力、首次采样状态、Frame 序号、完整 Context 栈及有效性，以及固定顺序的 Action 当前值和边沿状态。类型和入口都位于 `#if DEBUG`，不扩大 `IInputService` public API，Release 不包含。
+
+GoDo Debugger 的 `运行时 / Input` 页面每 0.25 秒按需读取当前快照，最多显示前 32 个 Action。折叠或查看其他页面时不创建快照；快照只用于观察，不可修改 Context、Action 或绑定。
+
 ## 验证
 
 自动回归入口：
@@ -176,5 +182,5 @@ Verification/Automated/InputServiceRegression.tscn
 ```
 
 覆盖 ID、后端缺失、首次采样、Bool/Axis 状态、活动设备变化、可选重绑定与持久化能力、Frame 过期、Context 组合与误用、
-失败原子性、重复后端/布局拒绝、热读取分配和关闭幂等。`InputRuntimeRegression.tscn` 额外验证 GoDoRuntime 注册、自动采样与关闭。
+失败原子性、重复后端/布局拒绝、Debug-only 快照、热读取分配和关闭幂等。`InputRuntimeRegression.tscn` 额外验证 GoDoRuntime 注册、自动采样与关闭。
 GUIDE 回归覆盖捕获、冲突、应用、恢复、取消、保存加载、备份恢复、未知版本、设备阈值和跟踪节点清理；真实设备、窗口失焦以及渲染/物理时序仍需手动验证。

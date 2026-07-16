@@ -37,6 +37,9 @@ public sealed partial class InputServiceRegression : Node
             Run("重绑定可选能力", VerifyRebindingCapability);
             Run("活动设备变化通知", VerifyDeviceChangeNotification);
             Run("Action 状态与各类轴值", VerifyActionStates);
+#if DEBUG
+            Run("Debug-only 输入快照", VerifyDebugSnapshot);
+#endif
             Run("未知 Action 与类型错误", VerifyActionFailures);
             Run("旧 Frame 失效", VerifyStaleFrame);
             Run("Context Overlay 与 Exclusive", VerifyContextComposition);
@@ -48,7 +51,11 @@ public sealed partial class InputServiceRegression : Node
             Run("关闭幂等", VerifyShutdown);
 
             _service.Shutdown();
+#if DEBUG
+            GD.Print($"[InputServiceRegression] PASS ({_passed}/16)");
+#else
             GD.Print($"[InputServiceRegression] PASS ({_passed}/15)");
+#endif
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -179,6 +186,33 @@ public sealed partial class InputServiceRegression : Node
         Assert(!released.Pressed(Jump), "释放后 Jump 仍处于按下状态");
         Assert(released.JustReleased(Jump), "释放没有产生 JustReleased");
     }
+
+#if DEBUG
+    private void VerifyDebugSnapshot()
+    {
+        FakeInputBackend backend = InstallDefaultBackend();
+        backend.SetSample(2, new InputActionSample(new Vector3(0.75f, -0.25f, 0f), pressed: true));
+        _service.SetBaseContext(Gameplay);
+        _service.PushContext(Pause, InputContextMode.Exclusive);
+        _service.PushContext(Debug, InputContextMode.Overlay);
+        _service.Update();
+
+        InputDebugSnapshot snapshot = _service.GetDebugSnapshot();
+        Assert(snapshot.IsReady, "Debug 快照未标记后端就绪");
+        AssertEqual(nameof(FakeInputBackend), snapshot.BackendName, "Debug 快照后端名称错误");
+        AssertEqual(InputDeviceKind.Gamepad, snapshot.ActiveDevice, "Debug 快照设备错误");
+        Assert(snapshot.HasSample, "Debug 快照未标记首次采样");
+        AssertEqual<ulong>(1, snapshot.Sequence, "Debug 快照 Frame 序号错误");
+        AssertEqual(3, snapshot.Contexts.Length, "Debug 快照 Context 数量错误");
+        Assert(!snapshot.Contexts[0].IsEffective, "Exclusive 下方 Context 错误标记为有效");
+        Assert(snapshot.Contexts[1].IsEffective, "Exclusive Context 未标记为有效");
+        Assert(snapshot.Contexts[2].IsEffective, "Exclusive 上方 Overlay 未标记为有效");
+        AssertEqual(4, snapshot.Actions.Length, "Debug 快照 Action 数量错误");
+        AssertEqual(Move, snapshot.Actions[2].Action, "Debug 快照 Action 顺序错误");
+        Assert(snapshot.Actions[2].Value.IsEqualApprox(new Vector3(0.75f, -0.25f, 0f)),
+            "Debug 快照 Action 值错误");
+    }
+#endif
 
     private void VerifyDeviceChangeNotification()
     {

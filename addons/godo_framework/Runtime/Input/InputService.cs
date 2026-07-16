@@ -256,6 +256,48 @@ public sealed class InputService : IInputService
         _hasSample = false;
     }
 
+#if DEBUG
+    /// <summary>返回当前输入后端、Context 栈和 Action 状态的 Debug-only 快照。</summary>
+    internal InputDebugSnapshot GetDebugSnapshot()
+    {
+        MainThreadGuard.VerifyAccess();
+
+        var contexts = new InputDebugContextEntry[_contextStack.Count];
+        int effectiveStart = FindEffectiveStart(_contextStack);
+        for (int index = 0; index < _contextStack.Count; index++)
+        {
+            ContextEntry entry = _contextStack[index];
+            contexts[index] = new InputDebugContextEntry(
+                entry.Context,
+                entry.Mode,
+                index >= effectiveStart);
+        }
+
+        var actions = new InputDebugActionEntry[_states.Length];
+        foreach (KeyValuePair<InputActionId, int> item in _actionIndices)
+        {
+            InputActionState state = _states[item.Value];
+            actions[item.Value] = new InputDebugActionEntry(
+                item.Key,
+                state.ValueType,
+                state.Value,
+                state.Pressed,
+                state.JustPressed,
+                state.JustReleased);
+        }
+
+        return new InputDebugSnapshot(
+            _backend != null,
+            _backend?.GetType().Name ?? string.Empty,
+            _observedDevice,
+            _backend?.Capabilities ?? InputBackendCapabilities.None,
+            _hasSample,
+            _sequence,
+            contexts,
+            actions);
+    }
+#endif
+
     internal ref readonly InputActionState Resolve(InputActionId action, ulong sequence)
     {
         MainThreadGuard.VerifyAccess();
