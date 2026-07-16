@@ -2,3 +2,7 @@
 .godot/
 /android/
 /release/dist/
+
+# Third-party Godot plugins are installed locally and are not vendored here.
+/addons/guideCS/
+/addons/phantom_camera/
