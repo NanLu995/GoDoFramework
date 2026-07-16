@@ -1,0 +1,30 @@
+msgid ""
+msgstr ""
+"Language: ar\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
+
+msgid "DEMO3D.LOCALIZATION.PANEL_TITLE"
+msgstr "اختبار الترجمة"
+
+msgid "DEMO3D.LOCALIZATION.AUTOMATIC_TEXT"
+msgstr "تتم ترجمة هذا النص تلقائيًا بواسطة Control."
+
+msgid "DEMO3D.LOCALIZATION.DYNAMIC_TEXT"
+msgstr "يتم تحديث هذا النص عند تغيير اللغة."
+
+msgctxt "BUTTON"
+msgid "DEMO3D.LOCALIZATION.CONTEXT_ACTION"
+msgstr "زر يستخدم سياق الترجمة"
+
+msgid "DEMO3D.LOCALIZATION.CORE_COUNT"
+msgid_plural "DEMO3D.LOCALIZATION.CORE_COUNT_PLURAL"
+msgstr[0] "لا توجد نوى طاقة"
+msgstr[1] "نواة طاقة واحدة"
+msgstr[2] "نواتا طاقة"
+msgstr[3] "%d نوى طاقة"
+msgstr[4] "%d نواة طاقة"
+msgstr[5] "%d نواة طاقة"
+
+msgid "DEMO3D.LOCALIZATION.LONG_TEXT"
+msgstr "يجب أن يلتف هذا النص الطويل عمدًا داخل اللوحة من دون قص أو تداخل أو دفع أزرار الإجراءات خارج حدودها عند تغيير اللغة."

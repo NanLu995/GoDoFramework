@@ -1,6 +1,7 @@
-[gd_scene format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Templates/Demo3D/Gameplay/GameplayHud.cs" id="1_hud"]
+[ext_resource type="Script" path="res://Templates/Demo3D/Gameplay/LocalizationVerificationPanel.cs" id="2_localization"]
 
 [node name="GameplayHud" type="Control"]
 layout_mode = 3
@@ -80,3 +81,130 @@ text = "恢复默认"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.86, 0.92, 1)
 text = "Esc 释放鼠标后可点击按钮体验改键；成功后自动保存"
+
+[node name="LocalizationVerificationPanel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -520.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 610.0
+grow_horizontal = 0
+layout_direction = 1
+script = ExtResource("2_localization")
+DynamicLabelPath = NodePath("Margin/VBox/DynamicLabel")
+PluralLabelPath = NodePath("Margin/VBox/PluralRow/PluralLabel")
+LocaleStatusLabelPath = NodePath("Margin/VBox/LocaleStatusLabel")
+OperationStatusLabelPath = NodePath("Margin/VBox/OperationStatusLabel")
+EnglishButtonPath = NodePath("Margin/VBox/LanguageRow/EnglishButton")
+FrenchButtonPath = NodePath("Margin/VBox/LanguageRow/FrenchButton")
+ArabicButtonPath = NodePath("Margin/VBox/LanguageRow/ArabicButton")
+DecreaseButtonPath = NodePath("Margin/VBox/PluralRow/DecreaseButton")
+IncreaseButtonPath = NodePath("Margin/VBox/PluralRow/IncreaseButton")
+SaveButtonPath = NodePath("Margin/VBox/ActionRow/SaveButton")
+PseudolocalizationButtonPath = NodePath("Margin/VBox/ActionRow/PseudolocalizationButton")
+
+[node name="Margin" type="MarginContainer" parent="LocalizationVerificationPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
+
+[node name="VBox" type="VBoxContainer" parent="LocalizationVerificationPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="LocalizationVerificationPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "DEMO3D.LOCALIZATION.PANEL_TITLE"
+
+[node name="AutomaticLabel" type="Label" parent="LocalizationVerificationPanel/Margin/VBox"]
+layout_mode = 2
+text = "DEMO3D.LOCALIZATION.AUTOMATIC_TEXT"
+autowrap_mode = 2
+
+[node name="DynamicLabel" type="Label" parent="LocalizationVerificationPanel/Margin/VBox"]
+layout_mode = 2
+auto_translate_mode = 2
+text = "Dynamic translation pending"
+autowrap_mode = 2
+
+[node name="ContextButton" type="Button" parent="LocalizationVerificationPanel/Margin/VBox"]
+layout_mode = 2
+text = "DEMO3D.LOCALIZATION.CONTEXT_ACTION"
+translation_context = &"BUTTON"
+
+[node name="LanguageRow" type="HBoxContainer" parent="LocalizationVerificationPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="EnglishButton" type="Button" parent="LocalizationVerificationPanel/Margin/VBox/LanguageRow"]
+layout_mode = 2
+text = "English"
+
+[node name="FrenchButton" type="Button" parent="LocalizationVerificationPanel/Margin/VBox/LanguageRow"]
+layout_mode = 2
+text = "Français"
+
+[node name="ArabicButton" type="Button" parent="LocalizationVerificationPanel/Margin/VBox/LanguageRow"]
+layout_mode = 2
+text = "العربية"
+
+[node name="PluralRow" type="HBoxContainer" parent="LocalizationVerificationPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DecreaseButton" type="Button" parent="LocalizationVerificationPanel/Margin/VBox/PluralRow"]
+custom_minimum_size = Vector2(42, 0)
+layout_mode = 2
+text = "-"
+
+[node name="PluralLabel" type="Label" parent="LocalizationVerificationPanel/Margin/VBox/PluralRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+auto_translate_mode = 2
+text = "2 energy cores"
+
+[node name="IncreaseButton" type="Button" parent="LocalizationVerificationPanel/Margin/VBox/PluralRow"]
+custom_minimum_size = Vector2(42, 0)
+layout_mode = 2
+text = "+"
+
+[node name="LongTextLabel" type="Label" parent="LocalizationVerificationPanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+text = "DEMO3D.LOCALIZATION.LONG_TEXT"
+autowrap_mode = 2
+
+[node name="LocaleStatusLabel" type="Label" parent="LocalizationVerificationPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.85, 1, 1)
+auto_translate_mode = 2
+text = "Locale status"
+
+[node name="ActionRow" type="HBoxContainer" parent="LocalizationVerificationPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SaveButton" type="Button" parent="LocalizationVerificationPanel/Margin/VBox/ActionRow"]
+layout_mode = 2
+auto_translate_mode = 2
+text = "Save locale"
+
+[node name="PseudolocalizationButton" type="Button" parent="LocalizationVerificationPanel/Margin/VBox/ActionRow"]
+layout_mode = 2
+auto_translate_mode = 2
+text = "Enable pseudolocalization"
+
+[node name="OperationStatusLabel" type="Label" parent="LocalizationVerificationPanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.86, 0.92, 1)
+auto_translate_mode = 2
+text = "Use the controls above, then restart Demo3D after saving."
+autowrap_mode = 2

@@ -8,14 +8,8 @@ namespace GoDo;
 internal sealed class WindowsSettingsPlatformAdapter : ISettingsPlatformAdapter
 {
     public SettingsPlatform Platform => SettingsPlatform.WindowsDesktop;
-    public SettingsCapability Capabilities => SettingsCapability.Locale |
+    public SettingsCapability Capabilities =>
         SettingsCapability.WindowMode | SettingsCapability.Resolution | SettingsCapability.VSync;
-
-    public SettingsApplyResult SetLocale(string locale)
-    {
-        TranslationServer.SetLocale(locale);
-        return SettingsApplyResult.Applied;
-    }
 
     public SettingsApplyResult SetWindowMode(SettingsWindowMode mode)
     {

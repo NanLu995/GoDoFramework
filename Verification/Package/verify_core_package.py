@@ -36,6 +36,10 @@ config/features=PackedStringArray("4.7", "C#")
 
 GoDoRuntime="*res://addons/godo_framework/Core/GoDoRuntime.tscn"
 
+[dotnet]
+
+project/assembly_name="GoDoCorePackageVerification"
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
@@ -76,12 +80,13 @@ public sealed partial class CoreSmoke : Node
             _ = Services.Get<ICameraService>();
             _ = Services.Get<IInputService>();
             _ = Services.Get<IAudioService>();
+            _ = Services.Get<ILocalizationService>();
             _ = Services.Get<IUiService>();
             _ = Services.Get<ISaveService>();
             _ = Services.Get<ISettingsService>();
             _ = Services.Get<IProcedureService>();
 
-            GD.Print("[CorePackage] PASS (8/8 services)");
+            GD.Print("[CorePackage] PASS (9/9 services)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -193,7 +198,7 @@ def verify(project_root: Path, godot_path: Path, timeout: int) -> None:
         project_root,
         timeout,
     )
-    if "[CorePackage] PASS (8/8 services)" not in output:
+    if "[CorePackage] PASS (9/9 services)" not in output:
         raise RuntimeError(f"CoreSmoke 未输出成功标记。\n{output}")
     print("[PASS] 核心包可在无可选依赖的干净项目中编译并运行")
 

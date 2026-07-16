@@ -1,7 +1,6 @@
 #nullable enable
 
 using System;
-using Godot;
 
 namespace GoDo;
 
@@ -16,13 +15,7 @@ internal sealed class CommonSettingsPlatformAdapter : ISettingsPlatformAdapter
     }
 
     public SettingsPlatform Platform { get; }
-    public SettingsCapability Capabilities => SettingsCapability.Locale;
-
-    public SettingsApplyResult SetLocale(string locale)
-    {
-        TranslationServer.SetLocale(locale);
-        return SettingsApplyResult.Applied;
-    }
+    public SettingsCapability Capabilities => SettingsCapability.None;
 
     public SettingsApplyResult SetWindowMode(SettingsWindowMode mode) => SettingsApplyResult.Unsupported;
     public SettingsApplyResult SetResolution(int width, int height) => SettingsApplyResult.Unsupported;

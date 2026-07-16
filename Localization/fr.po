@@ -1,0 +1,38 @@
+msgid ""
+msgstr ""
+"Language: fr\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "TEST.GREETING"
+msgstr "Bonjour"
+
+msgctxt "BUTTON"
+msgid "TEST.ACTION"
+msgstr "Ouvrir"
+
+msgid "TEST.ITEM"
+msgid_plural "TEST.ITEM_PLURAL"
+msgstr[0] "%d objet"
+msgstr[1] "%d objets"
+
+msgid "DEMO3D.LOCALIZATION.PANEL_TITLE"
+msgstr "Validation de la localisation"
+
+msgid "DEMO3D.LOCALIZATION.AUTOMATIC_TEXT"
+msgstr "Ce texte est traduit automatiquement par Control."
+
+msgid "DEMO3D.LOCALIZATION.DYNAMIC_TEXT"
+msgstr "Ce texte est actualisé par LocaleChangedEvent."
+
+msgctxt "BUTTON"
+msgid "DEMO3D.LOCALIZATION.CONTEXT_ACTION"
+msgstr "Bouton avec contexte de traduction"
+
+msgid "DEMO3D.LOCALIZATION.CORE_COUNT"
+msgid_plural "DEMO3D.LOCALIZATION.CORE_COUNT_PLURAL"
+msgstr[0] "%d noyau d’énergie"
+msgstr[1] "%d noyaux d’énergie"
+
+msgid "DEMO3D.LOCALIZATION.LONG_TEXT"
+msgstr "Cette phrase volontairement longue doit revenir à la ligne sans être coupée, se superposer ni repousser les boutons d’action hors du panneau lorsque la langue change."

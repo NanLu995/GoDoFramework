@@ -35,6 +35,7 @@ Templates/Demo3D/Boot/Boot.tscn
 - `godo_guide_input`：把 GUIDE Action / Mapping Context 转换为 InputService 快照。
 - Gameplay HUD：监听 `InputDeviceChangedEvent`，显示当前键鼠、手柄或触摸类别。
 - Gameplay HUD：通过 `IInputRebinding` 查询、捕获、检查冲突、应用或恢复跳跃主绑定，不接触 GUIDE 类型。
+- Gameplay HUD：右上角 Localization 验收面板通过 Settings 切换/保存语言，通过 Localization 查询动态文本和复数，并展示 Control 自动翻译、上下文、伪本地化与 RTL 状态。
 
 角色控制、视角协调和收集判定属于具体玩法，保留在 `Demo3D` 业务层。`PlayerController` 只从 `IInputService` 读取输入，仍通过 Phantom C# Wrapper 修改第三人称旋转；InputService 与 CameraService 彼此不依赖。
 
@@ -68,6 +69,19 @@ CharacterBody3D + Phantom Camera
 要增加一个输入，顺序是：先在 `Demo3DInput.cs` 增加语义 ID，再创建 GUIDE Action 并加入 Context，随后加入 Profile，最后由业务脚本读取。不要让业务脚本直接读取 GUIDE Action，否则会绕过 GoDo 的后端边界。
 
 改键与恢复默认都会立即写入独立的 `godo-input-bindings` SaveService 槽位；重启 Demo 后会恢复上次保存的结果。正式配置损坏时会尝试备份；正式配置与备份都不可用时上报错误并继续使用当前默认绑定。
+
+## Localization 人工验收
+
+进入 Gameplay 后使用右上角面板：
+
+1. 点击 `English`、`Français`、`العربية`，确认标题、自动文本、动态文本、上下文按钮、复数和长文本立即切换。
+2. 使用 `-` / `+` 检查 0、1、2 和更大数量的复数；阿拉伯语应覆盖多种复数形式。
+3. 切换阿拉伯语后，状态中的 `RTL` 应为 `True`，语言按钮与复数行顺序应镜像，文字应正确塑形且无缺字方框。
+4. 点击伪本地化按钮，检查自动文本和动态文本的扩展、重音与换行；再次点击关闭。
+5. 点击 `Save locale`，完全退出并重新运行 `Boot.tscn`，确认进入 Gameplay 时恢复已保存语言。
+6. 在 1280×720 及更小窗口检查右上面板没有遮挡、裁切或把操作按钮推出边界。
+
+语言切换只更新内存，只有 `Save locale` 写入 Settings 固定槽位。伪本地化只影响当前进程，不持久化。
 
 ## 插件边界
 

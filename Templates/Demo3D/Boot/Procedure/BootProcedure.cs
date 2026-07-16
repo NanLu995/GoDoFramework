@@ -9,6 +9,7 @@ public sealed class BootProcedure : IProcedure
 
     public Task EnterAsync(ProcedureContext context)
     {
+        LoadSettings();
         LoadInputBindings();
         context.RequestChange<GameplayProcedure>();
         return Task.CompletedTask;
@@ -35,6 +36,20 @@ public sealed class BootProcedure : IProcedure
         catch (System.Exception exception)
         {
             ErrorHub.Report(exception, nameof(Boot));
+        }
+    }
+
+    private static void LoadSettings()
+    {
+        try
+        {
+            SettingsLoadStatus status = Services.Get<ISettingsService>().LoadAndApply();
+            if (status == SettingsLoadStatus.RecoveredFromBackup)
+                ErrorHub.Warn("设置正式配置不可用，已从备份恢复", nameof(Boot));
+        }
+        catch (System.Exception exception)
+        {
+            ErrorHub.Report(exception, nameof(Boot), "加载 Demo3D 设置失败，继续使用当前运行时设置");
         }
     }
 }

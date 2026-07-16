@@ -1,0 +1,38 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "TEST.GREETING"
+msgstr "Hello"
+
+msgctxt "BUTTON"
+msgid "TEST.ACTION"
+msgstr "Open"
+
+msgid "TEST.ITEM"
+msgid_plural "TEST.ITEM_PLURAL"
+msgstr[0] "%d item"
+msgstr[1] "%d items"
+
+msgid "DEMO3D.LOCALIZATION.PANEL_TITLE"
+msgstr "Localization acceptance"
+
+msgid "DEMO3D.LOCALIZATION.AUTOMATIC_TEXT"
+msgstr "This text is translated automatically by Control."
+
+msgid "DEMO3D.LOCALIZATION.DYNAMIC_TEXT"
+msgstr "This text is refreshed from LocaleChangedEvent."
+
+msgctxt "BUTTON"
+msgid "DEMO3D.LOCALIZATION.CONTEXT_ACTION"
+msgstr "Context-aware button"
+
+msgid "DEMO3D.LOCALIZATION.CORE_COUNT"
+msgid_plural "DEMO3D.LOCALIZATION.CORE_COUNT_PLURAL"
+msgstr[0] "%d energy core"
+msgstr[1] "%d energy cores"
+
+msgid "DEMO3D.LOCALIZATION.LONG_TEXT"
+msgstr "This deliberately long sentence should wrap without clipping, overlap, or pushing the action buttons outside the panel when the language changes."

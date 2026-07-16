@@ -24,6 +24,7 @@ WORKBENCH_REGRESSION_SCENES = (
     "ResourceHubRegression.tscn",
     "NodePoolRegression.tscn",
     "SaveServiceRegression.tscn",
+    "LocalizationRegression.tscn",
     "ConfigRegression.tscn",
     "ProcedureRegression.tscn",
     "SchedulerCoreRegression.tscn",

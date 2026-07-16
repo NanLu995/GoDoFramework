@@ -33,6 +33,7 @@ public sealed partial class GoDoRuntime : Node
     private UiService? _uiService;
     private UiRoot? _uiRoot;
     private SaveService? _saveService;
+    private LocalizationService? _localizationService;
     private SettingsService? _settingsService;
     private ProcedureService? _procedureService;
 #if DEBUG
@@ -76,6 +77,7 @@ public sealed partial class GoDoRuntime : Node
         MainThreadGuard.Initialize();
         ResourceHub.Initialize();
         LogHub.Initialize();
+        _localizationService = new LocalizationService();
     }
 
     /// <inheritdoc />
@@ -86,6 +88,9 @@ public sealed partial class GoDoRuntime : Node
 
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
         _subscribed = true;
+
+        if (_localizationService == null)
+            throw new InvalidOperationException("GoDoRuntime 未能初始化 LocalizationService。");
 
         _schedulerService = GetNodeOrNull<SchedulerService>(SchedulerServicePath);
         if (!IsInstanceValid(_schedulerService))
@@ -117,10 +122,11 @@ public sealed partial class GoDoRuntime : Node
         _inputService = new InputService();
         Services.Register<IInputService>(_inputService);
         Services.Register<IAudioService>(_audioService);
+        Services.Register<ILocalizationService>(_localizationService);
         Services.Register<IUiService>(_uiService);
         _saveService = new SaveService();
         Services.Register<ISaveService>(_saveService);
-        _settingsService = new SettingsService(_audioService, _saveService);
+        _settingsService = new SettingsService(_audioService, _saveService, _localizationService);
         Services.Register<ISettingsService>(_settingsService);
         _procedureService = new ProcedureService();
         Services.Register<IProcedureService>(_procedureService);
@@ -172,6 +178,8 @@ public sealed partial class GoDoRuntime : Node
                 Services.Unregister<IUiService>(_uiService);
             if (IsInstanceValid(_audioService))
                 Services.Unregister<IAudioService>(_audioService);
+            if (_localizationService != null)
+                Services.Unregister<ILocalizationService>(_localizationService);
             if (_inputService != null)
             {
                 _inputService.Shutdown();
@@ -200,6 +208,7 @@ public sealed partial class GoDoRuntime : Node
             _uiService = null;
             _uiRoot = null;
             _saveService = null;
+            _localizationService = null;
             _settingsService = null;
             _procedureService = null;
 #if DEBUG

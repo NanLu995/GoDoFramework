@@ -47,9 +47,9 @@ public interface ISettingsService
     SettingsApplyResult SetSfxVolume(float linearVolume);
 
     /// <summary>立即设置当前 Locale。</summary>
-    /// <param name="locale">非空 Locale 标识；可用语言集合由具体游戏决定。</param>
-    /// <returns>平台支持时为 Applied，否则为 Unsupported。</returns>
-    /// <exception cref="System.ArgumentException">Locale 为空或仅包含空白字符。</exception>
+    /// <param name="locale">项目已加载翻译资源对应的 Locale 标识。</param>
+    /// <returns>始终返回 Applied；不支持的 Locale 会抛出异常。</returns>
+    /// <exception cref="System.ArgumentException">Locale 为空、仅包含空白字符或未被项目支持。</exception>
     SettingsApplyResult SetLocale(string locale);
 
     /// <summary>立即设置桌面窗口模式。</summary>

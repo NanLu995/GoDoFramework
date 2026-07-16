@@ -12,7 +12,7 @@ public enum SettingsCapability
     /// <summary>支持 Master、BGM 和 SFX 音量。</summary>
     AudioVolume = 1 << 0,
 
-    /// <summary>支持切换 Locale。</summary>
+    /// <summary>支持通过 Localization 切换项目 Locale。</summary>
     Locale = 1 << 1,
 
     /// <summary>支持切换桌面窗口模式。</summary>

@@ -13,36 +13,54 @@ public sealed class SettingsService : ISettingsService
 
     private readonly IAudioService _audioService;
     private readonly ISaveService _saveService;
+    private readonly LocalizationService _localization;
     private readonly ISettingsPlatformAdapter _platformAdapter;
     private readonly SaveSlot _settingsSlot;
     private readonly SettingsCodec _codec = new();
     private SettingsSnapshot _current = new();
 
-    /// <summary>使用自动检测的平台适配器创建设置服务。</summary>
+    /// <summary>使用独立本地化实例和自动检测的平台适配器创建设置服务。</summary>
     /// <param name="audioService">接收音量设置的长期音频服务。</param>
     /// <param name="saveService">负责设置槽位持久化的存档服务。</param>
     /// <exception cref="ArgumentNullException">任一依赖为 null。</exception>
+    [Obsolete("请显式传入 LocalizationService，以便 Settings 与业务翻译查询共享同一实例。")]
     public SettingsService(IAudioService audioService, ISaveService saveService)
-        : this(audioService, saveService, SettingsPlatformAdapterFactory.Create(), SettingsSlot)
+        : this(audioService, saveService, new LocalizationService())
+    {
+    }
+
+    /// <summary>使用自动检测的平台适配器创建设置服务。</summary>
+    /// <param name="audioService">接收音量设置的长期音频服务。</param>
+    /// <param name="saveService">负责设置槽位持久化的存档服务。</param>
+    /// <param name="localization">负责 Locale 校验、应用和变更通知的本地化服务。</param>
+    /// <exception cref="ArgumentNullException">任一依赖为 null。</exception>
+    public SettingsService(
+        IAudioService audioService,
+        ISaveService saveService,
+        LocalizationService localization)
+        : this(audioService, saveService, localization, SettingsPlatformAdapterFactory.Create(), SettingsSlot)
     {
     }
 
     internal SettingsService(
         IAudioService audioService,
         ISaveService saveService,
+        LocalizationService localization,
         ISettingsPlatformAdapter platformAdapter)
-        : this(audioService, saveService, platformAdapter, SettingsSlot)
+        : this(audioService, saveService, localization, platformAdapter, SettingsSlot)
     {
     }
 
     internal SettingsService(
         IAudioService audioService,
         ISaveService saveService,
+        LocalizationService localization,
         ISettingsPlatformAdapter platformAdapter,
         SaveSlot settingsSlot)
     {
         _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
         _saveService = saveService ?? throw new ArgumentNullException(nameof(saveService));
+        _localization = localization ?? throw new ArgumentNullException(nameof(localization));
         _platformAdapter = platformAdapter ?? throw new ArgumentNullException(nameof(platformAdapter));
         if (!settingsSlot.IsValid)
             throw new ArgumentException("设置槽位必须通过 SaveSlot.Create 创建。", nameof(settingsSlot));
@@ -54,7 +72,7 @@ public sealed class SettingsService : ISettingsService
 
     /// <inheritdoc/>
     public SettingsCapability Capabilities =>
-        SettingsCapability.AudioVolume | _platformAdapter.Capabilities;
+        SettingsCapability.AudioVolume | SettingsCapability.Locale | _platformAdapter.Capabilities;
 
     /// <inheritdoc/>
     public SettingsSnapshot Current => _current;
@@ -112,10 +130,9 @@ public sealed class SettingsService : ISettingsService
     {
         MainThreadGuard.VerifyAccess();
         ValidateLocale(locale);
-        SettingsApplyResult result = _platformAdapter.SetLocale(locale);
-        if (result == SettingsApplyResult.Applied)
-            _current = _current with { Locale = locale };
-        return result;
+        string standardized = _localization.ApplyLocale(locale);
+        _current = _current with { Locale = standardized };
+        return SettingsApplyResult.Applied;
     }
 
     /// <inheritdoc/>
@@ -179,17 +196,20 @@ public sealed class SettingsService : ISettingsService
     private void ApplySnapshot(SettingsSnapshot snapshot)
     {
         ValidateSnapshot(snapshot);
+        if (!_localization.IsLocaleSupported(snapshot.Locale))
+            throw new ArgumentException($"Locale 未加载或不受项目支持: {snapshot.Locale}。", nameof(snapshot));
+
         _audioService.SetVolume(AudioGroup.Master, snapshot.MasterVolume);
         _audioService.SetVolume(AudioGroup.Bgm, snapshot.BgmVolume);
         _audioService.SetVolume(AudioGroup.Sfx, snapshot.SfxVolume);
 
-        ApplyIfSupported(SettingsCapability.Locale, () => _platformAdapter.SetLocale(snapshot.Locale));
+        string locale = _localization.ApplyLocale(snapshot.Locale);
         ApplyIfSupported(SettingsCapability.WindowMode, () => _platformAdapter.SetWindowMode(snapshot.WindowMode));
         ApplyIfSupported(
             SettingsCapability.Resolution,
             () => _platformAdapter.SetResolution(snapshot.Resolution.X, snapshot.Resolution.Y));
         ApplyIfSupported(SettingsCapability.VSync, () => _platformAdapter.SetVSync(snapshot.VSyncEnabled));
-        _current = snapshot;
+        _current = snapshot with { Locale = locale };
     }
 
     private void ApplyIfSupported(
