@@ -25,6 +25,7 @@ public sealed partial class GoDoRuntime : Node
 
     private static GoDoRuntime? _instance;
     private bool _subscribed;
+    private SchedulerService? _schedulerService;
     private SceneService? _sceneService;
     private CameraService? _cameraService;
     private InputService? _inputService;
@@ -41,6 +42,10 @@ public sealed partial class GoDoRuntime : Node
     /// <summary>SceneService 子节点路径。</summary>
     [Export]
     public NodePath SceneServicePath { get; set; } = null!;
+
+    /// <summary>SchedulerService 子节点路径。</summary>
+    [Export]
+    public NodePath SchedulerServicePath { get; set; } = null!;
 
     /// <summary>AudioService 子节点路径。</summary>
     [Export]
@@ -82,6 +87,10 @@ public sealed partial class GoDoRuntime : Node
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
         _subscribed = true;
 
+        _schedulerService = GetNodeOrNull<SchedulerService>(SchedulerServicePath);
+        if (!IsInstanceValid(_schedulerService))
+            throw new InvalidOperationException("GoDoRuntime 未配置 SchedulerService 子节点。");
+
         _sceneService = GetNodeOrNull<SceneService>(SceneServicePath);
         if (!IsInstanceValid(_sceneService))
             throw new InvalidOperationException("GoDoRuntime 未配置 SceneService 子节点。");
@@ -101,6 +110,7 @@ public sealed partial class GoDoRuntime : Node
         _uiService.Initialize(_uiRoot);
         CallDeferred(MethodName.ReparentUiRoot);
 
+        Services.Register<ISchedulerService>(_schedulerService);
         Services.Register<ISceneService>(_sceneService);
         _cameraService = new CameraService();
         Services.Register<ICameraService>(_cameraService);
@@ -144,6 +154,11 @@ public sealed partial class GoDoRuntime : Node
 
         if (_instance == this)
         {
+            if (IsInstanceValid(_schedulerService))
+            {
+                _schedulerService.Shutdown();
+                Services.Unregister<ISchedulerService>(_schedulerService);
+            }
             if (_procedureService != null)
             {
                 _procedureService.Shutdown();
@@ -177,6 +192,7 @@ public sealed partial class GoDoRuntime : Node
             LogHub.Shutdown();
             ErrorHub.Shutdown();
             _instance = null;
+            _schedulerService = null;
             _sceneService = null;
             _cameraService = null;
             _inputService = null;

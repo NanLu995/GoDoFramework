@@ -32,8 +32,14 @@ python Verification/Automated/run_all.py
 `GoDoFramework.csproj` 默认根据第三方插件目录是否存在决定是否编译可选适配包。可用下面的构建参数在 CI 或排查时强制验证缺失插件分支：
 
 ```powershell
-dotnet build GoDoFramework.sln -p:GoDoIncludeGuideInput=false -p:GoDoIncludePhantomCamera=false
+dotnet build GoDoFramework.csproj -c CoreVerification -p:GoDoIncludeGuideInput=false -p:GoDoIncludePhantomCamera=false
 ```
+
+必须使用独立的 `CoreVerification` 配置并直接构建 `.csproj`。不要用上述强制禁用参数构建默认 Debug：它会覆盖 Godot 编辑器当前加载的 Debug 程序集，导致已安装的 GUIDE / Phantom C# 插件脚本暂时无法实例化，直到重新执行默认 Debug 构建。
+
+`SchedulerCoreRegression` 使用人工时间推进验证三种时钟、Process/Physics、重复/取消/暂停、异常隔离、DelayAsync、跨线程 Token 取消与 Shutdown，并通过真实 SceneTree 验证 Owner 入树约束、绑定清理和退出树自动取消；Debug 构建另验证只读快照。该场景不进行真实等待，也不依赖 Scheduler 已接入 GoDoRuntime。
+
+`SchedulerRuntimeRegression` 使用 Autoload 注册的 `ISchedulerService` 验证真实 Process/Physics 采样、TimeScale、SceneTree 暂停、Owner 退出与服务退出清理。该场景包含短暂真实等待，外层 runner 超时仍是最终卡死保护。
 
 已经完成编译时可使用 `--skip-build` 跳过集成工作区构建。每个场景默认超时 60 秒，可通过 `--timeout` 调整。
 

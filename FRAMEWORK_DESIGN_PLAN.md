@@ -119,10 +119,14 @@ Procedure 已完成首版。它借用状态机思想，但不先建设通用 Sta
 
 当前不集中接管所有 `_Process` / `_PhysicsProcess`。只有性能数据证明大量空转更新是实际瓶颈，或确有分组频率需求时，才评估可选调度器。
 
+### Scheduler
+
+Timer 的真实缺口已经确认：业务需要统一的一次性/重复延迟、取消、独立暂停、三种时间语义、Process/Physics 阶段、Owner 生命周期和异步等待。采用单一长期 `SchedulerService`，不为每个任务创建 Timer Node，也不混入确定性 Tick、后台线程或持久化离线计时。详细设计见 `Docs/SchedulerServiceDesign.md`；人工时钟核心、完整调度状态、DelayAsync、跨线程取消、Owner 生命周期、真实时钟采样、GoDoRuntime 接入、性能基准与 Debug-only 快照已完成，Scheduler 进入首版完成状态。快照 UI 与 Input 诊断统一留到后续 Debugger 面板优化。
+
 ### 其他候选
 
 - Async：不建设泛化协程框架，不用 `Task.Run` 操作 Godot 对象。
-- Localization、Timer、Extensions：先验证 Godot 原生能力的真实缺口。
+- Localization、Extensions：先验证 Godot 原生能力的真实缺口。
 - Remote Asset、PCK/DLC、热更新、高级缓存：作为未来独立扩展，不混入 ResourceHub。
 - 不照搬全局大门面、Unity Entity/UI 抽象或 DataNode。
 
@@ -135,7 +139,7 @@ Procedure 已完成首版。它借用状态机思想，但不先建设通用 Sta
 | 2. 高频运行时能力 | Resources、Pool、Scene、Audio | 稳定基线 |
 | 3. 数据与产品能力 | Save、Settings、Config | 稳定基线；Settings 移动端验证后置 |
 | 4. 开发体验 | 轻量 Debugger、经真实需求确认的 UI、安装检查工具（即 EditorPlugin/Installer） | Debugger、UI、EditorPlugin 均已升级为稳定基线（此前记录的"首版完成"已过期，见第 4 节最新状态表） |
-| 5. 候选评估 | Procedure、Tick、Input、本地化与远程资源 | Procedure 首版完成；Input 核心接入、后端适配开发中；其余未排期 |
+| 5. 候选评估 | Procedure、Scheduler、Tick、Input、本地化与远程资源 | Procedure、Scheduler 首版完成；Input 核心接入、后端适配开发中；其余未排期 |
 | 6. 工业化保障 | API 兼容与迁移、跨平台验证、资源与编辑器审计、自动化验证、发布流程 | 规划中；按真实项目规模逐项立项，不作为一次性大版本 |
 
 每个模块单独设计、交付和验证，不等待整个阶段全部完成。
@@ -168,8 +172,8 @@ Procedure 已完成首版。它借用状态机思想，但不先建设通用 Sta
 
 ### 当前优先级
 
-1. **可选第三方依赖解耦**：`GoDoFramework.csproj` 按本地 GUIDE、Phantom Camera 插件目录条件编译对应适配包；缺少时核心与不依赖它们的回归仍可构建。Demo3D 仅在两项依赖均存在时参与编译。核心包另由临时干净项目验证。后续若拆分为独立示例项目，再评估是否需要独立 `.csproj`。
-2. **干净项目交付验证**：在依赖边界明确后，验证核心包的安装、编译、运行、升级和移除；带可选依赖的示例项目另行验证其安装与运行，并记录固定版本和步骤。
+1. **Scheduler 真实项目验证**：首版实现、自动回归与性能基准已完成；暂停菜单、慢动作、窗口失焦、低 FPS 和长卡帧体验随真实游戏开发验证，不阻塞当前首版。详细边界见 `Docs/SchedulerServiceDesign.md`。
+2. **独立核心示例**：核心包已通过临时干净项目验证；是否新增可直接打开的独立核心示例，等待当前代码梳理后决定。
 
 Input 的真实设备、窗口失焦与渲染/物理时序验证继续后置。活动设备、有效 Context 和 Action 当前值的开发期诊断，待 Debugger 面板下一轮优化时以 Debug-only 快照接入；不为此提前扩大 `IInputService` public API。
 

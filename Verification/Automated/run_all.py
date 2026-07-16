@@ -26,6 +26,8 @@ WORKBENCH_REGRESSION_SCENES = (
     "SaveServiceRegression.tscn",
     "ConfigRegression.tscn",
     "ProcedureRegression.tscn",
+    "SchedulerCoreRegression.tscn",
+    "SchedulerRuntimeRegression.tscn",
     "CameraServiceRegression.tscn",
     "InputServiceRegression.tscn",
     "InputRuntimeRegression.tscn",
