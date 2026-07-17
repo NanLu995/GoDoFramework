@@ -67,6 +67,7 @@ alignment = 1
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+focus_mode = 0
 theme_override_colors/font_color = Color(0.88, 0.94, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 16
@@ -89,6 +90,7 @@ vertical_alignment = 1
 visible = false
 layout_mode = 2
 custom_minimum_size = Vector2(0, 30)
+focus_mode = 0
 theme_override_colors/font_selected_color = Color(0.92, 0.97, 1, 1)
 theme_override_colors/font_unselected_color = Color(0.58, 0.66, 0.76, 1)
 theme_override_font_sizes/font_size = 14
@@ -98,6 +100,7 @@ scrolling_enabled = true
 visible = false
 layout_mode = 2
 custom_minimum_size = Vector2(0, 28)
+focus_mode = 0
 theme_override_colors/font_selected_color = Color(0.86, 0.94, 1, 1)
 theme_override_colors/font_unselected_color = Color(0.52, 0.6, 0.7, 1)
 theme_override_font_sizes/font_size = 13
@@ -106,6 +109,7 @@ scrolling_enabled = true
 [node name="Content" type="ScrollContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
+focus_mode = 0
 horizontal_scroll_mode = 0
 
 [node name="DebuggerLabel" type="Label" parent="Panel/Margin/VBox/Content"]

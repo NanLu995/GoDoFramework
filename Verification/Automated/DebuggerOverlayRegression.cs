@@ -19,6 +19,11 @@ public sealed partial class DebuggerOverlayRegression : Node
             ScrollContainer content = overlay.GetNode<ScrollContainer>("Panel/Margin/VBox/Content");
             Label debuggerLabel = overlay.GetNode<Label>("Panel/Margin/VBox/Content/DebuggerLabel");
 
+            Assert(toggle.FocusMode == Control.FocusModeEnum.None &&
+                categories.FocusMode == Control.FocusModeEnum.None &&
+                pages.FocusMode == Control.FocusModeEnum.None &&
+                content.FocusMode == Control.FocusModeEnum.None,
+                "Debugger 可交互节点仍会抢占键盘或手柄焦点");
             Assert(!content.Visible && !categories.Visible && !title.Visible, "Debugger 默认未折叠");
             toggle.EmitSignal(BaseButton.SignalName.Pressed);
             Assert(content.Visible && categories.Visible && title.Visible, "Debugger 点击后未展开");
