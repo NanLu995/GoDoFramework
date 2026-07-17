@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "data_set_id": "prototype.items",
+  "protocol_version": 1,
+  "namespace": "GoDoFramework.Verification.DataTablePrototype.Generated",
+  "tables": [
+    {
+      "id": "ItemCategory",
+      "source": "ItemCategories.csv",
+      "schema_version": 1,
+      "audience": "Shared",
+      "primary_key": "id",
+      "fields": [
+        { "name": "id", "type": "string", "required": true, "min_length": 1, "max_length": 64 },
+        { "name": "display_name", "type": "string", "required": true, "min_length": 1, "max_length": 128 },
+        { "name": "sort_order", "type": "int32", "required": true, "min": 0, "max": 10000 },
+        { "name": "enabled", "type": "bool", "required": false, "default": true }
+      ]
+    },
+    {
+      "id": "Item",
+      "source": "Items.csv",
+      "schema_version": 1,
+      "audience": "Shared",
+      "primary_key": "id",
+      "fields": [
+        { "name": "id", "type": "string", "required": true, "min_length": 1, "max_length": 64 },
+        { "name": "category_id", "type": "string", "required": true, "foreign_key": "ItemCategory.id" },
+        { "name": "display_name", "type": "string", "required": true, "min_length": 1, "max_length": 128 },
+        { "name": "enabled", "type": "bool", "required": false, "default": true },
+        { "name": "max_stack", "type": "int32", "required": false, "default": 1, "min": 1, "max": 999 },
+        { "name": "weight", "type": "float64", "required": true, "min": 0, "max": 1000 },
+        { "name": "rarity", "type": "enum", "required": true, "values": ["Common", "Uncommon", "Rare", "Epic"] },
+        { "name": "description", "type": "string", "required": false, "allow_empty": true, "null_token": "<null>", "max_length": 256 }
+      ]
+    }
+  ]
+}

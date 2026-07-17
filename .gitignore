@@ -3,6 +3,7 @@
 /android/
 /release/dist/
 /.artifacts/docs/
+/.artifacts/datatable/
 
 # Python verification cache
 __pycache__/
