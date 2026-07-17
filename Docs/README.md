@@ -48,7 +48,7 @@ python Docs/build_docs.py serve
 中文内容自动发现：
 
 - `addons/**/USAGE.md`：加入 Core、Runtime、Tools、Debugger 或可选集成。
-- `Docs/Recipes/*.md`：加入“教程与配方”；`.en.md` 文件除外。
+- `AI/Recipes/*.md`：加入“教程与配方”；`.en.md` 文件除外。
 - `GoDo.*` public API：由 DocFX 从 `GoDoFramework.csproj` 和 XML 注释生成。
 
 英文翻译自动发现：

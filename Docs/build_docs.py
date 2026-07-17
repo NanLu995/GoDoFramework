@@ -86,21 +86,21 @@ CURATED_PAGES = {
         ),
         (
             "game-development",
-            "AI_GAMEDEV_GUIDE.md",
+            "AI/AI_GAMEDEV_GUIDE.md",
             "guides/game-development.md",
             "Start",
             "使用框架制作游戏",
         ),
         (
             "project-structure",
-            "PROJECT_STRUCTURE.md",
+            "AI/PROJECT_STRUCTURE.md",
             "guides/project-structure.md",
             "Start",
             "推荐项目结构",
         ),
         (
             "troubleshooting",
-            "GODOT_GOTCHAS.md",
+            "AI/GODOT_GOTCHAS.md",
             "reference/godot-csharp-troubleshooting.md",
             "Reference",
             "Godot / C# 故障排查",
@@ -114,7 +114,7 @@ CURATED_PAGES = {
         ),
         (
             "architecture",
-            "ARCHITECTURE.md",
+            "AI/ARCHITECTURE.md",
             "contributing/architecture.md",
             "Reference",
             "框架架构",
@@ -291,7 +291,7 @@ def discover_curated_pages(locale: str) -> list[Page]:
 
 def discover_recipe_pages(locale: str) -> list[Page]:
     pages: list[Page] = []
-    recipes_root = REPOSITORY_ROOT / "Docs" / "Recipes"
+    recipes_root = REPOSITORY_ROOT / "AI" / "Recipes"
     for chinese_source in sorted(
         (path for path in recipes_root.glob("*.md") if not path.name.endswith(".en.md")),
         key=lambda path: path.name.lower(),

@@ -13,13 +13,13 @@ GoDoFramework 是面向 Godot 4.7 C# / .NET 的轻量游戏开发框架，用于
 
 ## 项目文档
 
-- `FRAMEWORK_OVERVIEW.md`：框架愿景、痛点和历史设想。
-- `FRAMEWORK_DESIGN_PLAN.md`：整体设计计划与开发路线。
-- `ARCHITECTURE.md`：当前架构事实、模块状态和依赖约束。
+- `AI/FRAMEWORK_OVERVIEW.md`：框架愿景、痛点和历史设想。
+- `AI/FRAMEWORK_DESIGN_PLAN.md`：整体设计计划与开发路线。
+- `AI/ARCHITECTURE.md`：当前架构事实、模块状态和依赖约束。
 - `AGENTS.md`：AI 协作与代码规范。
-- `GODOT_GOTCHAS.md`：项目实际遇到的 Godot/C# 问题记录。
+- `AI/GODOT_GOTCHAS.md`：项目实际遇到的 Godot/C# 问题记录。
 
 ## 快速上手模板
 
 - `Templates/Demo3D/`：框架能力验证 Demo，演示 Procedure、Scene、UI、Audio、Input、Camera、Save、Settings、Config、EventChannel、ErrorHub 和 Services 的组合用法；它依赖 GUIDE / G.U.I.D.E-CSharp 与 Phantom Camera。
-- 新项目请按 `AI_GAMEDEV_GUIDE.md` 和 `PROJECT_STRUCTURE.md` 建立自己的业务目录与启动场景，不直接依赖仓库模板。
+- 新项目请按 `AI/AI_GAMEDEV_GUIDE.md` 和 `AI/PROJECT_STRUCTURE.md` 建立自己的业务目录与启动场景，不直接依赖仓库模板。

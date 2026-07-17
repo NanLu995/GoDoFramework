@@ -19,7 +19,7 @@
 - 编辑器入口改为顶部工具栏原生样式的 `GoDo` 下拉菜单，并新增 `ResourceManifest` 创建、受限资源多选、自动/显式目标清单选择、明确的预览/取消/成功状态、条目管理/编辑/删除与只读校验入口；添加资源时会经确认补齐缺失 UID，管理窗口新增 UID 状态列并可将已有路径定位显式转换为 `uid://`；创建逻辑改为直接实例化 C# 脚本资源，并绕过编辑器脚本缓存。
 - `GoDoFramework.csproj` 依据本地插件目录条件编译 GUIDE、Phantom Camera 适配与关联示例；核心可在未安装可选第三方插件时独立构建。
 - 新增干净核心包验证与按可选依赖拆分的自动回归套件。
-- 移除 StarterGame 模板；新项目目录组织改由 `AI_GAMEDEV_GUIDE.md` 与 `PROJECT_STRUCTURE.md` 说明。
+- 移除 StarterGame 模板；新项目目录组织改由 `AI/AI_GAMEDEV_GUIDE.md` 与 `AI/PROJECT_STRUCTURE.md` 说明。
 
 ## 0.2.0
 

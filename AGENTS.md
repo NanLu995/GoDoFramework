@@ -6,12 +6,12 @@
 
 - 引擎：Godot 4.7，C# / .NET 8；Android 构建目标为 .NET 9。框架根命名空间：`GoDo`。
 - 目标平台待定，不自行假设平台特性。
-- `FRAMEWORK_OVERVIEW.md`：历史愿景与痛点，仅讨论框架定位或重新规划时读取。
-- `FRAMEWORK_DESIGN_PLAN.md`：目标、状态与路线；新增模块或调整顺序前读取。
-- `ARCHITECTURE.md`：当前架构事实与依赖；修改 `addons/godo_framework/` 前读取。
+- `AI/FRAMEWORK_OVERVIEW.md`：历史愿景与痛点，仅讨论框架定位或重新规划时读取。
+- `AI/FRAMEWORK_DESIGN_PLAN.md`：目标、状态与路线；新增模块或调整顺序前读取。
+- `AI/ARCHITECTURE.md`：当前架构事实与依赖；修改 `addons/godo_framework/` 前读取。
 - 模块 `USAGE.md`：API、失败语义、生命周期、性能和验证细节；处理对应模块时读取。
-- `AI_GAMEDEV_GUIDE.md`、`PROJECT_STRUCTURE.md` 与 `Docs/Recipes/`：使用框架制作游戏、迁移模板或新增业务流程/UI/存档时读取。
-- `GODOT_GOTCHAS.md`：项目实际遇到的 Godot/C# 坑位，按需读取。
+- `AI/AI_GAMEDEV_GUIDE.md`、`AI/PROJECT_STRUCTURE.md` 与 `AI/Recipes/`：使用框架制作游戏、迁移模板或新增业务流程/UI/存档时读取。
+- `AI/GODOT_GOTCHAS.md`：项目实际遇到的 Godot/C# 坑位，按需读取。
 - 文档与代码冲突时，以源码和工程配置为准，同时指出并修正文档，不静默沿用旧描述。
 - 常规搜索排除 `.godot/`、`bin/`、`obj/`、`*.Generated.cs` 和离线文档目录，不修改生成内容。
 
@@ -68,7 +68,7 @@
 ## 框架边界
 
 - `GoDo.*` 只提供跨游戏机制，不包含角色、血量、子弹、关卡规则等玩法概念；业务代码不放入 `GoDo.*`。
-- Core 模块不通过 Services 或直接引用横向耦合；遵循 `ARCHITECTURE.md` 使用 EventChannel。ErrorHub 是明确例外——因其承担全局错误上报职责，需被各层直接访问，不走 EventChannel 这层间接层；除 ErrorHub 外不再新增同类例外。
+- Core 模块不通过 Services 或直接引用横向耦合；遵循 `AI/ARCHITECTURE.md` 使用 EventChannel。ErrorHub 是明确例外——因其承担全局错误上报职责，需被各层直接访问，不走 EventChannel 这层间接层；除 ErrorHub 外不再新增同类例外。
 - Services 只供业务层访问长期服务，不是框架内部依赖捷径。
 - 新增模块/API 前先检查现有事件、日志、错误、资源和对象池能力，避免重复实现。
 - 设计框架功能前必须先说明性能、鲁棒性与稳定性取舍：是否处于高频路径、是否产生额外分配、失败是否可见、生命周期是否可清理、跨平台/Debug 与 Release 行为是否一致；没有验证证据时不要把接口标为稳定基线。
