@@ -1,0 +1,16 @@
+/* Keep the top bar focused on the brand, API reference, search, and theme controls. */
+.navbar .navbar-nav > .nav-item.dropdown {
+  display: none !important;
+}
+
+/* API remains available in the top bar and uses its own type sidebar on API pages. */
+body:not([data-yaml-mime="ManagedReference"]) #toc li:has(> a[href^="api/"]),
+body:not([data-yaml-mime="ManagedReference"]) #toc li:has(> a[href*="/api/"]) {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .toc-offcanvas .offcanvas-body {
+    padding-right: 1rem;
+  }
+}

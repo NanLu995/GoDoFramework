@@ -154,6 +154,7 @@ HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 FENCE_PATTERN = re.compile(r"^\s*```(.*)$")
 FRONT_MATTER_BOUNDARY = "---"
 LANGUAGE_SWITCH_MARKER = "<!-- godo-language-switch -->"
+NAVIGATION_TITLE_SUFFIXES = (" 使用指南", " 使用说明", " 可选集成")
 
 
 @dataclass(frozen=True)
@@ -340,6 +341,13 @@ def module_location(relative: Path) -> tuple[str, Path]:
     return group, Path("modules") / group.lower() / Path(*module_parts) / "index.md"
 
 
+def navigation_title(title: str) -> str:
+    for suffix in NAVIGATION_TITLE_SUFFIXES:
+        if title.endswith(suffix):
+            return title.removesuffix(suffix)
+    return title
+
+
 def discover_module_pages(locale: str) -> list[Page]:
     pages: list[Page] = []
     addons_root = REPOSITORY_ROOT / "addons"
@@ -365,6 +373,7 @@ def discover_module_pages(locale: str) -> list[Page]:
                 source,
                 destination,
                 group,
+                navigation_title(read_title(source)),
                 translation_source=translation_source,
             )
         )
@@ -518,9 +527,7 @@ def append_toc_page(lines: list[str], page: Page, indent: int = 0) -> None:
 
 def write_toc(locale: str, pages: list[Page], locale_work_root: Path) -> None:
     settings = LOCALE_SETTINGS[locale]
-    home_page = next(page for page in pages if page.group == "Home")
     lines: list[str] = []
-    append_toc_page(lines, home_page)
 
     for group in GROUP_ORDER:
         if group == "Home":
@@ -576,7 +583,11 @@ def write_docfx_config(locale: str, locale_work_root: Path) -> None:
                 }
             ],
             "output": output_relative,
-            "template": ["default", "modern"],
+            "template": [
+                "default",
+                "modern",
+                f"{repository_relative}/Docs/Templates/Site",
+            ],
             "globalMetadata": {
                 "_appName": "GoDoFramework",
                 "_appTitle": settings["app_title"],
@@ -734,6 +745,7 @@ def validate_site() -> None:
         SITE_ROOT / "zh-cn" / "index.html",
         SITE_ROOT / "zh-cn" / "index.json",
         SITE_ROOT / "zh-cn" / "sitemap.xml",
+        SITE_ROOT / "zh-cn" / "public" / "main.css",
         SITE_ROOT / "zh-cn" / "getting-started" / "index.html",
         SITE_ROOT / "zh-cn" / "modules" / "runtime" / "Localization" / "index.html",
         SITE_ROOT / "zh-cn" / "modules" / "integrations" / "GuideInput" / "index.html",
@@ -743,6 +755,7 @@ def validate_site() -> None:
         SITE_ROOT / "en-us" / "index.html",
         SITE_ROOT / "en-us" / "index.json",
         SITE_ROOT / "en-us" / "sitemap.xml",
+        SITE_ROOT / "en-us" / "public" / "main.css",
         SITE_ROOT / "en-us" / "getting-started" / "index.html",
         SITE_ROOT / "en-us" / "api" / "toc.html",
         SITE_ROOT / "en-us" / "api" / "GoDo.Services.html",
@@ -758,6 +771,26 @@ def validate_site() -> None:
     )
     if duplicate_integration_root.exists():
         errors.append("可选集成输出路径重复包含 Integrations")
+
+    chinese_toc = SITE_ROOT / "zh-cn" / "toc.html"
+    if chinese_toc.is_file():
+        toc_text = chinese_toc.read_text(encoding="utf-8")
+        if 'title="GoDoFramework">GoDoFramework</a>' in toc_text:
+            errors.append("导航仍包含与顶部品牌重复的首页入口")
+        for suffix in NAVIGATION_TITLE_SUFFIXES:
+            if suffix in toc_text:
+                errors.append(f"导航标签仍包含冗余后缀：{suffix.strip()}")
+
+    for locale in LOCALES:
+        theme_css = SITE_ROOT / locale / "public" / "main.css"
+        if theme_css.is_file() and theme_css.stat().st_size == 0:
+            errors.append(f"自定义主题为空：{theme_css.relative_to(SITE_ROOT)}")
+
+    conceptual_page = SITE_ROOT / "zh-cn" / "getting-started" / "index.html"
+    if conceptual_page.is_file() and "toc-offcanvas" not in conceptual_page.read_text(
+        encoding="utf-8"
+    ):
+        errors.append("概念文档未生成桌面侧栏与移动端目录容器")
 
     checked_pages = 0
     site_root = SITE_ROOT.resolve()

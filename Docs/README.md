@@ -43,6 +43,12 @@ python Docs/build_docs.py serve
 
 当前英文站先提供首页和快速开始。API 页面在两种语言路径下生成，但内容复用当前中文 XML 注释，直到项目单独决定 public API 注释语言策略。
 
+## 显示与主题
+
+站点使用 DocFX `default + modern`，并叠加 `Docs/Templates/Site/` 中的最小主题扩展。顶部只保留品牌、API Reference、搜索和主题切换；普通文档分组使用 DocFX 原生左侧目录，移动端自动改为抽屉菜单。模块页面的完整一级标题保持不变，导航会自动移除“使用指南”“使用说明”和“可选集成”后缀。
+
+主题扩展只覆盖 `conceptual.extension.js` 与 `public/main.css`，不复制 DocFX 官方模板。布局或样式调整优先放在该目录；不要直接修改 `.artifacts/docs/site/` 中的生成文件。
+
 ## 内容发现规则
 
 中文内容自动发现：
