@@ -32,9 +32,11 @@ public sealed partial class EventChannelRegression : Node
             Run("EventScope 释放", VerifyEventScopeDispose);
             Run("已释放 EventScope 拒绝注册", VerifyDisposedEventScopeRejectsRegistration);
             Run("树外 Node 不注册 Bind 监听", VerifyBindOutsideTree);
+            await RunAsync("重复 Bind 保持生命周期解绑", VerifyDuplicateBindLifecycleAsync);
+            Run("嵌套派发延迟提交新增监听", VerifyNestedMutationCommit);
             await RunAsync("Bind 跟随 Node 退出树解绑", VerifyNodeBindingAsync);
 
-            GD.Print($"[EventChannelRegression] PASS ({_passed}/10)");
+            GD.Print($"[EventChannelRegression] PASS ({_passed}/12)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -294,6 +296,63 @@ public sealed partial class EventChannelRegression : Node
         }
     }
 
+    private async Task VerifyDuplicateBindLifecycleAsync()
+    {
+        int calls = 0;
+        var owner = new Node { Name = "DuplicateBoundOwner" };
+        void Handler(BoundEvent _) => calls++;
+
+        AddChild(owner);
+        try
+        {
+            EventChannel.Bind<BoundEvent>(owner, Handler);
+            EventChannel.Bind<BoundEvent>(owner, Handler);
+            EventChannel.Emit(new BoundEvent());
+            owner.QueueFree();
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            EventChannel.Emit(new BoundEvent());
+
+            AssertEqual(1, calls, "重复 Bind 破坏了首次监听的生命周期解绑");
+        }
+        finally
+        {
+            EventChannel.Off<BoundEvent>(Handler);
+            if (IsInstanceValid(owner))
+                owner.QueueFree();
+        }
+    }
+
+    private static void VerifyNestedMutationCommit()
+    {
+        var order = new List<int>();
+        void Added(NestedMutationEvent evt) => order.Add(100 + evt.Depth);
+        void Mutating(NestedMutationEvent evt)
+        {
+            order.Add(evt.Depth);
+            if (evt.Depth == 0)
+            {
+                EventChannel.On<NestedMutationEvent>(Added, priority: -10);
+                EventChannel.Emit(new NestedMutationEvent(depth: 1));
+            }
+        }
+
+        try
+        {
+            EventChannel.On<NestedMutationEvent>(Mutating);
+            EventChannel.Emit(new NestedMutationEvent(depth: 0));
+            AssertSequence(order, 0, 1);
+
+            order.Clear();
+            EventChannel.Emit(new NestedMutationEvent(depth: 2));
+            AssertSequence(order, 102, 2);
+        }
+        finally
+        {
+            EventChannel.Off<NestedMutationEvent>(Mutating);
+            EventChannel.Off<NestedMutationEvent>(Added);
+        }
+    }
+
     private static void Assert(bool condition, string message)
     {
         if (!condition)
@@ -325,6 +384,16 @@ public sealed partial class EventChannelRegression : Node
     private readonly struct ExceptionEvent : IEventMessage;
     private readonly struct ScopeEvent : IEventMessage;
     private readonly struct BoundEvent : IEventMessage;
+
+    private readonly struct NestedMutationEvent : IEventMessage
+    {
+        public int Depth { get; }
+
+        public NestedMutationEvent(int depth)
+        {
+            Depth = depth;
+        }
+    }
 
     private readonly struct OnceEvent : IEventMessage
     {
