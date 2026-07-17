@@ -23,6 +23,9 @@ public interface IInputService
     /// <summary>在当前后端支持时取得绑定持久化能力。</summary>
     bool TryGetRebindingPersistence(out IInputRebindingPersistence? persistence);
 
+    /// <summary>在当前后端支持时取得非热路径输入提示查询能力。</summary>
+    bool TryGetPromptQuery(out IInputPromptQuery? promptQuery);
+
     /// <summary>设置栈底 Context，并移除所有临时 Context。</summary>
     void SetBaseContext(InputContextId context);
 

@@ -94,6 +94,21 @@ public sealed class InputService : IInputService
     }
 
     /// <inheritdoc />
+    public bool TryGetPromptQuery(out IInputPromptQuery? promptQuery)
+    {
+        MainThreadGuard.VerifyAccess();
+        if (_backend is IInputPromptBackend promptBackend &&
+            (_backend.Capabilities & InputBackendCapabilities.PromptQuery) != 0)
+        {
+            promptQuery = promptBackend.PromptQuery;
+            return true;
+        }
+
+        promptQuery = null;
+        return false;
+    }
+
+    /// <inheritdoc />
     public void SetBaseContext(InputContextId context)
     {
         MainThreadGuard.VerifyAccess();
@@ -395,6 +410,15 @@ public sealed class InputService : IInputService
         {
             throw new InputOperationException(
                 "输入后端声明 RebindingPersistence 时必须同时支持 Rebinding。");
+        }
+
+        bool declaresPromptQuery =
+            (backend.Capabilities & InputBackendCapabilities.PromptQuery) != 0;
+        bool providesPromptQuery = backend is IInputPromptBackend;
+        if (declaresPromptQuery != providesPromptQuery)
+        {
+            throw new InputOperationException(
+                "输入后端的 PromptQuery 能力标志与 IInputPromptBackend 实现不一致。");
         }
 
         IReadOnlyList<InputActionDescriptor> actions = backend.Actions ??

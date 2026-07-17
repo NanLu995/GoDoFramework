@@ -62,4 +62,7 @@ public enum InputBackendCapabilities
 
     /// <summary>支持可靠保存和加载运行时绑定。</summary>
     RebindingPersistence = 1 << 3,
+
+    /// <summary>支持按 Context、Action 与设备查询当前文本提示。</summary>
+    PromptQuery = 1 << 4,
 }

@@ -23,11 +23,13 @@ public sealed partial class GuideInputBackendRegression : Node
     private static readonly InputContextId Gameplay = InputContextId.Create("gameplay");
     private static readonly InputContextId Menu = InputContextId.Create("menu");
     private static readonly InputBindingId JumpKeyboard = InputBindingId.Create("gameplay.jump.keyboard");
+    private static readonly InputBindingId JumpGamepad = InputBindingId.Create("gameplay.jump.gamepad");
     private static readonly InputBindingId ConfirmKeyboard = InputBindingId.Create("ui.confirm.keyboard");
 
     private InputService? _service;
     private ISaveService? _saveService;
     private Node _guideNode = null!;
+    private int _bindingChangeCount;
 
     /// <inheritdoc />
     public override async void _Ready()
@@ -56,6 +58,7 @@ public sealed partial class GuideInputBackendRegression : Node
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
             Assert(_service.IsReady, "Installer 没有安装 GUIDE 后端");
+            EventChannel.Bind<InputBindingsChangedEvent>(this, OnBindingsChanged);
             VerifyGameplayContext();
             await AdvanceInputFrames();
             Assert(!_service.Frame.Pressed(Jump), "Jump 释放后缓存仍处于按下状态");
@@ -63,12 +66,13 @@ public sealed partial class GuideInputBackendRegression : Node
             await AdvanceInputFrames();
             VerifyLookSampling();
             VerifyDeviceTracking();
+            VerifyPromptQuery();
             await VerifyRebinding();
             await VerifyPersistence();
             MeasureBackendAllocations();
             VerifyShutdown();
 
-            GD.Print("[GuideInputBackendRegression] PASS (8/8)");
+            GD.Print("[GuideInputBackendRegression] PASS (9/9)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -179,7 +183,7 @@ public sealed partial class GuideInputBackendRegression : Node
         InputBindingInfo initial = rebinding!.GetBinding(JumpKeyboard);
         Assert(initial.CurrentDisplayText == "Space", "Jump 默认绑定显示错误");
         Assert(initial.IsDefault, "Jump 初始绑定没有标记为默认值");
-        Assert(rebinding.GetBindings(Gameplay).Count == 1, "Gameplay 重绑定槽位数量错误");
+        Assert(rebinding.GetBindings(Gameplay).Count == 2, "Gameplay 重绑定槽位数量错误");
 
         InputBindingCandidate space = await CaptureKey(rebinding, JumpKeyboard, Key.Space);
         IReadOnlyList<InputBindingInfo> conflicts = rebinding.FindConflicts(JumpKeyboard, space);
@@ -188,7 +192,9 @@ public sealed partial class GuideInputBackendRegression : Node
 
         InputBindingCandidate keyJ = await CaptureKey(rebinding, JumpKeyboard, Key.J);
         Assert(rebinding.FindConflicts(JumpKeyboard, keyJ).Count == 0, "J 错误报告冲突");
+        int beforeApply = _bindingChangeCount;
         rebinding.Apply(JumpKeyboard, keyJ);
+        Assert(_bindingChangeCount == beforeApply + 1, "应用绑定没有发布变化通知");
         Assert(rebinding.GetBinding(JumpKeyboard).CurrentDisplayText == "J", "应用后绑定查询没有更新");
 
         _service.SetBaseContext(Gameplay);
@@ -207,7 +213,9 @@ public sealed partial class GuideInputBackendRegression : Node
         EvaluateAndSample();
         await AdvanceInputFrames();
 
+        int beforeRestore = _bindingChangeCount;
         rebinding.RestoreDefault(JumpKeyboard);
+        Assert(_bindingChangeCount == beforeRestore + 1, "恢复默认绑定没有发布变化通知");
         Assert(rebinding.GetBinding(JumpKeyboard).IsDefault, "恢复后 Jump 不是默认绑定");
 
         Task<InputBindingCandidate?> cancelled = rebinding.CaptureAsync(JumpKeyboard);
@@ -215,6 +223,36 @@ public sealed partial class GuideInputBackendRegression : Node
         rebinding.CancelCapture();
         Assert(await cancelled == null, "取消捕获没有返回 null");
         Assert(!rebinding.IsCapturing, "取消后 IsCapturing 仍为 true");
+    }
+
+    private void VerifyPromptQuery()
+    {
+        Assert(
+            (_service!.Capabilities & InputBackendCapabilities.PromptQuery) != 0,
+            "GUIDE 后端没有声明 PromptQuery 能力");
+        Assert(_service.TryGetPromptQuery(out IInputPromptQuery? prompts), "GUIDE 后端没有提供提示查询接口");
+
+        IReadOnlyList<InputPromptInfo> keyboard = prompts!.GetPrompts(
+            Gameplay,
+            Jump,
+            InputDeviceKind.KeyboardMouse);
+        Assert(keyboard.Count == 1, "Keyboard Jump 提示数量错误");
+        Assert(keyboard[0].BindingId == JumpKeyboard, "Keyboard Jump 提示 Binding 错误");
+        Assert(keyboard[0].DisplayText == "Space", "Keyboard Jump 提示文本错误");
+
+        IReadOnlyList<InputPromptInfo> gamepad = prompts.GetPrompts(
+            Gameplay,
+            Jump,
+            InputDeviceKind.Gamepad);
+        Assert(gamepad.Count == 1, "Gamepad Jump 提示数量错误");
+        Assert(gamepad[0].BindingId == JumpGamepad, "Gamepad Jump 提示 Binding 错误");
+        Assert(gamepad[0].DisplayText == "Gamepad A", "Gamepad Jump 提示文本错误");
+        Assert(
+            prompts.GetPrompts(Gameplay, Jump, InputDeviceKind.Touch).Count == 0,
+            "没有 Touch 绑定的 Action 返回了提示");
+        AssertThrows<ArgumentOutOfRangeException>(
+            () => prompts.GetPrompts(Gameplay, Jump, InputDeviceKind.Unknown),
+            "GUIDE 提示查询接受了 Unknown 设备");
     }
 
     private async Task VerifyPersistence()
@@ -233,7 +271,9 @@ public sealed partial class GuideInputBackendRegression : Node
         rebinding.RestoreDefault(JumpKeyboard);
         Assert(rebinding.GetBinding(JumpKeyboard).IsDefault, "持久化加载前没有恢复默认绑定");
 
+        int beforeLoad = _bindingChangeCount;
         InputBindingLoadStatus loaded = persistence.LoadAndApply();
+        Assert(_bindingChangeCount == beforeLoad + 1, "加载绑定没有发布变化通知");
         Assert(loaded == InputBindingLoadStatus.Loaded, "正式绑定配置加载状态错误");
         Assert(rebinding.GetBinding(JumpKeyboard).CurrentDisplayText == "J", "保存的 J 绑定没有恢复");
 
@@ -250,9 +290,11 @@ public sealed partial class GuideInputBackendRegression : Node
         var codec = new GuideInputRemappingCodec();
         _saveService!.Save(PersistenceSlot, guideRebinding.GetConfiguration(), 99, codec);
         _saveService.Save(PersistenceSlot, guideRebinding.GetConfiguration(), 99, codec);
+        int beforeFailedLoad = _bindingChangeCount;
         AssertThrows<SaveException>(
             () => persistence.LoadAndApply(),
             "未知版本的正式配置与备份没有失败");
+        Assert(_bindingChangeCount == beforeFailedLoad, "加载失败错误发布了绑定变化通知");
         Assert(rebinding.GetBinding(JumpKeyboard).CurrentDisplayText == "J", "加载失败改变了当前绑定");
 
         _saveService.Delete(PersistenceSlot);
@@ -260,6 +302,8 @@ public sealed partial class GuideInputBackendRegression : Node
         Assert(defaults == InputBindingLoadStatus.DefaultsApplied, "缺少配置时加载状态错误");
         Assert(rebinding.GetBinding(JumpKeyboard).IsDefault, "缺少配置时没有应用默认绑定");
     }
+
+    private void OnBindingsChanged(InputBindingsChangedEvent _) => _bindingChangeCount++;
 
     private static void CorruptPrimaryPersistenceFile()
     {
@@ -324,6 +368,7 @@ public sealed partial class GuideInputBackendRegression : Node
         profile.Contexts.Add(CreateContext("gameplay", "gameplay_context.tres"));
         profile.Contexts.Add(CreateContext("menu", "menu_context.tres"));
         profile.Bindings.Add(CreateBinding("gameplay.jump.keyboard", "gameplay", "gameplay.jump", 0));
+        profile.Bindings.Add(CreateBinding("gameplay.jump.gamepad", "gameplay", "gameplay.jump", 1));
         profile.Bindings.Add(CreateBinding("ui.confirm.keyboard", "menu", "ui.confirm", 0));
         return profile;
     }

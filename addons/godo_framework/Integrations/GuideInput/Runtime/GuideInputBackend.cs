@@ -11,7 +11,8 @@ namespace GoDo.GuideInput;
 public sealed class GuideInputBackend :
     IInputBackend,
     IInputRebindingBackend,
-    IInputRebindingPersistenceBackend
+    IInputRebindingPersistenceBackend,
+    IInputPromptBackend
 {
     private const int EmulatedDeviceId = -1;
     private const float PointerMotionThresholdSquared = 1f;
@@ -38,11 +39,16 @@ public sealed class GuideInputBackend :
     public InputBackendCapabilities Capabilities =>
         InputBackendCapabilities.DeviceTracking |
         InputBackendCapabilities.Rebinding |
+        InputBackendCapabilities.PromptQuery |
         (_saveService == null ? InputBackendCapabilities.None : InputBackendCapabilities.RebindingPersistence);
 
     /// <inheritdoc />
     public IInputRebinding Rebinding => _rebinding ??
         throw new InputOperationException("GUIDE 重绑定尚未初始化或已经关闭。");
+
+    /// <inheritdoc />
+    public IInputPromptQuery PromptQuery => _rebinding ??
+        throw new InputOperationException("GUIDE 输入提示查询尚未初始化或已经关闭。");
 
     /// <inheritdoc />
     public IInputRebindingPersistence RebindingPersistence => _rebindingPersistence ??

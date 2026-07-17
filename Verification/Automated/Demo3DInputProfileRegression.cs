@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using GoDo;
 using GoDo.GuideInput;
@@ -30,12 +31,13 @@ public sealed partial class Demo3DInputProfileRegression : Node
             AddChild(new GuideInputBackendInstaller { Profile = profile });
 
             VerifyProfileInstallation();
+            VerifyPromptQuery();
             VerifyKeyboardMovement();
             VerifyMouseLookAndJump();
             VerifyResultIsolation();
 
             _service.Shutdown();
-            GD.Print("[Demo3DInputProfileRegression] PASS (4/4)");
+            GD.Print("[Demo3DInputProfileRegression] PASS (5/5)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -66,6 +68,25 @@ public sealed partial class Demo3DInputProfileRegression : Node
         InjectKey(Key.W, pressed: false);
         InjectKey(Key.D, pressed: false);
         EvaluateAndSample();
+    }
+
+    private void VerifyPromptQuery()
+    {
+        Assert(_service!.TryGetPromptQuery(out IInputPromptQuery? prompts),
+            "Demo3D Profile 没有提供提示查询能力");
+        IReadOnlyList<InputPromptInfo> keyboard = prompts!.GetPrompts(
+            Demo3D.Demo3DInput.Gameplay,
+            Demo3D.Demo3DInput.Jump,
+            InputDeviceKind.KeyboardMouse);
+        Assert(keyboard.Count == 1 && keyboard[0].DisplayText == "Space",
+            "Demo3D 键盘 Jump 提示错误");
+
+        IReadOnlyList<InputPromptInfo> gamepad = prompts.GetPrompts(
+            Demo3D.Demo3DInput.Gameplay,
+            Demo3D.Demo3DInput.Jump,
+            InputDeviceKind.Gamepad);
+        Assert(gamepad.Count == 1 && gamepad[0].DisplayText == "Gamepad A",
+            "Demo3D 手柄 Jump 提示错误");
     }
 
     private void VerifyMouseLookAndJump()

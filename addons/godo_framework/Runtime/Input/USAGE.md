@@ -2,7 +2,7 @@
 
 ## 定位
 
-InputService 为业务层提供语义 Action 的当前帧只读快照、Context 栈和可选运行时重绑定边界。它集中采样一个可替换后端，
+InputService 为业务层提供语义 Action 的当前帧只读快照、Context 栈，以及可选运行时重绑定和输入提示查询边界。它集中采样一个可替换后端，
 使角色、摄像机协调代码和 UI 不直接依赖具体按键、Godot InputMap 或第三方输入插件类型。
 
 当前已完成核心 ID、Frame、Context、后端边界和 GoDoRuntime 生命周期接入。可选包
@@ -64,6 +64,27 @@ EventChannel.Bind<InputDeviceChangedEvent>(this, OnInputDeviceChanged);
 
 `InputDeviceChangedEvent` 只在一次成功采样提交后且类别确实变化时发布，携带 `Previous` 与 `Current`；
 相同设备的连续输入不会重复通知。具体提示文字、图标和排版属于游戏 UI。
+
+### 输入提示查询
+
+支持提示查询的后端声明 `InputBackendCapabilities.PromptQuery`：
+
+```csharp
+if (input.ActiveDevice != InputDeviceKind.Unknown &&
+    input.TryGetPromptQuery(out IInputPromptQuery? prompts))
+{
+    IReadOnlyList<InputPromptInfo> jump = prompts.GetPrompts(
+        GameInput.Gameplay,
+        GameInput.Jump,
+        input.ActiveDevice);
+}
+```
+
+- 查询必须显式指定 Context、Action 与具体设备；`Unknown` 不是可查询设备。
+- 一个 Action 可以按后端配置顺序返回多个提示，例如移动动作的多个键位；业务决定显示第一个、全部或组合形式。
+- `IsBound == false` 表示槽位当前未绑定，此时 `DisplayText` 为空；指定设备没有槽位时返回空集合。
+- `DisplayText` 是后端提供的简短文本回退。键帽图标、具体手柄图形、本地化和排版仍由游戏 UI 管理。
+- `InputBindingsChangedEvent` 在绑定或整组配置成功应用后发布；UI 结合该事件与 `InputDeviceChangedEvent` 低频刷新，不应每帧查询。
 
 ### Context 栈
 
@@ -136,6 +157,7 @@ if (input.TryGetRebindingPersistence(out IInputRebindingPersistence? persistence
 - 后端重复安装、布局重复、初始化或采样失败。
 - 未注册 Binding、重复捕获、候选来自其他后端或重绑定应用失败。
 - 后端声明重绑定能力却未实现对应接口，或声明持久化但未同时支持重绑定。
+- 后端的 `PromptQuery` 能力标志与 `IInputPromptBackend` 实现不一致。
 
 默认 ID 和无效枚举属于参数错误，抛出 `ArgumentException` / `ArgumentOutOfRangeException`。
 采样失败不会推进 Frame 序号或覆盖上一帧；调用边界不先重复上报 ErrorHub。
@@ -165,6 +187,7 @@ InputFrame 表示最近完成的渲染帧采样。需要驱动物理的控制器
 - 设备类别只在已有采样提交时比较；事件只在类别变化时派发，不增加输入热路径集合分配。
 - Context 变化属于低频路径，允许创建小型临时数组以保证提交前状态不变。
 - 查询、捕获、冲突检查和应用绑定属于设置界面低频路径，允许创建结果数组和异步完成对象，不进入每帧采样。
+- 提示查询只扫描指定 Context 的绑定，并只在有结果时创建返回数组；UI 应在设备或绑定变化时刷新并缓存显示结果。
 - 配置 Resource 编解码和磁盘 I/O 是同步低频路径，不得从每帧更新或滑块连续变化中调用。
 
 ## Debug 诊断
@@ -181,6 +204,6 @@ GoDo Debugger 的 `运行时 / Input` 页面每 0.25 秒按需读取当前快照
 Verification/Automated/InputServiceRegression.tscn
 ```
 
-覆盖 ID、后端缺失、首次采样、Bool/Axis 状态、活动设备变化、可选重绑定与持久化能力、Frame 过期、Context 组合与误用、
+覆盖 ID、后端缺失、首次采样、Bool/Axis 状态、活动设备变化、可选重绑定、持久化与提示查询能力、Frame 过期、Context 组合与误用、
 失败原子性、重复后端/布局拒绝、Debug-only 快照、热读取分配和关闭幂等。`InputRuntimeRegression.tscn` 额外验证 GoDoRuntime 注册、自动采样与关闭。
-GUIDE 回归覆盖捕获、冲突、应用、恢复、取消、保存加载、备份恢复、未知版本、设备阈值和跟踪节点清理；真实设备、窗口失焦以及渲染/物理时序仍需手动验证。
+GUIDE 回归覆盖键鼠/手柄提示筛选、绑定变化通知、捕获、冲突、应用、恢复、取消、保存加载、备份恢复、未知版本、设备阈值和跟踪节点清理。Windows Demo3D 已使用真实手柄完成人工验收，覆盖设备切换、拔插后键盘切换、改键即时提示、重启持久化、恢复默认和窗口失焦；其他平台以及真实项目长期渲染/物理时序仍需验证。

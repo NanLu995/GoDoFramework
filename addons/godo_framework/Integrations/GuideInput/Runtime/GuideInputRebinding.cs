@@ -10,7 +10,7 @@ using GuideInputValue = GuideCs.GuideInput;
 namespace GoDo.GuideInput;
 
 /// <summary>使用 GUIDE Remapper 与 InputDetector 实现 GoDo 运行时重绑定边界。</summary>
-internal sealed class GuideInputRebinding : IInputRebinding
+internal sealed class GuideInputRebinding : IInputRebinding, IInputPromptQuery
 {
     internal const string DetectorNodeName = "GoDoGuideInputDetector";
 
@@ -115,6 +115,67 @@ internal sealed class GuideInputRebinding : IInputRebinding
 
     /// <inheritdoc />
     public InputBindingInfo GetBinding(InputBindingId binding) => CreateInfo(Resolve(binding));
+
+    /// <inheritdoc />
+    public IReadOnlyList<InputPromptInfo> GetPrompts(
+        InputContextId context,
+        InputActionId action,
+        InputDeviceKind device)
+    {
+        VerifyReady();
+        if (context.IsEmpty)
+            throw new ArgumentException("输入 Context ID 不能是默认值。", nameof(context));
+        if (action.IsEmpty)
+            throw new ArgumentException("输入 Action ID 不能是默认值。", nameof(action));
+        if (!Enum.IsDefined(device) || device == InputDeviceKind.Unknown)
+            throw new ArgumentOutOfRangeException(nameof(device));
+        if (!_contexts.ContainsKey(context))
+            throw new InputOperationException($"输入 Context 未注册: {context.Value}");
+        if (!_actions.ContainsKey(action))
+            throw new InputOperationException($"输入 Action 未注册: {action.Value}");
+        if (!_bindingsByContext.TryGetValue(context, out List<BindingEntry>? entries))
+            return Array.Empty<InputPromptInfo>();
+
+        int resultCount = 0;
+        for (int index = 0; index < entries.Count; index++)
+        {
+            BindingEntry entry = entries[index];
+            if (entry.ActionId != action)
+                continue;
+
+            GuideInputValue? current = _remapper.GetBoundInputOrNull(entry.Item);
+            GuideInputValue? effective = current ?? _remapper.GetDefaultInput(entry.Item);
+            if (effective != null && ConvertDevice(effective.DeviceType) == device)
+                resultCount++;
+        }
+
+        if (resultCount == 0)
+            return Array.Empty<InputPromptInfo>();
+
+        var result = new InputPromptInfo[resultCount];
+        int resultIndex = 0;
+        for (int index = 0; index < entries.Count; index++)
+        {
+            BindingEntry entry = entries[index];
+            if (entry.ActionId != action)
+                continue;
+
+            GuideInputValue? current = _remapper.GetBoundInputOrNull(entry.Item);
+            GuideInputValue? effective = current ?? _remapper.GetDefaultInput(entry.Item);
+            if (effective == null || ConvertDevice(effective.DeviceType) != device)
+                continue;
+
+            result[resultIndex++] = new InputPromptInfo(
+                entry.BindingId,
+                entry.ContextId,
+                entry.ActionId,
+                device,
+                current == null ? string.Empty : FormatInput(current),
+                current != null);
+        }
+
+        return result;
+    }
 
     /// <inheritdoc />
     public Task<InputBindingCandidate?> CaptureAsync(InputBindingId binding)
@@ -229,6 +290,8 @@ internal sealed class GuideInputRebinding : IInputRebinding
 
             throw new InputOperationException("GUIDE 输入配置加载失败，已恢复原绑定。", applyException);
         }
+
+        EventChannel.Emit<InputBindingsChangedEvent>();
     }
 
     private void BuildBindings()
@@ -345,6 +408,8 @@ internal sealed class GuideInputRebinding : IInputRebinding
 
             throw new InputOperationException("GUIDE 输入绑定应用失败，已恢复原绑定。", applyException);
         }
+
+        EventChannel.Emit<InputBindingsChangedEvent>();
     }
 
     private static void ApplyGuideConfig(

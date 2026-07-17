@@ -35,6 +35,7 @@ public sealed partial class InputServiceRegression : Node
             Run("未安装后端失败", VerifyMissingBackend);
             Run("安装与首次采样", VerifyInstallAndFirstSample);
             Run("重绑定可选能力", VerifyRebindingCapability);
+            Run("输入提示查询可选能力", VerifyPromptQueryCapability);
             Run("活动设备变化通知", VerifyDeviceChangeNotification);
             Run("Action 状态与各类轴值", VerifyActionStates);
 #if DEBUG
@@ -52,9 +53,9 @@ public sealed partial class InputServiceRegression : Node
 
             _service.Shutdown();
 #if DEBUG
-            GD.Print($"[InputServiceRegression] PASS ({_passed}/16)");
+            GD.Print($"[InputServiceRegression] PASS ({_passed}/17)");
 #else
-            GD.Print($"[InputServiceRegression] PASS ({_passed}/15)");
+            GD.Print($"[InputServiceRegression] PASS ({_passed}/16)");
 #endif
             GetTree().Quit(0);
         }
@@ -103,8 +104,37 @@ public sealed partial class InputServiceRegression : Node
             !_service.TryGetRebindingPersistence(out IInputRebindingPersistence? persistence),
             "未安装后端时返回了绑定持久化能力");
         Assert(persistence == null, "未安装后端时返回了绑定持久化实例");
+        Assert(!_service.TryGetPromptQuery(out IInputPromptQuery? prompts), "未安装后端时返回了提示查询能力");
+        Assert(prompts == null, "未安装后端时返回了提示查询实例");
         AssertThrows<InputOperationException>(() => _ = _service.Frame, "未安装后端仍能读取 Frame");
         AssertThrows<InputOperationException>(() => _service.SetBaseContext(Gameplay), "未安装后端仍能设置 Context");
+    }
+
+    private void VerifyPromptQueryCapability()
+    {
+        FakeInputBackend backend = InstallDefaultBackend();
+        Assert(_service.TryGetPromptQuery(out IInputPromptQuery? prompts), "支持提示查询的后端未暴露能力");
+        Assert(ReferenceEquals(backend.PromptQuery, prompts), "InputService 没有返回后端提示查询实例");
+
+        IReadOnlyList<InputPromptInfo> gamepad = prompts!.GetPrompts(Gameplay, Jump, InputDeviceKind.Gamepad);
+        AssertEqual(1, gamepad.Count, "Gamepad Jump 提示数量错误");
+        AssertEqual("Gamepad A", gamepad[0].DisplayText, "Gamepad Jump 提示文本错误");
+        Assert(gamepad[0].IsBound, "已绑定提示错误标记为未绑定");
+        AssertThrows<ArgumentOutOfRangeException>(
+            () => prompts.GetPrompts(Gameplay, Jump, InputDeviceKind.Unknown),
+            "提示查询接受了 Unknown 设备");
+        AssertThrows<InputOperationException>(
+            () => prompts.GetPrompts(Gameplay, InputActionId.Create("missing"), InputDeviceKind.Gamepad),
+            "提示查询接受了未知 Action");
+        AssertThrows<ArgumentException>(
+            () => new InputPromptInfo(
+                JumpKeyboard,
+                Gameplay,
+                Jump,
+                InputDeviceKind.KeyboardMouse,
+                "Space",
+                isBound: false),
+            "未绑定提示接受了非空显示文本");
     }
 
     private void VerifyRebindingCapability()
@@ -145,7 +175,8 @@ public sealed partial class InputServiceRegression : Node
         AssertEqual(
             InputBackendCapabilities.DeviceTracking |
             InputBackendCapabilities.Rebinding |
-            InputBackendCapabilities.RebindingPersistence,
+            InputBackendCapabilities.RebindingPersistence |
+            InputBackendCapabilities.PromptQuery,
             _service.Capabilities,
             "后端能力没有透传");
         AssertEqual(1, backend.InitializeCount, "后端没有初始化一次");
@@ -377,6 +408,12 @@ public sealed partial class InputServiceRegression : Node
             "允许安装声明持久化能力但没有实现接口的后端");
         AssertEqual(1, missingPersistence.ShutdownCount, "缺少持久化接口的后端没有清理");
 
+        var missingPromptQuery = new MissingPromptQueryBackend();
+        AssertThrows<InputOperationException>(
+            () => _service.InstallBackend(missingPromptQuery),
+            "允许安装声明提示查询能力但没有实现接口的后端");
+        AssertEqual(1, missingPromptQuery.ShutdownCount, "缺少提示查询接口的后端没有清理");
+
         var duplicateActions = new FakeInputBackend(
             new[]
             {
@@ -470,7 +507,8 @@ public sealed partial class InputServiceRegression : Node
     private sealed class FakeInputBackend :
         IInputBackend,
         IInputRebindingBackend,
-        IInputRebindingPersistenceBackend
+        IInputRebindingPersistenceBackend,
+        IInputPromptBackend
     {
         private readonly InputActionDescriptor[] _actions;
         private readonly InputContextId[] _contexts;
@@ -479,7 +517,8 @@ public sealed partial class InputServiceRegression : Node
         public InputBackendCapabilities Capabilities { get; set; } =
             InputBackendCapabilities.DeviceTracking |
             InputBackendCapabilities.Rebinding |
-            InputBackendCapabilities.RebindingPersistence;
+            InputBackendCapabilities.RebindingPersistence |
+            InputBackendCapabilities.PromptQuery;
         public InputDeviceKind ActiveDevice { get; set; } = InputDeviceKind.Gamepad;
         public IReadOnlyList<InputActionDescriptor> Actions => _actions;
         public IReadOnlyList<InputContextId> Contexts => _contexts;
@@ -488,6 +527,8 @@ public sealed partial class InputServiceRegression : Node
         IInputRebinding IInputRebindingBackend.Rebinding => Rebinding;
         public FakeInputRebindingPersistence Persistence { get; } = new();
         IInputRebindingPersistence IInputRebindingPersistenceBackend.RebindingPersistence => Persistence;
+        public FakeInputPromptQuery PromptQuery { get; } = new();
+        IInputPromptQuery IInputPromptBackend.PromptQuery => PromptQuery;
         public int InitializeCount { get; private set; }
         public int SampleCount { get; private set; }
         public int ShutdownCount { get; private set; }
@@ -543,6 +584,47 @@ public sealed partial class InputServiceRegression : Node
         public void Shutdown() => ShutdownCount++;
 
         public void SetSample(int index, InputActionSample sample) => _samples[index] = sample;
+    }
+
+    private sealed class FakeInputPromptQuery : IInputPromptQuery
+    {
+        private static readonly InputPromptInfo KeyboardPrompt = new(
+            JumpKeyboard,
+            Gameplay,
+            Jump,
+            InputDeviceKind.KeyboardMouse,
+            "Space",
+            isBound: true);
+        private static readonly InputPromptInfo GamepadPrompt = new(
+            InputBindingId.Create("gameplay.jump.gamepad"),
+            Gameplay,
+            Jump,
+            InputDeviceKind.Gamepad,
+            "Gamepad A",
+            isBound: true);
+
+        public IReadOnlyList<InputPromptInfo> GetPrompts(
+            InputContextId context,
+            InputActionId action,
+            InputDeviceKind device)
+        {
+            if (context.IsEmpty)
+                throw new ArgumentException("输入 Context ID 不能为空。", nameof(context));
+            if (action.IsEmpty)
+                throw new ArgumentException("输入 Action ID 不能为空。", nameof(action));
+            if (!Enum.IsDefined(device) || device == InputDeviceKind.Unknown)
+                throw new ArgumentOutOfRangeException(nameof(device));
+            if (context != Gameplay)
+                throw new InputOperationException($"输入 Context 未注册: {context.Value}");
+            if (action != Jump)
+                throw new InputOperationException($"输入 Action 未注册: {action.Value}");
+
+            return device == InputDeviceKind.KeyboardMouse
+                ? new[] { KeyboardPrompt }
+                : device == InputDeviceKind.Gamepad
+                    ? new[] { GamepadPrompt }
+                    : Array.Empty<InputPromptInfo>();
+        }
     }
 
     private sealed class FakeInputRebinding : IInputRebinding
@@ -636,6 +718,34 @@ public sealed partial class InputServiceRegression : Node
         public IReadOnlyList<InputActionDescriptor> Actions => ActionDescriptors;
         public IReadOnlyList<InputContextId> Contexts => ContextDescriptors;
         public IInputRebinding Rebinding { get; } = new FakeInputRebinding();
+        public int ShutdownCount { get; private set; }
+
+        public void Initialize()
+        {
+        }
+
+        public void ApplyContexts(ReadOnlySpan<InputContextId> contexts)
+        {
+        }
+
+        public void Sample(Span<InputActionSample> destination) =>
+            destination[0] = new InputActionSample(Vector3.Zero, pressed: false);
+
+        public void Shutdown() => ShutdownCount++;
+    }
+
+    private sealed class MissingPromptQueryBackend : IInputBackend
+    {
+        private static readonly InputActionDescriptor[] ActionDescriptors =
+        {
+            new(Jump, InputActionValueType.Bool),
+        };
+        private static readonly InputContextId[] ContextDescriptors = { Gameplay };
+
+        public InputBackendCapabilities Capabilities => InputBackendCapabilities.PromptQuery;
+        public InputDeviceKind ActiveDevice => InputDeviceKind.Unknown;
+        public IReadOnlyList<InputActionDescriptor> Actions => ActionDescriptors;
+        public IReadOnlyList<InputContextId> Contexts => ContextDescriptors;
         public int ShutdownCount { get; private set; }
 
         public void Initialize()

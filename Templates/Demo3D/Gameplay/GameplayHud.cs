@@ -26,8 +26,10 @@ public sealed partial class GameplayHud : Control
     private Button? _rebindJumpButton;
     private Button? _restoreJumpButton;
     private Label? _rebindStatusLabel;
+    private IInputService? _input;
     private IInputRebinding? _rebinding;
     private IInputRebindingPersistence? _rebindingPersistence;
+    private IInputPromptQuery? _promptQuery;
     private bool _captureOwned;
 
     public override void _Ready()
@@ -43,18 +45,21 @@ public sealed partial class GameplayHud : Control
         _restoreJumpButton = RequireNode<Button>(RestoreJumpButtonPath, "恢复默认按钮");
         _rebindStatusLabel = RequireNode<Label>(RebindStatusLabelPath, "改键状态标签");
 
-        IInputService input = Services.Get<IInputService>();
-        if (!input.TryGetRebinding(out _rebinding))
+        _input = Services.Get<IInputService>();
+        if (!_input.TryGetRebinding(out _rebinding))
             throw new InvalidOperationException("Demo3D 需要支持重绑定的输入后端。");
-        if (!input.TryGetRebindingPersistence(out _rebindingPersistence))
+        if (!_input.TryGetRebindingPersistence(out _rebindingPersistence))
             throw new InvalidOperationException("Demo3D 需要支持持久化的输入后端。");
+        if (!_input.TryGetPromptQuery(out _promptQuery))
+            throw new InvalidOperationException("Demo3D 需要支持输入提示查询的后端。");
 
         EventChannel.Bind<CollectionProgressChangedEvent>(this, OnCollectionProgressChanged);
         EventChannel.Bind<InputDeviceChangedEvent>(this, OnInputDeviceChanged);
+        EventChannel.Bind<InputBindingsChangedEvent>(this, OnInputBindingsChanged);
         _rebindJumpButton.Pressed += OnRebindJumpPressed;
         _restoreJumpButton.Pressed += OnRestoreJumpPressed;
-        UpdateDeviceLabel(input.ActiveDevice);
-        RefreshJumpBinding();
+        UpdateDeviceLabel(_input.ActiveDevice);
+        RefreshJumpPrompt();
     }
 
     public override void _ExitTree()
@@ -67,8 +72,10 @@ public sealed partial class GameplayHud : Control
             _rebinding.CancelCapture();
 
         _captureOwned = false;
+        _input = null;
         _rebinding = null;
         _rebindingPersistence = null;
+        _promptQuery = null;
     }
 
     private void OnCollectionProgressChanged(CollectionProgressChangedEvent evt)
@@ -76,7 +83,13 @@ public sealed partial class GameplayHud : Control
         _progressLabel!.Text = $"能量核心：{evt.Current} / {evt.Total}";
     }
 
-    private void OnInputDeviceChanged(InputDeviceChangedEvent evt) => UpdateDeviceLabel(evt.Current);
+    private void OnInputDeviceChanged(InputDeviceChangedEvent evt)
+    {
+        UpdateDeviceLabel(evt.Current);
+        RefreshJumpPrompt();
+    }
+
+    private void OnInputBindingsChanged(InputBindingsChangedEvent _) => RefreshJumpPrompt();
 
     private async void OnRebindJumpPressed()
     {
@@ -117,7 +130,7 @@ public sealed partial class GameplayHud : Control
             if (IsInsideTree())
             {
                 SetRebindControlsEnabled(true);
-                RefreshJumpBinding();
+                RefreshJumpPrompt();
             }
         }
     }
@@ -132,7 +145,7 @@ public sealed partial class GameplayHud : Control
         {
             _rebinding.RestoreDefault(JumpPrimaryBinding);
             SaveBindings("已恢复并保存默认绑定");
-            RefreshJumpBinding();
+            RefreshJumpPrompt();
         }
         catch (Exception exception)
         {
@@ -140,11 +153,22 @@ public sealed partial class GameplayHud : Control
         }
     }
 
-    private void RefreshJumpBinding()
+    private void RefreshJumpPrompt()
     {
-        InputBindingInfo info = _rebinding!.GetBinding(JumpPrimaryBinding);
-        string current = string.IsNullOrEmpty(info.CurrentDisplayText) ? "未绑定" : info.CurrentDisplayText;
-        _jumpBindingLabel!.Text = $"跳跃主绑定：{current}";
+        InputDeviceKind device = _input!.ActiveDevice;
+        if (device == InputDeviceKind.Unknown)
+            device = InputDeviceKind.KeyboardMouse;
+
+        IReadOnlyList<InputPromptInfo> prompts = _promptQuery!.GetPrompts(
+            Demo3DInput.Gameplay,
+            Demo3DInput.Jump,
+            device);
+        string text = prompts.Count == 0
+            ? "未配置"
+            : prompts[0].IsBound
+                ? prompts[0].DisplayText
+                : "未绑定";
+        _jumpBindingLabel!.Text = $"跳跃提示：{text}";
     }
 
     private void SaveBindings(string successMessage)
