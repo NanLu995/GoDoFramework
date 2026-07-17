@@ -7,7 +7,7 @@ namespace GoDo;
 /// <summary>
 /// 远程上报器骨架：将错误异步发送到远程服务器（Sentry、自建后台等）。
 /// <para>
-/// 复制此文件、重命名类名，并在 <see cref="SendAsync"/> 中实现实际的网络请求，
+/// 复制此文件、重命名类名，并在 <c>SendAsync</c> 中实现实际的网络请求，
 /// 然后调用 <c>GoDo.ErrorHub.AddReporter(new MyServerReporter(url))</c> 注册。
 /// </para>
 /// <para>

@@ -1,0 +1,64 @@
+name: Documentation
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".config/dotnet-tools.json"
+      - ".github/workflows/docs.yml"
+      - "Docs/**"
+      - "addons/**/*.cs"
+      - "addons/**/USAGE.md"
+      - "AI_GAMEDEV_GUIDE.md"
+      - "ARCHITECTURE.md"
+      - "CHANGELOG.md"
+      - "GODOT_GOTCHAS.md"
+      - "PROJECT_STRUCTURE.md"
+      - "README.md"
+      - "GoDoFramework.csproj"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build and check documentation
+        run: python Docs/build_docs.py check
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .artifacts/docs/site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
