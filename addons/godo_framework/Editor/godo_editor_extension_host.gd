@@ -82,6 +82,7 @@ func _discover_extensions() -> void:
 	var descriptors: Array[Dictionary] = []
 	_append_manifest_descriptors("res://addons", descriptors)
 	_append_manifest_descriptors("res://addons/godo_framework/Integrations", descriptors)
+	_append_manifest_descriptors("res://addons/godo_framework/Tools", descriptors)
 
 	descriptors.sort_custom(_compare_descriptors)
 	var loaded_ids: Dictionary = {}

@@ -1,6 +1,6 @@
 # DataTable 设计
 
-> 状态：整体方案已确认，阶段 A / B 原型和阶段 C.1 编译前端已实现，但尚未进入稳定基线。本文中的具体类型名仍需通过真实业务表与 Editor / Export 流程验证后才能成为 public API。
+> 状态：整体方案已确认，阶段 A / B 原型和阶段 C.1 / C.2 / C.3 编译前端、Editor 接入与安全单表生成已实现，但尚未进入稳定基线。本文中的具体类型名仍需通过真实业务表与 Export 流程验证后才能成为 public API。
 
 ## 1. 定位
 
@@ -273,7 +273,7 @@ DataTable 编译器先产生与运行时语言无关的规范化 IR 和 Manifest
 
 原型产物包括规范化 IR、数据集 Manifest、共享与完整摘要、未压缩 `.gdtb`、`internal` C# Row / Table、Debug JSON 和构建诊断报告。C# 验证读取器必须实际读取 Python 编译器生成的二进制并检查查询结果、文件体积、加载耗时和托管内存变化。
 
-原型放在 `Verification/Experimental/DataTable/`，不接入 `GoDoRuntime`、Services、EditorPlugin 或正式文档 API，不承诺 public API。阶段 B 已验证 Zstd 候选、压缩模式选择与共用读取器；加密不保留标志、不实现接口。
+原型数据与性能验证放在 `Verification/Experimental/DataTable/`，不接入 `GoDoRuntime`、Services 或正式文档 API，不承诺 public API。正式离线编译前端与 Editor 扩展位于 `addons/godo_framework/Tools/DataTable/`；阶段 B 已验证 Zstd 候选、压缩模式选择与共用读取器，加密不保留标志、不实现接口。
 
 ## 14. 性能与生命周期
 
@@ -312,7 +312,9 @@ DataTable 编译器先产生与运行时语言无关的规范化 IR 和 Manifest
 - Debug 保留可读产物，Release 排除源数据；
 - 验证客户端、Godot 专服和非 Godot 服务器摘要边界。
 
-阶段 C.1 已将 Python 编译前端放入 `addons/godo_framework/Tools/DataTable/`，提供整套 `generate` 和真正不写项目文件的 `check`。它保留显式路径参数，不假设业务目录，并拒绝可能覆盖源数据的危险输出目录。单表生成必须先解决合并 C# 文件和数据集摘要的一致性，EditorPlugin、Godot Zstd 正式目标、CI 过期检查与 Export 过滤仍未接入。
+阶段 C.1 已将 Python 编译前端放入 `addons/godo_framework/Tools/DataTable/`，提供整套 `generate` 和真正不写项目文件的 `check`。阶段 C.2 增加相对配置目录的可移植 Build Config，并由唯一 GoDo EditorPlugin 在后台线程调用 Python；检查不写入，生成先展示准确目标并确认，成功后刷新编辑器文件系统。工具拒绝绝对路径、`..` 逃逸和可能覆盖源数据的危险输出目录。
+
+阶段 C.3 在不拆分聚合 C# 的前提下提供 `generate --table <ID>`。它始终全量校验输入和构建候选，只提交选中 `.gdtb`、数据集级元数据，以及内容变化的聚合 C#；提交前必须证明已有 IR / Manifest 表集合一致、未选表结构与二进制均未过期。首次生成、增删表、未选表变化或产物缺失会被拒绝并要求生成全部。局部变化通过多文件事务回滚，未选表与未变化 C# 不改写。Godot Zstd 正式目标、CI 过期检查与 Export 过滤仍未接入。
 
 ### 阶段 D：后续能力
 

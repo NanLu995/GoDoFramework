@@ -1,0 +1,7 @@
+{
+  "format_version": 1,
+  "profile": "profile.json",
+  "source": "Artifacts/sources/performance",
+  "output": "Artifacts/editor-output",
+  "csharp": "Generated/DataTablePrototype.Generated.cs"
+}

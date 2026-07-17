@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
 import struct
 import subprocess
@@ -186,6 +187,84 @@ def verify_cli_modes(sources: Path) -> None:
     assert_equal(baseline_csharp.read_bytes(), csharp.read_bytes(), "CLI generate C# 不一致")
     print("[DataTablePrototype] PASS: CLI generate 支持空格路径")
 
+    config_profile = root / "profile.json"
+    shutil.copy2(PROFILE_PATH, config_profile)
+    build_config = root / "datatable.build.json"
+    build_config.write_text(
+        json.dumps(
+            {
+                "format_version": 1,
+                "profile": "profile.json",
+                "source": "source files",
+                "output": "config output",
+                "csharp": "Config Generated.txt",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    before_config_check = digest_files(root)
+    run_compiler("check", "--build-config", str(build_config))
+    assert_equal(before_config_check, digest_files(root), "Build Config check 写入了文件")
+    run_compiler("generate", "--build-config", str(build_config))
+    assert_equal(digest_files(baseline_output), digest_files(root / "config output"), "Build Config 产物不一致")
+    assert_equal(
+        baseline_csharp.read_bytes(),
+        (root / "Config Generated.txt").read_bytes(),
+        "Build Config C# 不一致",
+    )
+    print("[DataTablePrototype] PASS: Build Config check/generate")
+
+    config_csharp = root / "Config Generated.txt"
+    csharp_timestamp = config_csharp.stat().st_mtime_ns
+    run_compiler("generate", "--build-config", str(build_config))
+    assert_equal(csharp_timestamp, config_csharp.stat().st_mtime_ns, "未变化的 C# 被重复改写")
+    print("[DataTablePrototype] PASS: 未变化 C# 保留时间戳")
+
+    run_compiler(
+        "generate",
+        "--build-config",
+        str(build_config),
+        "--table",
+        "Item",
+    )
+    single_report = json.loads(
+        (root / "config output" / "build-report.json").read_text(encoding="utf-8")
+    )
+    assert_equal("single", single_report.get("scope"), "CLI --table 未进入单表生成")
+    assert_equal("Item", single_report.get("selected_table"), "CLI --table 未传递目标表")
+    print("[DataTablePrototype] PASS: CLI Build Config 单表生成")
+
+    missing_config = root / "missing-field.build.json"
+    missing_config.write_text('{"format_version":1}\n', encoding="utf-8")
+    missing_result = run_compiler(
+        "check",
+        "--build-config",
+        str(missing_config),
+        expected_exit=1,
+    )
+    if "缺少字段" not in missing_result.stderr:
+        raise RuntimeError("Build Config 缺字段未产生明确错误。")
+    print("[DataTablePrototype] PASS: Build Config 缺字段拒绝")
+
+    escaping_config = root / "escaping.build.json"
+    escaping_config.write_text(
+        '{"format_version":1,"profile":"profile.json","source":"source files",'
+        '"output":"../escaped","csharp":"Config Generated.txt"}\n',
+        encoding="utf-8",
+    )
+    escaping_result = run_compiler(
+        "generate",
+        "--build-config",
+        str(escaping_config),
+        expected_exit=1,
+    )
+    if "逃逸" not in escaping_result.stderr:
+        raise RuntimeError("Build Config 路径逃逸未产生明确错误。")
+    print("[DataTablePrototype] PASS: Build Config 路径逃逸拒绝")
+
 
 def verify_output_rollback() -> None:
     root = ARTIFACT_ROOT / "scratch" / "rollback"
@@ -217,6 +296,155 @@ def verify_output_rollback() -> None:
     assert_equal("old-data", (output / "state.txt").read_text(encoding="utf-8"), "数据目录未回滚")
     assert_equal("old-csharp", csharp.read_text(encoding="utf-8"), "C# 文件未回滚")
     print("[DataTablePrototype] PASS: 双产物提交失败回滚")
+
+
+def verify_single_table_generation(sources: Path) -> None:
+    root = ARTIFACT_ROOT / "scratch" / "single-table"
+    source = root / "source"
+    output = root / "output"
+    profile = root / "profile.json"
+    csharp = root / "DataTables.Generated.txt"
+    shutil.copytree(sources / "small", source)
+    shutil.copy2(PROFILE_PATH, profile)
+    compile_tables(profile, source, output, csharp)
+
+    category = output / "ItemCategory.gdtb"
+    item = output / "Item.gdtb"
+    category_bytes = category.read_bytes()
+    category_timestamp = category.stat().st_mtime_ns
+    item_bytes = item.read_bytes()
+    csharp_timestamp = csharp.stat().st_mtime_ns
+    items_path = source / "Items.csv"
+    items_text = items_path.read_text(encoding="utf-8")
+    items_path.write_text(items_text.replace("测试物品 1", "单表更新物品", 1), encoding="utf-8")
+    compile_tables(profile, source, output, csharp, selected_table="Item")
+    if item.read_bytes() == item_bytes:
+        raise RuntimeError("单表数据变化未更新目标二进制。")
+    assert_equal(category_bytes, category.read_bytes(), "单表生成改写了未选表内容")
+    assert_equal(category_timestamp, category.stat().st_mtime_ns, "单表生成改写了未选表时间戳")
+    assert_equal(csharp_timestamp, csharp.stat().st_mtime_ns, "纯数据变化改写了 C# 时间戳")
+    report = json.loads((output / "build-report.json").read_text(encoding="utf-8"))
+    assert_equal("single", report.get("scope"), "单表报告未记录生成范围")
+    assert_equal("Item", report.get("selected_table"), "单表报告未记录目标表")
+    print("[DataTablePrototype] PASS: 单表数据更新与未选表保留")
+
+    profile_value = json.loads(profile.read_text(encoding="utf-8"))
+    item_profile = next(table for table in profile_value["tables"] if table["id"] == "Item")
+    display_field = next(field for field in item_profile["fields"] if field["name"] == "display_name")
+    display_field["name"] = "title"
+    profile.write_text(json.dumps(profile_value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    items_path.write_text(
+        items_path.read_text(encoding="utf-8").replace("display_name", "title", 1),
+        encoding="utf-8",
+    )
+    previous_csharp = csharp.read_bytes()
+    compile_tables(profile, source, output, csharp, selected_table="Item")
+    if csharp.read_bytes() == previous_csharp:
+        raise RuntimeError("单表结构变化未更新聚合 C#。")
+    assert_equal(category_bytes, category.read_bytes(), "目标表结构变化改写了未选表")
+    print("[DataTablePrototype] PASS: 单表结构变化更新聚合 C#")
+
+    stable_files = digest_files(output)
+    stable_csharp = csharp.read_bytes()
+    categories_path = source / "ItemCategories.csv"
+    categories_path.write_text(
+        categories_path.read_text(encoding="utf-8").replace("消耗品", "过期类别", 1),
+        encoding="utf-8",
+    )
+    try:
+        compile_tables(profile, source, output, csharp, selected_table="Item")
+    except ValueError as error:
+        if "ItemCategory" not in str(error) or "过期" not in str(error):
+            raise RuntimeError(f"未选表过期错误不明确：{error}") from error
+    else:
+        raise RuntimeError("单表生成未拒绝过期的未选表。")
+    assert_equal(stable_files, digest_files(output), "过期拒绝后改写了数据产物")
+    assert_equal(stable_csharp, csharp.read_bytes(), "过期拒绝后改写了 C#")
+    print("[DataTablePrototype] PASS: 单表生成拒绝过期未选表")
+
+    categories_path.write_text(
+        categories_path.read_text(encoding="utf-8").replace("过期类别", "消耗品", 1),
+        encoding="utf-8",
+    )
+    category.unlink()
+    try:
+        compile_tables(profile, source, output, csharp, selected_table="Item")
+    except ValueError as error:
+        if "二进制数据表集合" not in str(error):
+            raise RuntimeError(f"未选表缺失错误不明确：{error}") from error
+    else:
+        raise RuntimeError("单表生成未拒绝缺失的未选表。")
+    print("[DataTablePrototype] PASS: 单表生成拒绝缺失未选表")
+
+    compile_tables(profile, source, output, csharp)
+    expanded_profile = json.loads(profile.read_text(encoding="utf-8"))
+    expanded_profile["tables"].append(
+        {
+            "id": "Extra",
+            "source": "Extra.csv",
+            "schema_version": 1,
+            "audience": "ClientOnly",
+            "primary_key": "id",
+            "fields": [{"name": "id", "type": "string", "required": True}],
+        }
+    )
+    profile.write_text(json.dumps(expanded_profile, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (source / "Extra.csv").write_text("id\nextra\n", encoding="utf-8")
+    try:
+        compile_tables(profile, source, output, csharp, selected_table="Item")
+    except ValueError as error:
+        if "集合已发生变化" not in str(error):
+            raise RuntimeError(f"数据表集合变化错误不明确：{error}") from error
+    else:
+        raise RuntimeError("单表生成未拒绝数据表集合变化。")
+    print("[DataTablePrototype] PASS: 单表生成拒绝数据表集合变化")
+
+    try:
+        compile_tables(profile, source, output, csharp, selected_table="Missing")
+    except ValueError as error:
+        if "不存在数据表" not in str(error):
+            raise RuntimeError(f"未知表 ID 错误不明确：{error}") from error
+    else:
+        raise RuntimeError("单表生成未拒绝未知表 ID。")
+    print("[DataTablePrototype] PASS: 单表生成拒绝未知表 ID")
+
+    invalid_source = sources / "invalid" / "invalid_foreign_key"
+    try:
+        compile_tables(PROFILE_PATH, invalid_source, output, csharp, selected_table="Item")
+    except CompileFailure as failure:
+        if "DT115" not in {diagnostic.code for diagnostic in failure.diagnostics}:
+            raise RuntimeError("单表生成外键错误未产生 DT115。") from failure
+    else:
+        raise RuntimeError("单表生成未执行全量外键校验。")
+    print("[DataTablePrototype] PASS: 单表生成执行全量外键校验")
+
+
+def verify_file_commit_rollback() -> None:
+    root = ARTIFACT_ROOT / "scratch" / "file-rollback"
+    first = root / "first.txt"
+    second = root / "second.txt"
+    root.mkdir(parents=True)
+    first.write_text("old-first", encoding="utf-8")
+    second.write_text("old-second", encoding="utf-8")
+    second_staged = second.with_suffix(second.suffix + ".tmp")
+    real_replace = godo_datatable.os.replace
+
+    def fail_second_commit(source: object, destination: object) -> None:
+        if Path(source) == second_staged:
+            raise OSError("injected file commit failure")
+        real_replace(source, destination)
+
+    try:
+        with mock.patch.object(godo_datatable.os, "replace", side_effect=fail_second_commit):
+            godo_datatable.commit_files({first: b"new-first", second: b"new-second"})
+    except OSError as error:
+        if "injected" not in str(error):
+            raise
+    else:
+        raise RuntimeError("故障注入未阻止多文件提交。")
+    assert_equal("old-first", first.read_text(encoding="utf-8"), "首文件未回滚")
+    assert_equal("old-second", second.read_text(encoding="utf-8"), "次文件未回滚")
+    print("[DataTablePrototype] PASS: 多文件提交失败回滚")
 
 
 def build_performance_artifacts(sources: Path) -> None:
@@ -299,9 +527,11 @@ def main() -> int:
     verify_invalid_cases(sources)
     verify_cli_modes(sources)
     verify_output_rollback()
+    verify_single_table_generation(sources)
+    verify_file_commit_rollback()
     build_performance_artifacts(sources)
     build_corruption_artifacts()
-    print("[DataTablePrototype] PASS (13/13)")
+    print("[DataTablePrototype] PASS (26/26)")
     return 0
 
 

@@ -14,13 +14,15 @@ import struct
 import sys
 import tempfile
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 
 FORMAT_VERSION = 2
+BUILD_CONFIG_VERSION = 1
 MAX_DIAGNOSTICS = 100
 SUPPORTED_TYPES = {"string", "bool", "int32", "float64", "enum"}
+BUILD_CONFIG_FIELDS = {"format_version", "profile", "source", "output", "csharp"}
 
 
 @dataclass(frozen=True)
@@ -54,6 +56,42 @@ def canonical_bytes(value: Any) -> bytes:
 
 def sha256_hex(value: Any) -> str:
     return hashlib.sha256(canonical_bytes(value)).hexdigest()
+
+
+def resolve_build_path(config_path: Path, field_name: str, raw_value: Any) -> Path:
+    if not isinstance(raw_value, str) or not raw_value.strip():
+        raise ValueError(f"Build Config 的 {field_name} 必须是非空相对路径。")
+    if "\\" in raw_value:
+        raise ValueError(f"Build Config 的 {field_name} 必须使用正斜杠。")
+    relative = PurePosixPath(raw_value)
+    if relative.is_absolute() or ".." in relative.parts:
+        raise ValueError(f"Build Config 的 {field_name} 不能是绝对路径或逃逸配置目录。")
+    root = config_path.parent.resolve()
+    resolved = root.joinpath(*relative.parts).resolve()
+    if not resolved.is_relative_to(root):
+        raise ValueError(f"Build Config 的 {field_name} 逃逸了配置目录。")
+    return resolved
+
+
+def load_build_config(path: Path) -> tuple[Path, Path, Path, Path]:
+    with path.open("r", encoding="utf-8-sig") as stream:
+        config = json.load(stream)
+    if not isinstance(config, dict):
+        raise ValueError("Build Config 根节点必须是对象。")
+    if config.get("format_version") != BUILD_CONFIG_VERSION:
+        raise ValueError(f"Build Config format_version 必须为 {BUILD_CONFIG_VERSION}。")
+    missing = BUILD_CONFIG_FIELDS - config.keys()
+    unknown = config.keys() - BUILD_CONFIG_FIELDS
+    if missing:
+        raise ValueError(f"Build Config 缺少字段：{', '.join(sorted(missing))}。")
+    if unknown:
+        raise ValueError(f"Build Config 包含未知字段：{', '.join(sorted(unknown))}。")
+    profile = resolve_build_path(path, "profile", config["profile"])
+    source = resolve_build_path(path, "source", config["source"])
+    output = resolve_build_path(path, "output", config["output"])
+    csharp = resolve_build_path(path, "csharp", config["csharp"])
+    validate_output_paths(profile, source, output, csharp)
+    return profile, source, output, csharp
 
 
 def pascal_case(value: str) -> str:
@@ -735,16 +773,61 @@ def write_json(path: Path, value: Any) -> None:
     path.write_bytes(canonical_bytes(value) + b"\n")
 
 
+def json_bytes(value: Any) -> bytes:
+    return canonical_bytes(value) + b"\n"
+
+
+def commit_files(files: dict[Path, bytes]) -> None:
+    changed = {
+        path: content
+        for path, content in files.items()
+        if not path.exists() or path.read_bytes() != content
+    }
+    staged_paths = {path: path.with_suffix(path.suffix + ".tmp") for path in changed}
+    backup_paths = {path: path.with_suffix(path.suffix + ".previous") for path in changed}
+    for path, content in changed.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        staged_paths[path].unlink(missing_ok=True)
+        backup_paths[path].unlink(missing_ok=True)
+        staged_paths[path].write_bytes(content)
+
+    backed_up: list[Path] = []
+    committed: list[Path] = []
+    try:
+        for path in changed:
+            if path.exists():
+                os.replace(path, backup_paths[path])
+                backed_up.append(path)
+            os.replace(staged_paths[path], path)
+            committed.append(path)
+    except Exception:
+        for path in reversed(committed):
+            path.unlink(missing_ok=True)
+        for path in reversed(backed_up):
+            if backup_paths[path].exists():
+                os.replace(backup_paths[path], path)
+        raise
+    finally:
+        for staged_path in staged_paths.values():
+            staged_path.unlink(missing_ok=True)
+
+    for backup_path in backup_paths.values():
+        backup_path.unlink(missing_ok=True)
+
+
 def commit_outputs(staged: Path, output: Path, csharp_path: Path, csharp_text: str) -> None:
     output_backup = output.with_name(f"{output.name}.previous")
     csharp_backup = csharp_path.with_suffix(csharp_path.suffix + ".previous")
     csharp_staged = csharp_path.with_suffix(csharp_path.suffix + ".tmp")
+    encoded_csharp = csharp_text.encode("utf-8")
+    csharp_changed = not csharp_path.exists() or csharp_path.read_bytes() != encoded_csharp
     if output_backup.exists():
         shutil.rmtree(output_backup)
     csharp_backup.unlink(missing_ok=True)
     csharp_staged.unlink(missing_ok=True)
-    csharp_path.parent.mkdir(parents=True, exist_ok=True)
-    csharp_staged.write_text(csharp_text, encoding="utf-8", newline="\n")
+    if csharp_changed:
+        csharp_path.parent.mkdir(parents=True, exist_ok=True)
+        csharp_staged.write_bytes(encoded_csharp)
 
     output_backed_up = False
     csharp_backed_up = False
@@ -754,13 +837,14 @@ def commit_outputs(staged: Path, output: Path, csharp_path: Path, csharp_text: s
         if output.exists():
             os.replace(output, output_backup)
             output_backed_up = True
-        if csharp_path.exists():
+        if csharp_changed and csharp_path.exists():
             os.replace(csharp_path, csharp_backup)
             csharp_backed_up = True
         os.replace(staged, output)
         output_committed = True
-        os.replace(csharp_staged, csharp_path)
-        csharp_committed = True
+        if csharp_changed:
+            os.replace(csharp_staged, csharp_path)
+            csharp_committed = True
     except Exception:
         if output_committed and output.exists():
             shutil.rmtree(output)
@@ -795,6 +879,70 @@ def validate_output_paths(
         raise ValueError("生成的 C# 文件必须位于数据输出目录之外。")
 
 
+def read_json_object(path: Path, description: str) -> dict[str, Any]:
+    if not path.is_file():
+        raise ValueError(f"单表生成要求已有完整产物；缺少 {description}：{path}。请先生成全部。")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise ValueError(f"无法读取已有 {description}：{path}。请先生成全部。") from error
+    if not isinstance(value, dict):
+        raise ValueError(f"已有 {description} 根节点无效：{path}。请先生成全部。")
+    return value
+
+
+def validate_single_table_baseline(
+    output: Path,
+    ir: dict[str, Any],
+    manifest: dict[str, Any],
+    binaries: dict[str, bytes],
+    selected_table: str,
+) -> None:
+    previous_ir = read_json_object(output / "normalized.ir.json", "normalized.ir.json")
+    previous_manifest = read_json_object(output / "manifest.json", "manifest.json")
+    current_ids = [table["id"] for table in ir["tables"]]
+    previous_tables = previous_ir.get("tables")
+    manifest_tables = previous_manifest.get("tables")
+    if not isinstance(previous_tables, list) or not isinstance(manifest_tables, list):
+        raise ValueError("已有 IR 或 Manifest 缺少 tables 数组。请先生成全部。")
+    try:
+        previous_ids = [table["id"] for table in previous_tables]
+        manifest_ids = [table["id"] for table in manifest_tables]
+    except (KeyError, TypeError) as error:
+        raise ValueError("已有 IR 或 Manifest 的数据表记录无效。请先生成全部。") from error
+    if set(previous_ids) != set(current_ids) or set(manifest_ids) != set(current_ids):
+        raise ValueError("数据表集合已发生变化，不能安全地单表生成。请先生成全部。")
+
+    expected_artifacts = {f"{table_id}.gdtb" for table_id in current_ids}
+    actual_artifacts = {path.name for path in output.glob("*.gdtb") if path.is_file()}
+    if actual_artifacts != expected_artifacts:
+        raise ValueError("已有二进制数据表集合不完整或包含过期文件。请先生成全部。")
+
+    previous_by_id = {table["id"]: table for table in previous_tables}
+    current_by_id = {table["id"]: table for table in ir["tables"]}
+    for table_id in current_ids:
+        if table_id == selected_table:
+            continue
+        previous_schema = {
+            key: value for key, value in previous_by_id[table_id].items() if key != "rows"
+        }
+        current_schema = {
+            key: value for key, value in current_by_id[table_id].items() if key != "rows"
+        }
+        if previous_schema != current_schema:
+            raise ValueError(
+                f"未选数据表 {table_id} 的结构已变化，不能安全地单表生成。请先生成全部。"
+            )
+        artifact = output / f"{table_id}.gdtb"
+        if not artifact.is_file() or artifact.read_bytes() != binaries[table_id]:
+            raise ValueError(
+                f"未选数据表 {table_id} 的现有产物缺失或过期。请先生成全部。"
+            )
+
+    if manifest["data_set_id"] != previous_manifest.get("data_set_id"):
+        raise ValueError("数据集标识已发生变化，不能安全地单表生成。请先生成全部。")
+
+
 def compile_tables(
     profile_path: Path,
     source_dir: Path,
@@ -802,7 +950,10 @@ def compile_tables(
     csharp_path: Path | None = None,
     *,
     check_only: bool = False,
+    selected_table: str | None = None,
 ) -> None:
+    if check_only and selected_table is not None:
+        raise ValueError("check 模式不支持 --table；检查始终覆盖全部数据表。")
     if check_only:
         if output is not None or csharp_path is not None:
             raise ValueError("check 模式不能指定输出目录或 C# 文件。")
@@ -822,6 +973,11 @@ def compile_tables(
         raise CompileFailure(diagnostics)
 
     ir = build_ir(profile, tables)
+    table_ids = [table["id"] for table in profile["tables"]]
+    if selected_table is not None and selected_table not in table_ids:
+        raise ValueError(
+            f"Profile 中不存在数据表 {selected_table!r}；可用值：{', '.join(table_ids)}。"
+        )
     full_schema = [
         {key: value for key, value in table.items() if key != "rows"}
         for table in ir["tables"]
@@ -840,110 +996,131 @@ def compile_tables(
         "tables": [],
     }
 
+    binaries: dict[str, bytes] = {}
+    binary_sizes: dict[str, int] = {}
+    for table_profile, table_ir in zip(profile["tables"], ir["tables"], strict=True):
+        table_id = table_profile["id"]
+        binary = build_binary(table_profile, table_ir["rows"])
+        binaries[table_id] = binary
+        binary_sizes[table_id] = len(binary)
+        manifest["tables"].append(
+            {
+                "id": table_id,
+                "audience": table_profile["audience"],
+                "schema_version": table_profile["schema_version"],
+                "row_count": len(table_ir["rows"]),
+                "content_hash": sha256_hex(table_ir),
+                "artifact": f"{table_id}.gdtb",
+            }
+        )
+    report: dict[str, Any] = {
+        "status": "success",
+        "scope": "single" if selected_table is not None else "all",
+        "compression": "None",
+        "source_bytes": {
+            table["source"]: (source_dir / table["source"]).stat().st_size
+            for table in profile["tables"]
+        },
+        "binary_bytes": binary_sizes,
+        "diagnostic_count": 0,
+    }
+    if selected_table is not None:
+        report["selected_table"] = selected_table
+
     if check_only:
         canonical_bytes(ir)
         canonical_bytes({table["id"]: table["rows"] for table in ir["tables"]})
-        binary_sizes: dict[str, int] = {}
-        for table_profile, table_ir in zip(profile["tables"], ir["tables"], strict=True):
-            binary_sizes[table_profile["id"]] = len(
-                build_binary(table_profile, table_ir["rows"])
-            )
-            manifest["tables"].append(
-                {
-                    "id": table_profile["id"],
-                    "audience": table_profile["audience"],
-                    "schema_version": table_profile["schema_version"],
-                    "row_count": len(table_ir["rows"]),
-                    "content_hash": sha256_hex(table_ir),
-                    "artifact": f"{table_profile['id']}.gdtb",
-                }
-            )
         canonical_bytes(manifest)
-        canonical_bytes(
-            {
-                "status": "success",
-                "compression": "None",
-                "source_bytes": {
-                    table["source"]: (source_dir / table["source"]).stat().st_size
-                    for table in profile["tables"]
-                },
-                "binary_bytes": binary_sizes,
-                "diagnostic_count": 0,
-            }
-        )
+        canonical_bytes(report)
         generate_csharp(profile)
         return
 
     assert output is not None
     assert csharp_path is not None
+    csharp_text = generate_csharp(profile)
+    if selected_table is not None:
+        validate_single_table_baseline(output, ir, manifest, binaries, selected_table)
+        files = {
+            output / "normalized.ir.json": json_bytes(ir),
+            output / "debug.json": json_bytes(
+                {table["id"]: table["rows"] for table in ir["tables"]}
+            ),
+            output / "manifest.json": json_bytes(manifest),
+            output / "build-report.json": json_bytes(report),
+            output / f"{selected_table}.gdtb": binaries[selected_table],
+            csharp_path: csharp_text.encode("utf-8"),
+        }
+        commit_files(files)
+        return
+
     output.parent.mkdir(parents=True, exist_ok=True)
     staged = Path(tempfile.mkdtemp(prefix=f"{output.name}.", dir=output.parent))
     try:
         write_json(staged / "normalized.ir.json", ir)
         write_json(staged / "debug.json", {table["id"]: table["rows"] for table in ir["tables"]})
-        binary_sizes: dict[str, int] = {}
-        for table_profile, table_ir in zip(profile["tables"], ir["tables"], strict=True):
-            binary = build_binary(table_profile, table_ir["rows"])
-            file_name = f"{table_profile['id']}.gdtb"
-            (staged / file_name).write_bytes(binary)
-            binary_sizes[table_profile["id"]] = len(binary)
-            manifest["tables"].append(
-                {
-                    "id": table_profile["id"],
-                    "audience": table_profile["audience"],
-                    "schema_version": table_profile["schema_version"],
-                    "row_count": len(table_ir["rows"]),
-                    "content_hash": sha256_hex(table_ir),
-                    "artifact": file_name,
-                }
-            )
+        for table_id, binary in binaries.items():
+            (staged / f"{table_id}.gdtb").write_bytes(binary)
         write_json(staged / "manifest.json", manifest)
-        report = {
-            "status": "success",
-            "compression": "None",
-            "source_bytes": {
-                table["source"]: (source_dir / table["source"]).stat().st_size
-                for table in profile["tables"]
-            },
-            "binary_bytes": binary_sizes,
-            "diagnostic_count": 0,
-        }
         write_json(staged / "build-report.json", report)
-        commit_outputs(staged, output, csharp_path, generate_csharp(profile))
+        commit_outputs(staged, output, csharp_path, csharp_text)
     finally:
         if staged.exists():
             shutil.rmtree(staged)
 
 
-def add_input_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--profile", type=Path, required=True, help="DataTable Profile 路径。")
-    parser.add_argument("--source", type=Path, required=True, help="CSV 源目录。")
+def add_input_arguments(parser: argparse.ArgumentParser, *, generate: bool) -> None:
+    parser.add_argument("--build-config", type=Path, help="可移植的 DataTable Build Config。")
+    parser.add_argument("--profile", type=Path, help="DataTable Profile 路径。")
+    parser.add_argument("--source", type=Path, help="CSV 源目录。")
+    if generate:
+        parser.add_argument("--output", type=Path, help="数据产物目录。")
+        parser.add_argument("--csharp", type=Path, help="生成的 C# 文件。")
+        parser.add_argument("--table", help="仅提交指定表；仍会校验全部数据表。")
+
+
+def resolve_command_paths(
+    arguments: argparse.Namespace,
+    *,
+    generate: bool,
+) -> tuple[Path, Path, Path | None, Path | None]:
+    explicit_values = [arguments.profile, arguments.source]
+    if generate:
+        explicit_values.extend([arguments.output, arguments.csharp])
+    if arguments.build_config is not None:
+        if any(value is not None for value in explicit_values):
+            raise ValueError("--build-config 不能与显式路径参数同时使用。")
+        return load_build_config(arguments.build_config.resolve())
+    if any(value is None for value in explicit_values):
+        required = "--profile、--source、--output 和 --csharp" if generate else "--profile 和 --source"
+        raise ValueError(f"未使用 --build-config 时必须提供 {required}。")
+    profile = arguments.profile.resolve()
+    source = arguments.source.resolve()
+    if not generate:
+        return profile, source, None, None
+    return profile, source, arguments.output.resolve(), arguments.csharp.resolve()
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="GoDo DataTable 编译前端。")
     commands = parser.add_subparsers(dest="command", required=True)
     generate_parser = commands.add_parser("generate", help="校验并生成全部产物。")
-    add_input_arguments(generate_parser)
-    generate_parser.add_argument("--output", type=Path, required=True, help="数据产物目录。")
-    generate_parser.add_argument("--csharp", type=Path, required=True, help="生成的 C# 文件。")
+    add_input_arguments(generate_parser, generate=True)
     check_parser = commands.add_parser("check", help="完整校验和构建，但不写入产物。")
-    add_input_arguments(check_parser)
+    add_input_arguments(check_parser, generate=False)
     arguments = parser.parse_args()
+    resolved_output: Path | None = None
     try:
+        profile, source, output, csharp = resolve_command_paths(
+            arguments,
+            generate=arguments.command == "generate",
+        )
         if arguments.command == "check":
-            compile_tables(
-                arguments.profile.resolve(),
-                arguments.source.resolve(),
-                check_only=True,
-            )
+            compile_tables(profile, source, check_only=True)
         else:
-            compile_tables(
-                arguments.profile.resolve(),
-                arguments.source.resolve(),
-                arguments.output.resolve(),
-                arguments.csharp.resolve(),
-            )
+            assert output is not None
+            assert csharp is not None
+            resolved_output = output
+            compile_tables(profile, source, output, csharp, selected_table=arguments.table)
     except CompileFailure as failure:
         for diagnostic in failure.diagnostics:
             print(diagnostic.format())
@@ -955,7 +1132,7 @@ def main() -> int:
     if arguments.command == "check":
         print("[DataTableCompiler] CHECK PASS")
     else:
-        print(f"[DataTableCompiler] GENERATE PASS: {arguments.output.resolve()}")
+        print(f"[DataTableCompiler] GENERATE PASS: {resolved_output}")
     return 0
 
 
