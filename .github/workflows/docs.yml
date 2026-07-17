@@ -41,6 +41,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout G.U.I.D.E-CSharp v0.3.7
+        uses: actions/checkout@v4
+        with:
+          repository: Phlegmlee/G.U.I.D.E-CSharp
+          ref: 6ef8aa5687398c151a864dafaeb72635d18a0b93
+          path: .third-party/guide
+          persist-credentials: false
+
+      - name: Checkout Phantom Camera v0.11
+        uses: actions/checkout@v4
+        with:
+          repository: ramokz/phantom-camera
+          ref: 17dfc5a2c7040fd6faf0bef758f5f89a92af7ff0
+          path: .third-party/phantom-camera
+          persist-credentials: false
+
+      - name: Install documentation integration dependencies
+        shell: bash
+        run: |
+          cp -R .third-party/guide/addons/guideCS addons/guideCS
+          cp -R .third-party/phantom-camera/addons/phantom_camera addons/phantom_camera
+
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
