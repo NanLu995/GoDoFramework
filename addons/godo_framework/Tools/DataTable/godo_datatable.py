@@ -23,6 +23,10 @@ BUILD_CONFIG_VERSION = 1
 MAX_DIAGNOSTICS = 100
 SUPPORTED_TYPES = {"string", "bool", "int32", "float64", "enum"}
 BUILD_CONFIG_FIELDS = {"format_version", "profile", "source", "output", "csharp"}
+EXPORT_TARGETS = {
+    "client": ("Shared", "ClientOnly"),
+    "server": ("Shared", "ServerOnly"),
+}
 
 
 @dataclass(frozen=True)
@@ -563,6 +567,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using Godot;
+using GodotFileAccess = Godot.FileAccess;
 
 #nullable enable
 
@@ -578,7 +583,15 @@ internal static class DataTablePrototypeLoader
 
     private static ReaderContext Open(string path, string tableId, ushort schemaVersion, ushort fieldCount)
     {{
-        byte[] data = File.ReadAllBytes(path);
+        using GodotFileAccess? file = GodotFileAccess.Open(path, GodotFileAccess.ModeFlags.Read);
+        if (file == null)
+            throw new IOException($"无法打开 DataTable，Error={{GodotFileAccess.GetOpenError()}}：{{path}}");
+        ulong fileLength = file.GetLength();
+        if (fileLength > int.MaxValue)
+            throw new InvalidDataException($"DataTable 文件超过 2 GiB 读取上限：{{path}}");
+        byte[] data = file.GetBuffer(checked((long)fileLength));
+        if (data.Length != checked((int)fileLength))
+            throw new IOException($"DataTable 未完整读取：{{path}}");
         using var headerStream = new MemoryStream(data, writable: false);
         using var headerReader = new BinaryReader(headerStream, Encoding.UTF8, leaveOpen: true);
         if (!headerReader.ReadBytes(4).AsSpan().SequenceEqual("GDTB"u8))
@@ -943,6 +956,211 @@ def validate_single_table_baseline(
         raise ValueError("数据集标识已发生变化，不能安全地单表生成。请先生成全部。")
 
 
+def verify_generated_files(
+    output: Path,
+    csharp_path: Path,
+    expected_files: dict[str, bytes],
+    csharp_text: str,
+    report_variants: set[bytes],
+) -> None:
+    differences: list[str] = []
+    actual_files = (
+        {
+            path.relative_to(output).as_posix(): path
+            for path in output.rglob("*")
+            if path.is_file()
+        }
+        if output.is_dir()
+        else {}
+    )
+    for relative_path, expected in expected_files.items():
+        actual_path = actual_files.get(relative_path)
+        if actual_path is None:
+            differences.append(f"缺少：{output / relative_path}")
+            continue
+        actual = actual_path.read_bytes()
+        if relative_path == "build-report.json":
+            if actual not in report_variants:
+                differences.append(f"内容过期：{actual_path}")
+        elif actual != expected:
+            differences.append(f"内容过期：{actual_path}")
+    for relative_path in sorted(actual_files.keys() - expected_files.keys()):
+        differences.append(f"额外文件：{actual_files[relative_path]}")
+
+    expected_csharp = csharp_text.encode("utf-8")
+    if not csharp_path.is_file():
+        differences.append(f"缺少：{csharp_path}")
+    elif csharp_path.read_bytes() != expected_csharp:
+        differences.append(f"内容过期：{csharp_path}")
+
+    if differences:
+        limit = 20
+        displayed = differences[:limit]
+        if len(differences) > limit:
+            displayed.append(f"另有 {len(differences) - limit} 项差异未显示。")
+        raise ValueError("生成产物不是最新状态：\n- " + "\n- ".join(displayed))
+
+
+def build_export_target_files(
+    ir: dict[str, Any],
+    manifest: dict[str, Any],
+) -> dict[str, bytes]:
+    files: dict[str, bytes] = {}
+    for target, audiences in EXPORT_TARGETS.items():
+        target_tables = [
+            table for table in ir["tables"] if table["audience"] in audiences
+        ]
+        target_schema = [
+            {key: value for key, value in table.items() if key != "rows"}
+            for table in target_tables
+        ]
+        target_ids = {table["id"] for table in target_tables}
+        target_manifest = {
+            "format_version": manifest["format_version"],
+            "data_set_id": manifest["data_set_id"],
+            "protocol_version": manifest["protocol_version"],
+            "target": target.capitalize(),
+            "included_audiences": list(audiences),
+            "schema_hash": sha256_hex(target_schema),
+            "content_hash": sha256_hex(target_tables),
+            "shared_schema_hash": manifest["shared_schema_hash"],
+            "shared_content_hash": manifest["shared_content_hash"],
+            "tables": [
+                table for table in manifest["tables"] if table["id"] in target_ids
+            ],
+        }
+        target_debug = {
+            table["id"]: table["rows"] for table in target_tables
+        }
+        files[f"manifest.{target}.json"] = json_bytes(target_manifest)
+        files[f"debug.{target}.json"] = json_bytes(target_debug)
+    return files
+
+
+def is_sha256_hex(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def load_target_manifest(path: Path, expected_target: str) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"Manifest JSON 无效：{path}:{error.lineno}:{error.colno}。") from error
+    if not isinstance(value, dict):
+        raise ValueError(f"Manifest 根节点必须是对象：{path}。")
+
+    required_strings = ("data_set_id", "target")
+    for field in required_strings:
+        if not isinstance(value.get(field), str) or not value[field].strip():
+            raise ValueError(f"Manifest 字段 {field} 必须是非空字符串：{path}。")
+    required_integers = ("format_version", "protocol_version")
+    for field in required_integers:
+        field_value = value.get(field)
+        if not isinstance(field_value, int) or isinstance(field_value, bool) or field_value < 1:
+            raise ValueError(f"Manifest 字段 {field} 必须是正整数：{path}。")
+    if value["format_version"] != FORMAT_VERSION:
+        raise ValueError(
+            f"Manifest format_version 不受支持：{value['format_version']}，需要 {FORMAT_VERSION}。"
+        )
+    if value["target"] != expected_target:
+        raise ValueError(
+            f"Manifest target 错误：{path} 应为 {expected_target}，实际为 {value['target']}。"
+        )
+
+    expected_audiences = list(EXPORT_TARGETS[expected_target.lower()])
+    if value.get("included_audiences") != expected_audiences:
+        raise ValueError(
+            f"Manifest included_audiences 错误：{path} 应为 {expected_audiences}。"
+        )
+    for field in (
+        "schema_hash",
+        "content_hash",
+        "shared_schema_hash",
+        "shared_content_hash",
+    ):
+        if not is_sha256_hex(value.get(field)):
+            raise ValueError(f"Manifest 字段 {field} 必须是小写 SHA-256：{path}。")
+
+    tables = value.get("tables")
+    if not isinstance(tables, list):
+        raise ValueError(f"Manifest 字段 tables 必须是数组：{path}。")
+    allowed_audiences = set(expected_audiences)
+    table_ids: set[str] = set()
+    for index, table in enumerate(tables):
+        location = f"{path} tables[{index}]"
+        if not isinstance(table, dict):
+            raise ValueError(f"Manifest 表条目必须是对象：{location}。")
+        table_id = table.get("id")
+        if not isinstance(table_id, str) or not table_id.strip():
+            raise ValueError(f"Manifest 表 id 必须是非空字符串：{location}。")
+        if table_id in table_ids:
+            raise ValueError(f"Manifest 表 id 重复：{table_id}（{path}）。")
+        table_ids.add(table_id)
+        if table.get("audience") not in allowed_audiences:
+            raise ValueError(f"Manifest 表 audience 不属于目标范围：{location}。")
+        for field in ("schema_version", "row_count"):
+            field_value = table.get(field)
+            minimum = 1 if field == "schema_version" else 0
+            if (
+                not isinstance(field_value, int)
+                or isinstance(field_value, bool)
+                or field_value < minimum
+            ):
+                raise ValueError(f"Manifest 表字段 {field} 无效：{location}。")
+        if not is_sha256_hex(table.get("content_hash")):
+            raise ValueError(f"Manifest 表 content_hash 必须是小写 SHA-256：{location}。")
+        if table.get("artifact") != f"{table_id}.gdtb":
+            raise ValueError(f"Manifest 表 artifact 必须与 id 对应：{location}。")
+    return value
+
+
+def compare_target_manifests(client_path: Path, server_path: Path) -> tuple[str, int, int]:
+    client = load_target_manifest(client_path, "Client")
+    server = load_target_manifest(server_path, "Server")
+    differences: list[str] = []
+    if client["data_set_id"] != server["data_set_id"]:
+        differences.append(
+            f"数据集 ID 不一致：Client={client['data_set_id']}，Server={server['data_set_id']}"
+        )
+    if client["protocol_version"] != server["protocol_version"]:
+        differences.append(
+            "协议版本不一致："
+            f"Client={client['protocol_version']}，Server={server['protocol_version']}"
+        )
+    if client["shared_schema_hash"] != server["shared_schema_hash"]:
+        differences.append("共享结构摘要不一致")
+    if client["shared_content_hash"] != server["shared_content_hash"]:
+        differences.append("共享内容摘要不一致")
+
+    client_shared = {
+        table["id"]: table for table in client["tables"] if table["audience"] == "Shared"
+    }
+    server_shared = {
+        table["id"]: table for table in server["tables"] if table["audience"] == "Shared"
+    }
+    if client_shared.keys() != server_shared.keys():
+        differences.append(
+            "共享表集合不一致："
+            f"Client={sorted(client_shared)}，Server={sorted(server_shared)}"
+        )
+    for table_id in sorted(client_shared.keys() & server_shared.keys()):
+        client_table = client_shared[table_id]
+        server_table = server_shared[table_id]
+        if client_table["schema_version"] != server_table["schema_version"]:
+            differences.append(f"共享表 {table_id} 的 schema_version 不一致")
+        if client_table["content_hash"] != server_table["content_hash"]:
+            differences.append(f"共享表 {table_id} 的内容摘要不一致")
+        if client_table["row_count"] != server_table["row_count"]:
+            differences.append(f"共享表 {table_id} 的行数不一致")
+    if differences:
+        raise ValueError("Manifest 不兼容：\n- " + "\n- ".join(differences))
+    return client["data_set_id"], client["protocol_version"], len(client_shared)
+
+
 def compile_tables(
     profile_path: Path,
     source_dir: Path,
@@ -950,10 +1168,13 @@ def compile_tables(
     csharp_path: Path | None = None,
     *,
     check_only: bool = False,
+    verify_only: bool = False,
     selected_table: str | None = None,
 ) -> None:
-    if check_only and selected_table is not None:
-        raise ValueError("check 模式不支持 --table；检查始终覆盖全部数据表。")
+    if check_only and verify_only:
+        raise ValueError("check 与 verify-generated 模式不能同时使用。")
+    if (check_only or verify_only) and selected_table is not None:
+        raise ValueError("只读检查模式不支持单表范围；检查始终覆盖全部数据表。")
     if check_only:
         if output is not None or csharp_path is not None:
             raise ValueError("check 模式不能指定输出目录或 C# 文件。")
@@ -1026,6 +1247,7 @@ def compile_tables(
     }
     if selected_table is not None:
         report["selected_table"] = selected_table
+    export_target_files = build_export_target_files(ir, manifest)
 
     if check_only:
         canonical_bytes(ir)
@@ -1038,6 +1260,32 @@ def compile_tables(
     assert output is not None
     assert csharp_path is not None
     csharp_text = generate_csharp(profile)
+    if verify_only:
+        expected_files = {
+            "normalized.ir.json": json_bytes(ir),
+            "debug.json": json_bytes(
+                {table["id"]: table["rows"] for table in ir["tables"]}
+            ),
+            "manifest.json": json_bytes(manifest),
+            **export_target_files,
+            **{f"{table_id}.gdtb": binary for table_id, binary in binaries.items()},
+        }
+        all_report = dict(report)
+        expected_files["build-report.json"] = json_bytes(all_report)
+        report_variants = {json_bytes(all_report)}
+        for table_id in table_ids:
+            single_report = dict(all_report)
+            single_report["scope"] = "single"
+            single_report["selected_table"] = table_id
+            report_variants.add(json_bytes(single_report))
+        verify_generated_files(
+            output,
+            csharp_path,
+            expected_files,
+            csharp_text,
+            report_variants,
+        )
+        return
     if selected_table is not None:
         validate_single_table_baseline(output, ir, manifest, binaries, selected_table)
         files = {
@@ -1050,6 +1298,9 @@ def compile_tables(
             output / f"{selected_table}.gdtb": binaries[selected_table],
             csharp_path: csharp_text.encode("utf-8"),
         }
+        files.update(
+            {output / relative_path: content for relative_path, content in export_target_files.items()}
+        )
         commit_files(files)
         return
 
@@ -1062,40 +1313,50 @@ def compile_tables(
             (staged / f"{table_id}.gdtb").write_bytes(binary)
         write_json(staged / "manifest.json", manifest)
         write_json(staged / "build-report.json", report)
+        for relative_path, content in export_target_files.items():
+            (staged / relative_path).write_bytes(content)
         commit_outputs(staged, output, csharp_path, csharp_text)
     finally:
         if staged.exists():
             shutil.rmtree(staged)
 
 
-def add_input_arguments(parser: argparse.ArgumentParser, *, generate: bool) -> None:
+def add_input_arguments(parser: argparse.ArgumentParser, *, with_outputs: bool) -> None:
     parser.add_argument("--build-config", type=Path, help="可移植的 DataTable Build Config。")
     parser.add_argument("--profile", type=Path, help="DataTable Profile 路径。")
     parser.add_argument("--source", type=Path, help="CSV 源目录。")
-    if generate:
+    if with_outputs:
         parser.add_argument("--output", type=Path, help="数据产物目录。")
         parser.add_argument("--csharp", type=Path, help="生成的 C# 文件。")
-        parser.add_argument("--table", help="仅提交指定表；仍会校验全部数据表。")
+
+
+def add_generate_arguments(parser: argparse.ArgumentParser) -> None:
+    add_input_arguments(parser, with_outputs=True)
+    parser.add_argument("--table", help="仅提交指定表；仍会校验全部数据表。")
 
 
 def resolve_command_paths(
     arguments: argparse.Namespace,
     *,
-    generate: bool,
+    with_outputs: bool,
 ) -> tuple[Path, Path, Path | None, Path | None]:
     explicit_values = [arguments.profile, arguments.source]
-    if generate:
+    if with_outputs:
         explicit_values.extend([arguments.output, arguments.csharp])
     if arguments.build_config is not None:
         if any(value is not None for value in explicit_values):
             raise ValueError("--build-config 不能与显式路径参数同时使用。")
         return load_build_config(arguments.build_config.resolve())
     if any(value is None for value in explicit_values):
-        required = "--profile、--source、--output 和 --csharp" if generate else "--profile 和 --source"
+        required = (
+            "--profile、--source、--output 和 --csharp"
+            if with_outputs
+            else "--profile 和 --source"
+        )
         raise ValueError(f"未使用 --build-config 时必须提供 {required}。")
     profile = arguments.profile.resolve()
     source = arguments.source.resolve()
-    if not generate:
+    if not with_outputs:
         return profile, source, None, None
     return profile, source, arguments.output.resolve(), arguments.csharp.resolve()
 
@@ -1104,23 +1365,45 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="GoDo DataTable 编译前端。")
     commands = parser.add_subparsers(dest="command", required=True)
     generate_parser = commands.add_parser("generate", help="校验并生成全部产物。")
-    add_input_arguments(generate_parser, generate=True)
+    add_generate_arguments(generate_parser)
     check_parser = commands.add_parser("check", help="完整校验和构建，但不写入产物。")
-    add_input_arguments(check_parser, generate=False)
+    add_input_arguments(check_parser, with_outputs=False)
+    verify_parser = commands.add_parser(
+        "verify-generated",
+        help="只读验证现有生成产物与当前输入完全一致。",
+    )
+    add_input_arguments(verify_parser, with_outputs=True)
+    compare_parser = commands.add_parser(
+        "compare-manifests",
+        help="验证 Client 与 Server 目标 Manifest 的共享数据兼容性。",
+    )
+    compare_parser.add_argument("--client", type=Path, required=True, help="Client 目标 Manifest。")
+    compare_parser.add_argument("--server", type=Path, required=True, help="Server 目标 Manifest。")
     arguments = parser.parse_args()
     resolved_output: Path | None = None
+    compatibility: tuple[str, int, int] | None = None
     try:
-        profile, source, output, csharp = resolve_command_paths(
-            arguments,
-            generate=arguments.command == "generate",
-        )
-        if arguments.command == "check":
-            compile_tables(profile, source, check_only=True)
+        if arguments.command == "compare-manifests":
+            compatibility = compare_target_manifests(
+                arguments.client.resolve(),
+                arguments.server.resolve(),
+            )
         else:
-            assert output is not None
-            assert csharp is not None
-            resolved_output = output
-            compile_tables(profile, source, output, csharp, selected_table=arguments.table)
+            profile, source, output, csharp = resolve_command_paths(
+                arguments,
+                with_outputs=arguments.command != "check",
+            )
+            if arguments.command == "check":
+                compile_tables(profile, source, check_only=True)
+            elif arguments.command == "verify-generated":
+                assert output is not None
+                assert csharp is not None
+                compile_tables(profile, source, output, csharp, verify_only=True)
+            else:
+                assert output is not None
+                assert csharp is not None
+                resolved_output = output
+                compile_tables(profile, source, output, csharp, selected_table=arguments.table)
     except CompileFailure as failure:
         for diagnostic in failure.diagnostics:
             print(diagnostic.format())
@@ -1131,6 +1414,16 @@ def main() -> int:
         return 1
     if arguments.command == "check":
         print("[DataTableCompiler] CHECK PASS")
+    elif arguments.command == "verify-generated":
+        print("[DataTableCompiler] VERIFY GENERATED PASS")
+    elif arguments.command == "compare-manifests":
+        assert compatibility is not None
+        data_set_id, protocol_version, shared_count = compatibility
+        print(
+            "[DataTableCompiler] MANIFEST COMPATIBLE: "
+            f"data_set_id={data_set_id}; protocol_version={protocol_version}; "
+            f"shared_tables={shared_count}"
+        )
     else:
         print(f"[DataTableCompiler] GENERATE PASS: {resolved_output}")
     return 0

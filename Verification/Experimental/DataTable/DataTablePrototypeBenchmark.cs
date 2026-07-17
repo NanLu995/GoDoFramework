@@ -38,6 +38,8 @@ public sealed partial class DataTablePrototypeBenchmark : Node
             string compressedItemsPath = Path.Combine(compressionDirectory, "Item.gdtb");
 
             VerifySemantics(categoriesPath, itemsPath);
+            VerifyResPathSemantics();
+            VerifyPckSemantics(categoriesPath, itemsPath);
             VerifyCorruptionFailures(outputDirectory);
             VerifyCompressedSemantics(
                 compressedCategoriesPath,
@@ -49,7 +51,7 @@ public sealed partial class DataTablePrototypeBenchmark : Node
             BenchmarkLoad("Zstd", compressedCategoriesPath, compressedItemsPath);
             BenchmarkLookup("None", itemsPath);
             BenchmarkLookup("Zstd", compressedItemsPath);
-            GD.Print("[DataTablePrototypeBenchmark] PASS (7/7)");
+            GD.Print("[DataTablePrototypeBenchmark] PASS (9/9)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -77,6 +79,44 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         Assert(items.Get("item_00005").Description is null, "null token 语义错误");
         Assert(!items.TryGet("missing", out _), "缺失主键查询错误");
         GD.Print("[DataTablePrototypeBenchmark] PASS: 二进制语义");
+    }
+
+    private static void VerifyResPathSemantics()
+    {
+        ItemCategoryTable categories = DataTablePrototypeLoader.LoadItemCategory(
+            "res://Verification/Experimental/DataTable/Artifacts/output/ItemCategory.gdtb");
+        ItemTable items = DataTablePrototypeLoader.LoadItem(
+            "res://Verification/Experimental/DataTable/Artifacts/output/Item.gdtb");
+
+        Assert(categories.Count == 4, "res:// ItemCategory 行数不正确");
+        Assert(items.Count == ExpectedItemCount, "res:// Item 行数不正确");
+        GD.Print("[DataTablePrototypeBenchmark] PASS: res:// 读取语义");
+    }
+
+    private static void VerifyPckSemantics(string categoriesPath, string itemsPath)
+    {
+        string pckPath = ProjectSettings.GlobalizePath("user://datatable-prototype-test.pck");
+        if (File.Exists(pckPath))
+            File.Delete(pckPath);
+        using (var packer = new PckPacker())
+        {
+            Assert(packer.PckStart(pckPath) == Error.Ok, "测试 PCK 创建失败");
+            Assert(
+                packer.AddFile("res://__godo_datatable_pck_test/ItemCategory.gdtb", categoriesPath) == Error.Ok,
+                "ItemCategory 加入测试 PCK 失败");
+            Assert(
+                packer.AddFile("res://__godo_datatable_pck_test/Item.gdtb", itemsPath) == Error.Ok,
+                "Item 加入测试 PCK 失败");
+            Assert(packer.Flush() == Error.Ok, "测试 PCK 写入失败");
+        }
+        Assert(ProjectSettings.LoadResourcePack(pckPath), "测试 PCK 加载失败");
+        ItemCategoryTable categories = DataTablePrototypeLoader.LoadItemCategory(
+            "res://__godo_datatable_pck_test/ItemCategory.gdtb");
+        ItemTable items = DataTablePrototypeLoader.LoadItem(
+            "res://__godo_datatable_pck_test/Item.gdtb");
+        Assert(categories.Count == 4, "PCK ItemCategory 行数不正确");
+        Assert(items.Count == ExpectedItemCount, "PCK Item 行数不正确");
+        GD.Print("[DataTablePrototypeBenchmark] PASS: PCK res:// 读取语义");
     }
 
     private static void VerifyCorruptionFailures(string outputDirectory)

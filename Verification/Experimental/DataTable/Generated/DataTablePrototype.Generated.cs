@@ -6,6 +6,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using Godot;
+using GodotFileAccess = Godot.FileAccess;
 
 #nullable enable
 
@@ -145,7 +146,15 @@ internal static class DataTablePrototypeLoader
 
     private static ReaderContext Open(string path, string tableId, ushort schemaVersion, ushort fieldCount)
     {
-        byte[] data = File.ReadAllBytes(path);
+        using GodotFileAccess? file = GodotFileAccess.Open(path, GodotFileAccess.ModeFlags.Read);
+        if (file == null)
+            throw new IOException($"无法打开 DataTable，Error={GodotFileAccess.GetOpenError()}：{path}");
+        ulong fileLength = file.GetLength();
+        if (fileLength > int.MaxValue)
+            throw new InvalidDataException($"DataTable 文件超过 2 GiB 读取上限：{path}");
+        byte[] data = file.GetBuffer(checked((long)fileLength));
+        if (data.Length != checked((int)fileLength))
+            throw new IOException($"DataTable 未完整读取：{path}");
         using var headerStream = new MemoryStream(data, writable: false);
         using var headerReader = new BinaryReader(headerStream, Encoding.UTF8, leaveOpen: true);
         if (!headerReader.ReadBytes(4).AsSpan().SequenceEqual("GDTB"u8))

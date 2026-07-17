@@ -1,6 +1,6 @@
 # DataTable 设计
 
-> 状态：整体方案已确认，阶段 A / B 原型和阶段 C.1 / C.2 / C.3 编译前端、Editor 接入与安全单表生成已实现，但尚未进入稳定基线。本文中的具体类型名仍需通过真实业务表与 Export 流程验证后才能成为 public API。
+> 状态：整体方案已确认，阶段 A / B 原型和阶段 C.1 至 C.6 编译前端、Editor 接入、安全单表生成、只读过期检查、目标导出过滤、可靠发布门禁与跨语言 Manifest 兼容契约已实现，但尚未进入稳定基线。本文中的具体类型名仍需通过真实业务表与完整 ExportRelease 流程验证后才能成为 public API。
 
 ## 1. 定位
 
@@ -314,7 +314,15 @@ DataTable 编译器先产生与运行时语言无关的规范化 IR 和 Manifest
 
 阶段 C.1 已将 Python 编译前端放入 `addons/godo_framework/Tools/DataTable/`，提供整套 `generate` 和真正不写项目文件的 `check`。阶段 C.2 增加相对配置目录的可移植 Build Config，并由唯一 GoDo EditorPlugin 在后台线程调用 Python；检查不写入，生成先展示准确目标并确认，成功后刷新编辑器文件系统。工具拒绝绝对路径、`..` 逃逸和可能覆盖源数据的危险输出目录。
 
-阶段 C.3 在不拆分聚合 C# 的前提下提供 `generate --table <ID>`。它始终全量校验输入和构建候选，只提交选中 `.gdtb`、数据集级元数据，以及内容变化的聚合 C#；提交前必须证明已有 IR / Manifest 表集合一致、未选表结构与二进制均未过期。首次生成、增删表、未选表变化或产物缺失会被拒绝并要求生成全部。局部变化通过多文件事务回滚，未选表与未变化 C# 不改写。Godot Zstd 正式目标、CI 过期检查与 Export 过滤仍未接入。
+阶段 C.3 在不拆分聚合 C# 的前提下提供 `generate --table <ID>`。它始终全量校验输入和构建候选，只提交选中 `.gdtb`、数据集级元数据，以及内容变化的聚合 C#；提交前必须证明已有 IR / Manifest 表集合一致、未选表结构与二进制均未过期。首次生成、增删表、未选表变化或产物缺失会被拒绝并要求生成全部。局部变化通过多文件事务回滚，未选表与未变化 C# 不改写。Godot Zstd 正式目标、CI 工作流与 Export 过滤仍未接入。
+
+阶段 C.4 提供 `verify-generated`，复用完整解析、跨表校验、摘要、二进制和 C# 构建流程，在内存中得到预期状态后只读比较全部生成文件。它接受全量或安全单表生成留下的合法报告，拒绝缺失、额外、被修改或与当前源数据 / Profile 不一致的产物，并以非零退出码供本地、手动工作流或 CI 使用。本阶段只提供可组合的命令能力，不修改仓库工作流触发规则；Export 过滤仍未接入。
+
+阶段 C.5.1 为导出准备 `manifest.client.json` / `debug.client.json` 与 `manifest.server.json` / `debug.server.json`：客户端目标只包含 `Shared + ClientOnly`，权威服务器目标只包含 `Shared + ServerOnly`，共享摘要在两端保持一致。安全单表生成和 `verify-generated` 同时维护这些产物。生成 C# 改用 Godot `FileAccess`，已验证普通绝对路径和项目内 `res://`；PCK 实际读取、`dedicated_server` 目标选择、导出前过期阻断和源文件过滤属于 C.5.2。
+
+阶段 C.5.2 注册 DataTable `EditorExportPlugin`，普通 preset 选择 Client，带 `dedicated_server` feature tag 的 preset 选择 Server；Release 包只加入目标 `.gdtb` 与 Manifest，Debug 可额外加入目标 Debug JSON，并排除 Build Config、Profile、CSV 和完整生成目录。Windows 隔离项目已实际验证 Client / Server PCK 内容与 PCK 内 `res://` 读取。Godot 4.7 虽将 `EXPORT_MESSAGE_ERROR` 记录为错误，但 `--export-pack` 实测仍可能成功返回并留下包，且 `EditorExportPlugin` 没有公开中止接口；因此正式发布通过 `godo_datatable_export.py` 先校验全部 Build Config，成功后才启动 Godot，以“未启动导出”保证过期数据阻断。
+
+阶段 C.6 固化语言无关的目标 Manifest 契约并提供 `compare-manifests`。兼容性只要求两端的格式、数据集、协议和 Shared 表结构/内容严格一致，明确忽略 ClientOnly / ServerOnly 及目标级摘要的预期差异；错误 target、字段、重复 ID、JSON 和摘要差异均返回非零退出码。非 Godot 服务端可直接消费同次编译生成的 Server Manifest 与规范化 IR，不要求解析 Godot `.gdtb`，也不把 KBEngine-Nex 或任何握手策略引入框架。摘要只用于一致性检测，不提供签名或防篡改能力。
 
 ### 阶段 D：后续能力
 

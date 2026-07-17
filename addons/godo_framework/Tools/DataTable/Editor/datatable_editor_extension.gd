@@ -2,6 +2,7 @@
 extends RefCounted
 
 const TOOL_PATH := "res://addons/godo_framework/Tools/DataTable/godo_datatable.py"
+const EXPORT_PLUGIN_SCRIPT := preload("res://addons/godo_framework/Tools/DataTable/Editor/datatable_export_plugin.gd")
 const DEFAULT_BUILD_CONFIG := "res://DataTables/datatable.build.json"
 const SETTINGS_SECTION := "godo_framework/datatable"
 const CONFIG_METADATA_KEY := "build_config_path"
@@ -9,6 +10,7 @@ const PYTHON_SETTING := "godo_framework/datatable/python_executable"
 const MAX_OUTPUT_CHARACTERS := 65536
 
 var _context
+var _export_plugin: EditorExportPlugin
 var _dialog: AcceptDialog
 var _generate_confirmation: ConfirmationDialog
 var _config_file_dialog: EditorFileDialog
@@ -29,7 +31,12 @@ var _pending_table := ""
 
 func activate(context) -> Error:
 	_context = context
-	return _context.add_menu_action("open", "DataTable...", _open_dialog)
+	var menu_error: Error = _context.add_menu_action("open", "DataTable...", _open_dialog)
+	if menu_error != OK:
+		return menu_error
+	_export_plugin = EXPORT_PLUGIN_SCRIPT.new()
+	_context.add_export_plugin(_export_plugin)
+	return OK
 
 
 func deactivate() -> void:
@@ -38,6 +45,9 @@ func deactivate() -> void:
 	if _thread != null and _thread.is_started():
 		_thread.wait_to_finish()
 	_thread = null
+	if _export_plugin != null and _context != null:
+		_context.remove_export_plugin(_export_plugin)
+	_export_plugin = null
 	if is_instance_valid(_dialog):
 		_dialog.queue_free()
 	_dialog = null

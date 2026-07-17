@@ -105,11 +105,13 @@ def verify_invalid_cases(sources: Path) -> None:
 
 def run_compiler(*arguments: str, expected_exit: int = 0) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
-        [sys.executable, str(TOOL_PATH), *arguments],
+        [sys.executable, "-X", "utf8", str(TOOL_PATH), *arguments],
         cwd=PROJECT_ROOT,
         check=False,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     if result.returncode != expected_exit:
         raise RuntimeError(
@@ -236,6 +238,13 @@ def verify_cli_modes(sources: Path) -> None:
     assert_equal("single", single_report.get("scope"), "CLI --table 未进入单表生成")
     assert_equal("Item", single_report.get("selected_table"), "CLI --table 未传递目标表")
     print("[DataTablePrototype] PASS: CLI Build Config 单表生成")
+
+    before_verify = digest_files(root)
+    verify_result = run_compiler("verify-generated", "--build-config", str(build_config))
+    assert_equal(before_verify, digest_files(root), "verify-generated 改写了文件")
+    if "VERIFY GENERATED PASS" not in verify_result.stdout:
+        raise RuntimeError("verify-generated 未输出成功标记。")
+    print("[DataTablePrototype] PASS: CLI 只读验证单表生成后的有效产物")
 
     missing_config = root / "missing-field.build.json"
     missing_config.write_text('{"format_version":1}\n', encoding="utf-8")
@@ -447,6 +456,235 @@ def verify_file_commit_rollback() -> None:
     print("[DataTablePrototype] PASS: 多文件提交失败回滚")
 
 
+def verify_generated_detection(sources: Path) -> None:
+    root = ARTIFACT_ROOT / "scratch" / "verify-generated"
+    source = root / "source"
+    output = root / "output"
+    profile = root / "profile.json"
+    csharp = root / "DataTables.Generated.txt"
+    shutil.copytree(sources / "small", source)
+    shutil.copy2(PROFILE_PATH, profile)
+    compile_tables(profile, source, output, csharp)
+
+    def assert_stale(expected_detail: str, message: str) -> None:
+        before = digest_files(root)
+        result = run_compiler(
+            "verify-generated",
+            "--profile",
+            str(profile),
+            "--source",
+            str(source),
+            "--output",
+            str(output),
+            "--csharp",
+            str(csharp),
+            expected_exit=1,
+        )
+        if "生成产物不是最新状态" not in result.stderr or expected_detail not in result.stderr:
+            raise RuntimeError(f"{message}未产生明确差异：{result.stderr}")
+        assert_equal(before, digest_files(root), f"{message}检查改写了文件")
+
+    items = source / "Items.csv"
+    original_items = items.read_bytes()
+    items.write_text(
+        items.read_text(encoding="utf-8").replace("测试物品 1", "源数据已变化", 1),
+        encoding="utf-8",
+    )
+    assert_stale("内容过期", "数据过期")
+    items.write_bytes(original_items)
+    print("[DataTablePrototype] PASS: verify-generated 检出数据过期")
+
+    profile_value = json.loads(profile.read_text(encoding="utf-8"))
+    profile_value["tables"][1]["schema_version"] += 1
+    profile.write_text(json.dumps(profile_value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    assert_stale("内容过期", "结构过期")
+    shutil.copy2(PROFILE_PATH, profile)
+    print("[DataTablePrototype] PASS: verify-generated 检出结构过期")
+
+    missing_path = output / "Item.gdtb"
+    missing_bytes = missing_path.read_bytes()
+    missing_path.unlink()
+    assert_stale("缺少", "文件缺失")
+    missing_path.write_bytes(missing_bytes)
+    print("[DataTablePrototype] PASS: verify-generated 检出文件缺失")
+
+    extra_path = output / "obsolete.gdtb"
+    extra_path.write_bytes(b"obsolete")
+    assert_stale("额外文件", "额外文件")
+    extra_path.unlink()
+    print("[DataTablePrototype] PASS: verify-generated 检出额外文件")
+
+    original_csharp = csharp.read_bytes()
+    csharp.write_bytes(original_csharp + b"// stale\n")
+    assert_stale(str(csharp), "C# 过期")
+    csharp.write_bytes(original_csharp)
+    print("[DataTablePrototype] PASS: verify-generated 检出 C# 过期")
+
+
+def verify_export_target_artifacts(sources: Path) -> None:
+    root = ARTIFACT_ROOT / "scratch" / "export-targets"
+    source = root / "source"
+    output = root / "output"
+    profile = root / "profile.json"
+    csharp = root / "DataTables.Generated.txt"
+    shutil.copytree(sources / "small", source)
+    profile_value = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    profile_value["tables"].extend(
+        [
+            {
+                "id": "ClientSetting",
+                "source": "ClientSettings.csv",
+                "schema_version": 1,
+                "audience": "ClientOnly",
+                "primary_key": "id",
+                "fields": [
+                    {"name": "id", "type": "string", "required": True},
+                    {"name": "value", "type": "string", "required": True},
+                ],
+            },
+            {
+                "id": "ServerSetting",
+                "source": "ServerSettings.csv",
+                "schema_version": 1,
+                "audience": "ServerOnly",
+                "primary_key": "id",
+                "fields": [
+                    {"name": "id", "type": "string", "required": True},
+                    {"name": "value", "type": "string", "required": True},
+                ],
+            },
+        ]
+    )
+    profile.write_text(json.dumps(profile_value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (source / "ClientSettings.csv").write_text("id,value\nclient,visible\n", encoding="utf-8")
+    (source / "ServerSettings.csv").write_text("id,value\nserver,secret\n", encoding="utf-8")
+    (root / "datatable.build.json").write_text(
+        json.dumps(
+            {
+                "format_version": 1,
+                "profile": "profile.json",
+                "source": "source",
+                "output": "output",
+                "csharp": "DataTables.Generated.txt",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    compile_tables(profile, source, output, csharp)
+
+    client_manifest = json.loads((output / "manifest.client.json").read_text(encoding="utf-8"))
+    server_manifest = json.loads((output / "manifest.server.json").read_text(encoding="utf-8"))
+    client_ids = {table["id"] for table in client_manifest["tables"]}
+    server_ids = {table["id"] for table in server_manifest["tables"]}
+    if "ClientSetting" not in client_ids or "ServerSetting" in client_ids:
+        raise RuntimeError(f"Client Manifest audience 过滤错误：{sorted(client_ids)}")
+    if "ServerSetting" not in server_ids or "ClientSetting" in server_ids:
+        raise RuntimeError(f"Server Manifest audience 过滤错误：{sorted(server_ids)}")
+    if not {"Item", "ItemCategory"}.issubset(client_ids & server_ids):
+        raise RuntimeError("Shared 表未同时进入 Client / Server Manifest。")
+    client_debug = json.loads((output / "debug.client.json").read_text(encoding="utf-8"))
+    server_debug = json.loads((output / "debug.server.json").read_text(encoding="utf-8"))
+    if "ServerSetting" in client_debug or "ClientSetting" in server_debug:
+        raise RuntimeError("目标 Debug JSON 泄漏了另一端专属表。")
+    print("[DataTablePrototype] PASS: Client / Server 导出产物 audience 隔离")
+
+    client_path = output / "manifest.client.json"
+    server_path = output / "manifest.server.json"
+    compatible = run_compiler(
+        "compare-manifests",
+        "--client",
+        str(client_path),
+        "--server",
+        str(server_path),
+    )
+    if "MANIFEST COMPATIBLE" not in compatible.stdout:
+        raise RuntimeError("兼容 Manifest 未输出成功摘要。")
+    print("[DataTablePrototype] PASS: Client / Server Manifest 兼容")
+
+    compatibility_cases = root / "compatibility-cases"
+    compatibility_cases.mkdir()
+
+    def assert_incompatible(
+        case_name: str,
+        expected_text: str,
+        *,
+        client_value: dict[str, object] | None = None,
+        server_value: dict[str, object] | None = None,
+        invalid_server_json: str | None = None,
+    ) -> None:
+        case_client = compatibility_cases / f"{case_name}.client.json"
+        case_server = compatibility_cases / f"{case_name}.server.json"
+        case_client.write_text(
+            json.dumps(client_value or client_manifest, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        if invalid_server_json is None:
+            case_server.write_text(
+                json.dumps(server_value or server_manifest, ensure_ascii=False),
+                encoding="utf-8",
+            )
+        else:
+            case_server.write_text(invalid_server_json, encoding="utf-8")
+        result = run_compiler(
+            "compare-manifests",
+            "--client",
+            str(case_client),
+            "--server",
+            str(case_server),
+            expected_exit=1,
+        )
+        if expected_text not in result.stdout + result.stderr:
+            raise RuntimeError(
+                f"Manifest 失败样例 {case_name} 缺少诊断 {expected_text!r}。"
+            )
+        print(f"[DataTablePrototype] PASS: Manifest {case_name} 拒绝")
+
+    mismatched_data_set = dict(server_manifest)
+    mismatched_data_set["data_set_id"] = "prototype.other"
+    assert_incompatible(
+        "data_set_id",
+        "数据集 ID 不一致",
+        server_value=mismatched_data_set,
+    )
+    mismatched_schema = dict(server_manifest)
+    mismatched_schema["shared_schema_hash"] = "0" * 64
+    assert_incompatible(
+        "shared_schema",
+        "共享结构摘要不一致",
+        server_value=mismatched_schema,
+    )
+    mismatched_content = dict(server_manifest)
+    mismatched_content["shared_content_hash"] = "0" * 64
+    assert_incompatible(
+        "shared_content",
+        "共享内容摘要不一致",
+        server_value=mismatched_content,
+    )
+    wrong_target = dict(server_manifest)
+    wrong_target["target"] = "Client"
+    assert_incompatible("target", "target 错误", server_value=wrong_target)
+    missing_field = dict(server_manifest)
+    del missing_field["protocol_version"]
+    assert_incompatible(
+        "missing_field",
+        "protocol_version 必须是正整数",
+        server_value=missing_field,
+    )
+    assert_incompatible(
+        "invalid_json",
+        "Manifest JSON 无效",
+        invalid_server_json="{invalid",
+    )
+
+    generated = csharp.read_text(encoding="utf-8")
+    if "GodotFileAccess.Open" not in generated or "File.ReadAllBytes" in generated:
+        raise RuntimeError("生成读取器未切换到支持 res:// / PCK 的 Godot FileAccess。")
+    print("[DataTablePrototype] PASS: 生成读取器使用 Godot FileAccess")
+
+
 def build_performance_artifacts(sources: Path) -> None:
     output = ARTIFACT_ROOT / "output"
     compile_tables(PROFILE_PATH, sources / "performance", output, GENERATED_CSHARP)
@@ -529,9 +767,11 @@ def main() -> int:
     verify_output_rollback()
     verify_single_table_generation(sources)
     verify_file_commit_rollback()
+    verify_generated_detection(sources)
+    verify_export_target_artifacts(sources)
     build_performance_artifacts(sources)
     build_corruption_artifacts()
-    print("[DataTablePrototype] PASS (26/26)")
+    print("[DataTablePrototype] PASS (41/41)")
     return 0
 
 

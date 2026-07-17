@@ -22,6 +22,14 @@ func get_editor_interface():
 	return _editor_interface
 
 
+func add_export_plugin(plugin: EditorExportPlugin) -> void:
+	_owner.add_export_plugin(plugin)
+
+
+func remove_export_plugin(plugin: EditorExportPlugin) -> void:
+	_owner.remove_export_plugin(plugin)
+
+
 func add_autoload_singleton(name: String, path: String) -> void:
 	_owner.add_autoload_singleton(name, path)
 
