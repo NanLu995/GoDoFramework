@@ -33,7 +33,7 @@
 
 ## C# 与 Godot 规则
 
-- 类/方法 PascalCase，私有字段 `_camelCase`，常量 PascalCase；public API 提供 XML 注释。
+- 类/方法 PascalCase，私有字段 `_camelCase`，常量 PascalCase；public API 必须提供面向 API 文档读者的 XML 注释，准确说明用途、参数、返回值、失败/异常与关键生命周期约束，不能只复述成员名称。
 - 类名、方法名、字段名、事件名、资源键、场景名和目录名优先使用计算机/工程语义，少用口语化自然语言；命名应表达类型、职责、生命周期或数据含义，例如 `ProcedureContext`、`SaveSlot`、`ResourceKey`，避免 `DoSomething`、`HandleStuff`、`GameThing`、`Shell` 这类含义松散或需要上下文猜测的名称。
 - 缩写遵循项目既有 C# 风格：类型和成员名使用 `Ui`、`Bgm`、`Sfx` 这类 PascalCase 形式；文档正文描述模块概念时可使用 `UI`、`BGM`、`SFX`。
 - `Hub`、`Service`、`Controller`、`Adapter`、`Factory`、`Codec`、`Operation`、`Status` 等后缀只在职责与生命周期确实匹配时使用；不要为听起来像框架而套后缀。
@@ -62,6 +62,7 @@
 - 不修改 `.csproj`、`project.godot`、`export_presets.cfg`，除非我明确要求。
 - 不删除、重命名或改变现有 public API / 信号语义，除非我明确同意。
 - 不引入 NuGet 包，除非先询问。
+- 第三方插件目录及其源码默认只读，不直接修改；集成、兼容与修复应放在 GoDoFramework 自有适配层、配置或独立扩展中。确需修改第三方源码时，必须先说明原因、升级影响与维护成本，并获得明确确认。
 - 不自动执行 git commit / push。
 - 执行 git commit 时，遵循 Conventional Commits(约定式提交) 规范，类型用英文，范围都可，描述、脚注默认使用简体中文；用户指定其他语言时按其要求执行。
 
@@ -80,6 +81,7 @@
 
 - 每个独立模块必须有 `USAGE.md`，说明定位、适用/非适用场景、上手、public API、失败语义、生命周期/线程、性能与误用。
 - public API、失败语义、生命周期或依赖变化时同步更新 `USAGE.md`，示例必须与源码一致。
+- 新增或修改 public API 后，除编译外还必须检查生成的 API Reference，确认 XML 注释完整、链接可解析、签名展示清晰且没有文档生成警告；后续 API 文档专项校验也按此标准执行。
 - 修改后默认可运行 `dotnet build` 和不依赖编辑器的测试；会修改项目数据、场景或外部状态的测试必须先询问。
 - 通过 Codex 启动 Godot 编辑器、场景或自动化测试时，必须确保进程可访问 `AppData/Roaming/Godot` 与 `AppData/Local/Godot`；受限环境会导致 Godot 4.7 在启动阶段原生崩溃。
 - 若 Godot 在场景逻辑执行前统一出现 `signal 11`，先检查 AppData 访问权限与残留 Godot 进程，再判断是否为代码回归；测试失败或卡住后应及时清理本次启动的残留进程，但不得关闭用户自行启动的编辑器。
