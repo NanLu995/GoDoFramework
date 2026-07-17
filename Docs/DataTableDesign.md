@@ -285,7 +285,9 @@ DataTable 编译器先产生与运行时语言无关的规范化 IR 和 Manifest
 - 选择 Item 或 Enemy 等真实业务表；
 - 完成 Profile、模板、CSV 解析和精确诊断；
 - 生成强类型 Row / Table 和未压缩 `.gdtb`；
-- 验证确定性、查询、失败不覆盖旧产物与基础性能。
+- 验证确定性、查询、失败不覆盖旧产物与基础性能；
+- 在进入压缩前验证 magic、格式版本、Schema 版本、payload 摘要、截断文件、字符串池索引和主键索引的拒绝语义；
+- 分别记录 Windows Debug 与 Release IL/JIT 基线，且不把临时程序集替换结果表述为 ExportRelease 包体性能。
 
 ### 阶段 B：压缩与构建报告
 

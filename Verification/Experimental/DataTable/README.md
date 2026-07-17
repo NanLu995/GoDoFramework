@@ -17,6 +17,8 @@ E:\Godot\Godot_v4.7\Godot_v4.7-stable_mono_win64_console.exe --headless --path .
 - 缺列、数据行少列、重复键、非法 enum、越界和无效外键均产生精确诊断；
 - 失败生成不会覆盖上一次成功产物。
 
+Headless 场景还会拒绝 magic、格式版本、Schema 版本、payload 摘要、截断文件、字符串池索引和主键索引异常。后两类样例会重新计算 payload SHA，确保测试实际进入内部边界检查。
+
 生成数据和二进制位于本目录 `Artifacts/`，不纳入版本控制。`Generated/DataTablePrototype.Generated.cs` 由原型编译器生成并参与项目编译，禁止手工修改。
 
 ## 当前边界
@@ -29,6 +31,13 @@ E:\Godot\Godot_v4.7\Godot_v4.7-stable_mono_win64_console.exe --headless --path .
 
 ## 当前 Windows 证据
 
-2026-07-17 在 Godot 4.7 Mono Debug 构建中，10,004 行的两张表生成未压缩二进制共 812,979 bytes。一次 Headless 样本中加载耗时 9.553 ms、总托管分配 4,088,648 bytes、完整 GC 后保留托管内存约 1,851,808 bytes；预生成字符串键的 100,000 次查询耗时 11.037 ms、托管分配为 0。
+2026-07-17 在 Godot 4.7 Mono、.NET 8 和 Windows 环境中，10,004 行的两张表生成未压缩二进制共 812,979 bytes。以下均为一次 Headless 样本：
 
-该数据只用于证明原型路径可测，不是性能承诺或压缩 `Auto` 阈值。Release、其他硬件和移动平台仍需单独基准。
+| 构建 | 加载耗时 | 总托管分配 | GC 后保留托管内存 | 100,000 次查询 |
+|---|---:|---:|---:|---:|
+| Debug | 9.616 ms | 4,088,648 bytes | 1,851,808 bytes | 11.042 ms / 0 B |
+| Release | 2.945 ms | 4,088,648 bytes | 1,851,808 bytes | 1.822 ms / 0 B |
+
+Release 样本通过构建 Release 程序集并临时放入 Godot Headless 的 Debug 加载位置获得；验证结束后已经恢复普通 Debug 构建。它验证 Release IL/JIT 行为，不是正式 ExportRelease 包体性能。
+
+该数据只用于证明原型路径可测，不是性能承诺或压缩 `Auto` 阈值。正式 ExportRelease、其他硬件和移动平台仍需单独基准。

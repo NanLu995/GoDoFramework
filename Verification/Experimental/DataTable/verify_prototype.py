@@ -5,10 +5,11 @@ from __future__ import annotations
 
 import hashlib
 import shutil
+import struct
 import sys
 from pathlib import Path
 
-from compile_tables import CompileFailure, compile_tables
+from compile_tables import FORMAT_VERSION, CompileFailure, compile_tables
 from generate_fixtures import write_invalid_sets, write_valid_set
 
 
@@ -99,6 +100,67 @@ def build_performance_artifacts(sources: Path) -> None:
     print(f"[DataTablePrototype] PASS: 性能产物 {output}")
 
 
+def binary_layout(data: bytearray) -> tuple[int, int, int, int]:
+    table_id_length = struct.unpack_from("<H", data, 12)[0]
+    row_count_offset = 14 + table_id_length
+    row_count = struct.unpack_from("<I", data, row_count_offset)[0]
+    hash_offset = row_count_offset + 6
+    payload_offset = hash_offset + 32
+    string_count = struct.unpack_from("<I", data, payload_offset)[0]
+    return row_count, hash_offset, payload_offset, string_count
+
+
+def refresh_payload_hash(data: bytearray, hash_offset: int, payload_offset: int) -> None:
+    data[hash_offset:payload_offset] = hashlib.sha256(data[payload_offset:]).digest()
+
+
+def build_corruption_artifacts() -> None:
+    valid_path = ARTIFACT_ROOT / "output" / "Item.gdtb"
+    valid = bytearray(valid_path.read_bytes())
+    corruption = ARTIFACT_ROOT / "corruption"
+    if corruption.exists():
+        shutil.rmtree(corruption)
+    corruption.mkdir(parents=True)
+
+    variants: dict[str, bytearray] = {}
+    bad_magic = bytearray(valid)
+    bad_magic[0:4] = b"BAD!"
+    variants["bad-magic.gdtb"] = bad_magic
+
+    bad_format = bytearray(valid)
+    struct.pack_into("<H", bad_format, 4, FORMAT_VERSION + 1)
+    variants["bad-format-version.gdtb"] = bad_format
+
+    bad_schema = bytearray(valid)
+    struct.pack_into("<H", bad_schema, 6, 2)
+    variants["bad-schema-version.gdtb"] = bad_schema
+
+    tampered = bytearray(valid)
+    tampered[-1] ^= 0xFF
+    variants["tampered-payload.gdtb"] = tampered
+    variants["truncated.gdtb"] = bytearray(valid[:-1])
+
+    row_count, hash_offset, payload_offset, string_count = binary_layout(valid)
+    bad_string_index = bytearray(valid)
+    first_row_offset = payload_offset + 4
+    for _ in range(string_count):
+        byte_count = struct.unpack_from("<I", bad_string_index, first_row_offset)[0]
+        first_row_offset += 4 + byte_count
+    first_string_index_offset = first_row_offset + 1
+    struct.pack_into("<I", bad_string_index, first_string_index_offset, string_count)
+    refresh_payload_hash(bad_string_index, hash_offset, payload_offset)
+    variants["bad-string-index.gdtb"] = bad_string_index
+
+    bad_primary_index = bytearray(valid)
+    struct.pack_into("<I", bad_primary_index, len(bad_primary_index) - 4, row_count)
+    refresh_payload_hash(bad_primary_index, hash_offset, payload_offset)
+    variants["bad-primary-index.gdtb"] = bad_primary_index
+
+    for name, data in variants.items():
+        (corruption / name).write_bytes(data)
+    print(f"[DataTablePrototype] 生成损坏样例：{corruption}")
+
+
 def main() -> int:
     scratch = ARTIFACT_ROOT / "scratch"
     if scratch.exists():
@@ -107,6 +169,7 @@ def main() -> int:
     verify_determinism(sources)
     verify_invalid_cases(sources)
     build_performance_artifacts(sources)
+    build_corruption_artifacts()
     print("[DataTablePrototype] PASS (8/8)")
     return 0
 
