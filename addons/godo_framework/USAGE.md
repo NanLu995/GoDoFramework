@@ -2,7 +2,7 @@
 
 ## 定位
 
-本插件是 GoDo 的项目安装助手、健康检查工具、资源清单校验入口与可选编辑器扩展宿主。它负责检查、安装和卸载 `GoDoRuntime` Autoload，只读校验 `ResourceManifest`，并从已安装适配包的 `godo_editor_extension.cfg` 注册顶部 `GoDo` 菜单项。它不创建业务场景或 UI，不修改 C# 项目文件，也不参与导出后的游戏运行。
+本插件是 GoDo 的项目安装助手、健康检查工具、资源清单校验入口与可选编辑器扩展宿主。它负责检查、安装和卸载 `GoDoRuntime` Autoload，只读校验 `ResourceManifest`，并从已安装适配包的 `godo_editor_extension.cfg` 注册顶部 `GoDo` 菜单项。框架包还包含尚未接入菜单的 DataTable 离线编译前端，详见 `Tools/DataTable/USAGE.md`。这些工具不创建业务场景或 UI，不修改 C# 项目文件，也不参与导出后的游戏运行。
 
 EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其他运行时模块；Runtime 不反向依赖插件。
 

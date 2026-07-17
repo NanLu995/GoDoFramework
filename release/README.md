@@ -1,6 +1,6 @@
 # 发布工具
 
-发布工具只打包 `addons/godo_framework/`，并自动排除其中的 Markdown 文档。ZIP 保留 `addons/godo_framework/` 目录结构，复制到目标 Godot 项目根目录即可使用。
+发布工具只打包 `addons/godo_framework/`，并自动排除其中的 Markdown 文档。ZIP 保留运行时、编辑器资源与 DataTable Python 编译前端的目录结构，复制到目标 Godot 项目根目录即可使用。
 
 ## 本地打包
 

@@ -6,14 +6,22 @@ from __future__ import annotations
 import hashlib
 import shutil
 import struct
+import subprocess
 import sys
+from unittest import mock
 from pathlib import Path
 
-from compile_tables import FORMAT_VERSION, CompileFailure, compile_tables
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parents[2]
+TOOL_DIR = PROJECT_ROOT / "addons" / "godo_framework" / "Tools" / "DataTable"
+TOOL_PATH = TOOL_DIR / "godo_datatable.py"
+sys.path.insert(0, str(TOOL_DIR))
+
+import godo_datatable
+from godo_datatable import FORMAT_VERSION, CompileFailure, compile_tables
 from generate_fixtures import write_invalid_sets, write_valid_set
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
 PROFILE_PATH = SCRIPT_DIR / "profile.json"
 GENERATED_CSHARP = SCRIPT_DIR / "Generated" / "DataTablePrototype.Generated.cs"
 ARTIFACT_ROOT = SCRIPT_DIR / "Artifacts"
@@ -94,6 +102,123 @@ def verify_invalid_cases(sources: Path) -> None:
         assert_equal(expected_csharp, temporary_csharp.read_bytes(), "失败生成覆盖了已有 C#")
 
 
+def run_compiler(*arguments: str, expected_exit: int = 0) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(
+        [sys.executable, str(TOOL_PATH), *arguments],
+        cwd=PROJECT_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != expected_exit:
+        raise RuntimeError(
+            f"DataTable CLI 退出码错误；期望 {expected_exit}，实际 {result.returncode}。\n"
+            f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+        )
+    return result
+
+
+def verify_cli_modes(sources: Path) -> None:
+    root = ARTIFACT_ROOT / "scratch" / "path with spaces"
+    source_copy = root / "source files"
+    shutil.copytree(sources / "small", source_copy)
+    before_check = digest_files(root)
+
+    check_result = run_compiler(
+        "check",
+        "--profile",
+        str(PROFILE_PATH),
+        "--source",
+        str(source_copy),
+    )
+    assert_equal(before_check, digest_files(root), "check 模式写入了文件")
+    if "CHECK PASS" not in check_result.stdout:
+        raise RuntimeError("check 模式未输出成功标记。")
+    print("[DataTablePrototype] PASS: CLI check 不写入")
+
+    invalid_result = run_compiler(
+        "check",
+        "--profile",
+        str(PROFILE_PATH),
+        "--source",
+        str(sources / "invalid" / "invalid_enum"),
+        expected_exit=1,
+    )
+    if "DT108" not in invalid_result.stdout:
+        raise RuntimeError("CLI check 未返回预期的 DT108 诊断。")
+    assert_equal(before_check, digest_files(root), "失败的 check 模式写入了文件")
+    print("[DataTablePrototype] PASS: CLI check 错误诊断")
+
+    unsafe_result = run_compiler(
+        "generate",
+        "--profile",
+        str(PROFILE_PATH),
+        "--source",
+        str(source_copy),
+        "--output",
+        str(root),
+        "--csharp",
+        str(root / "Unsafe.Generated.txt"),
+        expected_exit=1,
+    )
+    if "输出目录" not in unsafe_result.stderr:
+        raise RuntimeError("CLI generate 未报告危险输出目录。")
+    assert_equal(before_check, digest_files(root), "危险输出目录校验后写入了文件")
+    print("[DataTablePrototype] PASS: CLI generate 拒绝危险输出目录")
+
+    output = root / "generated output"
+    csharp = root / "Generated Code.txt"
+    run_compiler(
+        "generate",
+        "--profile",
+        str(PROFILE_PATH),
+        "--source",
+        str(source_copy),
+        "--output",
+        str(output),
+        "--csharp",
+        str(csharp),
+    )
+    baseline_output = ARTIFACT_ROOT / "scratch" / "cli-baseline"
+    baseline_csharp = ARTIFACT_ROOT / "scratch" / "cli-baseline.Generated.txt"
+    compile_tables(PROFILE_PATH, sources / "small", baseline_output, baseline_csharp)
+    assert_equal(digest_files(baseline_output), digest_files(output), "CLI generate 产物不一致")
+    assert_equal(baseline_csharp.read_bytes(), csharp.read_bytes(), "CLI generate C# 不一致")
+    print("[DataTablePrototype] PASS: CLI generate 支持空格路径")
+
+
+def verify_output_rollback() -> None:
+    root = ARTIFACT_ROOT / "scratch" / "rollback"
+    output = root / "output"
+    staged = root / "staged"
+    csharp = root / "DataTables.Generated.txt"
+    output.mkdir(parents=True)
+    staged.mkdir()
+    (output / "state.txt").write_text("old-data", encoding="utf-8")
+    (staged / "state.txt").write_text("new-data", encoding="utf-8")
+    csharp.write_text("old-csharp", encoding="utf-8")
+    csharp_staged = csharp.with_suffix(csharp.suffix + ".tmp")
+    real_replace = godo_datatable.os.replace
+
+    def fail_csharp_commit(source: object, destination: object) -> None:
+        if Path(source) == csharp_staged:
+            raise OSError("injected C# commit failure")
+        real_replace(source, destination)
+
+    try:
+        with mock.patch.object(godo_datatable.os, "replace", side_effect=fail_csharp_commit):
+            godo_datatable.commit_outputs(staged, output, csharp, "new-csharp")
+    except OSError as error:
+        if "injected" not in str(error):
+            raise
+    else:
+        raise RuntimeError("故障注入未阻止双产物提交。")
+
+    assert_equal("old-data", (output / "state.txt").read_text(encoding="utf-8"), "数据目录未回滚")
+    assert_equal("old-csharp", csharp.read_text(encoding="utf-8"), "C# 文件未回滚")
+    print("[DataTablePrototype] PASS: 双产物提交失败回滚")
+
+
 def build_performance_artifacts(sources: Path) -> None:
     output = ARTIFACT_ROOT / "output"
     compile_tables(PROFILE_PATH, sources / "performance", output, GENERATED_CSHARP)
@@ -172,9 +297,11 @@ def main() -> int:
     sources = generate_sources()
     verify_determinism(sources)
     verify_invalid_cases(sources)
+    verify_cli_modes(sources)
+    verify_output_rollback()
     build_performance_artifacts(sources)
     build_corruption_artifacts()
-    print("[DataTablePrototype] PASS (8/8)")
+    print("[DataTablePrototype] PASS (13/13)")
     return 0
 
 

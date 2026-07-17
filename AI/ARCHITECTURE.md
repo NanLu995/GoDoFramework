@@ -132,7 +132,7 @@ addons/
     │                     （内部再分 Foundation 子目录如 Resources/Pool，
     │                      与 Service 子目录如 Scheduler/Scene/Camera/Input/Audio/Localization/UI/Save/Settings/Procedure，
     │                      对应第 4 节表格中的 Foundation 层与 Service 层）
-    ├── Tools/            相对独立的工具能力
+    ├── Tools/            相对独立的工具能力；DataTable 编译前端位于此层，不进入运行时依赖
     └── Debugger/         仅 Debug 运行时创建的只读诊断面板（对应第 4 节 Development 层）
 ```
 

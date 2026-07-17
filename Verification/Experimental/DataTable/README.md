@@ -1,6 +1,6 @@
-# DataTable 阶段 A / B 原型
+# DataTable 阶段 A / B 与 C.1 验证
 
-本目录只验证 DataTable 的源数据、校验、跨语言产物和读取性能，不属于框架运行时，也不承诺 public API。
+本目录验证 DataTable 的源数据、正式编译前端 CLI、跨语言产物和读取性能，不属于框架运行时，也不承诺 public API。编译器实现位于 `addons/godo_framework/Tools/DataTable/godo_datatable.py`；本目录的同名旧入口只保留命令转发兼容性。
 
 ## 运行
 
@@ -11,12 +11,15 @@ E:\Godot\Godot_v4.7\Godot_v4.7-stable_mono_win64_console.exe --headless --path .
 E:\Godot\Godot_v4.7\Godot_v4.7-stable_mono_win64_console.exe --headless --path . res://Verification/Experimental/DataTable/DataTablePrototypeBenchmark.tscn
 ```
 
-第一条命令使用固定种子生成小型数据、约一万行性能数据和六类错误样例，然后验证：
+第一条命令使用固定种子生成小型数据、约一万行性能数据和六类错误样例，然后通过正式工具验证：
 
 - 正常数据能生成规范化 IR、Manifest、未压缩 `.gdtb`、internal C# 类型、Debug JSON 和报告；
 - 相同输入的产物完全一致；
 - 缺列、数据行少列、重复键、非法 enum、越界和无效外键均产生精确诊断；
 - 失败生成不会覆盖上一次成功产物。
+- `check` 完成全部内存构建但不写入，错误返回非零退出码；
+- `generate` 支持带空格路径，并拒绝可能覆盖源数据的输出目录。
+- 数据目录提交成功但 C# 提交失败时，两类旧产物都会恢复。
 
 压缩目标场景使用 Godot 自带 Zstd 生成候选、`Auto` 保守选择结果和确定性体积报告。Headless 基准同时读取未压缩与 Zstd 文件，并拒绝 magic、格式版本、Schema 版本、未知 flags、payload 摘要、截断文件、字符串池索引、主键索引、Zstd 篡改、错误原始大小和解压后摘要异常。内部边界样例会按需重新计算 payload SHA，确保测试实际进入目标检查。
 

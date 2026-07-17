@@ -1,6 +1,6 @@
 # DataTable 设计
 
-> 状态：整体方案已确认，尚未进入实现与稳定基线。本文中的具体类型名仍需通过首张真实业务表原型验证后才能成为 public API。
+> 状态：整体方案已确认，阶段 A / B 原型和阶段 C.1 编译前端已实现，但尚未进入稳定基线。本文中的具体类型名仍需通过真实业务表与 Editor / Export 流程验证后才能成为 public API。
 
 ## 1. 定位
 
@@ -311,6 +311,8 @@ DataTable 编译器先产生与运行时语言无关的规范化 IR 和 Manifest
 - CI 拒绝过期生成物；
 - Debug 保留可读产物，Release 排除源数据；
 - 验证客户端、Godot 专服和非 Godot 服务器摘要边界。
+
+阶段 C.1 已将 Python 编译前端放入 `addons/godo_framework/Tools/DataTable/`，提供整套 `generate` 和真正不写项目文件的 `check`。它保留显式路径参数，不假设业务目录，并拒绝可能覆盖源数据的危险输出目录。单表生成必须先解决合并 C# 文件和数据集摘要的一致性，EditorPlugin、Godot Zstd 正式目标、CI 过期检查与 Export 过滤仍未接入。
 
 ### 阶段 D：后续能力
 

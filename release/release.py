@@ -17,7 +17,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 ADDON_ROOT = REPOSITORY_ROOT / "addons" / "godo_framework"
 PLUGIN_CONFIG = ADDON_ROOT / "plugin.cfg"
 DIST_ROOT = Path(__file__).resolve().parent / "dist"
-INCLUDED_SUFFIXES = {".cfg", ".cs", ".gd", ".tscn", ".uid"}
+INCLUDED_SUFFIXES = {".cfg", ".cs", ".gd", ".py", ".tscn", ".uid"}
 EXCLUDED_NAMES = {".DS_Store", "Thumbs.db"}
 
 
