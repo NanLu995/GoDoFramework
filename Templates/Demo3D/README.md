@@ -4,7 +4,7 @@
 
 ## 运行
 
-确认项目已安装 `GoDoRuntime` Autoload 后，在 Godot 中打开并运行：
+确认项目已安装 `GoDoRuntime`，并通过顶部 `GoDo → GUIDE Input 设置...` 完成 GUIDE / GuideCs 安装和顺序检查后，在 Godot 中打开并运行：
 
 ```text
 Templates/Demo3D/Boot/Boot.tscn
@@ -32,7 +32,7 @@ Templates/Demo3D/Boot/Boot.tscn
 - `CameraService`：Gameplay 流程通过语义 ID 激活主镜头，不负责解析 Phantom 节点。
 - `PhantomCameraRig`：把 CameraService 的激活/停用转换为 Phantom Camera 优先级。
 - `InputService`：向业务代码提供 Move、Look、Jump 等语义输入，不暴露 GUIDE 类型。
-- `godo_guide_input`：把 GUIDE Action / Mapping Context 转换为 InputService 快照。
+- `Integrations/GuideInput`：把 GUIDE Action / Mapping Context 转换为 InputService 快照。
 - Gameplay HUD：监听 `InputDeviceChangedEvent`，显示当前键鼠、手柄或触摸类别。
 - Gameplay HUD：通过 `IInputRebinding` 查询、捕获、检查冲突、应用或恢复跳跃主绑定，不接触 GUIDE 类型。
 - Gameplay HUD：右上角 Localization 验收面板通过 Settings 切换/保存语言，通过 Localization 查询动态文本和复数，并展示 Control 自动翻译、上下文、伪本地化与 RTL 状态。
@@ -46,7 +46,7 @@ Templates/Demo3D/Boot/Boot.tscn
     ↓
 G.U.I.D.E Action + GameplayContext.tres
     ↓
-godo_guide_input（可选适配包）
+Integrations/GuideInput（可选适配包）
     ↓
 GoDo IInputService / InputFrame
     ↓
@@ -69,6 +69,20 @@ CharacterBody3D + Phantom Camera
 要增加一个输入，顺序是：先在 `Demo3DInput.cs` 增加语义 ID，再创建 GUIDE Action 并加入 Context，随后加入 Profile，最后由业务脚本读取。不要让业务脚本直接读取 GUIDE Action，否则会绕过 GoDo 的后端边界。
 
 改键与恢复默认都会立即写入独立的 `godo-input-bindings` SaveService 槽位；重启 Demo 后会恢复上次保存的结果。正式配置损坏时会尝试备份；正式配置与备份都不可用时上报错误并继续使用当前默认绑定。
+
+## Input 人工验收
+
+进入 Gameplay 后按实际拥有的设备验证；没有对应硬件的项目不记为通过：
+
+1. 使用键盘鼠标移动、旋转视角和跳跃，HUD 的输入设备应显示“键盘鼠标”，角色不应出现持续移动或重复跳跃。
+2. 如有手柄，使用左右摇杆和 A 键完成相同操作；首次有效手柄输入后 HUD 应切换为“手柄”，再次操作键盘鼠标后应切回“键盘鼠标”。
+3. 按住移动输入时切出窗口，松开按键或摇杆后再返回；角色不应保持失焦前的输入，也不应补发一次跳跃。
+4. 快速点击和长按跳跃，确认一次按下只产生一次跳跃；移动输入应在渲染帧采样后由物理帧稳定消费，没有明显丢帧、重复边沿或方向滞留。
+5. 释放鼠标后打开 Debugger 的 `运行时 / Input` 页面，确认后端已就绪、Frame 序号持续推进、Gameplay Context 有效，Move / Look / Jump 值与当前真实操作一致。
+6. 完成 5 个能量核心并进入 Result 后，确认 Gameplay Context 已停用，角色不再响应移动或跳跃；点击“再玩一次”后输入恢复。
+7. 使用 HUD 改绑跳跃键并重启 Demo3D，确认新绑定仍有效；恢复默认后再次重启，确认默认绑定恢复。
+
+记录验收结果时应写明操作系统、键盘鼠标、手柄型号和是否覆盖窗口失焦；未实际连接的设备与平台继续保留为待验证。
 
 ## Localization 人工验收
 

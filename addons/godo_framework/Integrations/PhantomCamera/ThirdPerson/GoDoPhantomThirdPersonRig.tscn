@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="1_pcam"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="2_host"]
-[ext_resource type="Script" path="res://addons/godo_phantom_camera/Runtime/PhantomCameraRig.cs" id="3_rig"]
+[ext_resource type="Script" path="res://addons/godo_framework/Integrations/PhantomCamera/Runtime/PhantomCameraRig.cs" id="3_rig"]
 
 [node name="GoDoPhantomThirdPersonRig" type="Node3D" node_paths=PackedStringArray("PhantomCameraNode")]
 script = ExtResource("3_rig")

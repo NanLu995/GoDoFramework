@@ -2,24 +2,26 @@
 
 ## 定位
 
-`godo_phantom_camera` 是 GoDo 与 Phantom Camera 的可选运行时适配包。它提供 `PhantomCameraRig` 和第三人称镜头预设。`CameraService` 仍由 GoDo 核心提供，本包不参与 `GoDoRuntime` 初始化，也不封装 Phantom Camera 的完整 API。
+`Integrations/PhantomCamera` 是 GoDo 与 Phantom Camera 的可选运行时适配包。它提供 `PhantomCameraRig` 和第三人称镜头预设。`CameraService` 仍由 GoDo 核心提供，本包不参与 `GoDoRuntime` 初始化，也不封装 Phantom Camera 的完整 API。
 
 业务流程只通过 `ICameraService` 选择主镜头，`PhantomCameraRig` 将激活和停用转换为 Phantom Camera 优先级。镜头目标、鼠标环绕和其他玩法参数仍由业务场景或 Phantom Camera 自身负责。
 
 ## 依赖与安装
 
-1. 安装并启用第三方 Phantom Camera；本适配包当前按 0.11 验证。
-2. 复制 `addons/godo_phantom_camera/` 到项目。
-3. 直接在业务场景中使用运行时 Rig 或预设。
+1. 安装第三方 Phantom Camera；本适配包当前按 0.11 验证。
+2. 确认框架包包含 `addons/godo_framework/Integrations/PhantomCamera/`。
+3. 启用唯一的 `GoDo Framework` 插件，打开顶部 `GoDo → Phantom Camera 设置...`。
+4. 检查文件与版本，并在明确确认后启用第三方 Phantom Camera。
+5. 编译并完成回归后，在业务场景中使用运行时 Rig 或预设。
 
-本适配包与 `godo_guide_input` 一样不提供 `plugin.cfg`，因此不会出现在 Godot 插件列表，也不需要额外启用。只有第三方 Phantom Camera 自身需要启用。
+本适配包通过 `godo_editor_extension.cfg` 接入统一 GoDo 菜单，不提供 `plugin.cfg`，因此不会成为第二个 Godot EditorPlugin。设置窗口只在首次打开时创建；健康状态下启用按钮禁用。只有第三方 Phantom Camera 自身需要启用。
 
 ## 第三人称 Rig 预设
 
 预设位置：
 
 ```text
-res://addons/godo_phantom_camera/ThirdPerson/GoDoPhantomThirdPersonRig.tscn
+res://addons/godo_framework/Integrations/PhantomCamera/ThirdPerson/GoDoPhantomThirdPersonRig.tscn
 ```
 
 它包含：
@@ -63,7 +65,7 @@ public sealed partial class PhantomCameraRig : CameraRig
 ## 失败语义
 
 - 缺少 Phantom Camera C# API 时项目编译失败；第三方插件未启用或资源不完整时 Phantom 场景自身不可用。
-- 本适配包不在编辑器启动时读取或比较 Phantom 版本；升级插件后应通过编译、自动回归和真实镜头场景重新验证。
+- 编辑器扩展读取第三方 `plugin.cfg` 并把非 0.11 版本标为未经验证；升级插件后仍必须通过编译、自动回归和真实镜头场景重新验证。
 - `PhantomCameraNode` 缺失、节点不兼容或激活优先级不大于停用优先级：Rig 在注册前抛出 `InvalidOperationException`。
 - 运行期间 Phantom 优先级读写失败：由 CameraService 包装为 `CameraOperationException`，并遵循主镜头切换回滚语义。
 - GoDo 核心与业务运行时不依赖本包；禁用或删除本包不会改变 `GoDoRuntime`。

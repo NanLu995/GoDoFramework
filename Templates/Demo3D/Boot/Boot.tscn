@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://bjrtjk0nd7c4l"]
 
 [ext_resource type="Script" uid="uid://dix0wjokl2o1k" path="res://Templates/Demo3D/Boot/Boot.cs" id="1_boot"]
-[ext_resource type="Script" uid="uid://dl1gyrpdmb4rr" path="res://addons/godo_guide_input/Runtime/GuideInputBackendInstaller.cs" id="2_installer"]
-[ext_resource type="Resource" path="res://Templates/Demo3D/Input/Demo3DInputProfile.tres" id="3_profile"]
+[ext_resource type="Script" uid="uid://dl1gyrpdmb4rr" path="res://addons/godo_framework/Integrations/GuideInput/Runtime/GuideInputBackendInstaller.cs" id="2_installer"]
+[ext_resource type="Resource" uid="uid://3ob8kmxjdond" path="res://Templates/Demo3D/Input/Demo3DInputProfile.tres" id="3_profile"]
 
 [node name="Boot" type="Node" unique_id=1584011466]
 script = ExtResource("1_boot")

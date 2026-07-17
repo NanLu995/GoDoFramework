@@ -6,7 +6,7 @@ InputService 为业务层提供语义 Action 的当前帧只读快照、Context 
 使角色、摄像机协调代码和 UI 不直接依赖具体按键、Godot InputMap 或第三方输入插件类型。
 
 当前已完成核心 ID、Frame、Context、后端边界和 GoDoRuntime 生命周期接入。可选包
-`addons/godo_guide_input/` 已提供首版 GUIDE 后端；核心模块不反向依赖它。
+`addons/godo_framework/Integrations/GuideInput/` 已提供首版 GUIDE 后端；核心模块不反向依赖它。
 业务可以通过 `Services.Get<IInputService>()` 获取服务；未安装后端时 `IsReady == false`，读取 Frame 或切换 Context 会明确失败。
 
 ## 适用场景

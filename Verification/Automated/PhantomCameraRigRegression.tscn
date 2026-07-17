@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://Verification/Automated/PhantomCameraRigRegression.cs" id="1_test"]
-[ext_resource type="Script" path="res://addons/godo_phantom_camera/Runtime/PhantomCameraRig.cs" id="2_rig"]
+[ext_resource type="Script" path="res://addons/godo_framework/Integrations/PhantomCamera/Runtime/PhantomCameraRig.cs" id="2_rig"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="3_pcam"]
 
 [node name="PhantomCameraRigRegression" type="Node"]

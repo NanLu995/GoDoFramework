@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://Templates/Demo3D/Gameplay/Collectible.cs" id="2_collectible"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="3_pcam"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="4_host"]
-[ext_resource type="Script" path="res://addons/godo_phantom_camera/Runtime/PhantomCameraRig.cs" id="5_rig"]
+[ext_resource type="Script" path="res://addons/godo_framework/Integrations/PhantomCamera/Runtime/PhantomCameraRig.cs" id="5_rig"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1

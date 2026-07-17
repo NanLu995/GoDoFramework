@@ -9,14 +9,14 @@
 
   <ItemGroup Condition="'$(GoDoIncludeGuideInput)' != 'true'">
     <Compile Remove="addons/guideCS/**/*.cs" />
-    <Compile Remove="addons/godo_guide_input/**/*.cs" />
+    <Compile Remove="addons/godo_framework/Integrations/GuideInput/**/*.cs" />
     <Compile Remove="Verification/Automated/GuideInputBackendRegression.cs" />
     <Compile Remove="Verification/Exploratory/InputLab/GuideInputLab.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(GoDoIncludePhantomCamera)' != 'true'">
     <Compile Remove="addons/phantom_camera/**/*.cs" />
-    <Compile Remove="addons/godo_phantom_camera/**/*.cs" />
+    <Compile Remove="addons/godo_framework/Integrations/PhantomCamera/**/*.cs" />
     <Compile Remove="Verification/Automated/PhantomCameraRigRegression.cs" />
   </ItemGroup>
 

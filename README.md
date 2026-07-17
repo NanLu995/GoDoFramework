@@ -6,10 +6,10 @@ GoDoFramework 是面向 Godot 4.7 C# / .NET 的轻量游戏开发框架，用于
 
 ## 第三方插件
 
-仓库仅跟踪 GoDo 自有目录：`addons/godo_framework/`、`addons/godo_guide_input/` 和 `addons/godo_phantom_camera/`。`addons/guideCS/` 与 `addons/phantom_camera/` 为本地安装的第三方依赖，不随仓库提交。
+仓库只跟踪 GoDo 自有目录 `addons/godo_framework/`；GUIDE Input、Phantom Camera 等可选适配位于其 `Integrations/` 子目录。`addons/guideCS/` 与 `addons/phantom_camera/` 为本地安装的第三方依赖，不随仓库提交。
 
-- 使用 GUIDE 输入适配包或 Demo3D 输入资源前，安装 GUIDE / G.U.I.D.E-CSharp；具体顺序见 `addons/godo_guide_input/USAGE.md`。
-- 使用 Phantom Camera 适配包或 Demo3D 镜头前，安装并启用 Phantom Camera；版本要求见 `addons/godo_phantom_camera/USAGE.md`。
+- 使用 GUIDE 输入适配包或 Demo3D 输入资源前，先复制 GUIDE / G.U.I.D.E-CSharp，再通过顶部 `GoDo → GUIDE Input 设置...` 显式安装并校验 Autoload 顺序；具体步骤见 `addons/godo_framework/Integrations/GuideInput/USAGE.md`。
+- 使用 Phantom Camera 适配包或 Demo3D 镜头前，通过顶部 `GoDo → Phantom Camera 设置...` 检查并显式启用第三方插件；版本要求见 `addons/godo_framework/Integrations/PhantomCamera/USAGE.md`。
 
 ## 项目文档
 

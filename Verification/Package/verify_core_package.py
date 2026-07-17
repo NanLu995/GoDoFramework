@@ -18,8 +18,8 @@ PROJECT_NAME = "GoDoCorePackageVerification"
 OPTIONAL_DIRECTORIES = (
     "addons/guideCS",
     "addons/phantom_camera",
-    "addons/godo_guide_input",
-    "addons/godo_phantom_camera",
+    "addons/godo_framework/Integrations/GuideInput",
+    "addons/godo_framework/Integrations/PhantomCamera",
 )
 
 PROJECT_CONFIG = """; Engine configuration file.
@@ -177,7 +177,11 @@ def create_project(project_root: Path) -> None:
     if not FRAMEWORK_SOURCE.is_dir():
         raise RuntimeError(f"未找到核心包目录：{FRAMEWORK_SOURCE}")
 
-    shutil.copytree(FRAMEWORK_SOURCE, project_root / "addons" / "godo_framework")
+    shutil.copytree(
+        FRAMEWORK_SOURCE,
+        project_root / "addons" / "godo_framework",
+        ignore=shutil.ignore_patterns("Integrations"),
+    )
     (project_root / "project.godot").write_text(PROJECT_CONFIG, encoding="utf-8")
     (project_root / f"{PROJECT_NAME}.csproj").write_text(PROJECT_FILE, encoding="utf-8")
     (project_root / "CoreSmoke.tscn").write_text(SMOKE_SCENE, encoding="utf-8")

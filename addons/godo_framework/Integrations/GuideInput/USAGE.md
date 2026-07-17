@@ -2,7 +2,7 @@
 
 ## 定位
 
-`godo_guide_input` 是 GoDo InputService 与 G.U.I.D.E-CSharp 之间的可选适配包。它依赖两端，
+`Integrations/GuideInput` 是 GoDo InputService 与 G.U.I.D.E-CSharp 之间的可选适配包。它依赖两端，
 但 `addons/godo_framework/` 不反向依赖本包或 GUIDE。
 
 业务代码只读取 `IInputService`、`InputFrame`、`InputActionId` 和 `InputContextId`，不持有
@@ -29,10 +29,22 @@
 ```text
 addons/godo_framework/
 addons/guideCS/
-addons/godo_guide_input/
+addons/godo_framework/Integrations/GuideInput/
 ```
 
-项目 Autoload 顺序必须是：
+新游戏项目不要在第三方文件完成扫描前预启用插件或预写 GUIDE Autoload。复制依赖并等待 Godot 文件扫描完成后，打开：
+
+```text
+GoDo → GUIDE Input 设置...
+```
+
+设置工具由 `Integrations/GuideInput/godo_editor_extension.cfg` 声明，并由唯一的 `GoDo Framework` EditorPlugin 加载；本适配包不再提供第二个 `plugin.cfg`。它只在编辑器运行，不进入 Release，检查第三方文件、文件扫描、`GUIDEActionMapping` 全局脚本类型、插件状态、Autoload 路径和顺序；只有不存在同名路径冲突时，才允许用户明确确认安装或修复。
+
+Godot 可能把脚本 Autoload 保存为等价的 `uid://` 定位符；设置工具会先解析 UID，再按实际资源路径检查，不把这种自动规范化误判为冲突。
+
+GoDoFramework 工作台为了让 Demo3D 可直接验证，已经保存固定版本依赖对应的插件与 Autoload 配置；设置工具在这里应直接报告顺序正常。复制适配包到其他项目时仍从上述显式安装流程开始，不照抄工作台的第三方配置。
+
+工具只启用尚未启用的插件；需要时先启用基础 `guideCS/guide`，再启用 `guideCS` C# 插件，最后仅在路径缺失或顺序错误时把相关 Autoload 调整为：
 
 ```text
 GUIDE
@@ -40,7 +52,9 @@ GuideCs
 GoDoRuntime
 ```
 
-适配器不会自动修改 `project.godot`。GUIDE 与 GuideCs 缺失或位于错误生命周期时，后端初始化失败。
+运行时适配器和扩展发现过程都不会自动修改 `project.godot`；只有编辑器设置工具在用户确认后修改插件和 Autoload 配置。健康状态下修复按钮禁用，重复检查为零写入。GUIDE 与 GuideCs 缺失或位于错误生命周期时，后端初始化失败。
+
+首次复制或升级 `addons/guideCS/` 后，应先让 Godot 完成文件扫描和全局脚本类缓存更新，再编译一次 C#，然后使用设置工具安装。若首次启动短暂报告 `Could not find type "GUIDEActionMapping"`，它指向 GUIDE 的 GDScript `class_name` 尚未进入当前编辑器缓存，不是 GoDo 或 C# 未编译；扫描完成后重启编辑器并确认错误不再出现。导出前必须让设置工具全部检查通过，并执行一次无错误的编辑器启动和 Demo/回归验证，不能假设 Release 导出会自动忽略 GDScript 解析错误。
 
 ## 创建 Profile
 

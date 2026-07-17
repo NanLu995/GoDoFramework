@@ -4,7 +4,7 @@
 
 CameraService 为业务层提供主镜头 Rig 的语义注册、激活与恢复机制。业务流程只使用 `CameraId`，不直接持有 Phantom Camera 等具体后端类型。
 
-核心只实现主镜头编排，不依赖具体插件。可选包 `addons/godo_phantom_camera/` 已提供 Phantom Camera 优先级适配；小地图 `SubViewport` 输出、镜头能力查询与跟随目标设置仍属于后续分批交付，不属于当前 public API。
+核心只实现主镜头编排，不依赖具体插件。可选包 `addons/godo_framework/Integrations/PhantomCamera/` 已提供 Phantom Camera 优先级适配；小地图 `SubViewport` 输出、镜头能力查询与跟随目标设置仍属于后续分批交付，不属于当前 public API。
 
 ## 适用场景
 

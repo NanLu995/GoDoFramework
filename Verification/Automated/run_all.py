@@ -56,6 +56,17 @@ SUITE_DEPENDENCIES = {
     "phantom": ("Phantom Camera",),
     "demo": ("GUIDE / G.U.I.D.E-CSharp", "Phantom Camera"),
 }
+GUIDE_AUTOLOAD_SEQUENCE = (
+    ("GUIDE", "res://addons/guideCS/guide/guide.gd"),
+    ("GuideCs", "res://addons/guideCS/Guide.cs"),
+    ("GoDoRuntime", "res://addons/godo_framework/Core/GoDoRuntime.tscn"),
+)
+GUIDE_EDITOR_PLUGINS = (
+    "res://addons/guideCS/guide/plugin.cfg",
+    "res://addons/guideCS/plugin.cfg",
+)
+PHANTOM_EDITOR_PLUGIN = "res://addons/phantom_camera/plugin.cfg"
+SUPPORTED_PHANTOM_VERSION = "0.11"
 
 
 def configure_console_encoding() -> None:
@@ -167,7 +178,97 @@ def find_missing_optional_dependencies(dependency_names: tuple[str, ...] | None 
         absent_paths = [path for path in paths if not (REPOSITORY_ROOT / path).is_file()]
         if absent_paths:
             missing.append(f"{name}（缺少：{', '.join(absent_paths)}）")
+            continue
+        if name == "GUIDE / G.U.I.D.E-CSharp":
+            autoload_issue = find_guide_autoload_issue()
+            if autoload_issue:
+                missing.append(f"{name}（{autoload_issue}）")
+                continue
+            disabled_plugin = next(
+                (path for path in GUIDE_EDITOR_PLUGINS if not is_editor_plugin_enabled(path)),
+                None,
+            )
+            if disabled_plugin:
+                missing.append(f"{name}（编辑器插件未启用：{disabled_plugin}）")
+        if name == "Phantom Camera":
+            if not is_editor_plugin_enabled(PHANTOM_EDITOR_PLUGIN):
+                missing.append(f"{name}（编辑器插件未启用）")
+                continue
+            version = read_plugin_version(REPOSITORY_ROOT / "addons/phantom_camera/plugin.cfg")
+            if version != SUPPORTED_PHANTOM_VERSION:
+                missing.append(
+                    f"{name}（版本 {version or '未知'}，当前仅验证 {SUPPORTED_PHANTOM_VERSION}）"
+                )
     return missing
+
+
+def is_editor_plugin_enabled(plugin_path: str) -> bool:
+    project_config = REPOSITORY_ROOT / "project.godot"
+    in_editor_plugins_section = False
+    for raw_line in project_config.read_text(encoding="utf-8-sig").splitlines():
+        line = raw_line.strip()
+        if line.startswith("[") and line.endswith("]"):
+            in_editor_plugins_section = line == "[editor_plugins]"
+            continue
+        if in_editor_plugins_section and line.startswith("enabled="):
+            return f'"{plugin_path}"' in line
+    return False
+
+
+def read_plugin_version(plugin_config: Path) -> str:
+    in_plugin_section = False
+    for raw_line in plugin_config.read_text(encoding="utf-8-sig").splitlines():
+        line = raw_line.strip()
+        if line.startswith("[") and line.endswith("]"):
+            in_plugin_section = line == "[plugin]"
+            continue
+        if in_plugin_section and line.startswith("version="):
+            return line.split("=", 1)[1].strip().strip('"')
+    return ""
+
+
+def find_guide_autoload_issue() -> str | None:
+    project_config = REPOSITORY_ROOT / "project.godot"
+    autoloads: list[tuple[str, str]] = []
+    in_autoload_section = False
+    for raw_line in project_config.read_text(encoding="utf-8-sig").splitlines():
+        line = raw_line.strip()
+        if line.startswith("[") and line.endswith("]"):
+            in_autoload_section = line == "[autoload]"
+            continue
+        if not in_autoload_section or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        path = value.strip().strip('"').removeprefix("*")
+        autoloads.append((name.strip(), path))
+
+    positions: list[int] = []
+    for expected_name, expected_path in GUIDE_AUTOLOAD_SEQUENCE:
+        for index, (actual_name, actual_path) in enumerate(autoloads):
+            if actual_name != expected_name:
+                continue
+            if not autoload_locator_matches(actual_path, expected_path):
+                return f"Autoload {expected_name} 指向 {actual_path}"
+            positions.append(index)
+            break
+        else:
+            return f"尚未安装 Autoload {expected_name}"
+
+    if positions != sorted(positions) or len(set(positions)) != len(positions):
+        return "Autoload 顺序必须为 GUIDE → GuideCs → GoDoRuntime"
+    return None
+
+
+def autoload_locator_matches(actual: str, expected_path: str) -> bool:
+    if actual == expected_path:
+        return True
+    if not actual.startswith("uid://"):
+        return False
+
+    uid_sidecar = REPOSITORY_ROOT / f"{expected_path.removeprefix('res://')}.uid"
+    if not uid_sidecar.is_file():
+        return False
+    return actual == uid_sidecar.read_text(encoding="utf-8-sig").strip()
 
 
 def run_core_package(godot_path: Path, timeout: int) -> bool:
@@ -191,6 +292,52 @@ def run_core_package(godot_path: Path, timeout: int) -> bool:
         return True
 
     print(f"[CORE] FAIL (exit={result.returncode})", file=sys.stderr)
+    return False
+
+
+def run_editor_extension_check(godot_path: Path, timeout: int) -> bool:
+    print("[EDITOR] 验证 GoDo 编辑器扩展")
+    try:
+        result = subprocess.run(
+            [
+                str(godot_path),
+                "--headless",
+                "--editor",
+                "--path",
+                str(REPOSITORY_ROOT),
+                "--script",
+                "res://Verification/Automated/EditorExtensionUiRegression.gd",
+            ],
+            cwd=REPOSITORY_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exception:
+        output = (exception.stdout or "") + (exception.stderr or "")
+        print(output + f"\n编辑器扩展验证超时：{timeout} 秒", file=sys.stderr)
+        return False
+
+    output = result.stdout + result.stderr
+    has_script_error = any(
+        marker in output
+        for marker in (
+            "SCRIPT ERROR:",
+            "[GoDo Editor Extension]",
+            "Unrecognized UID:",
+            "Internal script error!",
+            "Invalid access to property or key",
+        )
+    )
+    has_pass_summary = "[EditorExtensionUiRegression] PASS (2/2)" in output
+    if result.returncode == 0 and not has_script_error and has_pass_summary:
+        print("[EDITOR] PASS")
+        return True
+
+    print(f"[EDITOR] FAIL (exit={result.returncode})", file=sys.stderr)
+    print(output, file=sys.stderr)
     return False
 
 
@@ -292,8 +439,13 @@ def main() -> int:
     if arguments.suite == "all":
         if not run_core_package(godot_path, arguments.timeout):
             return 1
+        if not run_editor_extension_check(godot_path, arguments.timeout):
+            return 1
 
         return 0 if run_all_suites(godot_path, arguments.skip_build, arguments.timeout) else 1
+
+    if not run_editor_extension_check(godot_path, arguments.timeout):
+        return 1
 
     missing_dependencies = find_missing_optional_dependencies(SUITE_DEPENDENCIES[arguments.suite])
     if missing_dependencies:

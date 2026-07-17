@@ -177,7 +177,7 @@ public interface IInputBackend
 - 所有 Godot 对象访问限制在主线程。
 - `Shutdown` 必须可重复调用，并对称取消信号订阅和释放后端状态。
 
-首个适配包拟放置于 `addons/godo_guide_input/`。它依赖 GoDo Input 与 G.U.I.D.E-CSharp，负责：
+首个适配包位于 `addons/godo_framework/Integrations/GuideInput/`。它依赖 GoDo Input 与 G.U.I.D.E-CSharp，负责：
 
 - `InputActionId` / `InputContextId` 到 GUIDE Resource 的映射。
 - GUIDE Context 优先级和 GoDo Context 栈之间的转换。
@@ -346,7 +346,7 @@ Godot 手动验证：
 
 1. 只实现核心 ID、Frame、Context 栈和假后端自动测试。（已完成）
 2. 接入 GoDoRuntime 生命周期，但尚不改 Demo3D。（已完成）
-3. 新建 `godo_guide_input` 可选适配包，复用 InputLab 证据。（已完成）
+3. 新建 `Integrations/GuideInput` 可选适配包，复用 InputLab 证据。（已完成）
 4. 将 Demo3D 的移动、视角、跳跃、鼠标释放和 Result 隔离迁移为业务使用示例。（已完成）
 5. 完成设备检测、变化通知与 Demo3D 状态展示。（已完成，真实设备手动验证待执行）
 6. 完成改键与输入提示查询；验证后再决定是否进入“首版完成”。

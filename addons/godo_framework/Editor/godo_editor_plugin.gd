@@ -2,6 +2,7 @@
 extends EditorPlugin
 
 const TOOL_MENU_NAME := "[GoDo Framework]"
+const EDITOR_EXTENSION_HOST_SCRIPT := preload("res://addons/godo_framework/Editor/godo_editor_extension_host.gd")
 const MENU_SETUP_ID := 1
 const MENU_VALIDATE_MANIFEST_ID := 100
 const MENU_CREATE_MANIFEST_ID := 101
@@ -50,6 +51,7 @@ var _manifest_uid_button: Button
 var _manifest_remove_button: Button
 var _toolbar_menu_button: MenuButton
 var _tool_menu: PopupMenu
+var _editor_extension_host: RefCounted
 var _manifest_action := ""
 var _pending_resource_paths := PackedStringArray()
 var _pending_manifest_path := ""
@@ -67,10 +69,15 @@ var _uninstall_button: Button
 func _enter_tree() -> void:
 	_create_dialogs()
 	_create_tool_menu()
+	_editor_extension_host = EDITOR_EXTENSION_HOST_SCRIPT.new()
+	_editor_extension_host.activate(self, _tool_menu)
 	add_control_to_container(CONTAINER_TOOLBAR, _toolbar_menu_button)
 
 
 func _exit_tree() -> void:
+	if is_instance_valid(_editor_extension_host):
+		_editor_extension_host.deactivate()
+		_editor_extension_host = null
 	if is_instance_valid(_toolbar_menu_button):
 		remove_control_from_container(CONTAINER_TOOLBAR, _toolbar_menu_button)
 		_toolbar_menu_button.queue_free()
