@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using Godot;
 
 #nullable enable
 
@@ -98,6 +99,8 @@ internal sealed class ItemTable : IReadOnlyCollection<ItemRow>
 
 internal static class DataTablePrototypeLoader
 {
+    private const uint CompressionZstdFlag = 1u;
+
     internal static ItemCategoryTable LoadItemCategory(string path)
     {
         using ReaderContext context = Open(path, "ItemCategory", 1, 4);
@@ -143,28 +146,66 @@ internal static class DataTablePrototypeLoader
     private static ReaderContext Open(string path, string tableId, ushort schemaVersion, ushort fieldCount)
     {
         byte[] data = File.ReadAllBytes(path);
-        var stream = new MemoryStream(data, writable: false);
-        var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: false);
-        if (!reader.ReadBytes(4).AsSpan().SequenceEqual("GDTB"u8))
+        using var headerStream = new MemoryStream(data, writable: false);
+        using var headerReader = new BinaryReader(headerStream, Encoding.UTF8, leaveOpen: true);
+        if (!headerReader.ReadBytes(4).AsSpan().SequenceEqual("GDTB"u8))
             throw new InvalidDataException("DataTable magic 不匹配。");
-        if (reader.ReadUInt16() != 1)
+        if (headerReader.ReadUInt16() != 2)
             throw new InvalidDataException("DataTable 格式版本不兼容。");
-        if (reader.ReadUInt16() != schemaVersion)
+        if (headerReader.ReadUInt16() != schemaVersion)
             throw new InvalidDataException("DataTable schema 版本不兼容。");
-        if (reader.ReadUInt32() != 0)
-            throw new InvalidDataException("阶段 A 不支持压缩或其他 flags。");
-        ushort tableIdLength = reader.ReadUInt16();
-        string actualTableId = Encoding.UTF8.GetString(reader.ReadBytes(tableIdLength));
+        uint flags = headerReader.ReadUInt32();
+        if ((flags & ~CompressionZstdFlag) != 0)
+            throw new InvalidDataException("DataTable 包含未知 flags。");
+        ushort tableIdLength = headerReader.ReadUInt16();
+        string actualTableId = Encoding.UTF8.GetString(headerReader.ReadBytes(tableIdLength));
         if (!StringComparer.Ordinal.Equals(actualTableId, tableId))
             throw new InvalidDataException($"DataTable ID 不匹配：{actualTableId}。");
-        int rowCount = checked((int)reader.ReadUInt32());
-        if (reader.ReadUInt16() != fieldCount)
+        int rowCount = checked((int)headerReader.ReadUInt32());
+        if (headerReader.ReadUInt16() != fieldCount)
             throw new InvalidDataException("DataTable 字段数量不匹配。");
-        byte[] expectedHash = reader.ReadBytes(32);
-        long payloadOffset = stream.Position;
-        byte[] actualHash = SHA256.HashData(data.AsSpan(checked((int)payloadOffset)));
+        int uncompressedSize = checked((int)headerReader.ReadUInt32());
+        byte[] expectedHash = headerReader.ReadBytes(32);
+        int storedPayloadOffset = checked((int)headerStream.Position);
+
+        byte[] payloadData;
+        int payloadOffset;
+        if ((flags & CompressionZstdFlag) == 0)
+        {
+            if (data.Length - storedPayloadOffset != uncompressedSize)
+                throw new InvalidDataException("DataTable 未压缩 payload 大小不匹配。");
+            payloadData = data;
+            payloadOffset = storedPayloadOffset;
+        }
+        else
+        {
+            byte[] storedPayload = data.AsSpan(storedPayloadOffset).ToArray();
+            try
+            {
+                payloadData = storedPayload.Decompress(
+                    uncompressedSize,
+                    Godot.FileAccess.CompressionMode.Zstd);
+            }
+            catch (Exception exception)
+            {
+                throw new InvalidDataException("DataTable Zstd 解压失败。", exception);
+            }
+            if (payloadData.Length != uncompressedSize)
+                throw new InvalidDataException("DataTable Zstd 解压大小不匹配。");
+            payloadOffset = 0;
+        }
+
+        byte[] actualHash = SHA256.HashData(
+            payloadData.AsSpan(payloadOffset, uncompressedSize));
         if (!CryptographicOperations.FixedTimeEquals(expectedHash, actualHash))
             throw new InvalidDataException("DataTable payload 摘要不匹配。");
+        var stream = new MemoryStream(
+            payloadData,
+            payloadOffset,
+            uncompressedSize,
+            writable: false,
+            publiclyVisible: false);
+        var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: false);
         int stringCount = checked((int)reader.ReadUInt32());
         var strings = new string[stringCount];
         for (int index = 0; index < strings.Length; index++)

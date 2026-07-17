@@ -1,7 +1,8 @@
 {
-  "format_version": 1,
+  "format_version": 2,
   "data_set_id": "prototype.items",
   "protocol_version": 1,
+  "compression_mode": "Auto",
   "namespace": "GoDoFramework.Verification.DataTablePrototype.Generated",
   "tables": [
     {

@@ -29,12 +29,27 @@ public sealed partial class DataTablePrototypeBenchmark : Node
                 "res://Verification/Experimental/DataTable/Artifacts/output");
             string categoriesPath = Path.Combine(outputDirectory, "ItemCategory.gdtb");
             string itemsPath = Path.Combine(outputDirectory, "Item.gdtb");
+            string artifactRoot = Directory.GetParent(outputDirectory)!.FullName;
+            string compressionDirectory = Path.Combine(artifactRoot, "compression");
+            string selectedDirectory = Path.Combine(artifactRoot, "selected");
+            string compressedCategoriesPath = Path.Combine(
+                compressionDirectory,
+                "ItemCategory.gdtb");
+            string compressedItemsPath = Path.Combine(compressionDirectory, "Item.gdtb");
 
             VerifySemantics(categoriesPath, itemsPath);
             VerifyCorruptionFailures(outputDirectory);
-            BenchmarkLoad(categoriesPath, itemsPath);
-            BenchmarkLookup(itemsPath);
-            GD.Print("[DataTablePrototypeBenchmark] PASS (4/4)");
+            VerifyCompressedSemantics(
+                compressedCategoriesPath,
+                compressedItemsPath,
+                selectedDirectory,
+                categoriesPath,
+                itemsPath);
+            BenchmarkLoad("None", categoriesPath, itemsPath);
+            BenchmarkLoad("Zstd", compressedCategoriesPath, compressedItemsPath);
+            BenchmarkLookup("None", itemsPath);
+            BenchmarkLookup("Zstd", compressedItemsPath);
+            GD.Print("[DataTablePrototypeBenchmark] PASS (7/7)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -74,8 +89,9 @@ public sealed partial class DataTablePrototypeBenchmark : Node
             ("bad-magic.gdtb", "magic"),
             ("bad-format-version.gdtb", "格式版本"),
             ("bad-schema-version.gdtb", "schema 版本"),
+            ("bad-flags.gdtb", "未知 flags"),
             ("tampered-payload.gdtb", "payload 摘要"),
-            ("truncated.gdtb", "payload 摘要"),
+            ("truncated.gdtb", "未压缩 payload 大小"),
             ("bad-string-index.gdtb", "字符串池索引越界"),
             ("bad-primary-index.gdtb", "主键索引无效"),
         };
@@ -88,10 +104,55 @@ public sealed partial class DataTablePrototypeBenchmark : Node
                 message,
                 fileName);
         }
-        GD.Print($"[DataTablePrototypeBenchmark] PASS: 损坏与版本拒绝 ({cases.Length}/7)");
+        string compressedCorruptionDirectory = Path.Combine(
+            Directory.GetParent(outputDirectory)!.FullName,
+            "compression-corruption");
+        (string FileName, string Message)[] compressedCases =
+        {
+            ("tampered-zstd.gdtb", "Zstd 解压"),
+            ("bad-uncompressed-size.gdtb", "Zstd 解压"),
+            ("bad-payload-hash.gdtb", "payload 摘要"),
+        };
+        foreach ((string fileName, string message) in compressedCases)
+        {
+            string path = Path.Combine(compressedCorruptionDirectory, fileName);
+            AssertInvalidData(
+                () => DataTablePrototypeLoader.LoadItem(path),
+                message,
+                fileName);
+        }
+        GD.Print(
+            $"[DataTablePrototypeBenchmark] PASS: 损坏与版本拒绝 " +
+            $"({cases.Length + compressedCases.Length}/11)");
     }
 
-    private static void BenchmarkLoad(string categoriesPath, string itemsPath)
+    private static void VerifyCompressedSemantics(
+        string categoriesPath,
+        string itemsPath,
+        string selectedDirectory,
+        string uncompressedCategoriesPath,
+        string uncompressedItemsPath)
+    {
+        ItemCategoryTable categories = DataTablePrototypeLoader.LoadItemCategory(categoriesPath);
+        ItemTable items = DataTablePrototypeLoader.LoadItem(itemsPath);
+        Assert(categories.Count == 4, "Zstd ItemCategory 行数不正确");
+        Assert(items.Count == ExpectedItemCount, "Zstd Item 行数不正确");
+        Assert(items.Get("item_00005").Description is null, "Zstd null 语义错误");
+
+        Assert(
+            File.ReadAllBytes(Path.Combine(selectedDirectory, "ItemCategory.gdtb"))
+                .AsSpan()
+                .SequenceEqual(File.ReadAllBytes(uncompressedCategoriesPath)),
+            "Auto 错误选择了 ItemCategory Zstd 候选");
+        Assert(
+            File.ReadAllBytes(Path.Combine(selectedDirectory, "Item.gdtb"))
+                .AsSpan()
+                .SequenceEqual(File.ReadAllBytes(uncompressedItemsPath)),
+            "Auto 错误选择了 Item Zstd 候选");
+        GD.Print("[DataTablePrototypeBenchmark] PASS: Zstd 与 Auto 保守选择语义");
+    }
+
+    private static void BenchmarkLoad(string compression, string categoriesPath, string itemsPath)
     {
         _ = DataTablePrototypeLoader.LoadItemCategory(categoriesPath);
         _ = DataTablePrototypeLoader.LoadItem(itemsPath);
@@ -111,12 +172,13 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         long binaryBytes = new FileInfo(categoriesPath).Length + new FileInfo(itemsPath).Length;
         GD.Print(
             $"[DataTablePrototypeBenchmark] Load: Build={BuildConfiguration}; " +
+            $"Compression={compression}; " +
             $"Rows={categories.Count + items.Count}; " +
             $"BinaryBytes={binaryBytes}; ElapsedMs={elapsed.TotalMilliseconds:F3}; " +
             $"AllocatedBytes={allocated}; RetainedManagedBytes={memoryAfter - memoryBefore}");
     }
 
-    private static void BenchmarkLookup(string itemsPath)
+    private static void BenchmarkLookup(string compression, string itemsPath)
     {
         ItemTable items = DataTablePrototypeLoader.LoadItem(itemsPath);
         var ids = new string[ExpectedItemCount];
@@ -134,7 +196,7 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         Assert(weightSum > 0, "查询结果未被消费");
         Assert(allocated == 0, $"预生成键查询产生托管分配：{allocated} bytes");
         GD.Print(
-            $"[DataTablePrototypeBenchmark] Lookup: Count={LookupCount}; " +
+            $"[DataTablePrototypeBenchmark] Lookup: Compression={compression}; Count={LookupCount}; " +
             $"ElapsedMs={elapsed.TotalMilliseconds:F3}; AllocatedBytes={allocated}");
     }
 

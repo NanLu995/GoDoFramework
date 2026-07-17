@@ -132,13 +132,15 @@ Header
 ├─ Magic: GDTB
 ├─ 文件格式版本
 ├─ Schema 版本
+├─ Flags：未压缩或 Zstd
 ├─ Table ID
 ├─ 行数与字段数
-├─ Flags：压缩方式等
-├─ 内容 SHA-256
-├─ 字符串池
-├─ 紧凑行数据
-└─ 主键索引
+├─ 未压缩 payload 大小
+├─ 未压缩 payload SHA-256
+└─ Payload
+   ├─ 字符串池
+   ├─ 紧凑行数据
+   └─ 主键索引
 ```
 
 面向游戏常见的“按 ID 读取完整一行”，首版优先采用紧凑行布局，并在加载后形成连续强类型 Row 数组：
@@ -175,7 +177,11 @@ public enum DataTableCompressionMode
 4. 按经过目标平台基准验证的规则选择；
 5. 允许 Profile 对单表覆盖为 `Never` 或 `Always`。
 
-构建报告至少输出源文件大小、未压缩二进制大小、Zstd 大小、生成耗时和最终选择。加载时间、解压时间、峰值内存和常驻内存必须在 Windows 与目标移动平台实测后，才能确定 Auto 阈值。
+确定性构建报告至少输出源文件大小、未压缩二进制大小、Zstd 大小和最终选择。生成、加载与解压时间以及峰值内存和常驻内存单独进入基准证据；必须在 Windows 与目标移动平台实测后，才能确定 Auto 阈值。
+
+阶段 B 原型采用 Godot C# 的 `byte[].Compress(FileAccess.CompressionMode.Zstd)` 与对应 `Decompress`，不引入 Python 或 NuGet 压缩依赖。Python 编译器始终先产生已校验的未压缩 v2 文件，Godot C# 目标处理器只压缩 payload；头部继续保持可读，并记录未压缩大小和摘要。运行时解压后验证相同摘要，因此未压缩与 Zstd 共用一套行解码路径。
+
+当前 `Auto` 只生成两种候选和建议报告，保守选择未压缩产物；`Never` 选择未压缩，`Always` 选择 Zstd。确定性报告记录体积、建议和最终选择，易波动的压缩/解压耗时只进入基准输出和验证证据。移动端数据完成前不固化 Auto 阈值。
 
 ## 10. 原数据校验
 
@@ -267,7 +273,7 @@ DataTable 编译器先产生与运行时语言无关的规范化 IR 和 Manifest
 
 原型产物包括规范化 IR、数据集 Manifest、共享与完整摘要、未压缩 `.gdtb`、`internal` C# Row / Table、Debug JSON 和构建诊断报告。C# 验证读取器必须实际读取 Python 编译器生成的二进制并检查查询结果、文件体积、加载耗时和托管内存变化。
 
-原型放在 `Verification/Experimental/DataTable/`，不接入 `GoDoRuntime`、Services、EditorPlugin 或正式文档 API，不承诺 public API。压缩只保留格式标志，不执行压缩；加密不保留标志、不实现接口。
+原型放在 `Verification/Experimental/DataTable/`，不接入 `GoDoRuntime`、Services、EditorPlugin 或正式文档 API，不承诺 public API。阶段 B 已验证 Zstd 候选、压缩模式选择与共用读取器；加密不保留标志、不实现接口。
 
 ## 14. 性能与生命周期
 
@@ -295,6 +301,8 @@ DataTable 编译器先产生与运行时语言无关的规范化 IR 和 Manifest
 - 使用 Zstd 生成候选产物；
 - 在 Windows 与目标移动平台比较加载、峰值内存和体积；
 - 根据证据确定 Auto 规则。
+
+当前 Windows Debug / Release IL/JIT 原型已完成前三项中的 Windows 部分；移动平台与正式 ExportRelease 仍待验证，Auto 因此继续保守选择未压缩产物。
 
 ### 阶段 C：Editor / CI / Export
 

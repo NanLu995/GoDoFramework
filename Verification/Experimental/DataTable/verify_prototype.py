@@ -104,7 +104,7 @@ def binary_layout(data: bytearray) -> tuple[int, int, int, int]:
     table_id_length = struct.unpack_from("<H", data, 12)[0]
     row_count_offset = 14 + table_id_length
     row_count = struct.unpack_from("<I", data, row_count_offset)[0]
-    hash_offset = row_count_offset + 6
+    hash_offset = row_count_offset + 10
     payload_offset = hash_offset + 32
     string_count = struct.unpack_from("<I", data, payload_offset)[0]
     return row_count, hash_offset, payload_offset, string_count
@@ -134,6 +134,10 @@ def build_corruption_artifacts() -> None:
     bad_schema = bytearray(valid)
     struct.pack_into("<H", bad_schema, 6, 2)
     variants["bad-schema-version.gdtb"] = bad_schema
+
+    bad_flags = bytearray(valid)
+    struct.pack_into("<I", bad_flags, 8, 2)
+    variants["bad-flags.gdtb"] = bad_flags
 
     tampered = bytearray(valid)
     tampered[-1] ^= 0xFF
