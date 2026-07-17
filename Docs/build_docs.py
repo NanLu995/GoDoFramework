@@ -568,8 +568,8 @@ def write_docfx_config(locale: str, locale_work_root: Path) -> None:
                 "filter": "filterConfig.yml",
                 "properties": {
                     "TargetFramework": "net8.0",
-                    "GoDoIncludeGuideInput": "false",
-                    "GoDoIncludePhantomCamera": "false",
+                    "GoDoIncludeGuideInput": "true",
+                    "GoDoIncludePhantomCamera": "true",
                 },
                 "memberLayout": "samePage",
                 "namespaceLayout": "nested",

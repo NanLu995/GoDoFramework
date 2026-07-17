@@ -24,15 +24,15 @@ public sealed class RemoteErrorReporterTemplate : IErrorReporter
 {
     private readonly string _endpoint;
 
-    /// <param name="endpoint">远程服务器 URL，例如 "https://errors.mygame.com/report"。</param>
+    /// <summary>创建一个将报告异步投递到指定终结点的模板实例。</summary>
+    /// <param name="endpoint">远程服务器 URL，例如 <c>https://errors.mygame.com/report</c>；该值由具体实现负责验证和使用。</param>
     public RemoteErrorReporterTemplate(string endpoint)
     {
         _endpoint = endpoint;
     }
 
-    /// <summary>
-    /// 同步入口：仅负责把报告丢进后台任务，立即返回，不阻塞调用方。
-    /// </summary>
+    /// <summary>同步入口：仅负责把报告丢进后台任务，立即返回，不阻塞调用方。</summary>
+    /// <param name="report">要投递的结构化错误报告；其字段会在返回前复制，避免跨异步延续保留 <c>in</c> 引用。</param>
     public void Report(in ErrorReport report)
     {
         // 必须先把需要的字段从 in 引用的 struct 中取出，
