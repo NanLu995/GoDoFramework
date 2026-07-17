@@ -37,6 +37,8 @@ dotnet build GoDoFramework.csproj -c CoreVerification -p:GoDoIncludeGuideInput=f
 
 必须使用独立的 `CoreVerification` 配置并直接构建 `.csproj`。不要用上述强制禁用参数构建默认 Debug：它会覆盖 Godot 编辑器当前加载的 Debug 程序集，导致已安装的 GUIDE / Phantom C# 插件脚本暂时无法实例化，直到重新执行默认 Debug 构建。
 
+GitHub Actions 的 `Core Verification` 工作流复用上述边界：在 Linux 上使用 Godot 4.7 Mono，先以 `CoreVerification` 配置强制关闭可选适配，再运行 `--suite core`。相关框架、验证或工程文件推送到 `master` 时会自动触发，也可以在 Actions 页面手动运行；它只验证可分发核心包的编译与 9 项长期服务启动，不把本地工作台的 GUIDE、Phantom Camera 或 Demo 配置视为 CI 前置条件。
+
 `SchedulerCoreRegression` 使用人工时间推进验证三种时钟、Process/Physics、重复/取消/暂停、异常隔离、DelayAsync、跨线程 Token 取消与 Shutdown，并通过真实 SceneTree 验证 Owner 入树约束、绑定清理和退出树自动取消；Debug 构建另验证只读快照。该场景不进行真实等待，也不依赖 Scheduler 已接入 GoDoRuntime。
 
 `SchedulerRuntimeRegression` 使用 Autoload 注册的 `ISchedulerService` 验证真实 Process/Physics 采样、TimeScale、SceneTree 暂停、Owner 退出与服务退出清理。该场景包含短暂真实等待，外层 runner 超时仍是最终卡死保护。

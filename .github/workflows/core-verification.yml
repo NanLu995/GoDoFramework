@@ -1,0 +1,63 @@
+name: Core Verification
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/core-verification.yml"
+      - "addons/godo_framework/**"
+      - "Verification/Automated/**"
+      - "Verification/Package/**"
+      - "GoDoFramework.csproj"
+      - "GoDoFramework.sln"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Download Godot 4.7 Mono
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot-builds/releases/download/4.7-stable/Godot_v4.7-stable_mono_linux_x86_64.zip
+          unzip -q godot.zip -d .godot-ci
+          chmod +x .godot-ci/Godot_v4.7-stable_mono_linux_x86_64/Godot_v4.7-stable_mono_linux.x86_64
+
+      - name: Build core configuration
+        run: >-
+          dotnet build GoDoFramework.csproj
+          -c CoreVerification
+          --nologo
+          -p:GoDoIncludeGuideInput=false
+          -p:GoDoIncludePhantomCamera=false
+
+      - name: Verify clean core package
+        run: >-
+          python Verification/Automated/run_all.py
+          --suite core
+          --godot .godot-ci/Godot_v4.7-stable_mono_linux_x86_64/Godot_v4.7-stable_mono_linux.x86_64
+          --timeout 60
