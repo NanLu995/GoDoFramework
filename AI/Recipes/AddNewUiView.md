@@ -1,4 +1,4 @@
-# Add New UI View
+# 新增 UI View
 
 本文档说明如何新增一个由 UiService 管理的 UI。
 
@@ -102,4 +102,3 @@ private void OnCloseSelected(SettingsCloseSelectedEvent evt)
 - 直接 `QueueFree()` 受管理 UI。
 - 用匿名 lambda 订阅需要解绑的 Signal。
 - UI 内部直接修改流程状态，而不是发布玩家意图。
-

@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/i18n/zh-cn/getting-started/quick-start.md
-translation_source_hash: sha256:73b2a71bff764d61b3bf4517290e47b3e356f8cd3c3931dc81f21e1a5b06818f
+translation_source_hash: sha256:69a5b64501fbc430863e33026cf42c32a5ed5cbb1004a14b5a7caf17d4b65526
 ---
 
 # 5-Minute Quick Start
@@ -30,7 +30,7 @@ Open **Project Settings → Plugins** in Godot and enable `GoDo Framework`. Enab
 ## 3. Check and install the Runtime
 
 1. Complete a C# Debug build of the target project.
-2. Open **Project → Tools → GoDo Framework → Setup...**.
+2. Open **GoDo → Setup...** in the editor's top toolbar.
 3. Resolve errors shown by the setup window.
 4. When all checks pass, explicitly select **Install Runtime**.
 

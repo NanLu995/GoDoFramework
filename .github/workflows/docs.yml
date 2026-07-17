@@ -10,6 +10,7 @@ on:
       - "Docs/**"
       - "addons/**/*.cs"
       - "addons/**/USAGE.md"
+      - "addons/**/USAGE.en.md"
       - "AI/AI_GAMEDEV_GUIDE.md"
       - "AI/ARCHITECTURE.md"
       - "CHANGELOG.md"
@@ -27,7 +28,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
@@ -35,6 +36,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4

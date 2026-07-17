@@ -1,4 +1,4 @@
-# Add New Procedure
+# 新增 Procedure
 
 本文档说明如何新增一个顶层游戏流程，例如 `SettingsProcedure`、`PauseProcedure`、`LevelSelectProcedure`。
 
@@ -89,4 +89,3 @@ context.RequestChange(new SettingsProcedure());
 - UI 直接强转 `IProcedureService.Current`。
 - 退出流程时忘记关闭 View 或释放 `EventScope`。
 - 把局部玩法状态写成 Procedure。
-

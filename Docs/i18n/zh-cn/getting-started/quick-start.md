@@ -25,7 +25,7 @@ addons/godo_framework/
 ## 3. 检查并安装 Runtime
 
 1. 完成一次目标项目 C# Debug 编译。
-2. 打开“项目 → 工具 → GoDo Framework → 设置 (Setup)...”。
+2. 打开编辑器顶部的“GoDo → 设置 (Setup)...”。
 3. 处理检查窗口中的错误。
 4. 检查全部通过后，显式点击“安装 Runtime”。
 

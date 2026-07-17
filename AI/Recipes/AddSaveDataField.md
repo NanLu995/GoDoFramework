@@ -1,4 +1,4 @@
-# Add Save Data Field
+# 新增存档字段
 
 本文档说明如何给业务存档新增字段。
 
@@ -52,4 +52,3 @@ public const int CurrentDataVersion = 2;
 - 新字段没有默认值，旧存档读取失败。
 - 把业务存档字段放进 GoDo 框架命名空间。
 - 存档失败后静默吞掉异常，导致用户以为保存成功。
-

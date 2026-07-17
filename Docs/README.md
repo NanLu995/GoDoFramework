@@ -16,7 +16,7 @@ python Docs/build_docs.py serve
 ```
 
 - `lint`：检查 Markdown 结构、代码块和翻译状态，不运行 DocFX。
-- `check`：重新发现内容并生成中英文站点，将 DocFX 警告视为错误；提交前使用。
+- `check`：重新发现内容并生成中英文站点，将 DocFX 警告视为错误，并检查最终 Pages 产物；提交前使用。
 - `build`：生成静态站点到 `.artifacts/docs/site/`。
 - `serve`：生成站点并在 `http://127.0.0.1:8080/` 启动本地预览；按 `Ctrl+C` 停止。
 - `prepare`：只生成 DocFX 临时工作区，排查导航或配置时使用。
@@ -79,3 +79,11 @@ translation_source_hash: sha256:<source-hash>
 `.github/workflows/docs.yml` 与本地使用同一个 `check` 命令。`master` 分支的文档或 public API 变化通过检查后，工作流发布整个 `.artifacts/docs/site/`。
 
 仓库管理员只需首次在 GitHub 的 **Settings → Pages → Build and deployment** 中将 Source 设为 **GitHub Actions**。之后正常提交并 push 即可自动部署，也可以在 Actions 页面手动运行 Documentation 工作流。
+
+文档改动已经提交到本地 `master` 后，发布只需一条命令：
+
+```powershell
+git push origin master
+```
+
+该 push 会触发 Documentation 工作流；不需要再选择 Jekyll、Static HTML 或手动上传生成目录。

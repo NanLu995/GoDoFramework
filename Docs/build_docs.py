@@ -331,6 +331,8 @@ def module_location(relative: Path) -> tuple[str, Path]:
     group = parts[1]
     if group in ("Core", "Runtime", "Tools"):
         module_parts = parts[2:-1]
+    elif group == "Integrations":
+        module_parts = parts[2:-1]
     else:
         module_parts = parts[1:-1]
     if not module_parts:
@@ -725,12 +727,81 @@ def inject_language_switches() -> None:
             )
 
 
+def validate_site() -> None:
+    required_files = (
+        SITE_ROOT / ".nojekyll",
+        SITE_ROOT / "index.html",
+        SITE_ROOT / "zh-cn" / "index.html",
+        SITE_ROOT / "zh-cn" / "index.json",
+        SITE_ROOT / "zh-cn" / "sitemap.xml",
+        SITE_ROOT / "zh-cn" / "getting-started" / "index.html",
+        SITE_ROOT / "zh-cn" / "modules" / "runtime" / "Localization" / "index.html",
+        SITE_ROOT / "zh-cn" / "modules" / "integrations" / "GuideInput" / "index.html",
+        SITE_ROOT / "zh-cn" / "modules" / "integrations" / "PhantomCamera" / "index.html",
+        SITE_ROOT / "zh-cn" / "api" / "toc.html",
+        SITE_ROOT / "zh-cn" / "api" / "GoDo.Services.html",
+        SITE_ROOT / "en-us" / "index.html",
+        SITE_ROOT / "en-us" / "index.json",
+        SITE_ROOT / "en-us" / "sitemap.xml",
+        SITE_ROOT / "en-us" / "getting-started" / "index.html",
+        SITE_ROOT / "en-us" / "api" / "toc.html",
+        SITE_ROOT / "en-us" / "api" / "GoDo.Services.html",
+    )
+    errors = [
+        f"缺少发布产物：{path.relative_to(SITE_ROOT)}"
+        for path in required_files
+        if not path.is_file()
+    ]
+
+    duplicate_integration_root = (
+        SITE_ROOT / "zh-cn" / "modules" / "integrations" / "Integrations"
+    )
+    if duplicate_integration_root.exists():
+        errors.append("可选集成输出路径重复包含 Integrations")
+
+    checked_pages = 0
+    site_root = SITE_ROOT.resolve()
+    for locale in LOCALES:
+        locale_root = SITE_ROOT / locale
+        for html_path in locale_root.rglob("*.html"):
+            text = html_path.read_text(encoding="utf-8")
+            if "</body>" not in text:
+                continue
+            checked_pages += 1
+            if LANGUAGE_SWITCH_MARKER not in text:
+                errors.append(
+                    f"完整 HTML 页面缺少语言切换：{html_path.relative_to(SITE_ROOT)}"
+                )
+                continue
+            switch_match = re.search(
+                rf"{re.escape(LANGUAGE_SWITCH_MARKER)}\s*<a[^>]+href=\"([^\"]+)\"",
+                text,
+            )
+            if switch_match is None:
+                errors.append(
+                    f"无法解析语言切换目标：{html_path.relative_to(SITE_ROOT)}"
+                )
+                continue
+            target_value = html.unescape(switch_match.group(1)).split("#", 1)[0]
+            target = (html_path.parent / target_value).resolve()
+            if not target.is_relative_to(site_root) or not target.is_file():
+                errors.append(
+                    f"语言切换目标不存在：{html_path.relative_to(SITE_ROOT)} -> {target_value}"
+                )
+
+    if errors:
+        details = "\n".join(f"- {error}" for error in errors)
+        raise RuntimeError(f"发布产物检查失败：\n{details}")
+    print(f"[SITE] PASS ({checked_pages} full HTML pages)")
+
+
 def build_sites(warnings_as_errors: bool) -> None:
     restore_tools_and_project()
     for locale in LOCALES:
         run_docfx(locale, warnings_as_errors)
     write_root_landing()
     inject_language_switches()
+    validate_site()
     print(f"[PASS] 文档站：{SITE_ROOT}")
 
 
