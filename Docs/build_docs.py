@@ -674,6 +674,36 @@ def run_docfx(locale: str, warnings_as_errors: bool) -> None:
     run(arguments)
 
 
+def validate_api_reference() -> None:
+    """Reject generated GoDo API items that lost their XML summary."""
+    api_root = WORK_ROOT / "zh-cn" / "api"
+    errors: list[str] = []
+    own_items = 0
+    for api_file in api_root.glob("*.yml"):
+        text = api_file.read_text(encoding="utf-8")
+        items_section = text.split("references:", maxsplit=1)[0]
+        for block in items_section.split("- uid: ")[1:]:
+            if "addons/godo_framework/" not in block:
+                continue
+            own_items += 1
+            uid = block.splitlines()[0].strip()
+            if "\n  summary: " not in block:
+                errors.append(f"{api_file.name}: {uid} 缺少 XML <summary>")
+
+    required_items = (
+        "GoDo.GuideInput.GuideInputBackendInstaller.yml",
+        "GoDo.PhantomCameraRig.yml",
+    )
+    for filename in required_items:
+        if not (api_root / filename).is_file():
+            errors.append(f"可选集成 API 未生成：{filename}")
+
+    if errors:
+        details = "\n".join(f"- {error}" for error in errors)
+        raise RuntimeError(f"API Reference 校验失败：\n{details}")
+    print(f"[API] PASS ({own_items} GoDo items)")
+
+
 def write_root_landing() -> None:
     SITE_ROOT.mkdir(parents=True, exist_ok=True)
     landing = """<!doctype html>
@@ -832,6 +862,7 @@ def build_sites(warnings_as_errors: bool) -> None:
     restore_tools_and_project()
     for locale in LOCALES:
         run_docfx(locale, warnings_as_errors)
+    validate_api_reference()
     write_root_landing()
     inject_language_switches()
     validate_site()

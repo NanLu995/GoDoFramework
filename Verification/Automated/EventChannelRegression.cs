@@ -30,9 +30,11 @@ public sealed partial class EventChannelRegression : Node
             Run("派发期间增删监听", VerifyMutationDuringDispatch);
             Run("监听者异常隔离", VerifyExceptionIsolation);
             Run("EventScope 释放", VerifyEventScopeDispose);
+            Run("已释放 EventScope 拒绝注册", VerifyDisposedEventScopeRejectsRegistration);
+            Run("树外 Node 不注册 Bind 监听", VerifyBindOutsideTree);
             await RunAsync("Bind 跟随 Node 退出树解绑", VerifyNodeBindingAsync);
 
-            GD.Print($"[EventChannelRegression] PASS ({_passed}/8)");
+            GD.Print($"[EventChannelRegression] PASS ({_passed}/10)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -225,6 +227,45 @@ public sealed partial class EventChannelRegression : Node
         finally
         {
             EventChannel.Off<ScopeEvent>(Handler);
+        }
+    }
+
+    private static void VerifyDisposedEventScopeRejectsRegistration()
+    {
+        var scope = new EventScope();
+        scope.Dispose();
+        scope.Dispose();
+
+        bool threw = false;
+        try
+        {
+            scope.On<ScopeEvent>(_ => { });
+        }
+        catch (ObjectDisposedException)
+        {
+            threw = true;
+        }
+
+        Assert(threw, "已释放 EventScope 仍允许注册监听");
+    }
+
+    private static void VerifyBindOutsideTree()
+    {
+        int calls = 0;
+        var owner = new Node { Name = "OutsideTreeOwner" };
+        void Handler(BoundEvent _) => calls++;
+
+        try
+        {
+            EventChannel.Bind<BoundEvent>(owner, Handler);
+            EventChannel.Emit(new BoundEvent());
+
+            AssertEqual(0, calls, "树外 Node 的 Bind 监听被注册");
+        }
+        finally
+        {
+            EventChannel.Off<BoundEvent>(Handler);
+            owner.QueueFree();
         }
     }
 
