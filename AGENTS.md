@@ -81,6 +81,10 @@
 
 - 每个独立模块必须有 `USAGE.md`，说明定位、适用/非适用场景、上手、public API、失败语义、生命周期/线程、性能与误用。
 - public API、失败语义、生命周期或依赖变化时同步更新 `USAGE.md`，示例必须与源码一致。
+- `AI/**` 与任何 `USAGE.md` 都是内部技术资料，不直接进入公开用户文档；公开概念内容只维护在 `Docs/Manual/<locale>/`。
+- 用户可见功能新增或变化时，必须判断并更新教程、使用指南、概念说明或故障排查；若确认只需 API Reference，也必须在 `Docs/coverage.json` 记录原因。
+- 新增模块的 `USAGE.md` 必须登记到 `Docs/coverage.json`。契约摘要变化后，先复核用户手册和覆盖状态，再更新 `reviewed_contract_hash`，不得只更新摘要绕过维护。
+- 用户手册使用自然语言，先说明任务、操作和可观察结果，再解释原理；不把内部文档或 API 清单机械改写成正文。新增页面必须加入对应语言的 `Docs/navigation.<locale>.json`。
 - 新增或修改 public API 后，除编译外还必须检查生成的 API Reference，确认 XML 注释完整、链接可解析、签名展示清晰且没有文档生成警告；后续 API 文档专项校验也按此标准执行。
 - 修改后默认可运行 `dotnet build` 和不依赖编辑器的测试；会修改项目数据、场景或外部状态的测试必须先询问。
 - 通过 Codex 启动 Godot 编辑器、场景或自动化测试时，必须确保进程可访问 `AppData/Roaming/Godot` 与 `AppData/Local/Godot`；受限环境会导致 Godot 4.7 在启动阶段原生崩溃。

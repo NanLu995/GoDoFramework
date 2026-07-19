@@ -1,0 +1,231 @@
+{
+  "allow_pending": false,
+  "entries": {
+    "framework-setup": {
+      "contract": "addons/godo_framework/USAGE.md",
+      "status": "documented",
+      "reason": "快速开始、安装和资源指南已覆盖完整复制、C# 准备、健康检查、Runtime 安装、可选集成、升级回滚、安全卸载及资源清单编辑器工作流；仍等待正式版本包验收。",
+      "manual_pages": [
+        "getting-started/index.md",
+        "getting-started/install-upgrade-uninstall.md",
+        "guides/resources-and-scenes/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:9768dcbefb306d853bd653c8b89523f04d68982bb40d3924b94ca272a988b175"
+    },
+    "error-hub": {
+      "contract": "addons/godo_framework/Core/ErrorHub/USAGE.md",
+      "status": "documented",
+      "reason": "功能指南已覆盖等级选择、异常边界、事件生命周期、自定义 Reporter、后台队列与错误风暴；仍等待远程上报隐私、离线缓存和平台合规专项指南。",
+      "manual_pages": [
+        "guides/diagnostics/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:18f5b716c365764597abb13e8118fa80867cfb9158266a48347ceb583ff7c177"
+    },
+    "event-channel": {
+      "contract": "addons/godo_framework/Core/EventChannel/USAGE.md",
+      "status": "documented",
+      "reason": "教程和功能指南已覆盖业务事件、Signal/Service 选择、同步派发、Node Bind、EventScope、优先级、Once 及重入边界；仍等待复杂嵌套派发与诊断专项指南。",
+      "manual_pages": [
+        "getting-started/switch-procedures.md",
+        "getting-started/localize-game-text.md",
+        "guides/services-and-events/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:c369fea1741a5a02a0e0c4230a57ba0b4d3c8910ad0272a3d62c20f3f358786a"
+    },
+    "log-hub": {
+      "contract": "addons/godo_framework/Core/LogHub/USAGE.md",
+      "status": "documented",
+      "reason": "功能指南已覆盖 Debug/Info 选择、模块与上下文、主线程约束、Release 移除行为及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
+      "manual_pages": [
+        "guides/diagnostics/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:4f9e433b0c23a3b6526e98bc2609e63c52e0518fedeb0bacd7c4dbc7a54dee23"
+    },
+    "services": {
+      "contract": "addons/godo_framework/Core/Services/USAGE.md",
+      "status": "documented",
+      "reason": "当前用户用法已覆盖；自定义长期服务的注册与替换属于框架扩展者的 API Reference 范围。",
+      "manual_pages": [
+        "guides/services-and-events/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:30fc3aed38cd2d951fa0f9ac430c48324e91e708999a32de96606ec35d50d3e6"
+    },
+    "debugger": {
+      "contract": "addons/godo_framework/Debugger/USAGE.md",
+      "status": "documented",
+      "reason": "功能指南已覆盖自动加载、折叠与展开、内置页面、刷新和历史容量及 Release 边界；仍等待各页面的深度排障示例。",
+      "manual_pages": [
+        "guides/diagnostics/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:b6e8d771ca7e4e17aa35759d7fab24362afd4906281065192f035aafdb78c166"
+    },
+    "guide-input": {
+      "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
+      "status": "documented",
+      "reason": "功能指南已覆盖 GUIDE 安装检查、Profile、Installer、运行时重绑定、冲突处理、提示 UI、持久化和常见排错；平台验收仍需在目标游戏中执行。",
+      "manual_pages": [
+        "guides/input/index.md",
+        "guides/input-rebinding/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:78b34ff85b71c22fdcf611ce7a15925fa0466c07b522c6b97a613623365bbe55"
+    },
+    "phantom-camera": {
+      "contract": "addons/godo_framework/Integrations/PhantomCamera/USAGE.md",
+      "status": "documented",
+      "reason": "功能指南已覆盖安装检查、第三人称预设、优先级映射、切换恢复、自定义 Rig 与常见排错；鼠标环绕属于游戏业务，插件升级仍需项目验收。",
+      "manual_pages": [
+        "guides/camera/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:9686cc1fc4cbefc7f9602966c227eae871fd68149f6c59168dae0be569f3076e"
+    },
+    "audio": {
+      "contract": "addons/godo_framework/Runtime/Audio/USAGE.md",
+      "status": "documented",
+      "reason": "教程和功能指南已覆盖流程 BGM、暂停恢复、加载取消、按钮 SFX、并发容量、循环音效边界、分组音量、设置持久化和非关键失败；仍等待淡入淡出、混音与空间音频未来能力。",
+      "manual_pages": [
+        "getting-started/add-audio.md",
+        "getting-started/save-progress-and-settings.md",
+        "guides/ui-and-audio/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:c3dbdae9fa7da25b3bd9c8e448133958193521945c7a48ad9990333019a8bf8a"
+    },
+    "camera": {
+      "contract": "addons/godo_framework/Runtime/Camera/USAGE.md",
+      "status": "documented",
+      "reason": "功能指南已覆盖语义 ID、Rig 注册、Procedure 切换、恢复历史、场景替换、失败原子性和自定义后端适配器；多视口输出不属于当前服务范围。",
+      "manual_pages": [
+        "guides/camera/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:de3aff43e5195b496bef5e3068a68cd7690c7a185fff897ea3c4d3931ad6c795"
+    },
+    "config": {
+      "contract": "addons/godo_framework/Runtime/Config/USAGE.md",
+      "status": "documented",
+      "reason": "功能指南已覆盖 Resource 类型设计、Validate 规则、Inspector 资产、加载失败边界、ConfigTable 索引、只读持有和无热重载约束；仍等待大型配置拆分、数据迁移和内容团队工作流指南。",
+      "manual_pages": [
+        "guides/configuration/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:bc096c61e4a7eb9a6dc77ed25de11d82629caf5958605766473e551f4c83452c"
+    },
+    "input": {
+      "contract": "addons/godo_framework/Runtime/Input/USAGE.md",
+      "status": "documented",
+      "reason": "功能指南已覆盖语义 Action、Frame、Context、帧边界、设备提示、运行时重绑定、持久化、能力检测和失败原子性。",
+      "manual_pages": [
+        "guides/input/index.md",
+        "guides/input-rebinding/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:0efcd691c9f78f10d954be44b7e09fa9fd5ba41e9973eeed787a4ba98a33c7c3"
+    },
+    "localization": {
+      "contract": "addons/godo_framework/Runtime/Localization/USAGE.md",
+      "status": "documented",
+      "reason": "教程和功能指南已覆盖 PO 注册、语义键、自动与动态翻译、复数、语言切换、持久化、字体 fallback、RTL、伪本地化和发布检查；仍等待动态语言包未来能力及多平台人工验收。",
+      "manual_pages": [
+        "getting-started/localize-game-text.md",
+        "guides/save-settings-localization/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:81fd2f684a4de03647210a012dd6c0d123b5969b950e14b867199be738efd60c"
+    },
+    "pool": {
+      "contract": "addons/godo_framework/Runtime/Pool/USAGE.md",
+      "status": "documented",
+      "reason": "功能指南已覆盖适用边界、IPoolable 重置、预热容量、租借归还、信号与异步清理、失败隔离、Clear/Dispose 和调优；仍等待真实性能测量案例与复杂粒子节点验收指南。",
+      "manual_pages": [
+        "guides/node-pool/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:637d994a5458bfd6bf60599bec84c6359c592d45fcb8bf3abf70f3ed380f7de8"
+    },
+    "procedure": {
+      "contract": "addons/godo_framework/Runtime/Procedure/USAGE.md",
+      "status": "documented",
+      "reason": "教程和功能指南已覆盖首次进入、请求切换、业务数据传递、并发拒绝、进入/退出失败状态、显式恢复、取消和场景/UI/音频/Input 协调；仍等待流程栈等未来复杂状态能力。",
+      "manual_pages": [
+        "getting-started/first-procedure.md",
+        "getting-started/first-scene.md",
+        "getting-started/first-ui.md",
+        "getting-started/switch-procedures.md",
+        "getting-started/add-audio.md",
+        "getting-started/save-progress-and-settings.md",
+        "guides/input/index.md",
+        "guides/procedure-recovery/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:4650601a06d07a7d58f259d76c530dfe97eca609145fb45afe9425ddd9dfdee8"
+    },
+    "resources": {
+      "contract": "addons/godo_framework/Runtime/Resources/USAGE.md",
+      "status": "documented",
+      "reason": "教程和功能指南已覆盖 ResourceKey 路径/UID、资源清单编辑与合并、同步和异步加载、进度、并发冲突、Godot 缓存及关闭行为；仍等待远程内容与高级缓存未来扩展。",
+      "manual_pages": [
+        "getting-started/first-scene.md",
+        "getting-started/first-ui.md",
+        "getting-started/switch-procedures.md",
+        "getting-started/add-audio.md",
+        "guides/resources-and-scenes/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:7bd7f9031221348830c6513bba1d447aefce6e214b38a0031d9c17e3d10a9b02"
+    },
+    "save": {
+      "contract": "addons/godo_framework/Runtime/Save/USAGE.md",
+      "status": "documented",
+      "reason": "教程和功能指南已覆盖业务 Codec、版本迁移、稳定槽位、多槽位 UI、NotFound、删除、备份恢复、损坏策略、里程碑保存和 Payload 边界；仍等待云存档与加密未来扩展。",
+      "manual_pages": [
+        "getting-started/save-progress-and-settings.md",
+        "guides/save-settings-localization/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:8eec6118e026e58f218bb31a020b2ba7ef8cb80acc516881aa468ada6ca79130"
+    },
+    "scene": {
+      "contract": "addons/godo_framework/Runtime/Scene/USAGE.md",
+      "status": "documented",
+      "reason": "教程和功能指南已覆盖基本切换、进度 UI、并发拒绝、失败保留、取消和旧场景释放约束；仍等待过渡动画与统一错误场景未来能力。",
+      "manual_pages": [
+        "getting-started/first-scene.md",
+        "getting-started/switch-procedures.md",
+        "guides/resources-and-scenes/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:d2f108cf2adf5ec9e512245a6debdee58c72fedd8d390541d550f26329a85aa7"
+    },
+    "scheduler": {
+      "contract": "addons/godo_framework/Runtime/Scheduler/USAGE.md",
+      "status": "documented",
+      "reason": "功能指南已覆盖三种时钟、Process/Physics、Owner 生命周期、重复周期合并、取消暂停、DelayAsync 和 Debugger 排查；仍等待确定性系统选型与跨平台长期计时验收指南。",
+      "manual_pages": [
+        "guides/scheduler/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:1b49da147680e90125b5305cff7d4770bdc14e2364277581dfcc17f040129019"
+    },
+    "settings": {
+      "contract": "addons/godo_framework/Runtime/Settings/USAGE.md",
+      "status": "documented",
+      "reason": "教程和功能指南已覆盖音量与语言加载、即时应用、显式保存、默认恢复、窗口、分辨率、VSync、能力检测和移动端边界；仍等待真实 Android/iOS 验收。",
+      "manual_pages": [
+        "getting-started/save-progress-and-settings.md",
+        "getting-started/localize-game-text.md",
+        "guides/save-settings-localization/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:ab5e6a37398919b19b7bb25783ca37f25ce398c1cada0e543379235c6b0f9706"
+    },
+    "ui": {
+      "contract": "addons/godo_framework/Runtime/UI/USAGE.md",
+      "status": "documented",
+      "reason": "教程和功能指南已覆盖三层显示、界面所有权、返回栈、Modal 输入边界、暂停协调、失败原子性、场景清理和信号生命周期；仍等待动画、数据绑定和大型 UI 内存策略未来能力。",
+      "manual_pages": [
+        "getting-started/first-ui.md",
+        "getting-started/switch-procedures.md",
+        "getting-started/localize-game-text.md",
+        "guides/ui-and-audio/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:7eda5bfea75d6c181e551351622731bdfdabc26e5703d29f87d183e5bd786ee8"
+    },
+    "data-table": {
+      "contract": "addons/godo_framework/Tools/DataTable/USAGE.md",
+      "status": "documented",
+      "reason": "功能指南已覆盖 CSV/Profile、Build Config、只读检查、事务生成、编辑器操作、生成代码读取、过期校验、单表限制、Client/Server 隔离和可靠导出门禁；该工具仍为实验状态，等待格式与生成 API 稳定及跨平台正式发布验收。",
+      "manual_pages": [
+        "guides/data-tables/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:aa14a096e3b8b7798851d8f2851e990eebc7d29efc6801f5efdb5a8caba44b00"
+    }
+  }
+}

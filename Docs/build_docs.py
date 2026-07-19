@@ -30,6 +30,12 @@ LINT_ONLY_FILES = (
     "Docs/Templates/MODULE_TEMPLATE.md",
     "Docs/Templates/RECIPE_TEMPLATE.md",
 )
+MANUAL_ROOT = REPOSITORY_ROOT / "Docs" / "Manual"
+NAVIGATION_FILES = {
+    locale: REPOSITORY_ROOT / "Docs" / f"navigation.{locale}.json"
+    for locale in ("zh-cn", "en-us")
+}
+COVERAGE_PATH = REPOSITORY_ROOT / "Docs" / "coverage.json"
 
 LOCALES = ("zh-cn", "en-us")
 LOCALE_SETTINGS = {
@@ -37,124 +43,20 @@ LOCALE_SETTINGS = {
         "html_lang": "zh-CN",
         "app_title": "GoDoFramework 文档",
         "switch_label": "English",
-        "section_names": {
-            "Start": "开始使用",
-            "Recipes": "教程与配方",
-            "Core": "核心模块",
-            "Runtime": "运行时服务",
-            "Tools": "工具模块",
-            "Debugger": "调试工具",
-            "Integrations": "可选集成",
-            "Reference": "参考资料",
-        },
         "api_label": "API Reference",
     },
     "en-us": {
         "html_lang": "en-US",
         "app_title": "GoDoFramework Documentation",
         "switch_label": "中文",
-        "section_names": {
-            "Start": "Getting Started",
-            "Recipes": "Recipes",
-            "Core": "Core",
-            "Runtime": "Runtime Services",
-            "Tools": "Tools",
-            "Debugger": "Debugger",
-            "Integrations": "Optional Integrations",
-            "Reference": "Reference",
-        },
         "api_label": "API Reference (Chinese descriptions)",
     },
-}
-
-CURATED_PAGES = {
-    "zh-cn": (
-        ("home", "Docs/i18n/zh-cn/index.md", "index.md", "Home", None),
-        (
-            "quick-start",
-            "Docs/i18n/zh-cn/getting-started/quick-start.md",
-            "getting-started/index.md",
-            "Start",
-            None,
-        ),
-        (
-            "installation",
-            "addons/godo_framework/USAGE.md",
-            "getting-started/installation.md",
-            "Start",
-            "安装、升级与移除",
-        ),
-        (
-            "game-development",
-            "AI/AI_GAMEDEV_GUIDE.md",
-            "guides/game-development.md",
-            "Start",
-            "使用框架制作游戏",
-        ),
-        (
-            "project-structure",
-            "AI/PROJECT_STRUCTURE.md",
-            "guides/project-structure.md",
-            "Start",
-            "推荐项目结构",
-        ),
-        (
-            "troubleshooting",
-            "AI/GODOT_GOTCHAS.md",
-            "reference/godot-csharp-troubleshooting.md",
-            "Reference",
-            "Godot / C# 故障排查",
-        ),
-        (
-            "changelog",
-            "CHANGELOG.md",
-            "reference/changelog.md",
-            "Reference",
-            "版本记录",
-        ),
-        (
-            "architecture",
-            "AI/ARCHITECTURE.md",
-            "contributing/architecture.md",
-            "Reference",
-            "框架架构",
-        ),
-    ),
-    "en-us": (
-        (
-            "home",
-            "Docs/i18n/en-us/index.md",
-            "index.md",
-            "Home",
-            None,
-        ),
-        (
-            "quick-start",
-            "Docs/i18n/en-us/getting-started/quick-start.md",
-            "getting-started/index.md",
-            "Start",
-            None,
-        ),
-    ),
-}
-
-GROUP_ORDER = {
-    "Home": 0,
-    "Start": 1,
-    "Recipes": 2,
-    "Core": 3,
-    "Runtime": 4,
-    "Tools": 5,
-    "Debugger": 6,
-    "Integrations": 7,
-    "Reference": 8,
 }
 
 HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 FENCE_PATTERN = re.compile(r"^\s*```(.*)$")
 FRONT_MATTER_BOUNDARY = "---"
 LANGUAGE_SWITCH_MARKER = "<!-- godo-language-switch -->"
-NAVIGATION_TITLE_SUFFIXES = (" 使用指南", " 使用说明", " 可选集成")
 
 
 @dataclass(frozen=True)
@@ -261,139 +163,79 @@ def create_page(
     )
 
 
-def discover_curated_pages(locale: str) -> list[Page]:
+def discover_pages(locale: str) -> list[Page]:
+    locale_root = MANUAL_ROOT / locale
+    if not locale_root.is_dir():
+        raise RuntimeError(f"用户手册目录不存在：{locale_root}")
+
     pages: list[Page] = []
-    for logical_id, source_value, destination_value, group, title in CURATED_PAGES[locale]:
-        source = REPOSITORY_ROOT / source_value
-        translation_source: Path | None = None
+    for source in sorted(locale_root.rglob("*.md")):
+        destination = source.relative_to(locale_root)
+        translation_source = None
         if locale == "en-us":
-            zh_match = next(
-                (
-                    item
-                    for item in CURATED_PAGES["zh-cn"]
-                    if item[0] == logical_id
-                ),
-                None,
-            )
-            translation_source = REPOSITORY_ROOT / zh_match[1] if zh_match else None
+            candidate = MANUAL_ROOT / "zh-cn" / destination
+            translation_source = candidate if candidate.is_file() else None
         pages.append(
             create_page(
-                logical_id,
-                locale,
-                source,
-                Path(destination_value),
-                group,
-                title,
-                translation_source,
-            )
-        )
-    return pages
-
-
-def discover_recipe_pages(locale: str) -> list[Page]:
-    pages: list[Page] = []
-    recipes_root = REPOSITORY_ROOT / "AI" / "Recipes"
-    for chinese_source in sorted(
-        (path for path in recipes_root.glob("*.md") if not path.name.endswith(".en.md")),
-        key=lambda path: path.name.lower(),
-    ):
-        if locale == "zh-cn":
-            source = chinese_source
-            destination_name = chinese_source.name
-            translation_source = None
-        else:
-            source = chinese_source.with_name(f"{chinese_source.stem}.en.md")
-            if not source.is_file():
-                continue
-            destination_name = chinese_source.name
-            translation_source = chinese_source
-
-        pages.append(
-            create_page(
-                f"recipe:{chinese_source.stem}",
-                locale,
-                source,
-                Path("recipes") / destination_name,
-                "Recipes",
-                translation_source=translation_source,
-            )
-        )
-    return pages
-
-
-def module_location(relative: Path) -> tuple[str, Path]:
-    parts = relative.parts
-    if parts[0] != "godo_framework":
-        return (
-            "Integrations",
-            Path("modules") / "integrations" / parts[0] / "index.md",
-        )
-
-    group = parts[1]
-    if group in ("Core", "Runtime", "Tools"):
-        module_parts = parts[2:-1]
-    elif group == "Integrations":
-        module_parts = parts[2:-1]
-    else:
-        module_parts = parts[1:-1]
-    if not module_parts:
-        module_parts = (group,)
-    return group, Path("modules") / group.lower() / Path(*module_parts) / "index.md"
-
-
-def navigation_title(title: str) -> str:
-    for suffix in NAVIGATION_TITLE_SUFFIXES:
-        if title.endswith(suffix):
-            return title.removesuffix(suffix)
-    return title
-
-
-def discover_module_pages(locale: str) -> list[Page]:
-    pages: list[Page] = []
-    addons_root = REPOSITORY_ROOT / "addons"
-    for chinese_source in addons_root.glob("**/USAGE.md"):
-        relative = chinese_source.relative_to(addons_root)
-        if relative.as_posix() == "godo_framework/USAGE.md":
-            continue
-
-        if locale == "zh-cn":
-            source = chinese_source
-            translation_source = None
-        else:
-            source = chinese_source.with_name("USAGE.en.md")
-            if not source.is_file():
-                continue
-            translation_source = chinese_source
-
-        group, destination = module_location(relative)
-        pages.append(
-            create_page(
-                f"module:{relative.parent.as_posix()}",
+                destination.with_suffix("").as_posix(),
                 locale,
                 source,
                 destination,
-                group,
-                navigation_title(read_title(source)),
+                "Manual",
                 translation_source=translation_source,
             )
         )
-    return pages
-
-
-def discover_pages(locale: str) -> list[Page]:
-    pages = (
-        discover_curated_pages(locale)
-        + discover_recipe_pages(locale)
-        + discover_module_pages(locale)
-    )
-    pages.sort(
-        key=lambda page: (
-            GROUP_ORDER.get(page.group, 99),
-            page.destination.as_posix().lower(),
-        )
-    )
     validate_destinations(pages)
+    load_navigation(locale, pages)
     return pages
+
+
+def load_navigation(
+    locale: str,
+    pages: list[Page],
+    navigation_path: Path | None = None,
+) -> dict[str, object]:
+    navigation_path = navigation_path or NAVIGATION_FILES[locale]
+    try:
+        navigation = json.loads(navigation_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exception:
+        raise RuntimeError(f"无法读取导航配置 {navigation_path}：{exception}") from exception
+
+    home = navigation.get("home")
+    sections = navigation.get("sections")
+    if not isinstance(home, str) or not isinstance(sections, list):
+        raise RuntimeError(f"导航配置格式错误：{navigation_path}")
+
+    listed: list[str] = [home]
+    for section in sections:
+        if not isinstance(section, dict) or not isinstance(section.get("name"), str):
+            raise RuntimeError(f"导航分组格式错误：{navigation_path}")
+        section_pages = section.get("pages")
+        if not isinstance(section_pages, list) or not all(
+            isinstance(value, str) for value in section_pages
+        ):
+            raise RuntimeError(f"导航分组 pages 格式错误：{navigation_path}")
+        listed.extend(section_pages)
+
+    if len(listed) != len(set(listed)):
+        raise RuntimeError(f"导航包含重复页面：{navigation_path}")
+    for value in listed:
+        path = Path(value)
+        if path.is_absolute() or path.suffix.lower() != ".md" or ".." in path.parts:
+            raise RuntimeError(f"导航页面路径无效：{value}")
+
+    discovered = {page.destination.as_posix() for page in pages}
+    listed_set = set(listed)
+    missing = sorted(discovered - listed_set)
+    unknown = sorted(listed_set - discovered)
+    if missing or unknown:
+        details = []
+        if missing:
+            details.append(f"未加入导航：{', '.join(missing)}")
+        if unknown:
+            details.append(f"页面不存在：{', '.join(unknown)}")
+        raise RuntimeError(f"导航配置与用户手册不一致：{'；'.join(details)}")
+    return navigation
 
 
 def validate_destinations(pages: list[Page]) -> None:
@@ -412,6 +254,108 @@ def validate_destinations(pages: list[Page]) -> None:
             raise RuntimeError(f"逻辑页面 ID 重复：{page.logical_id}")
         destinations[key] = page.source
         logical_ids.add(page.logical_id)
+
+
+def validate_public_sources(pages_by_locale: dict[str, list[Page]]) -> None:
+    manual_root = MANUAL_ROOT.resolve()
+    errors: list[str] = []
+    for pages in pages_by_locale.values():
+        for page in pages:
+            source = page.source.resolve()
+            if not source.is_relative_to(manual_root):
+                errors.append(str(page.source.relative_to(REPOSITORY_ROOT)))
+            if page.source.name.upper() == "USAGE.MD":
+                errors.append(str(page.source.relative_to(REPOSITORY_ROOT)))
+    if errors:
+        raise RuntimeError("公开站点包含内部文档源：" + ", ".join(sorted(set(errors))))
+
+
+def validate_coverage(
+    repository_root: Path = REPOSITORY_ROOT,
+    coverage_path: Path = COVERAGE_PATH,
+    manual_root: Path = MANUAL_ROOT,
+) -> None:
+    try:
+        coverage = json.loads(coverage_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exception:
+        raise RuntimeError(f"无法读取文档覆盖清单 {coverage_path}：{exception}") from exception
+
+    entries = coverage.get("entries")
+    allow_pending = coverage.get("allow_pending")
+    if not isinstance(entries, dict) or not isinstance(allow_pending, bool):
+        raise RuntimeError("coverage.json 必须包含布尔值 allow_pending 和对象 entries")
+
+    actual_contracts = {
+        path.relative_to(repository_root).as_posix()
+        for path in (repository_root / "addons" / "godo_framework").rglob("USAGE.md")
+    }
+    registered_contracts: set[str] = set()
+    errors: list[str] = []
+    valid_statuses = {"pending", "documented", "reference-only"}
+
+    for entry_id, entry in entries.items():
+        if not isinstance(entry, dict):
+            errors.append(f"{entry_id}：条目必须是对象")
+            continue
+        contract = entry.get("contract")
+        status = entry.get("status")
+        reason = entry.get("reason")
+        reviewed_hash = entry.get("reviewed_contract_hash")
+        if not isinstance(contract, str):
+            errors.append(f"{entry_id}：缺少 contract")
+            continue
+        if contract in registered_contracts:
+            errors.append(f"{entry_id}：contract 重复：{contract}")
+        registered_contracts.add(contract)
+        if status not in valid_statuses:
+            errors.append(f"{entry_id}：status 必须是 {', '.join(sorted(valid_statuses))}")
+        if status == "pending" and not allow_pending:
+            errors.append(f"{entry_id}：当前不允许 pending")
+        if status in {"pending", "reference-only"} and (
+            not isinstance(reason, str) or not reason.strip()
+        ):
+            errors.append(f"{entry_id}：{status} 条目必须说明 reason")
+
+        contract_path = repository_root / contract
+        if contract not in actual_contracts:
+            errors.append(f"{entry_id}：contract 不存在或不是框架 USAGE.md：{contract}")
+        elif not isinstance(reviewed_hash, str):
+            errors.append(f"{entry_id}：缺少 reviewed_contract_hash")
+        else:
+            actual_hash = hashlib.sha256(contract_path.read_bytes()).hexdigest()
+            if reviewed_hash.lower() != f"sha256:{actual_hash}":
+                errors.append(
+                    f"{entry_id}：技术契约已变化；复核用户文档后更新哈希为 sha256:{actual_hash}"
+                )
+
+        manual_pages = entry.get("manual_pages")
+        if status == "documented" and (
+            not isinstance(manual_pages, list) or not manual_pages
+        ):
+            errors.append(f"{entry_id}：documented 条目必须列出 manual_pages")
+        if manual_pages is not None:
+            if not isinstance(manual_pages, list):
+                errors.append(f"{entry_id}：manual_pages 必须是字符串列表")
+                continue
+            for page_value in manual_pages:
+                if not isinstance(page_value, str):
+                    errors.append(f"{entry_id}：manual_pages 必须是字符串列表")
+                    continue
+                page = Path(page_value)
+                if page.is_absolute() or ".." in page.parts or page.suffix.lower() != ".md":
+                    errors.append(f"{entry_id}：用户手册路径无效：{page_value}")
+                elif not (manual_root / "zh-cn" / page).is_file():
+                    errors.append(f"{entry_id}：中文用户手册不存在：{page_value}")
+
+    missing = sorted(actual_contracts - registered_contracts)
+    stale = sorted(registered_contracts - actual_contracts)
+    if missing:
+        errors.append(f"新增技术契约尚未登记：{', '.join(missing)}")
+    if stale:
+        errors.append(f"覆盖清单包含失效契约：{', '.join(stale)}")
+    if errors:
+        raise RuntimeError("文档覆盖检查失败：\n" + "\n".join(f"- {error}" for error in errors))
+    print(f"[COVERAGE] PASS ({len(actual_contracts)} contracts)")
 
 
 def lint_markdown(page: Page) -> list[str]:
@@ -528,17 +472,14 @@ def append_toc_page(lines: list[str], page: Page, indent: int = 0) -> None:
 def write_toc(locale: str, pages: list[Page], locale_work_root: Path) -> None:
     settings = LOCALE_SETTINGS[locale]
     lines: list[str] = []
+    navigation = load_navigation(locale, pages)
+    pages_by_destination = {page.destination.as_posix(): page for page in pages}
 
-    for group in GROUP_ORDER:
-        if group == "Home":
-            continue
-        group_pages = [page for page in pages if page.group == group]
-        if not group_pages:
-            continue
-        lines.append(f"- name: {yaml_string(settings['section_names'][group])}")
+    for section in navigation["sections"]:
+        lines.append(f"- name: {yaml_string(section['name'])}")
         lines.append("  items:")
-        for page in group_pages:
-            append_toc_page(lines, page, indent=4)
+        for destination in section["pages"]:
+            append_toc_page(lines, pages_by_destination[destination], indent=4)
 
     lines.extend(
         (
@@ -642,6 +583,10 @@ def run(command: list[str]) -> None:
     result = subprocess.run(command, cwd=REPOSITORY_ROOT)
     if result.returncode != 0:
         raise RuntimeError(f"命令失败（exit={result.returncode}）：{printable}")
+
+
+def run_doc_tests() -> None:
+    run([sys.executable, "-m", "unittest", "Verification/Docs/test_build_docs.py"])
 
 
 def restore_tools_and_project() -> None:
@@ -777,9 +722,6 @@ def validate_site() -> None:
         SITE_ROOT / "zh-cn" / "sitemap.xml",
         SITE_ROOT / "zh-cn" / "public" / "main.css",
         SITE_ROOT / "zh-cn" / "getting-started" / "index.html",
-        SITE_ROOT / "zh-cn" / "modules" / "runtime" / "Localization" / "index.html",
-        SITE_ROOT / "zh-cn" / "modules" / "integrations" / "GuideInput" / "index.html",
-        SITE_ROOT / "zh-cn" / "modules" / "integrations" / "PhantomCamera" / "index.html",
         SITE_ROOT / "zh-cn" / "api" / "toc.html",
         SITE_ROOT / "zh-cn" / "api" / "GoDo.Services.html",
         SITE_ROOT / "en-us" / "index.html",
@@ -796,20 +738,11 @@ def validate_site() -> None:
         if not path.is_file()
     ]
 
-    duplicate_integration_root = (
-        SITE_ROOT / "zh-cn" / "modules" / "integrations" / "Integrations"
-    )
-    if duplicate_integration_root.exists():
-        errors.append("可选集成输出路径重复包含 Integrations")
-
     chinese_toc = SITE_ROOT / "zh-cn" / "toc.html"
     if chinese_toc.is_file():
         toc_text = chinese_toc.read_text(encoding="utf-8")
         if 'title="GoDoFramework">GoDoFramework</a>' in toc_text:
             errors.append("导航仍包含与顶部品牌重复的首页入口")
-        for suffix in NAVIGATION_TITLE_SUFFIXES:
-            if suffix in toc_text:
-                errors.append(f"导航标签仍包含冗余后缀：{suffix.strip()}")
 
     for locale in LOCALES:
         theme_css = SITE_ROOT / locale / "public" / "main.css"
@@ -895,7 +828,11 @@ def main() -> int:
         clean()
         return 0
 
+    if arguments.command == "check":
+        run_doc_tests()
+    validate_coverage()
     pages_by_locale = {locale: discover_pages(locale) for locale in LOCALES}
+    validate_public_sources(pages_by_locale)
     lint_pages(pages_by_locale)
     if arguments.command == "lint":
         return 0

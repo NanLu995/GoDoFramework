@@ -1,0 +1,43 @@
+{
+  "home": "index.md",
+  "sections": [
+    {
+      "name": "Getting Started",
+      "pages": [
+        "getting-started/index.md",
+        "getting-started/install-upgrade-uninstall.md",
+        "getting-started/first-procedure.md",
+        "getting-started/first-scene.md",
+        "getting-started/first-ui.md",
+        "getting-started/switch-procedures.md",
+        "getting-started/add-audio.md",
+        "getting-started/save-progress-and-settings.md",
+        "getting-started/localize-game-text.md"
+      ]
+    },
+    {
+      "name": "Feature Guides",
+      "pages": [
+        "guides/input/index.md",
+        "guides/input-rebinding/index.md",
+        "guides/camera/index.md",
+        "guides/diagnostics/index.md",
+        "guides/services-and-events/index.md",
+        "guides/scheduler/index.md",
+        "guides/node-pool/index.md",
+        "guides/configuration/index.md",
+        "guides/data-tables/index.md",
+        "guides/resources-and-scenes/index.md",
+        "guides/ui-and-audio/index.md",
+        "guides/save-settings-localization/index.md",
+        "guides/procedure-recovery/index.md"
+      ]
+    },
+    {
+      "name": "Troubleshooting",
+      "pages": [
+        "troubleshooting/index.md"
+      ]
+    }
+  ]
+}

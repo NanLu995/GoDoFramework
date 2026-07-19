@@ -10,14 +10,6 @@ on:
       - "Docs/**"
       - "addons/**/*.cs"
       - "addons/**/USAGE.md"
-      - "addons/**/USAGE.en.md"
-      - "AI/AI_GAMEDEV_GUIDE.md"
-      - "AI/ARCHITECTURE.md"
-      - "CHANGELOG.md"
-      - "AI/GODOT_GOTCHAS.md"
-      - "AI/PROJECT_STRUCTURE.md"
-      - "AI/Recipes/**"
-      - "README.md"
       - "GoDoFramework.csproj"
   workflow_dispatch:
 

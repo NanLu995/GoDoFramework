@@ -31,7 +31,9 @@ addons/godo_framework/
 
 插件只会安装唯一的 `GoDoRuntime` Autoload，不会修改 `.csproj`、输入映射、导出预设或业务场景。
 
-## 4. 从业务代码获取服务
+## 4. 确认服务可用
+
+在业务代码中可以通过 `Services.Get<T>()` 获取已经注册的长期服务：
 
 ```csharp
 using GoDo;
@@ -47,10 +49,8 @@ IAudioService audio = Services.Get<IAudioService>();
 
 - Godot 的 Autoload 列表中只有一个 `GoDoRuntime`。
 - Setup 窗口的框架检查通过。
-- C# 代码能够通过 `Services.Get<T>()` 获取已经注册的长期服务。
+- C# 代码能够获取已经注册的服务。
 
 ## 下一步
 
-- 阅读“使用框架制作游戏”了解 Procedure、Scene、UI、Audio、Save 等模块如何组合。
-- 阅读“推荐项目结构”建立自己的 Boot 场景和业务目录。
-- 按模块指南确认失败语义、生命周期、性能和验证范围。
+继续完成[进入第一个 Procedure](first-procedure.md)，随后按导航依次创建主场景、UI、流程切换、音频、存档和本地化。需要更完整的版本维护步骤时，查看[安装、升级与卸载](install-upgrade-uninstall.md)。

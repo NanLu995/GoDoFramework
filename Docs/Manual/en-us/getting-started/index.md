@@ -1,6 +1,6 @@
 ---
-translation_of: Docs/i18n/zh-cn/getting-started/quick-start.md
-translation_source_hash: sha256:69a5b64501fbc430863e33026cf42c32a5ed5cbb1004a14b5a7caf17d4b65526
+translation_of: Docs/Manual/zh-cn/getting-started/index.md
+translation_source_hash: sha256:e68b7f4ba26937147ff8ee10c1d7d5975b158b50b80b10e15c827f1a73a5e84e
 ---
 
 # 5-Minute Quick Start
@@ -36,7 +36,9 @@ Open **Project Settings → Plugins** in Godot and enable `GoDo Framework`. Enab
 
 The plugin installs only the single `GoDoRuntime` Autoload. It does not modify the `.csproj`, input map, export presets, or game scenes.
 
-## 4. Get services from game code
+## 4. Confirm that services are available
+
+Game code can obtain registered long-lived services through `Services.Get<T>()`:
 
 ```csharp
 using GoDo;
@@ -52,9 +54,8 @@ The game entry point starts its own first Procedure. Do not initialize GoDoRunti
 
 - The Godot Autoload list contains exactly one `GoDoRuntime`.
 - The framework checks in the Setup window pass.
-- C# code can obtain registered long-lived services through `Services.Get<T>()`.
+- C# code can obtain registered services.
 
 ## Next steps
 
-- Read the Chinese game-development and project-structure guides while their translations are prepared.
-- Use module guides to confirm failure behavior, lifecycle, performance, and verification scope.
+Continue with [Enter the First Procedure](first-procedure.md), then follow navigation through the first scene, UI, flow change, audio, saves, and localization. For complete version maintenance, see [Install, Upgrade, and Uninstall](install-upgrade-uninstall.md).
