@@ -1,0 +1,4 @@
+id,display_name,description,sort_order,enabled
+weapon,武器,用于近战、远程以及特殊攻击的装备。,10,true
+consumable,消耗品,使用后立即生效的道具。,20,true
+quest,任务物品,,30,true

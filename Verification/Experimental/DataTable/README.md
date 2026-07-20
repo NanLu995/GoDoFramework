@@ -23,9 +23,9 @@ python Verification/Experimental/DataTable/verify_export_plugin.py --godot E:\Go
 - `check` 完成全部内存构建但不写入，错误返回非零退出码；
 - `generate` 支持带空格路径，并拒绝可能覆盖源数据的输出目录。
 - 数据目录提交成功但 C# 提交失败时，两类旧产物都会恢复。
-- Build Config 的相对路径、缺字段和目录逃逸会在写入前验证；实验 Editor Probe 真实执行后台检查、生成确认和文件刷新。
+- 单一 Schema 的相对路径、缺字段和目录逃逸会在写入前验证；实验 Editor Probe 还会打开可视化 Schema 编辑器，验证 `.datafiles` 扫描、未加入 CSV 排除状态、按表头加入 Schema、原样保存不升级结构版本、自动检查、生成确认和文件刷新。
 - 单表生成仍执行全量外键与输入校验，并验证目标表数据/结构更新、未选表内容与时间戳保留、过期/缺失/表集合变化拒绝、未知表 ID 和多文件回滚；Editor Probe 也会真实选择 `Item` 并确认生成。
-- `verify-generated` 接受单表生成后的完整有效状态，且只读检出源数据、Profile 结构、聚合 C#、缺失文件和额外文件造成的过期状态。
+- `verify-generated` 接受单表生成后的完整有效状态，且只读检出源数据、Schema 结构、聚合 C#、缺失文件和额外文件造成的过期状态。
 - Client 目标只包含 `Shared + ClientOnly`，Server 目标只包含 `Shared + ServerOnly`；生成读取器通过 Godot `FileAccess` 实际读取绝对路径、项目目录和 PCK 内的 `res://`。
 - `compare-manifests` 接受兼容的 Client / Server 目标 Manifest，并精确拒绝数据集、共享结构、共享内容、target、必需字段和 JSON 错误。
 - 导出规划 Probe 检查 Client / Server、Debug / Release 映射和过期校验；隔离导出脚本实际打开两个 PCK 检查 audience 与源文件排除，并证明发布包装命令会在过期时拒绝启动 Godot。
@@ -36,7 +36,7 @@ python Verification/Experimental/DataTable/verify_export_plugin.py --godot E:\Go
 
 ## 当前边界
 
-- 只支持 UTF-8 CSV 与受控 JSON Profile；
+- 只支持 UTF-8 CSV 与受控 DataTable Schema；
 - 只实现阶段 A 所需的 string、bool、int32、float64 和 enum；
 - `.gdtb` v2 使用小端序，支持未压缩或 Godot Zstd payload；
 - `Auto` 当前只提供压缩建议并选择未压缩，`Never` / `Always` 已有实验语义；

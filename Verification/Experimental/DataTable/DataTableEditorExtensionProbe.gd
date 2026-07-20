@@ -2,7 +2,9 @@
 extends SceneTree
 
 const MENU_BUTTON_NAME := "GoDoFrameworkToolbarMenu"
-const BUILD_CONFIG := "res://Verification/Experimental/DataTable/datatable.build.json"
+const SCHEMA := "res://Verification/Experimental/DataTable/prototype.datatable.schema.json"
+const BASE_SCHEMA := "res://DataTables/Base/.datatable.schema.json"
+const PROBE_CSV := "res://DataTables/Base/.datafiles/ProbeExcluded.csv"
 const SETTINGS_SECTION := "godo_framework/datatable"
 const CONFIG_METADATA_KEY := "build_config_path"
 const PYTHON_SETTING := "godo_framework/datatable/python_executable"
@@ -22,7 +24,7 @@ func _run() -> void:
 	_previous_config = str(_settings.get_project_metadata(
 		SETTINGS_SECTION,
 		CONFIG_METADATA_KEY,
-		"res://DataTables/datatable.build.json"
+		"res://DataTables/Base/.datatable.schema.json"
 	))
 	_had_python_setting = _settings.has_setting(PYTHON_SETTING)
 	if _had_python_setting:
@@ -52,6 +54,7 @@ func _run() -> void:
 	var table_selector := dialog.find_child("DataTableTableSelector", true, false) as OptionButton
 	var generate_selected_button := dialog.find_child("DataTableGenerateSelectedButton", true, false) as Button
 	var report := dialog.find_child("DataTableReport", true, false) as RichTextLabel
+	var edit_schema_button := dialog.find_child("DataTableEditSchemaButton", true, false) as Button
 	if (
 		config_input == null
 		or check_button == null
@@ -59,15 +62,16 @@ func _run() -> void:
 		or table_selector == null
 		or generate_selected_button == null
 		or report == null
+		or edit_schema_button == null
 	):
 		_fail("DataTable 窗口缺少必需控件。")
 		return
 
-	config_input.text = BUILD_CONFIG
-	config_input.text_changed.emit(BUILD_CONFIG)
+	config_input.text = SCHEMA
+	config_input.text_changed.emit(SCHEMA)
 	await process_frame
 	if check_button.disabled:
-		_fail("有效 Build Config 未启用检查按钮：%s" % report.text)
+		_fail("有效 Schema 未启用检查按钮：%s" % report.text)
 		return
 	check_button.pressed.emit()
 	if not await _wait_for_report(report, "CHECK PASS"):
@@ -90,6 +94,68 @@ func _run() -> void:
 		_fail("DataTable 编辑器生成未产生 Manifest。")
 		return
 
+	config_input.text = BASE_SCHEMA
+	config_input.text_changed.emit(BASE_SCHEMA)
+	await process_frame
+	var probe_csv := FileAccess.open(PROBE_CSV, FileAccess.WRITE)
+	if probe_csv == null:
+		_fail("无法创建排除状态探针 CSV。")
+		return
+	probe_csv.store_string("id,value\nprobe,test\n")
+	probe_csv.close()
+	edit_schema_button.pressed.emit()
+	await process_frame
+	var schema_dialog := _find_window(root, "DataTable Schema 编辑器")
+	if schema_dialog == null:
+		_fail("未找到可视化 Schema 编辑器。")
+		return
+	var fields := schema_dialog.find_child("DataTableSchemaFields", true, false) as Tree
+	var data_files := schema_dialog.find_child("DataTableSchemaDataFiles", true, false) as Tree
+	var add_csv := schema_dialog.find_child("DataTableSchemaAddCsvButton", true, false) as Button
+	var open_data_directory := schema_dialog.find_child("DataTableSchemaOpenDataDirectoryButton", true, false) as Button
+	var save_schema := schema_dialog.find_child("DataTableSchemaSaveButton", true, false) as Button
+	var schema_status := schema_dialog.find_child("DataTableSchemaStatus", true, false) as Label
+	if fields == null or data_files == null or add_csv == null or open_data_directory == null or save_schema == null or schema_status == null:
+		_fail("Schema 编辑器缺少数据文件、字段或保存控件。")
+		return
+	var configured_file_count := 0
+	var excluded_file: TreeItem
+	var data_file_item := data_files.get_root().get_first_child()
+	while data_file_item != null:
+		if data_file_item.get_text(0) == "ProbeExcluded.csv":
+			excluded_file = data_file_item
+		elif data_file_item.get_text(1).begins_with("已加入 Schema"):
+			configured_file_count += 1
+		else:
+			_fail("Base 数据文件状态异常：%s。" % data_file_item.get_text(1))
+			return
+		data_file_item = data_file_item.get_next()
+	if configured_file_count != 3 or excluded_file == null or excluded_file.get_text(1) != "未加入（已排除）":
+		_fail("Schema 编辑器未正确区分三张已加入 CSV 和一张排除 CSV。")
+		return
+	excluded_file.select(0)
+	add_csv.pressed.emit()
+	var schema_table_selector := schema_dialog.find_child("DataTableSchemaTableSelector", true, false) as OptionButton
+	if schema_table_selector == null or _find_option_index(schema_table_selector, "ProbeExcluded") < 0:
+		_fail("加入选中 CSV 未根据表头创建数据表。")
+		return
+	schema_dialog.hide()
+	_cleanup_probe_csv()
+	edit_schema_button.pressed.emit()
+	await process_frame
+	save_schema.pressed.emit()
+	if not await _wait_for_report(report, "CHECK PASS"):
+		_fail("Schema 保存后未通过自动检查：%s\nSchema 状态：%s" % [report.text, schema_status.text])
+		return
+	var saved_schema := FileAccess.get_file_as_string(BASE_SCHEMA)
+	if not '"format_version": 2,' in saved_schema or not '"schema_version": 1,' in saved_schema:
+		_fail("原样保存改变了格式或表结构版本。")
+		return
+	schema_dialog.hide()
+	config_input.text = SCHEMA
+	config_input.text_changed.emit(SCHEMA)
+	await process_frame
+
 	var item_index := _find_option_index(table_selector, "Item")
 	if item_index < 0 or generate_selected_button.disabled:
 		_fail("单表选择控件未提供 Item 或生成按钮不可用。")
@@ -105,11 +171,10 @@ func _run() -> void:
 	if not await _wait_for_report(report, "GENERATE PASS"):
 		_fail("DataTable 单表生成未成功：%s" % report.text)
 		return
-	var build_report := _read_json(
-		"res://Verification/Experimental/DataTable/Artifacts/editor-output/build-report.json"
-	)
-	if build_report.get("scope", "") != "single" or build_report.get("selected_table", "") != "Item":
-		_fail("单表生成报告未记录 Item：%s" % build_report)
+	if not FileAccess.file_exists(
+		"res://Verification/Experimental/DataTable/Artifacts/editor-output/Item.gdtb"
+	):
+		_fail("单表生成未保留 Item 运行时二进制。")
 		return
 
 	await _wait_for_editor_scan()
@@ -118,7 +183,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	_restore_settings()
-	print("[DataTableEditorExtensionProbe] PASS (5/5)")
+	print("[DataTableEditorExtensionProbe] PASS (6/6)")
 	quit(0)
 
 
@@ -173,6 +238,7 @@ func _find_window(node: Node, title: String) -> Window:
 
 
 func _restore_settings() -> void:
+	_cleanup_probe_csv()
 	if _settings == null:
 		return
 	_settings.set_project_metadata(SETTINGS_SECTION, CONFIG_METADATA_KEY, _previous_config)
@@ -180,6 +246,11 @@ func _restore_settings() -> void:
 		_settings.set_setting(PYTHON_SETTING, _previous_python)
 	elif _settings.has_setting(PYTHON_SETTING):
 		_settings.erase(PYTHON_SETTING)
+
+
+func _cleanup_probe_csv() -> void:
+	if FileAccess.file_exists(PROBE_CSV):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(PROBE_CSV))
 
 
 func _fail(message: String) -> void:

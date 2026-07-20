@@ -10,11 +10,12 @@ using GodotFileAccess = Godot.FileAccess;
 
 #nullable enable
 
-namespace GoDoFramework.Verification.DataTablePrototype.Generated;
+namespace Game.DataTables.Base;
 
 internal readonly record struct ItemCategoryRow(
     string Id,
     string DisplayName,
+    string? Description,
     int SortOrder,
     bool Enabled);
 
@@ -52,20 +53,22 @@ internal sealed class ItemCategoryTable : IReadOnlyCollection<ItemCategoryRow>
 internal enum ItemRarity
 {
     Common = 0,
-    Uncommon = 1,
-    Rare = 2,
-    Epic = 3
+    Rare = 1,
+    Epic = 2,
+    Legendary = 3
 }
 
 internal readonly record struct ItemRow(
     string Id,
     string CategoryId,
     string DisplayName,
-    bool Enabled,
-    int MaxStack,
-    double Weight,
+    string? Description,
     ItemRarity Rarity,
-    string? Description);
+    int Price,
+    double Weight,
+    bool IsSellable,
+    int UnlockLevel,
+    string? DeveloperNote);
 
 internal sealed class ItemTable : IReadOnlyCollection<ItemRow>
 {
@@ -98,6 +101,53 @@ internal sealed class ItemTable : IReadOnlyCollection<ItemRow>
     IEnumerator IEnumerable.GetEnumerator() => _rows.GetEnumerator();
 }
 
+internal enum RewardRewardType
+{
+    Item = 0,
+    Currency = 1,
+    Experience = 2
+}
+
+internal readonly record struct RewardRow(
+    string Id,
+    string DisplayName,
+    RewardRewardType RewardType,
+    string? ItemId,
+    int Amount,
+    double BonusChance,
+    bool Enabled);
+
+internal sealed class RewardTable : IReadOnlyCollection<RewardRow>
+{
+    private readonly RewardRow[] _rows;
+    private readonly Dictionary<string, int> _indices;
+
+    internal RewardTable(RewardRow[] rows, Dictionary<string, int> indices)
+    {
+        _rows = rows;
+        _indices = indices;
+    }
+
+    public int Count => _rows.Length;
+
+    public RewardRow Get(string id) => _rows[_indices[id]];
+
+    public bool TryGet(string id, out RewardRow row)
+    {
+        if (_indices.TryGetValue(id, out int index))
+        {
+            row = _rows[index];
+            return true;
+        }
+        row = default;
+        return false;
+    }
+
+    public IEnumerator<RewardRow> GetEnumerator() => ((IEnumerable<RewardRow>)_rows).GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => _rows.GetEnumerator();
+}
+
 internal static class DataTableLoader
 {
     private const uint CompressionZstdFlag = 1u;
@@ -109,7 +159,7 @@ internal static class DataTableLoader
 
     internal static ItemCategoryTable LoadItemCategory(string path)
     {
-        using ReaderContext context = Open(path, "ItemCategory", 1, 4);
+        using ReaderContext context = Open(path, "ItemCategory", 1, 5);
         var rows = new ItemCategoryRow[context.RowCount];
         var bitmap = new byte[1];
         for (int index = 0; index < rows.Length; index++)
@@ -118,8 +168,9 @@ internal static class DataTableLoader
             rows[index] = new ItemCategoryRow(
                 ReadStringRequired(context.Reader, context.Strings, bitmap, 0, "id"),
                 ReadStringRequired(context.Reader, context.Strings, bitmap, 1, "display_name"),
-                ReadInt32Required(context.Reader, bitmap, 2, "sort_order"),
-                ReadBoolRequired(context.Reader, bitmap, 3, "enabled"));
+                ReadStringOptional(context.Reader, context.Strings, bitmap, 2, "description"),
+                ReadInt32Required(context.Reader, bitmap, 3, "sort_order"),
+                ReadBoolRequired(context.Reader, bitmap, 4, "enabled"));
         }
         Dictionary<string, int> indices = ReadIndex(context, rows.Length);
         EnsureEnd(context);
@@ -128,9 +179,9 @@ internal static class DataTableLoader
 
     internal static ItemTable LoadItem(string path)
     {
-        using ReaderContext context = Open(path, "Item", 1, 8);
+        using ReaderContext context = Open(path, "Item", 1, 10);
         var rows = new ItemRow[context.RowCount];
-        var bitmap = new byte[1];
+        var bitmap = new byte[2];
         for (int index = 0; index < rows.Length; index++)
         {
             ReadBitmap(context.Reader, bitmap);
@@ -138,15 +189,39 @@ internal static class DataTableLoader
                 ReadStringRequired(context.Reader, context.Strings, bitmap, 0, "id"),
                 ReadStringRequired(context.Reader, context.Strings, bitmap, 1, "category_id"),
                 ReadStringRequired(context.Reader, context.Strings, bitmap, 2, "display_name"),
-                ReadBoolRequired(context.Reader, bitmap, 3, "enabled"),
-                ReadInt32Required(context.Reader, bitmap, 4, "max_stack"),
-                ReadDoubleRequired(context.Reader, bitmap, 5, "weight"),
-                ReadEnumRequired<ItemRarity>(context.Reader, bitmap, 6, 4, "rarity"),
-                ReadStringOptional(context.Reader, context.Strings, bitmap, 7, "description"));
+                ReadStringOptional(context.Reader, context.Strings, bitmap, 3, "description"),
+                ReadEnumRequired<ItemRarity>(context.Reader, bitmap, 4, 4, "rarity"),
+                ReadInt32Required(context.Reader, bitmap, 5, "price"),
+                ReadDoubleRequired(context.Reader, bitmap, 6, "weight"),
+                ReadBoolRequired(context.Reader, bitmap, 7, "is_sellable"),
+                ReadInt32Required(context.Reader, bitmap, 8, "unlock_level"),
+                ReadStringOptional(context.Reader, context.Strings, bitmap, 9, "developer_note"));
         }
         Dictionary<string, int> indices = ReadIndex(context, rows.Length);
         EnsureEnd(context);
         return new ItemTable(rows, indices);
+    }
+
+    internal static RewardTable LoadReward(string path)
+    {
+        using ReaderContext context = Open(path, "Reward", 1, 7);
+        var rows = new RewardRow[context.RowCount];
+        var bitmap = new byte[1];
+        for (int index = 0; index < rows.Length; index++)
+        {
+            ReadBitmap(context.Reader, bitmap);
+            rows[index] = new RewardRow(
+                ReadStringRequired(context.Reader, context.Strings, bitmap, 0, "id"),
+                ReadStringRequired(context.Reader, context.Strings, bitmap, 1, "display_name"),
+                ReadEnumRequired<RewardRewardType>(context.Reader, bitmap, 2, 3, "reward_type"),
+                ReadStringOptional(context.Reader, context.Strings, bitmap, 3, "item_id"),
+                ReadInt32Required(context.Reader, bitmap, 4, "amount"),
+                ReadDoubleRequired(context.Reader, bitmap, 5, "bonus_chance"),
+                ReadBoolRequired(context.Reader, bitmap, 6, "enabled"));
+        }
+        Dictionary<string, int> indices = ReadIndex(context, rows.Length);
+        EnsureEnd(context);
+        return new RewardTable(rows, indices);
     }
 
     private static ReaderContext Open(string path, string tableId, ushort schemaVersion, ushort fieldCount)

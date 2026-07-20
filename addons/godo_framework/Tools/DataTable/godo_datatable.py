@@ -9,6 +9,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import struct
 import sys
@@ -19,14 +20,23 @@ from typing import Any
 
 
 FORMAT_VERSION = 2
-BUILD_CONFIG_VERSION = 1
 MAX_DIAGNOSTICS = 100
 SUPPORTED_TYPES = {"string", "bool", "int32", "float64", "enum"}
-BUILD_CONFIG_FIELDS = {"format_version", "profile", "source", "output", "csharp"}
+SCHEMA_FIELDS = {
+    "format_version",
+    "data_set_id",
+    "protocol_version",
+    "namespace",
+    "source_directory",
+    "output_directory",
+    "csharp_output",
+    "tables",
+}
 EXPORT_TARGETS = {
     "client": ("Shared", "ClientOnly"),
     "server": ("Shared", "ServerOnly"),
 }
+IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 @dataclass(frozen=True)
@@ -62,63 +72,112 @@ def sha256_hex(value: Any) -> str:
     return hashlib.sha256(canonical_bytes(value)).hexdigest()
 
 
-def resolve_build_path(config_path: Path, field_name: str, raw_value: Any) -> Path:
+def resolve_schema_path(schema_path: Path, field_name: str, raw_value: Any) -> Path:
     if not isinstance(raw_value, str) or not raw_value.strip():
-        raise ValueError(f"Build Config 的 {field_name} 必须是非空相对路径。")
+        raise ValueError(f"Schema 的 {field_name} 必须是非空相对路径。")
     if "\\" in raw_value:
-        raise ValueError(f"Build Config 的 {field_name} 必须使用正斜杠。")
+        raise ValueError(f"Schema 的 {field_name} 必须使用正斜杠。")
     relative = PurePosixPath(raw_value)
     if relative.is_absolute() or ".." in relative.parts:
-        raise ValueError(f"Build Config 的 {field_name} 不能是绝对路径或逃逸配置目录。")
-    root = config_path.parent.resolve()
+        raise ValueError(f"Schema 的 {field_name} 不能是绝对路径或逃逸 Schema 目录。")
+    root = schema_path.parent.resolve()
     resolved = root.joinpath(*relative.parts).resolve()
     if not resolved.is_relative_to(root):
-        raise ValueError(f"Build Config 的 {field_name} 逃逸了配置目录。")
+        raise ValueError(f"Schema 的 {field_name} 逃逸了 Schema 目录。")
     return resolved
-
-
-def load_build_config(path: Path) -> tuple[Path, Path, Path, Path]:
-    with path.open("r", encoding="utf-8-sig") as stream:
-        config = json.load(stream)
-    if not isinstance(config, dict):
-        raise ValueError("Build Config 根节点必须是对象。")
-    if config.get("format_version") != BUILD_CONFIG_VERSION:
-        raise ValueError(f"Build Config format_version 必须为 {BUILD_CONFIG_VERSION}。")
-    missing = BUILD_CONFIG_FIELDS - config.keys()
-    unknown = config.keys() - BUILD_CONFIG_FIELDS
-    if missing:
-        raise ValueError(f"Build Config 缺少字段：{', '.join(sorted(missing))}。")
-    if unknown:
-        raise ValueError(f"Build Config 包含未知字段：{', '.join(sorted(unknown))}。")
-    profile = resolve_build_path(path, "profile", config["profile"])
-    source = resolve_build_path(path, "source", config["source"])
-    output = resolve_build_path(path, "output", config["output"])
-    csharp = resolve_build_path(path, "csharp", config["csharp"])
-    validate_output_paths(profile, source, output, csharp)
-    return profile, source, output, csharp
 
 
 def pascal_case(value: str) -> str:
     return "".join(part[:1].upper() + part[1:] for part in value.split("_"))
 
 
+def require_identifier(value: Any, description: str) -> str:
+    if not isinstance(value, str) or not IDENTIFIER_PATTERN.fullmatch(value):
+        raise ValueError(f"{description} 必须是有效的 C# 标识符。")
+    return value
+
+
+def require_relative_file_name(value: Any, description: str) -> str:
+    if not isinstance(value, str) or not value or "\\" in value:
+        raise ValueError(f"{description} 必须是非空、使用正斜杠的相对文件名。")
+    relative = PurePosixPath(value)
+    if relative.is_absolute() or ".." in relative.parts or "." in relative.parts:
+        raise ValueError(f"{description} 不能是绝对路径或逃逸 CSV 源目录。")
+    return value
+
+
+def validate_default(field: dict[str, Any], table_id: str) -> None:
+    if "default" not in field:
+        return
+    value = field["default"]
+    name = f"字段 {table_id}.{field['name']} 的 default"
+    field_type = field["type"]
+    if field_type == "string":
+        valid = isinstance(value, str)
+    elif field_type == "bool":
+        valid = isinstance(value, bool)
+    elif field_type == "int32":
+        valid = isinstance(value, int) and not isinstance(value, bool) and -(2**31) <= value < 2**31
+    elif field_type == "float64":
+        valid = isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+    else:
+        valid = isinstance(value, str) and value in field["values"]
+    if not valid:
+        raise ValueError(f"{name} 与字段类型不兼容。")
+    if "min" in field and value < field["min"]:
+        raise ValueError(f"{name} 小于 min。")
+    if "max" in field and value > field["max"]:
+        raise ValueError(f"{name} 大于 max。")
+    if isinstance(value, str) and "min_length" in field and len(value) < field["min_length"]:
+        raise ValueError(f"{name} 短于 min_length。")
+    if isinstance(value, str) and "max_length" in field and len(value) > field["max_length"]:
+        raise ValueError(f"{name} 长于 max_length。")
+
+
 def load_profile(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8-sig") as stream:
         profile = json.load(stream)
+    if not isinstance(profile, dict):
+        raise ValueError("Schema 根节点必须是对象。")
+    missing = SCHEMA_FIELDS - profile.keys()
+    unknown = profile.keys() - SCHEMA_FIELDS
+    if missing:
+        raise ValueError(f"Schema 缺少字段：{', '.join(sorted(missing))}。")
+    if unknown:
+        raise ValueError(f"Schema 包含未知字段：{', '.join(sorted(unknown))}。")
     if profile.get("format_version") != FORMAT_VERSION:
-        raise RuntimeError(f"Profile format_version 必须为 {FORMAT_VERSION}。")
+        raise RuntimeError(f"Schema format_version 必须为 {FORMAT_VERSION}。")
+    if not isinstance(profile.get("data_set_id"), str) or not profile["data_set_id"].strip():
+        raise ValueError("Schema data_set_id 必须是非空字符串。")
+    if not isinstance(profile.get("protocol_version"), int) or isinstance(profile["protocol_version"], bool) or profile["protocol_version"] < 1:
+        raise ValueError("Schema protocol_version 必须是正整数。")
+    namespace = profile.get("namespace")
+    if not isinstance(namespace, str) or not namespace or any(
+        not IDENTIFIER_PATTERN.fullmatch(part) for part in namespace.split(".")
+    ):
+        raise ValueError("Schema namespace 必须是有效的 C# 命名空间。")
     if not profile.get("tables"):
-        raise RuntimeError("Profile 至少需要一张表。")
-    table_ids = [table["id"] for table in profile["tables"]]
-    source_names = [table["source"] for table in profile["tables"]]
+        raise RuntimeError("Schema 至少需要一张表。")
+    if not isinstance(profile["tables"], list):
+        raise ValueError("Schema tables 必须是数组。")
+    table_ids = [require_identifier(table.get("id"), "Table ID") for table in profile["tables"] if isinstance(table, dict)]
+    if len(table_ids) != len(profile["tables"]):
+        raise ValueError("Schema tables 只能包含对象。")
+    source_names = [require_relative_file_name(table.get("source"), f"表 {table['id']} 的 source") for table in profile["tables"]]
     if len(table_ids) != len(set(table_ids)):
-        raise RuntimeError("Profile 的 Table ID 不能重复。")
+        raise RuntimeError("Schema 的 Table ID 不能重复。")
     if len(source_names) != len(set(source_names)):
-        raise RuntimeError("Profile 的 CSV source 不能重复。")
+        raise RuntimeError("Schema 的 CSV source 不能重复。")
     for table in profile["tables"]:
+        if table.get("audience") not in {"Shared", "ClientOnly", "ServerOnly"}:
+            raise ValueError(f"表 {table['id']} 的 audience 无效。")
+        if not isinstance(table.get("schema_version"), int) or isinstance(table["schema_version"], bool) or table["schema_version"] < 1:
+            raise ValueError(f"表 {table['id']} 的 schema_version 必须是正整数。")
+        if not isinstance(table.get("fields"), list) or not table["fields"]:
+            raise ValueError(f"表 {table['id']} 至少需要一个字段。")
         names = [field["name"] for field in table["fields"]]
         if len(names) != len(set(names)):
-            raise RuntimeError(f"表 {table['id']} 的 Profile 字段名重复。")
+            raise RuntimeError(f"表 {table['id']} 的 Schema 字段名重复。")
         if table["primary_key"] not in names:
             raise RuntimeError(f"表 {table['id']} 的主键字段不存在。")
         primary_key_field = next(
@@ -127,6 +186,7 @@ def load_profile(path: Path) -> dict[str, Any]:
         if primary_key_field["type"] != "string":
             raise RuntimeError(f"阶段 A 只支持字符串主键：{table['id']}。")
         for field in table["fields"]:
+            require_identifier(field.get("name"), f"字段 {table['id']} 名称")
             if field["type"] not in SUPPORTED_TYPES:
                 raise RuntimeError(
                     f"字段 {table['id']}.{field['name']} 使用不支持的类型 {field['type']}。"
@@ -137,6 +197,7 @@ def load_profile(path: Path) -> dict[str, Any]:
                     raise RuntimeError(
                         f"字段 {table['id']}.{field['name']} 的 enum values 必须非空且唯一。"
                     )
+            validate_default(field, table["id"])
     return profile
 
 
@@ -266,7 +327,10 @@ def read_table(
     diagnostics: list[Diagnostic],
 ) -> list[dict[str, Any]]:
     source_name = table["source"]
-    source_path = source_dir / source_name
+    source_path = (source_dir / source_name).resolve()
+    if not source_path.is_relative_to(source_dir.resolve()):
+        add_diagnostic(diagnostics, "DT000", source_name, 0, "", "CSV 路径逃逸了源目录。")
+        return []
     expected_fields = [field["name"] for field in table["fields"]]
     try:
         stream = source_path.open("r", encoding="utf-8-sig", newline="")
@@ -284,9 +348,9 @@ def read_table(
             missing = [field for field in expected_fields if field not in headers]
             unknown = [field for field in headers if field not in expected_fields]
             for field in missing:
-                add_diagnostic(diagnostics, "DT003", source_name, 1, field, "缺少 Profile 字段列。")
+                add_diagnostic(diagnostics, "DT003", source_name, 1, field, "缺少 Schema 字段列。")
             for field in unknown:
-                add_diagnostic(diagnostics, "DT004", source_name, 1, field, "列未在 Profile 中声明。")
+                add_diagnostic(diagnostics, "DT004", source_name, 1, field, "列未在 Schema 中声明。")
             if missing or unknown or len(headers) != len(set(headers)):
                 return []
 
@@ -354,7 +418,7 @@ def validate_foreign_keys(
             target_table, target_field = foreign_key.split(".", 1)
             target_profile = table_profiles.get(target_table)
             if target_profile is None or target_profile["primary_key"] != target_field:
-                raise RuntimeError(f"无效 Profile 外键：{table['id']}.{field['name']} -> {foreign_key}")
+                raise RuntimeError(f"无效 Schema 外键：{table['id']}.{field['name']} -> {foreign_key}")
             for index, row in enumerate(tables[table["id"]], start=2):
                 value = row[field["name"]]
                 if value is not None and value not in key_sets[target_table]:
@@ -379,7 +443,7 @@ def build_ir(profile: dict[str, Any], tables: dict[str, list[dict[str, Any]]]) -
                 "audience": table["audience"],
                 "primary_key": primary_key,
                 "fields": table["fields"],
-                "rows": sorted(tables[table["id"]], key=lambda row: row[primary_key]),
+                "rows": tables[table["id"]],
             }
         )
     return {
@@ -575,9 +639,14 @@ namespace {namespace};
 
 {joined_declarations}
 
-internal static class DataTablePrototypeLoader
+internal static class DataTableLoader
 {{
     private const uint CompressionZstdFlag = 1u;
+    private const int MaxRowCount = 10_000_000;
+    private const int MaxStringCount = 10_000_000;
+    private const int MaxStringByteCount = 16 * 1024 * 1024;
+    private const int MaxUncompressedPayloadBytes = 512 * 1024 * 1024;
+    private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
 {joined_loaders}
 
@@ -608,9 +677,13 @@ internal static class DataTablePrototypeLoader
         if (!StringComparer.Ordinal.Equals(actualTableId, tableId))
             throw new InvalidDataException($"DataTable ID 不匹配：{{actualTableId}}。");
         int rowCount = checked((int)headerReader.ReadUInt32());
+        if (rowCount > MaxRowCount)
+            throw new InvalidDataException("DataTable 行数超过读取上限。");
         if (headerReader.ReadUInt16() != fieldCount)
             throw new InvalidDataException("DataTable 字段数量不匹配。");
         int uncompressedSize = checked((int)headerReader.ReadUInt32());
+        if (uncompressedSize > MaxUncompressedPayloadBytes)
+            throw new InvalidDataException("DataTable payload 超过读取上限。");
         byte[] expectedHash = headerReader.ReadBytes(32);
         int storedPayloadOffset = checked((int)headerStream.Position);
 
@@ -653,11 +726,22 @@ internal static class DataTablePrototypeLoader
             publiclyVisible: false);
         var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: false);
         int stringCount = checked((int)reader.ReadUInt32());
+        if (stringCount > MaxStringCount)
+            throw new InvalidDataException("DataTable 字符串池数量超过读取上限。");
         var strings = new string[stringCount];
         for (int index = 0; index < strings.Length; index++)
         {{
             int byteCount = checked((int)reader.ReadUInt32());
-            strings[index] = Encoding.UTF8.GetString(reader.ReadBytes(byteCount));
+            if (byteCount > MaxStringByteCount)
+                throw new InvalidDataException("DataTable 字符串长度超过读取上限。");
+            try
+            {{
+                strings[index] = StrictUtf8.GetString(ReadExactly(reader, byteCount));
+            }}
+            catch (DecoderFallbackException exception)
+            {{
+                throw new InvalidDataException("DataTable 包含无效 UTF-8 字符串。", exception);
+            }}
         }}
         return new ReaderContext(stream, reader, rowCount, strings);
     }}
@@ -691,6 +775,14 @@ internal static class DataTablePrototypeLoader
     {{
         if (reader.Read(bitmap) != bitmap.Length)
             throw new EndOfStreamException("DataTable 行位图不完整。");
+    }}
+
+    private static byte[] ReadExactly(BinaryReader reader, int count)
+    {{
+        byte[] bytes = reader.ReadBytes(count);
+        if (bytes.Length != count)
+            throw new EndOfStreamException("DataTable 字段数据不完整。");
+        return bytes;
     }}
 
     private static string GetString(string[] strings, uint index)
@@ -739,8 +831,15 @@ internal static class DataTablePrototypeLoader
         return value;
     }}
 
-    private static double? ReadDoubleOptional(BinaryReader reader, byte[] bitmap, int index, string name) =>
-        IsPresent(bitmap, index) ? reader.ReadDouble() : null;
+    private static double? ReadDoubleOptional(BinaryReader reader, byte[] bitmap, int index, string name)
+    {{
+        if (!IsPresent(bitmap, index))
+            return null;
+        double value = reader.ReadDouble();
+        if (!double.IsFinite(value))
+            throw new InvalidDataException($"字段 {{name}} 不是有限浮点值。");
+        return value;
+    }}
 
     private static TEnum ReadEnumRequired<TEnum>(BinaryReader reader, byte[] bitmap, int index, int valueCount, string name)
         where TEnum : struct, Enum
@@ -885,9 +984,9 @@ def validate_output_paths(
     protected_paths = (profile_path, source_dir)
     for protected_path in protected_paths:
         if protected_path == output or protected_path.is_relative_to(output):
-            raise ValueError("输出目录不能是 Profile、源目录或它们的祖先目录。")
+            raise ValueError("输出目录不能是 Schema、源目录或它们的祖先目录。")
     if csharp_path == profile_path:
-        raise ValueError("生成的 C# 文件不能覆盖 Profile。")
+        raise ValueError("生成的 C# 文件不能覆盖 Schema。")
     if csharp_path.is_relative_to(output):
         raise ValueError("生成的 C# 文件必须位于数据输出目录之外。")
 
@@ -911,19 +1010,16 @@ def validate_single_table_baseline(
     binaries: dict[str, bytes],
     selected_table: str,
 ) -> None:
-    previous_ir = read_json_object(output / "normalized.ir.json", "normalized.ir.json")
     previous_manifest = read_json_object(output / "manifest.json", "manifest.json")
     current_ids = [table["id"] for table in ir["tables"]]
-    previous_tables = previous_ir.get("tables")
     manifest_tables = previous_manifest.get("tables")
-    if not isinstance(previous_tables, list) or not isinstance(manifest_tables, list):
-        raise ValueError("已有 IR 或 Manifest 缺少 tables 数组。请先生成全部。")
+    if not isinstance(manifest_tables, list):
+        raise ValueError("已有 Manifest 缺少 tables 数组。请先生成全部。")
     try:
-        previous_ids = [table["id"] for table in previous_tables]
         manifest_ids = [table["id"] for table in manifest_tables]
     except (KeyError, TypeError) as error:
-        raise ValueError("已有 IR 或 Manifest 的数据表记录无效。请先生成全部。") from error
-    if set(previous_ids) != set(current_ids) or set(manifest_ids) != set(current_ids):
+        raise ValueError("已有 Manifest 的数据表记录无效。请先生成全部。") from error
+    if set(manifest_ids) != set(current_ids):
         raise ValueError("数据表集合已发生变化，不能安全地单表生成。请先生成全部。")
 
     expected_artifacts = {f"{table_id}.gdtb" for table_id in current_ids}
@@ -931,18 +1027,12 @@ def validate_single_table_baseline(
     if actual_artifacts != expected_artifacts:
         raise ValueError("已有二进制数据表集合不完整或包含过期文件。请先生成全部。")
 
-    previous_by_id = {table["id"]: table for table in previous_tables}
-    current_by_id = {table["id"]: table for table in ir["tables"]}
+    previous_by_id = {table["id"]: table for table in manifest_tables}
+    current_by_id = {table["id"]: table for table in manifest["tables"]}
     for table_id in current_ids:
         if table_id == selected_table:
             continue
-        previous_schema = {
-            key: value for key, value in previous_by_id[table_id].items() if key != "rows"
-        }
-        current_schema = {
-            key: value for key, value in current_by_id[table_id].items() if key != "rows"
-        }
-        if previous_schema != current_schema:
+        if previous_by_id[table_id].get("schema_hash") != current_by_id[table_id].get("schema_hash"):
             raise ValueError(
                 f"未选数据表 {table_id} 的结构已变化，不能安全地单表生成。请先生成全部。"
             )
@@ -954,6 +1044,32 @@ def validate_single_table_baseline(
 
     if manifest["data_set_id"] != previous_manifest.get("data_set_id"):
         raise ValueError("数据集标识已发生变化，不能安全地单表生成。请先生成全部。")
+
+
+def validate_schema_version_baseline(output: Path, manifest: dict[str, Any]) -> None:
+    previous_path = output / "manifest.json"
+    if not previous_path.is_file():
+        return
+    try:
+        previous = json.loads(previous_path.read_text(encoding="utf-8-sig"))
+        previous_tables = {
+            table["id"]: table for table in previous["tables"]
+        }
+    except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError) as error:
+        raise ValueError("已有 Manifest 无效；请修复或删除生成产物后重新生成。") from error
+    current_tables = {table["id"]: table for table in manifest["tables"]}
+    for table_id in previous_tables.keys() & current_tables.keys():
+        previous_table = previous_tables[table_id]
+        current_table = current_tables[table_id]
+        if "schema_hash" not in previous_table:
+            continue
+        if (
+            previous_table.get("schema_hash") != current_table.get("schema_hash")
+            and previous_table.get("schema_version") == current_table.get("schema_version")
+        ):
+            raise ValueError(
+                f"表 {table_id} 的结构已变化但 schema_version 未递增。"
+            )
 
 
 def verify_generated_files(
@@ -1029,11 +1145,8 @@ def build_export_target_files(
                 table for table in manifest["tables"] if table["id"] in target_ids
             ],
         }
-        target_debug = {
-            table["id"]: table["rows"] for table in target_tables
-        }
-        files[f"manifest.{target}.json"] = json_bytes(target_manifest)
-        files[f"debug.{target}.json"] = json_bytes(target_debug)
+        if {table["id"] for table in target_tables} != {table["id"] for table in ir["tables"]}:
+            files[f"manifest.{target}.json"] = json_bytes(target_manifest)
     return files
 
 
@@ -1111,8 +1224,9 @@ def load_target_manifest(path: Path, expected_target: str) -> dict[str, Any]:
                 or field_value < minimum
             ):
                 raise ValueError(f"Manifest 表字段 {field} 无效：{location}。")
-        if not is_sha256_hex(table.get("content_hash")):
-            raise ValueError(f"Manifest 表 content_hash 必须是小写 SHA-256：{location}。")
+        for field in ("schema_hash", "content_hash"):
+            if not is_sha256_hex(table.get(field)):
+                raise ValueError(f"Manifest 表 {field} 必须是小写 SHA-256：{location}。")
         if table.get("artifact") != f"{table_id}.gdtb":
             raise ValueError(f"Manifest 表 artifact 必须与 id 对应：{location}。")
     return value
@@ -1152,6 +1266,8 @@ def compare_target_manifests(client_path: Path, server_path: Path) -> tuple[str,
         server_table = server_shared[table_id]
         if client_table["schema_version"] != server_table["schema_version"]:
             differences.append(f"共享表 {table_id} 的 schema_version 不一致")
+        if client_table["schema_hash"] != server_table["schema_hash"]:
+            differences.append(f"共享表 {table_id} 的结构摘要不一致")
         if client_table["content_hash"] != server_table["content_hash"]:
             differences.append(f"共享表 {table_id} 的内容摘要不一致")
         if client_table["row_count"] != server_table["row_count"]:
@@ -1197,7 +1313,7 @@ def compile_tables(
     table_ids = [table["id"] for table in profile["tables"]]
     if selected_table is not None and selected_table not in table_ids:
         raise ValueError(
-            f"Profile 中不存在数据表 {selected_table!r}；可用值：{', '.join(table_ids)}。"
+            f"Schema 中不存在数据表 {selected_table!r}；可用值：{', '.join(table_ids)}。"
         )
     full_schema = [
         {key: value for key, value in table.items() if key != "rows"}
@@ -1229,6 +1345,9 @@ def compile_tables(
                 "id": table_id,
                 "audience": table_profile["audience"],
                 "schema_version": table_profile["schema_version"],
+                "schema_hash": sha256_hex(
+                    {key: value for key, value in table_ir.items() if key != "rows"}
+                ),
                 "row_count": len(table_ir["rows"]),
                 "content_hash": sha256_hex(table_ir),
                 "artifact": f"{table_id}.gdtb",
@@ -1262,39 +1381,23 @@ def compile_tables(
     csharp_text = generate_csharp(profile)
     if verify_only:
         expected_files = {
-            "normalized.ir.json": json_bytes(ir),
-            "debug.json": json_bytes(
-                {table["id"]: table["rows"] for table in ir["tables"]}
-            ),
             "manifest.json": json_bytes(manifest),
             **export_target_files,
             **{f"{table_id}.gdtb": binary for table_id, binary in binaries.items()},
         }
-        all_report = dict(report)
-        expected_files["build-report.json"] = json_bytes(all_report)
-        report_variants = {json_bytes(all_report)}
-        for table_id in table_ids:
-            single_report = dict(all_report)
-            single_report["scope"] = "single"
-            single_report["selected_table"] = table_id
-            report_variants.add(json_bytes(single_report))
         verify_generated_files(
             output,
             csharp_path,
             expected_files,
             csharp_text,
-            report_variants,
+            set(),
         )
         return
     if selected_table is not None:
+        validate_schema_version_baseline(output, manifest)
         validate_single_table_baseline(output, ir, manifest, binaries, selected_table)
         files = {
-            output / "normalized.ir.json": json_bytes(ir),
-            output / "debug.json": json_bytes(
-                {table["id"]: table["rows"] for table in ir["tables"]}
-            ),
             output / "manifest.json": json_bytes(manifest),
-            output / "build-report.json": json_bytes(report),
             output / f"{selected_table}.gdtb": binaries[selected_table],
             csharp_path: csharp_text.encode("utf-8"),
         }
@@ -1304,15 +1407,13 @@ def compile_tables(
         commit_files(files)
         return
 
+    validate_schema_version_baseline(output, manifest)
     output.parent.mkdir(parents=True, exist_ok=True)
     staged = Path(tempfile.mkdtemp(prefix=f"{output.name}.", dir=output.parent))
     try:
-        write_json(staged / "normalized.ir.json", ir)
-        write_json(staged / "debug.json", {table["id"]: table["rows"] for table in ir["tables"]})
         for table_id, binary in binaries.items():
             (staged / f"{table_id}.gdtb").write_bytes(binary)
         write_json(staged / "manifest.json", manifest)
-        write_json(staged / "build-report.json", report)
         for relative_path, content in export_target_files.items():
             (staged / relative_path).write_bytes(content)
         commit_outputs(staged, output, csharp_path, csharp_text)
@@ -1321,44 +1422,23 @@ def compile_tables(
             shutil.rmtree(staged)
 
 
-def add_input_arguments(parser: argparse.ArgumentParser, *, with_outputs: bool) -> None:
-    parser.add_argument("--build-config", type=Path, help="可移植的 DataTable Build Config。")
-    parser.add_argument("--profile", type=Path, help="DataTable Profile 路径。")
-    parser.add_argument("--source", type=Path, help="CSV 源目录。")
-    if with_outputs:
-        parser.add_argument("--output", type=Path, help="数据产物目录。")
-        parser.add_argument("--csharp", type=Path, help="生成的 C# 文件。")
+def add_schema_argument(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--schema", type=Path, required=True, help="DataTable Schema 文件。")
 
 
 def add_generate_arguments(parser: argparse.ArgumentParser) -> None:
-    add_input_arguments(parser, with_outputs=True)
+    add_schema_argument(parser)
     parser.add_argument("--table", help="仅提交指定表；仍会校验全部数据表。")
 
 
-def resolve_command_paths(
-    arguments: argparse.Namespace,
-    *,
-    with_outputs: bool,
-) -> tuple[Path, Path, Path | None, Path | None]:
-    explicit_values = [arguments.profile, arguments.source]
-    if with_outputs:
-        explicit_values.extend([arguments.output, arguments.csharp])
-    if arguments.build_config is not None:
-        if any(value is not None for value in explicit_values):
-            raise ValueError("--build-config 不能与显式路径参数同时使用。")
-        return load_build_config(arguments.build_config.resolve())
-    if any(value is None for value in explicit_values):
-        required = (
-            "--profile、--source、--output 和 --csharp"
-            if with_outputs
-            else "--profile 和 --source"
-        )
-        raise ValueError(f"未使用 --build-config 时必须提供 {required}。")
-    profile = arguments.profile.resolve()
-    source = arguments.source.resolve()
-    if not with_outputs:
-        return profile, source, None, None
-    return profile, source, arguments.output.resolve(), arguments.csharp.resolve()
+def resolve_schema_paths(schema_path: Path) -> tuple[Path, Path, Path, Path]:
+    schema_path = schema_path.resolve()
+    profile = load_profile(schema_path)
+    source = resolve_schema_path(schema_path, "source_directory", profile["source_directory"])
+    output = resolve_schema_path(schema_path, "output_directory", profile["output_directory"])
+    csharp = resolve_schema_path(schema_path, "csharp_output", profile["csharp_output"])
+    validate_output_paths(schema_path, source, output, csharp)
+    return schema_path, source, output, csharp
 
 
 def main() -> int:
@@ -1367,12 +1447,12 @@ def main() -> int:
     generate_parser = commands.add_parser("generate", help="校验并生成全部产物。")
     add_generate_arguments(generate_parser)
     check_parser = commands.add_parser("check", help="完整校验和构建，但不写入产物。")
-    add_input_arguments(check_parser, with_outputs=False)
+    add_schema_argument(check_parser)
     verify_parser = commands.add_parser(
         "verify-generated",
         help="只读验证现有生成产物与当前输入完全一致。",
     )
-    add_input_arguments(verify_parser, with_outputs=True)
+    add_schema_argument(verify_parser)
     compare_parser = commands.add_parser(
         "compare-manifests",
         help="验证 Client 与 Server 目标 Manifest 的共享数据兼容性。",
@@ -1389,10 +1469,7 @@ def main() -> int:
                 arguments.server.resolve(),
             )
         else:
-            profile, source, output, csharp = resolve_command_paths(
-                arguments,
-                with_outputs=arguments.command != "check",
-            )
+            profile, source, output, csharp = resolve_schema_paths(arguments.schema)
             if arguments.command == "check":
                 compile_tables(profile, source, check_only=True)
             elif arguments.command == "verify-generated":

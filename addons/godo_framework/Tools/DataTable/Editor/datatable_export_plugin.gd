@@ -4,7 +4,7 @@ extends EditorExportPlugin
 const CONFIG_ROOT := "res://DataTables"
 const TOOL_PATH := "res://addons/godo_framework/Tools/DataTable/godo_datatable.py"
 const PYTHON_SETTING := "godo_framework/datatable/python_executable"
-const BUILD_CONFIG_FIELDS := ["format_version", "profile", "source", "output", "csharp"]
+const SCHEMA_FIELDS := ["format_version", "data_set_id", "protocol_version", "namespace", "source_directory", "output_directory", "csharp_output", "tables"]
 const MAX_VERIFY_OUTPUT := 4096
 
 var _skip_exact: Dictionary = {}
@@ -20,7 +20,7 @@ func _export_begin(features: PackedStringArray, is_debug: bool, _path: String, _
 	_skip_exact.clear()
 	_skip_roots.clear()
 	_added_paths.clear()
-	var config_paths := discover_build_configs(CONFIG_ROOT)
+	var config_paths := discover_schemas(CONFIG_ROOT)
 	if config_paths.is_empty():
 		return
 	var target := "server" if features.has("dedicated_server") else "client"
@@ -58,34 +58,40 @@ func _export_file(path: String, _type: String, _features: PackedStringArray) -> 
 			return
 
 
-func discover_build_configs(root: String) -> PackedStringArray:
+func discover_schemas(root: String) -> PackedStringArray:
 	var result := PackedStringArray()
 	if not DirAccess.dir_exists_absolute(root):
 		return result
+	return _discover_schemas_recursive(root)
+
+
+func _discover_schemas_recursive(root: String) -> PackedStringArray:
+	var result := PackedStringArray()
 	var files := Array(DirAccess.get_files_at(root))
 	files.sort()
 	for file_name in files:
-		if str(file_name).ends_with(".build.json"):
+		if str(file_name).ends_with(".datatable.schema.json"):
 			result.append(root.path_join(str(file_name)))
+	var directories := Array(DirAccess.get_directories_at(root))
+	directories.sort()
+	for directory_name in directories:
+		result.append_array(_discover_schemas_recursive(root.path_join(str(directory_name))))
 	return result
 
 
 func build_export_plan(config_path: String, target: String, is_debug: bool) -> Dictionary:
 	if target != "client" and target != "server":
 		return {"valid": false, "error": "未知导出目标：%s。" % target}
-	var state := _read_build_config(config_path)
+	var state := _read_schema(config_path)
 	if not state.valid:
 		return state
-	var profile := _read_json_object(str(state.profile), "Profile")
-	if not profile.valid:
-		return profile
-	if not profile.value.get("tables", null) is Array:
-		return {"valid": false, "error": "Profile 缺少 tables 数组。"}
+	if not state.tables is Array:
+		return {"valid": false, "error": "Schema 缺少 tables 数组。"}
 	var allowed := ["Shared", "ServerOnly"] if target == "server" else ["Shared", "ClientOnly"]
 	var added: Dictionary = {}
-	for table in profile.value.tables:
+	for table in state.tables:
 		if not table is Dictionary:
-			return {"valid": false, "error": "Profile tables 包含非对象条目。"}
+			return {"valid": false, "error": "Schema tables 包含非对象条目。"}
 		var table_id := str(table.get("id", "")).strip_edges()
 		var audience := str(table.get("audience", "")).strip_edges()
 		if table_id.is_empty() or not allowed.has(audience):
@@ -93,55 +99,50 @@ func build_export_plan(config_path: String, target: String, is_debug: bool) -> D
 		var artifact_path := str(state.output).path_join("%s.gdtb" % table_id)
 		added[artifact_path] = artifact_path
 	var target_manifest := str(state.output).path_join("manifest.%s.json" % target)
+	if not FileAccess.file_exists(target_manifest):
+		target_manifest = str(state.output).path_join("manifest.json")
 	added[str(state.output).path_join("manifest.json")] = target_manifest
-	if is_debug:
-		var target_debug := str(state.output).path_join("debug.%s.json" % target)
-		added[str(state.output).path_join("debug.json")] = target_debug
 	return {
 		"valid": true,
 		"config": config_path,
-		"profile": state.profile,
 		"source": state.source,
 		"output": state.output,
 		"added": added,
 	}
 
 
-func _read_build_config(path: String) -> Dictionary:
+func _read_schema(path: String) -> Dictionary:
 	if not path.begins_with("res://") or not FileAccess.file_exists(path):
-		return {"valid": false, "error": "Build Config 必须是存在的 res:// 文件。"}
-	var parsed := _read_json_object(path, "Build Config")
+		return {"valid": false, "error": "Schema 必须是存在的 res:// 文件。"}
+	var parsed := _read_json_object(path, "Schema")
 	if not parsed.valid:
 		return parsed
 	var value: Dictionary = parsed.value
-	if int(value.get("format_version", 0)) != 1:
-		return {"valid": false, "error": "Build Config format_version 必须为 1。"}
+	if int(value.get("format_version", 0)) != 2:
+		return {"valid": false, "error": "Schema format_version 必须为 2。"}
 	for key in value.keys():
-		if not BUILD_CONFIG_FIELDS.has(str(key)):
-			return {"valid": false, "error": "Build Config 包含未知字段：%s。" % key}
-	for field in BUILD_CONFIG_FIELDS:
+		if not SCHEMA_FIELDS.has(str(key)):
+			return {"valid": false, "error": "Schema 包含未知字段：%s。" % key}
+	for field in ["source_directory", "output_directory", "csharp_output"]:
 		if field == "format_version":
 			continue
 		if not value.get(field, null) is String or str(value[field]).strip_edges().is_empty():
-			return {"valid": false, "error": "Build Config 字段 %s 必须是非空字符串。" % field}
+			return {"valid": false, "error": "Schema 字段 %s 必须是非空字符串。" % field}
 		if not _is_safe_relative_path(str(value[field])):
-			return {"valid": false, "error": "Build Config 字段 %s 不是安全相对路径。" % field}
+			return {"valid": false, "error": "Schema 字段 %s 不是安全相对路径。" % field}
 	var root := path.get_base_dir()
-	var profile := root.path_join(str(value.profile)).simplify_path()
-	var source := root.path_join(str(value.source)).simplify_path()
-	var output := root.path_join(str(value.output)).simplify_path()
-	var csharp := root.path_join(str(value.csharp)).simplify_path()
-	if not FileAccess.file_exists(profile):
-		return {"valid": false, "error": "Profile 不存在：%s。" % profile}
+	var source := root.path_join(str(value.source_directory)).simplify_path()
+	var output := root.path_join(str(value.output_directory)).simplify_path()
+	var csharp := root.path_join(str(value.csharp_output)).simplify_path()
 	if not DirAccess.dir_exists_absolute(source):
 		return {"valid": false, "error": "CSV 源目录不存在：%s。" % source}
-	if _is_same_or_child(profile, output) or _is_same_or_child(source, output):
-		return {"valid": false, "error": "输出目录不能包含 Profile 或 CSV 源目录。"}
+	if _is_same_or_child(source, output):
+		return {"valid": false, "error": "输出目录不能包含 CSV 源目录。"}
 	if _is_same_or_child(csharp, output):
 		return {"valid": false, "error": "C# 输出必须位于数据输出目录外。"}
 	return {
 		"valid": true,
-		"profile": profile,
+		"tables": value.tables,
 		"source": source,
 		"output": output,
 		"csharp": csharp,
@@ -163,7 +164,6 @@ func _register_exclusions(plan: Dictionary) -> void:
 	var source_root := str(plan.source).trim_suffix("/") + "/"
 	var output_root := str(plan.output).trim_suffix("/") + "/"
 	_skip_exact[config_path] = true
-	_skip_exact[str(plan.profile)] = true
 	if not _skip_roots.has(source_root):
 		_skip_roots.append(source_root)
 	if not _skip_roots.has(output_root):
@@ -194,7 +194,7 @@ func _verify_generated(python: String, config_path: String) -> String:
 			"utf8",
 			ProjectSettings.globalize_path(TOOL_PATH),
 			"verify-generated",
-			"--build-config",
+			"--schema",
 			ProjectSettings.globalize_path(config_path),
 		]),
 		output,

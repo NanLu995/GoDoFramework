@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import subprocess
 import sys
@@ -100,6 +101,11 @@ func _exit_tree() -> void:
         encoding="utf-8",
     )
     shutil.copytree(FIXTURE_ROOT, project / "DataTables")
+    schema_path = project / "DataTables" / ".datatable.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    schema["source_directory"] = ".datafiles"
+    schema_path.write_text(json.dumps(schema, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (project / "DataTables" / ".datafiles" / ".gdignore").write_text("\n", encoding="utf-8")
     (project / "project.godot").write_text(
         """[application]
 config/name="DataTable Export Verification"
@@ -176,9 +182,8 @@ func _initialize() -> void:
 			_fail("缺少运行时文件：%s。" % shared)
 			return
 	for excluded_path in [
-		"res://DataTables/datatable.build.json",
-		"res://DataTables/profile.json",
-		"res://DataTables/source/Items.csv",
+		"res://DataTables/.datatable.schema.json",
+		"res://DataTables/.datafiles/Items.csv",
 		root.path_join("normalized.ir.json"),
 		root.path_join("build-report.json"),
 		root.path_join("debug.json"),
@@ -246,7 +251,7 @@ def main() -> int:
             cwd=PROJECT_ROOT,
         )
 
-    items = export_project / "DataTables" / "source" / "Items.csv"
+    items = export_project / "DataTables" / ".datafiles" / "Items.csv"
     items.write_text(items.read_text(encoding="utf-8").replace("测试物品 1", "stale", 1), encoding="utf-8")
     stale_pack = packs / "stale.pck"
     stale_pack.unlink(missing_ok=True)

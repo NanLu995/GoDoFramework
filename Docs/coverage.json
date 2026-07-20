@@ -221,11 +221,11 @@
     "data-table": {
       "contract": "addons/godo_framework/Tools/DataTable/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖 CSV/Profile、Build Config、只读检查、事务生成、编辑器操作、生成代码读取、过期校验、单表限制、Client/Server 隔离和可靠导出门禁；该工具仍为实验状态，等待格式与生成 API 稳定及跨平台正式发布验收。",
+      "reason": "功能指南已覆盖单一 Schema、.datafiles、可视化维护、CSV 排除与缺失状态、只读检查、事务生成、生成代码读取、过期校验、单表限制、Client/Server 隔离和可靠导出门禁；该工具仍为实验状态，等待格式与生成 API 稳定及跨平台正式发布验收。",
       "manual_pages": [
         "guides/data-tables/index.md"
       ],
-      "reviewed_contract_hash": "sha256:aa14a096e3b8b7798851d8f2851e990eebc7d29efc6801f5efdb5a8caba44b00"
+      "reviewed_contract_hash": "sha256:c0765447b4999227636e37ec5120664537c035f43a128ab2901e8b845511c80b"
     }
   }
 }

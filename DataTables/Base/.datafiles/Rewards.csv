@@ -1,0 +1,5 @@
+id,display_name,reward_type,item_id,amount,bonus_chance,enabled
+starter_weapon,新手武器,Item,iron_sword,1,0.0,true
+daily_potion,每日药水,Item,healing_potion,3,0.25,true
+quest_currency,任务金币,Currency,,500,,true
+chapter_experience,章节经验,Experience,,1000,1.0,

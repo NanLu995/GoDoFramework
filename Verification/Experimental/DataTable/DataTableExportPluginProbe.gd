@@ -2,7 +2,7 @@
 extends SceneTree
 
 const EXPORT_PLUGIN_SCRIPT := preload("res://addons/godo_framework/Tools/DataTable/Editor/datatable_export_plugin.gd")
-const CONFIG := "res://Verification/Experimental/DataTable/Artifacts/scratch/export-targets/datatable.build.json"
+const CONFIG := "res://Verification/Experimental/DataTable/Artifacts/scratch/export-targets/items.datatable.schema.json"
 const OUTPUT := "res://Verification/Experimental/DataTable/Artifacts/scratch/export-targets/output"
 
 
@@ -18,9 +18,9 @@ func _run() -> void:
 	_assert_plan(client_debug, "ClientSetting", "ServerSetting", "manifest.client.json", true)
 	var server_release: Dictionary = plugin.build_export_plan(CONFIG, "server", false)
 	_assert_plan(server_release, "ServerSetting", "ClientSetting", "manifest.server.json", false)
-	var discovered: PackedStringArray = plugin.discover_build_configs(CONFIG.get_base_dir())
+	var discovered: PackedStringArray = plugin.discover_schemas(CONFIG.get_base_dir())
 	if not discovered.has(CONFIG):
-		_fail("未发现一级目录内的 Build Config。")
+		_fail("未发现一级目录内的 Schema。")
 		return
 	var invalid: Dictionary = plugin.build_export_plan(CONFIG, "invalid", false)
 	if invalid.get("valid", true):

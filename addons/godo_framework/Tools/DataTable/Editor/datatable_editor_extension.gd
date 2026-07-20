@@ -3,14 +3,16 @@ extends RefCounted
 
 const TOOL_PATH := "res://addons/godo_framework/Tools/DataTable/godo_datatable.py"
 const EXPORT_PLUGIN_SCRIPT := preload("res://addons/godo_framework/Tools/DataTable/Editor/datatable_export_plugin.gd")
-const DEFAULT_BUILD_CONFIG := "res://DataTables/datatable.build.json"
+const SCHEMA_EDITOR_SCRIPT := preload("res://addons/godo_framework/Tools/DataTable/Editor/datatable_schema_editor.gd")
+const DEFAULT_SCHEMA := "res://DataTables/Base/.datatable.schema.json"
 const SETTINGS_SECTION := "godo_framework/datatable"
-const CONFIG_METADATA_KEY := "build_config_path"
+const CONFIG_METADATA_KEY := "schema_path"
 const PYTHON_SETTING := "godo_framework/datatable/python_executable"
 const MAX_OUTPUT_CHARACTERS := 65536
 
 var _context
 var _export_plugin: EditorExportPlugin
+var _schema_editor
 var _dialog: AcceptDialog
 var _generate_confirmation: ConfirmationDialog
 var _config_file_dialog: EditorFileDialog
@@ -48,6 +50,9 @@ func deactivate() -> void:
 	if _export_plugin != null and _context != null:
 		_context.remove_export_plugin(_export_plugin)
 	_export_plugin = null
+	if _schema_editor != null:
+		_schema_editor.dispose()
+	_schema_editor = null
 	if is_instance_valid(_dialog):
 		_dialog.queue_free()
 	_dialog = null
@@ -81,13 +86,13 @@ func _create_dialog() -> void:
 	content.add_theme_constant_override("separation", 8)
 	_dialog.add_child(content)
 
-	content.add_child(_create_label("Build Config"))
+	content.add_child(_create_label("DataTable Schema"))
 	var config_row := HBoxContainer.new()
 	content.add_child(config_row)
 	_config_input = LineEdit.new()
 	_config_input.name = "DataTableBuildConfigInput"
 	_config_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_config_input.placeholder_text = DEFAULT_BUILD_CONFIG
+	_config_input.placeholder_text = DEFAULT_SCHEMA
 	_config_input.text_changed.connect(_on_input_changed)
 	config_row.add_child(_config_input)
 	var config_browse := Button.new()
@@ -123,6 +128,9 @@ func _create_dialog() -> void:
 	content.add_child(_report)
 
 	var refresh_button := _dialog.add_button("刷新状态", true)
+	var create_button := _dialog.add_button("新建 Schema", true)
+	var edit_button := _dialog.add_button("编辑 Schema...", true)
+	edit_button.name = "DataTableEditSchemaButton"
 	_check_button = _dialog.add_button("检查全部", true)
 	_check_button.name = "DataTableCheckButton"
 	_generate_button = _dialog.add_button("生成全部...", true)
@@ -130,6 +138,8 @@ func _create_dialog() -> void:
 	_generate_selected_button = _dialog.add_button("生成选中表...", true)
 	_generate_selected_button.name = "DataTableGenerateSelectedButton"
 	refresh_button.pressed.connect(_refresh_status)
+	create_button.pressed.connect(_create_schema)
+	edit_button.pressed.connect(_open_schema_editor)
 	_check_button.pressed.connect(_request_check)
 	_generate_button.pressed.connect(_request_generate)
 	_generate_selected_button.pressed.connect(_request_generate_selected)
@@ -142,10 +152,11 @@ func _create_dialog() -> void:
 	_dialog.add_child(_generate_confirmation)
 
 	_config_file_dialog = EditorFileDialog.new()
-	_config_file_dialog.title = "选择 DataTable Build Config"
+	_config_file_dialog.title = "选择 DataTable Schema"
 	_config_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 	_config_file_dialog.access = FileDialog.ACCESS_RESOURCES
-	_config_file_dialog.filters = PackedStringArray(["*.json ; JSON"])
+	_config_file_dialog.show_hidden_files = true
+	_config_file_dialog.filters = PackedStringArray(["*.datatable.schema.json ; DataTable Schema"])
 	_config_file_dialog.file_selected.connect(_on_config_selected)
 	_dialog.add_child(_config_file_dialog)
 
@@ -171,11 +182,12 @@ func _create_label(text: String) -> Label:
 
 func _load_editor_settings() -> void:
 	var settings = _context.get_editor_interface().get_editor_settings()
-	_config_input.text = str(settings.get_project_metadata(
+	var schema_path := str(settings.get_project_metadata(
 		SETTINGS_SECTION,
 		CONFIG_METADATA_KEY,
-		DEFAULT_BUILD_CONFIG
+		DEFAULT_SCHEMA
 	))
+	_config_input.text = schema_path if FileAccess.file_exists(schema_path) else DEFAULT_SCHEMA
 	_python_input.text = (
 		str(settings.get_setting(PYTHON_SETTING))
 		if settings.has_setting(PYTHON_SETTING)
@@ -196,6 +208,69 @@ func _save_editor_settings() -> void:
 func _open_config_file_dialog() -> void:
 	_config_file_dialog.current_path = _config_input.text
 	_config_file_dialog.popup_centered(Vector2i(760, 520))
+
+
+func _create_schema() -> void:
+	if _running:
+		return
+	var schema_path := DEFAULT_SCHEMA
+	if FileAccess.file_exists(schema_path):
+		_report.text = "默认 Schema 已存在：%s\n可通过“浏览...”选择它或其他 Schema。" % schema_path
+		return
+	var directory_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(schema_path.get_base_dir()))
+	if directory_error != OK:
+		_report.text = "无法创建 DataTables 目录：%s" % error_string(directory_error)
+		return
+	var file := FileAccess.open(schema_path, FileAccess.WRITE)
+	if file == null:
+		_report.text = "无法创建 Schema：%s" % schema_path
+		return
+	file.store_string(JSON.stringify({
+		"format_version": 2,
+		"data_set_id": "game.base",
+		"protocol_version": 1,
+		"namespace": "Game.DataTables.Base",
+		"source_directory": ".datafiles",
+		"output_directory": "Runtime",
+		"csharp_output": "BaseDataTables.g.cs",
+		"tables": [{
+			"id": "Example",
+			"source": "Example.csv",
+			"schema_version": 1,
+			"audience": "Shared",
+			"primary_key": "id",
+			"fields": [{"name": "id", "type": "string", "required": true, "min_length": 1}]
+		}]
+	}, "\t") + "\n")
+	var source_directory := schema_path.get_base_dir().path_join(".datafiles")
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(source_directory))
+	var ignore := FileAccess.open(source_directory.path_join(".gdignore"), FileAccess.WRITE)
+	if ignore != null:
+		ignore.store_string("\n")
+	var csv := FileAccess.open(source_directory.path_join("Example.csv"), FileAccess.WRITE)
+	if csv != null:
+		csv.store_string("id\n")
+	_config_input.text = schema_path
+	_save_editor_settings()
+	_context.get_editor_interface().get_resource_filesystem().scan()
+	_refresh_status()
+	_open_schema_editor()
+
+
+func _open_schema_editor() -> void:
+	var state := _inspect_schema()
+	if not state.valid:
+		_refresh_status()
+		return
+	if _schema_editor == null:
+		_schema_editor = SCHEMA_EDITOR_SCRIPT.new()
+	_schema_editor.open(_context, str(state.schema), _on_schema_saved)
+
+
+func _on_schema_saved() -> void:
+	_context.get_editor_interface().get_resource_filesystem().scan()
+	_refresh_status()
+	_request_check()
 
 
 func _open_python_file_dialog() -> void:
@@ -222,13 +297,13 @@ func _on_input_changed(_value: String) -> void:
 func _refresh_status() -> void:
 	if not is_instance_valid(_report):
 		return
-	var state := _inspect_build_config()
+	var state := _inspect_schema()
 	_refresh_table_options(state)
 	var lines := PackedStringArray()
 	lines.append("DataTable 编辑器构建")
 	lines.append("")
 	lines.append(_status_line("编译前端", FileAccess.file_exists(TOOL_PATH), TOOL_PATH))
-	lines.append(_status_line("Build Config", state.valid, state.detail))
+	lines.append(_status_line("Schema", state.valid, state.detail))
 	var python_value := _python_input.text.strip_edges()
 	var python_detail := python_value if not python_value.is_empty() else "自动检测 python3 / python"
 	if not _detected_python.is_empty():
@@ -236,7 +311,6 @@ func _refresh_status() -> void:
 	lines.append(_status_line("Python", true, python_detail))
 	if state.valid:
 		lines.append("")
-		lines.append("Profile：%s" % state.profile)
 		lines.append("CSV：%s" % state.source)
 		lines.append("数据输出：%s" % state.output)
 		lines.append("C# 输出：%s" % state.csharp)
@@ -248,7 +322,7 @@ func _status_line(name: String, healthy: bool, detail: String) -> String:
 	return "[%s] %s：%s" % ["正常" if healthy else "错误", name, detail]
 
 
-func _inspect_build_config() -> Dictionary:
+func _inspect_schema() -> Dictionary:
 	var path := _config_input.text.strip_edges()
 	if not path.begins_with("res://"):
 		return {"valid": false, "detail": "必须选择项目内 res:// JSON 文件。"}
@@ -260,38 +334,34 @@ func _inspect_build_config() -> Dictionary:
 	var parsed = JSON.parse_string(file.get_as_text())
 	if not parsed is Dictionary:
 		return {"valid": false, "detail": "根节点必须是 JSON 对象。"}
-	if int(parsed.get("format_version", 0)) != 1:
-		return {"valid": false, "detail": "format_version 必须为 1。"}
-	var allowed_fields := ["format_version", "profile", "source", "output", "csharp"]
+	if int(parsed.get("format_version", 0)) != 2:
+		return {"valid": false, "detail": "format_version 必须为 2。"}
+	var allowed_fields := ["format_version", "data_set_id", "protocol_version", "namespace", "source_directory", "output_directory", "csharp_output", "tables"]
 	for key in parsed.keys():
 		if not allowed_fields.has(str(key)):
 			return {"valid": false, "detail": "包含未知字段：%s。" % key}
-	for field in ["profile", "source", "output", "csharp"]:
+	for field in ["source_directory", "output_directory", "csharp_output"]:
 		if not (parsed.get(field, null) is String) or str(parsed[field]).strip_edges().is_empty():
 			return {"valid": false, "detail": "字段 %s 必须是非空字符串。" % field}
 		if not _is_safe_relative_path(str(parsed[field])):
-			return {"valid": false, "detail": "字段 %s 必须是配置目录内的正斜杠相对路径。" % field}
+			return {"valid": false, "detail": "字段 %s 必须是 Schema 目录内的正斜杠相对路径。" % field}
 	var root := path.get_base_dir()
-	var profile := root.path_join(str(parsed.profile)).simplify_path()
-	var source := root.path_join(str(parsed.source)).simplify_path()
-	var output := root.path_join(str(parsed.output)).simplify_path()
-	var csharp := root.path_join(str(parsed.csharp)).simplify_path()
-	if _is_same_or_child(profile, output) or _is_same_or_child(source, output):
-		return {"valid": false, "detail": "数据输出目录不能包含 Profile 或 CSV 源目录。"}
+	var source := root.path_join(str(parsed.source_directory)).simplify_path()
+	var output := root.path_join(str(parsed.output_directory)).simplify_path()
+	var csharp := root.path_join(str(parsed.csharp_output)).simplify_path()
+	if _is_same_or_child(source, output):
+		return {"valid": false, "detail": "数据输出目录不能包含 CSV 源目录。"}
 	if _is_same_or_child(csharp, output):
 		return {"valid": false, "detail": "C# 输出必须位于数据输出目录之外。"}
-	if not FileAccess.file_exists(profile):
-		return {"valid": false, "detail": "Profile 不存在：%s" % profile}
 	if not DirAccess.dir_exists_absolute(source):
 		return {"valid": false, "detail": "CSV 源目录不存在：%s" % source}
-	var table_ids := _read_table_ids(profile)
+	var table_ids := _read_table_ids(path)
 	if table_ids.is_empty():
-		return {"valid": false, "detail": "Profile 必须包含至少一个具有非空 id 的数据表。"}
+		return {"valid": false, "detail": "Schema 必须包含至少一个具有非空 id 的数据表。"}
 	return {
 		"valid": true,
 		"detail": path,
-		"config": path,
-		"profile": profile,
+		"schema": path,
 		"source": source,
 		"output": output,
 		"csharp": csharp,
@@ -299,8 +369,8 @@ func _inspect_build_config() -> Dictionary:
 	}
 
 
-func _read_table_ids(profile_path: String) -> PackedStringArray:
-	var file := FileAccess.open(profile_path, FileAccess.READ)
+func _read_table_ids(schema_path: String) -> PackedStringArray:
+	var file := FileAccess.open(schema_path, FileAccess.READ)
 	if file == null:
 		return PackedStringArray()
 	var parsed = JSON.parse_string(file.get_as_text())
@@ -357,7 +427,7 @@ func _request_check() -> void:
 
 
 func _request_generate() -> void:
-	var state := _inspect_build_config()
+	var state := _inspect_schema()
 	if not state.valid or _running:
 		_refresh_status()
 		return
@@ -367,13 +437,13 @@ func _request_generate() -> void:
 		"将校验全部 DataTable，并替换以下生成产物：\n\n"
 		+ "数据目录：%s\n" % state.output
 		+ "C# 文件：%s\n\n" % state.csharp
-		+ "CSV、Profile 和其他项目文件不会被修改。"
+		+ "CSV、Schema 和其他项目文件不会被修改。"
 	)
 	_generate_confirmation.popup_centered(Vector2i(700, 300))
 
 
 func _request_generate_selected() -> void:
-	var state := _inspect_build_config()
+	var state := _inspect_schema()
 	if not state.valid or _running or _table_selector.selected < 0:
 		_refresh_status()
 		return
@@ -395,7 +465,7 @@ func _confirm_generate() -> void:
 
 
 func _start_operation(action: String, selected_table := "") -> void:
-	var state := _inspect_build_config()
+	var state := _inspect_schema()
 	if _running or not state.valid or not FileAccess.file_exists(TOOL_PATH):
 		_refresh_status()
 		return
@@ -406,7 +476,7 @@ func _start_operation(action: String, selected_table := "") -> void:
 	var payload := {
 		"action": action,
 		"tool": ProjectSettings.globalize_path(TOOL_PATH),
-		"config": ProjectSettings.globalize_path(str(state.config)),
+		"schema": ProjectSettings.globalize_path(str(state.schema)),
 		"python": _python_input.text.strip_edges(),
 		"table": selected_table,
 	}
@@ -447,8 +517,8 @@ func _execute_operation(payload: Dictionary) -> Dictionary:
 			"utf8",
 			str(payload.tool),
 			str(payload.action),
-			"--build-config",
-			str(payload.config),
+			"--schema",
+			str(payload.schema),
 		])
 		if not str(payload.table).is_empty():
 			arguments.append("--table")
@@ -504,5 +574,5 @@ func _poll_operation() -> void:
 	]
 	if succeeded and str(result.action) == "generate":
 		_context.get_editor_interface().get_resource_filesystem().scan()
-	var state := _inspect_build_config()
+	var state := _inspect_schema()
 	_set_actions_enabled(state.valid and FileAccess.file_exists(TOOL_PATH))

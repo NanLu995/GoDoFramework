@@ -46,22 +46,22 @@ def resolve_executable(value: str) -> str:
     raise RuntimeError(f"Godot 可执行文件不存在或不在 PATH 中：{value}")
 
 
-def discover_build_configs(project: Path, explicit: list[Path]) -> list[Path]:
+def discover_schemas(project: Path, explicit: list[Path]) -> list[Path]:
     if explicit:
         configs = [path.expanduser().resolve() for path in explicit]
     else:
-        configs = sorted((project / "DataTables").glob("*.build.json"))
+        configs = sorted((project / "DataTables").rglob("*.datatable.schema.json"))
     if not configs:
-        raise RuntimeError(f"未发现 DataTable Build Config：{project / 'DataTables' / '*.build.json'}")
+        raise RuntimeError(f"未发现 DataTable Schema：{project / 'DataTables' / '*.datatable.schema.json'}")
     missing = [path for path in configs if not path.is_file()]
     if missing:
-        raise RuntimeError("DataTable Build Config 不存在：\n- " + "\n- ".join(map(str, missing)))
+        raise RuntimeError("DataTable Schema 不存在：\n- " + "\n- ".join(map(str, missing)))
     return configs
 
 
-def verify_generated(project: Path, configs: list[Path]) -> bool:
-    for config in configs:
-        print(f"[GoDo DataTable Export] 校验：{config}")
+def verify_generated(project: Path, schemas: list[Path]) -> bool:
+    for schema in schemas:
+        print(f"[GoDo DataTable Export] 校验：{schema}")
         result = run(
             [
                 sys.executable,
@@ -69,8 +69,8 @@ def verify_generated(project: Path, configs: list[Path]) -> bool:
                 "utf8",
                 str(COMPILER_PATH),
                 "verify-generated",
-                "--build-config",
-                str(config),
+                "--schema",
+                str(schema),
             ],
             cwd=project,
         )
@@ -95,11 +95,11 @@ def main() -> int:
         help="release、debug 或仅导出 PCK；默认为 release。",
     )
     parser.add_argument(
-        "--build-config",
+        "--schema",
         type=Path,
         action="append",
         default=[],
-        help="显式 Build Config，可重复；省略时扫描项目 DataTables/*.build.json。",
+        help="显式 DataTable Schema，可重复；省略时扫描项目 DataTables/*.datatable.schema.json。",
     )
     arguments = parser.parse_args()
 
@@ -109,7 +109,7 @@ def main() -> int:
     if not (project / "project.godot").is_file():
         raise RuntimeError(f"项目根目录缺少 project.godot：{project}")
     godot = resolve_executable(arguments.godot)
-    configs = discover_build_configs(project, arguments.build_config)
+    configs = discover_schemas(project, arguments.schema)
     if not verify_generated(project, configs):
         return 1
 

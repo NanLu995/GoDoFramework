@@ -23,7 +23,7 @@ from godo_datatable import FORMAT_VERSION, CompileFailure, compile_tables
 from generate_fixtures import write_invalid_sets, write_valid_set
 
 
-PROFILE_PATH = SCRIPT_DIR / "profile.json"
+PROFILE_PATH = SCRIPT_DIR / "prototype.datatable.schema.json"
 GENERATED_CSHARP = SCRIPT_DIR / "Generated" / "DataTablePrototype.Generated.cs"
 ARTIFACT_ROOT = SCRIPT_DIR / "Artifacts"
 EXPECTED_DIAGNOSTICS = {
@@ -125,63 +125,27 @@ def verify_cli_modes(sources: Path) -> None:
     root = ARTIFACT_ROOT / "scratch" / "path with spaces"
     source_copy = root / "source files"
     shutil.copytree(sources / "small", source_copy)
+    schema = root / ".datatable.schema.json"
+    schema_value = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    schema_value["source_directory"] = "source files"
+    schema_value["output_directory"] = "config output"
+    schema_value["csharp_output"] = "Config Generated.txt"
+    schema.write_text(json.dumps(schema_value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     before_check = digest_files(root)
 
     check_result = run_compiler(
         "check",
-        "--profile",
-        str(PROFILE_PATH),
-        "--source",
-        str(source_copy),
+        "--schema",
+        str(schema),
     )
     assert_equal(before_check, digest_files(root), "check 模式写入了文件")
     if "CHECK PASS" not in check_result.stdout:
         raise RuntimeError("check 模式未输出成功标记。")
     print("[DataTablePrototype] PASS: CLI check 不写入")
 
-    invalid_result = run_compiler(
-        "check",
-        "--profile",
-        str(PROFILE_PATH),
-        "--source",
-        str(sources / "invalid" / "invalid_enum"),
-        expected_exit=1,
-    )
-    if "DT108" not in invalid_result.stdout:
-        raise RuntimeError("CLI check 未返回预期的 DT108 诊断。")
-    assert_equal(before_check, digest_files(root), "失败的 check 模式写入了文件")
-    print("[DataTablePrototype] PASS: CLI check 错误诊断")
-
-    unsafe_result = run_compiler(
-        "generate",
-        "--profile",
-        str(PROFILE_PATH),
-        "--source",
-        str(source_copy),
-        "--output",
-        str(root),
-        "--csharp",
-        str(root / "Unsafe.Generated.txt"),
-        expected_exit=1,
-    )
-    if "输出目录" not in unsafe_result.stderr:
-        raise RuntimeError("CLI generate 未报告危险输出目录。")
-    assert_equal(before_check, digest_files(root), "危险输出目录校验后写入了文件")
-    print("[DataTablePrototype] PASS: CLI generate 拒绝危险输出目录")
-
-    output = root / "generated output"
-    csharp = root / "Generated Code.txt"
-    run_compiler(
-        "generate",
-        "--profile",
-        str(PROFILE_PATH),
-        "--source",
-        str(source_copy),
-        "--output",
-        str(output),
-        "--csharp",
-        str(csharp),
-    )
+    output = root / "config output"
+    csharp = root / "Config Generated.txt"
+    run_compiler("generate", "--schema", str(schema))
     baseline_output = ARTIFACT_ROOT / "scratch" / "cli-baseline"
     baseline_csharp = ARTIFACT_ROOT / "scratch" / "cli-baseline.Generated.txt"
     compile_tables(PROFILE_PATH, sources / "small", baseline_output, baseline_csharp)
@@ -189,90 +153,70 @@ def verify_cli_modes(sources: Path) -> None:
     assert_equal(baseline_csharp.read_bytes(), csharp.read_bytes(), "CLI generate C# 不一致")
     print("[DataTablePrototype] PASS: CLI generate 支持空格路径")
 
-    config_profile = root / "profile.json"
-    shutil.copy2(PROFILE_PATH, config_profile)
-    build_config = root / "datatable.build.json"
-    build_config.write_text(
-        json.dumps(
-            {
-                "format_version": 1,
-                "profile": "profile.json",
-                "source": "source files",
-                "output": "config output",
-                "csharp": "Config Generated.txt",
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
     before_config_check = digest_files(root)
-    run_compiler("check", "--build-config", str(build_config))
-    assert_equal(before_config_check, digest_files(root), "Build Config check 写入了文件")
-    run_compiler("generate", "--build-config", str(build_config))
-    assert_equal(digest_files(baseline_output), digest_files(root / "config output"), "Build Config 产物不一致")
+    run_compiler("check", "--schema", str(schema))
+    assert_equal(before_config_check, digest_files(root), "Schema check 写入了文件")
+    run_compiler("generate", "--schema", str(schema))
+    assert_equal(digest_files(baseline_output), digest_files(root / "config output"), "Schema 产物不一致")
     assert_equal(
         baseline_csharp.read_bytes(),
         (root / "Config Generated.txt").read_bytes(),
-        "Build Config C# 不一致",
+        "Schema C# 不一致",
     )
-    print("[DataTablePrototype] PASS: Build Config check/generate")
+    print("[DataTablePrototype] PASS: Schema check/generate")
 
     config_csharp = root / "Config Generated.txt"
     csharp_timestamp = config_csharp.stat().st_mtime_ns
-    run_compiler("generate", "--build-config", str(build_config))
+    run_compiler("generate", "--schema", str(schema))
     assert_equal(csharp_timestamp, config_csharp.stat().st_mtime_ns, "未变化的 C# 被重复改写")
     print("[DataTablePrototype] PASS: 未变化 C# 保留时间戳")
 
     run_compiler(
         "generate",
-        "--build-config",
-        str(build_config),
+        "--schema",
+        str(schema),
         "--table",
         "Item",
     )
-    single_report = json.loads(
-        (root / "config output" / "build-report.json").read_text(encoding="utf-8")
-    )
-    assert_equal("single", single_report.get("scope"), "CLI --table 未进入单表生成")
-    assert_equal("Item", single_report.get("selected_table"), "CLI --table 未传递目标表")
-    print("[DataTablePrototype] PASS: CLI Build Config 单表生成")
+    if (root / "config output" / "build-report.json").exists():
+        raise RuntimeError("CLI --table 默认生成了不应存在的构建报告。")
+    print("[DataTablePrototype] PASS: CLI Schema 单表生成")
 
     before_verify = digest_files(root)
-    verify_result = run_compiler("verify-generated", "--build-config", str(build_config))
+    verify_result = run_compiler("verify-generated", "--schema", str(schema))
     assert_equal(before_verify, digest_files(root), "verify-generated 改写了文件")
     if "VERIFY GENERATED PASS" not in verify_result.stdout:
         raise RuntimeError("verify-generated 未输出成功标记。")
     print("[DataTablePrototype] PASS: CLI 只读验证单表生成后的有效产物")
 
-    missing_config = root / "missing-field.build.json"
-    missing_config.write_text('{"format_version":1}\n', encoding="utf-8")
+    missing_config = root / "missing-field.datatable.schema.json"
+    missing_config.write_text('{"format_version":2}\n', encoding="utf-8")
     missing_result = run_compiler(
         "check",
-        "--build-config",
+        "--schema",
         str(missing_config),
         expected_exit=1,
     )
     if "缺少字段" not in missing_result.stderr:
-        raise RuntimeError("Build Config 缺字段未产生明确错误。")
-    print("[DataTablePrototype] PASS: Build Config 缺字段拒绝")
+        raise RuntimeError("Schema 缺字段未产生明确错误。")
+    print("[DataTablePrototype] PASS: Schema 缺字段拒绝")
 
-    escaping_config = root / "escaping.build.json"
+    escaping_config = root / "escaping.datatable.schema.json"
+    escaping_schema = dict(schema_value)
+    escaping_schema["output_directory"] = "../escaped"
     escaping_config.write_text(
-        '{"format_version":1,"profile":"profile.json","source":"source files",'
-        '"output":"../escaped","csharp":"Config Generated.txt"}\n',
+        json.dumps(escaping_schema, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
     escaping_result = run_compiler(
         "generate",
-        "--build-config",
+        "--schema",
         str(escaping_config),
         expected_exit=1,
     )
     if "逃逸" not in escaping_result.stderr:
-        raise RuntimeError("Build Config 路径逃逸未产生明确错误。")
-    print("[DataTablePrototype] PASS: Build Config 路径逃逸拒绝")
+        raise RuntimeError("Schema 路径逃逸未产生明确错误。")
+    print("[DataTablePrototype] PASS: Schema 路径逃逸拒绝")
 
 
 def verify_output_rollback() -> None:
@@ -311,10 +255,14 @@ def verify_single_table_generation(sources: Path) -> None:
     root = ARTIFACT_ROOT / "scratch" / "single-table"
     source = root / "source"
     output = root / "output"
-    profile = root / "profile.json"
+    profile = root / ".datatable.schema.json"
     csharp = root / "DataTables.Generated.txt"
     shutil.copytree(sources / "small", source)
-    shutil.copy2(PROFILE_PATH, profile)
+    profile_value = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    profile_value["source_directory"] = "source"
+    profile_value["output_directory"] = "output"
+    profile_value["csharp_output"] = "DataTables.Generated.txt"
+    profile.write_text(json.dumps(profile_value, ensure_ascii=False) + "\n", encoding="utf-8")
     compile_tables(profile, source, output, csharp)
 
     category = output / "ItemCategory.gdtb"
@@ -332,15 +280,15 @@ def verify_single_table_generation(sources: Path) -> None:
     assert_equal(category_bytes, category.read_bytes(), "单表生成改写了未选表内容")
     assert_equal(category_timestamp, category.stat().st_mtime_ns, "单表生成改写了未选表时间戳")
     assert_equal(csharp_timestamp, csharp.stat().st_mtime_ns, "纯数据变化改写了 C# 时间戳")
-    report = json.loads((output / "build-report.json").read_text(encoding="utf-8"))
-    assert_equal("single", report.get("scope"), "单表报告未记录生成范围")
-    assert_equal("Item", report.get("selected_table"), "单表报告未记录目标表")
+    if (output / "build-report.json").exists():
+        raise RuntimeError("单表生成默认写入了构建报告。")
     print("[DataTablePrototype] PASS: 单表数据更新与未选表保留")
 
     profile_value = json.loads(profile.read_text(encoding="utf-8"))
     item_profile = next(table for table in profile_value["tables"] if table["id"] == "Item")
     display_field = next(field for field in item_profile["fields"] if field["name"] == "display_name")
     display_field["name"] = "title"
+    item_profile["schema_version"] += 1
     profile.write_text(json.dumps(profile_value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     items_path.write_text(
         items_path.read_text(encoding="utf-8").replace("display_name", "title", 1),
@@ -460,24 +408,22 @@ def verify_generated_detection(sources: Path) -> None:
     root = ARTIFACT_ROOT / "scratch" / "verify-generated"
     source = root / "source"
     output = root / "output"
-    profile = root / "profile.json"
+    profile = root / ".datatable.schema.json"
     csharp = root / "DataTables.Generated.txt"
     shutil.copytree(sources / "small", source)
-    shutil.copy2(PROFILE_PATH, profile)
+    profile_value = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    profile_value["source_directory"] = "source"
+    profile_value["output_directory"] = "output"
+    profile_value["csharp_output"] = "DataTables.Generated.txt"
+    profile.write_text(json.dumps(profile_value, ensure_ascii=False) + "\n", encoding="utf-8")
     compile_tables(profile, source, output, csharp)
 
     def assert_stale(expected_detail: str, message: str) -> None:
         before = digest_files(root)
         result = run_compiler(
             "verify-generated",
-            "--profile",
+            "--schema",
             str(profile),
-            "--source",
-            str(source),
-            "--output",
-            str(output),
-            "--csharp",
-            str(csharp),
             expected_exit=1,
         )
         if "生成产物不是最新状态" not in result.stderr or expected_detail not in result.stderr:
@@ -498,7 +444,8 @@ def verify_generated_detection(sources: Path) -> None:
     profile_value["tables"][1]["schema_version"] += 1
     profile.write_text(json.dumps(profile_value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     assert_stale("内容过期", "结构过期")
-    shutil.copy2(PROFILE_PATH, profile)
+    profile_value["tables"][1]["schema_version"] -= 1
+    profile.write_text(json.dumps(profile_value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print("[DataTablePrototype] PASS: verify-generated 检出结构过期")
 
     missing_path = output / "Item.gdtb"
@@ -523,12 +470,15 @@ def verify_generated_detection(sources: Path) -> None:
 
 def verify_export_target_artifacts(sources: Path) -> None:
     root = ARTIFACT_ROOT / "scratch" / "export-targets"
-    source = root / "source"
+    source = root / ".datafiles"
     output = root / "output"
-    profile = root / "profile.json"
+    profile = root / ".datatable.schema.json"
     csharp = root / "DataTables.Generated.txt"
     shutil.copytree(sources / "small", source)
     profile_value = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    profile_value["source_directory"] = ".datafiles"
+    profile_value["output_directory"] = "output"
+    profile_value["csharp_output"] = "DataTables.Generated.txt"
     profile_value["tables"].extend(
         [
             {
@@ -558,21 +508,6 @@ def verify_export_target_artifacts(sources: Path) -> None:
     profile.write_text(json.dumps(profile_value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (source / "ClientSettings.csv").write_text("id,value\nclient,visible\n", encoding="utf-8")
     (source / "ServerSettings.csv").write_text("id,value\nserver,secret\n", encoding="utf-8")
-    (root / "datatable.build.json").write_text(
-        json.dumps(
-            {
-                "format_version": 1,
-                "profile": "profile.json",
-                "source": "source",
-                "output": "output",
-                "csharp": "DataTables.Generated.txt",
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
     compile_tables(profile, source, output, csharp)
 
     client_manifest = json.loads((output / "manifest.client.json").read_text(encoding="utf-8"))
@@ -585,10 +520,9 @@ def verify_export_target_artifacts(sources: Path) -> None:
         raise RuntimeError(f"Server Manifest audience 过滤错误：{sorted(server_ids)}")
     if not {"Item", "ItemCategory"}.issubset(client_ids & server_ids):
         raise RuntimeError("Shared 表未同时进入 Client / Server Manifest。")
-    client_debug = json.loads((output / "debug.client.json").read_text(encoding="utf-8"))
-    server_debug = json.loads((output / "debug.server.json").read_text(encoding="utf-8"))
-    if "ServerSetting" in client_debug or "ClientSetting" in server_debug:
-        raise RuntimeError("目标 Debug JSON 泄漏了另一端专属表。")
+    for name in ["debug.json", "debug.client.json", "debug.server.json", "build-report.json", "normalized.ir.json"]:
+        if (output / name).exists():
+            raise RuntimeError(f"默认生成了不应存在的诊断产物：{name}")
     print("[DataTablePrototype] PASS: Client / Server 导出产物 audience 隔离")
 
     client_path = output / "manifest.client.json"

@@ -63,8 +63,8 @@ public sealed partial class DataTablePrototypeBenchmark : Node
 
     private static void VerifySemantics(string categoriesPath, string itemsPath)
     {
-        ItemCategoryTable categories = DataTablePrototypeLoader.LoadItemCategory(categoriesPath);
-        ItemTable items = DataTablePrototypeLoader.LoadItem(itemsPath);
+        ItemCategoryTable categories = DataTableLoader.LoadItemCategory(categoriesPath);
+        ItemTable items = DataTableLoader.LoadItem(itemsPath);
 
         Assert(categories.Count == 4, "ItemCategory 行数不正确");
         Assert(items.Count == ExpectedItemCount, "Item 行数不正确");
@@ -83,9 +83,9 @@ public sealed partial class DataTablePrototypeBenchmark : Node
 
     private static void VerifyResPathSemantics()
     {
-        ItemCategoryTable categories = DataTablePrototypeLoader.LoadItemCategory(
+        ItemCategoryTable categories = DataTableLoader.LoadItemCategory(
             "res://Verification/Experimental/DataTable/Artifacts/output/ItemCategory.gdtb");
-        ItemTable items = DataTablePrototypeLoader.LoadItem(
+        ItemTable items = DataTableLoader.LoadItem(
             "res://Verification/Experimental/DataTable/Artifacts/output/Item.gdtb");
 
         Assert(categories.Count == 4, "res:// ItemCategory 行数不正确");
@@ -110,9 +110,9 @@ public sealed partial class DataTablePrototypeBenchmark : Node
             Assert(packer.Flush() == Error.Ok, "测试 PCK 写入失败");
         }
         Assert(ProjectSettings.LoadResourcePack(pckPath), "测试 PCK 加载失败");
-        ItemCategoryTable categories = DataTablePrototypeLoader.LoadItemCategory(
+        ItemCategoryTable categories = DataTableLoader.LoadItemCategory(
             "res://__godo_datatable_pck_test/ItemCategory.gdtb");
-        ItemTable items = DataTablePrototypeLoader.LoadItem(
+        ItemTable items = DataTableLoader.LoadItem(
             "res://__godo_datatable_pck_test/Item.gdtb");
         Assert(categories.Count == 4, "PCK ItemCategory 行数不正确");
         Assert(items.Count == ExpectedItemCount, "PCK Item 行数不正确");
@@ -140,7 +140,7 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         {
             string path = Path.Combine(corruptionDirectory, fileName);
             AssertInvalidData(
-                () => DataTablePrototypeLoader.LoadItem(path),
+                () => DataTableLoader.LoadItem(path),
                 message,
                 fileName);
         }
@@ -157,7 +157,7 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         {
             string path = Path.Combine(compressedCorruptionDirectory, fileName);
             AssertInvalidData(
-                () => DataTablePrototypeLoader.LoadItem(path),
+                () => DataTableLoader.LoadItem(path),
                 message,
                 fileName);
         }
@@ -173,8 +173,8 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         string uncompressedCategoriesPath,
         string uncompressedItemsPath)
     {
-        ItemCategoryTable categories = DataTablePrototypeLoader.LoadItemCategory(categoriesPath);
-        ItemTable items = DataTablePrototypeLoader.LoadItem(itemsPath);
+        ItemCategoryTable categories = DataTableLoader.LoadItemCategory(categoriesPath);
+        ItemTable items = DataTableLoader.LoadItem(itemsPath);
         Assert(categories.Count == 4, "Zstd ItemCategory 行数不正确");
         Assert(items.Count == ExpectedItemCount, "Zstd Item 行数不正确");
         Assert(items.Get("item_00005").Description is null, "Zstd null 语义错误");
@@ -194,8 +194,8 @@ public sealed partial class DataTablePrototypeBenchmark : Node
 
     private static void BenchmarkLoad(string compression, string categoriesPath, string itemsPath)
     {
-        _ = DataTablePrototypeLoader.LoadItemCategory(categoriesPath);
-        _ = DataTablePrototypeLoader.LoadItem(itemsPath);
+        _ = DataTableLoader.LoadItemCategory(categoriesPath);
+        _ = DataTableLoader.LoadItem(itemsPath);
         GC.Collect();
         GC.WaitForPendingFinalizers();
         GC.Collect();
@@ -203,8 +203,8 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         long memoryBefore = GC.GetTotalMemory(forceFullCollection: true);
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         long started = Stopwatch.GetTimestamp();
-        ItemCategoryTable categories = DataTablePrototypeLoader.LoadItemCategory(categoriesPath);
-        ItemTable items = DataTablePrototypeLoader.LoadItem(itemsPath);
+        ItemCategoryTable categories = DataTableLoader.LoadItemCategory(categoriesPath);
+        ItemTable items = DataTableLoader.LoadItem(itemsPath);
         TimeSpan elapsed = Stopwatch.GetElapsedTime(started);
         long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
         long memoryAfter = GC.GetTotalMemory(forceFullCollection: true);
@@ -220,7 +220,7 @@ public sealed partial class DataTablePrototypeBenchmark : Node
 
     private static void BenchmarkLookup(string compression, string itemsPath)
     {
-        ItemTable items = DataTablePrototypeLoader.LoadItem(itemsPath);
+        ItemTable items = DataTableLoader.LoadItem(itemsPath);
         var ids = new string[ExpectedItemCount];
         for (int index = 0; index < ids.Length; index++)
             ids[index] = $"item_{index + 1:00000}";

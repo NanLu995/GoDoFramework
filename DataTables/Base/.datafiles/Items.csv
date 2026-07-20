@@ -1,0 +1,5 @@
+id,category_id,display_name,description,rarity,price,weight,is_sellable,unlock_level,developer_note
+iron_sword,weapon,铁剑,可靠的初级武器，适合新手使用。,Common,120,2.5,true,1,基础商店商品
+healing_potion,consumable,治疗药水,恢复少量生命值。,Rare,75,0.25,true,3,<null>
+ancient_key,quest,古代钥匙,,Epic,,0.0,false,12,主线任务使用
+debug_relic,quest,调试遗物,"包含逗号的文本，例如：红色, 蓝色。",Legendary,1000000,999.99,,100,<null>
