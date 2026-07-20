@@ -5,7 +5,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Godot;
+using GoDo;
 using GodotFileAccess = Godot.FileAccess;
 
 #nullable enable
@@ -146,6 +149,50 @@ internal sealed class RewardTable : IReadOnlyCollection<RewardRow>
     public IEnumerator<RewardRow> GetEnumerator() => ((IEnumerable<RewardRow>)_rows).GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => _rows.GetEnumerator();
+}
+
+internal static class BaseDataTables
+{
+    private const string DataSetId = "game.base";
+    private const string DefaultRuntimeDirectory = "res://DataTables/Base/Runtime";
+    private static readonly DataTableSetDefinition Definition = new(
+        DataSetId,
+        2,
+        1,
+        new DataTableDefinition[]
+        {
+            new DataTableDefinition("ItemCategory", "ItemCategory.gdtb", DataTableLoader.LoadItemCategory),
+            new DataTableDefinition("Item", "Item.gdtb", DataTableLoader.LoadItem),
+            new DataTableDefinition("Reward", "Reward.gdtb", DataTableLoader.LoadReward)
+        });
+
+    internal static bool IsLoaded => Services.Get<IDataTableService>().IsLoaded(DataSetId);
+
+    internal static Task LoadAsync(
+        Action<DataTableLoadProgress>? progress = null,
+        CancellationToken cancellationToken = default) =>
+        LoadFromAsync(DefaultRuntimeDirectory, progress, cancellationToken);
+
+    internal static Task LoadFromAsync(
+        string runtimeDirectory,
+        Action<DataTableLoadProgress>? progress = null,
+        CancellationToken cancellationToken = default) =>
+        Services.Get<IDataTableService>().LoadAsync(
+            Definition,
+            runtimeDirectory,
+            progress,
+            cancellationToken);
+
+    internal static bool Unload() => Services.Get<IDataTableService>().Unload(DataSetId);
+
+    internal static ItemCategoryTable ItemCategories =>
+        Services.Get<IDataTableService>().GetTable<ItemCategoryTable>(DataSetId, "ItemCategory");
+
+    internal static ItemTable Items =>
+        Services.Get<IDataTableService>().GetTable<ItemTable>(DataSetId, "Item");
+
+    internal static RewardTable Rewards =>
+        Services.Get<IDataTableService>().GetTable<RewardTable>(DataSetId, "Reward");
 }
 
 internal static class DataTableLoader

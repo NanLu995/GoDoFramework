@@ -38,7 +38,6 @@ public sealed partial class DataTableCompressionTargetRunner : Node
         string inputDirectory = Path.Combine(artifactRoot, "output");
         string candidateDirectory = Path.Combine(artifactRoot, "compression");
         string selectedDirectory = Path.Combine(artifactRoot, "selected");
-        CompressionProfile profile = ReadProfile(Path.Combine(root, "profile.json"));
         Directory.CreateDirectory(candidateDirectory);
         Directory.CreateDirectory(selectedDirectory);
 
@@ -56,7 +55,7 @@ public sealed partial class DataTableCompressionTargetRunner : Node
                 File.ReadAllBytes(inputPath));
             if (candidate.TableId == "Item")
                 itemCandidate = candidate;
-            PrototypeCompressionMode mode = profile.GetMode(candidate.TableId);
+            const PrototypeCompressionMode mode = PrototypeCompressionMode.Auto;
             byte[] selected = DataTableCompressionTarget.Select(candidate, mode);
             string fileName = Path.GetFileName(inputPath);
             WriteAtomically(Path.Combine(candidateDirectory, fileName), candidate.ZstdFile);
@@ -86,7 +85,7 @@ public sealed partial class DataTableCompressionTargetRunner : Node
         VerifyModeSelection(itemCandidate.Value);
         WriteCompressedCorruptionArtifacts(artifactRoot, itemCandidate.Value);
 
-        var report = new CompressionReport(profile.DefaultMode.ToString(), reports);
+        var report = new CompressionReport(PrototypeCompressionMode.Auto.ToString(), reports);
         string reportJson = JsonSerializer.Serialize(
             report,
             new JsonSerializerOptions { WriteIndented = true });
@@ -139,30 +138,6 @@ public sealed partial class DataTableCompressionTargetRunner : Node
         WriteAtomically(Path.Combine(directory, "bad-payload-hash.gdtb"), badHash);
     }
 
-    private static CompressionProfile ReadProfile(string path)
-    {
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(path));
-        PrototypeCompressionMode defaultMode = ParseMode(
-            document.RootElement.GetProperty("compression_mode").GetString());
-        var overrides = new Dictionary<string, PrototypeCompressionMode>(StringComparer.Ordinal);
-        foreach (JsonElement table in document.RootElement.GetProperty("tables").EnumerateArray())
-        {
-            if (!table.TryGetProperty("compression_mode", out JsonElement modeElement))
-                continue;
-            string tableId = table.GetProperty("id").GetString()
-                ?? throw new InvalidDataException("DataTable Profile 的表 ID 不能为空。");
-            overrides.Add(tableId, ParseMode(modeElement.GetString()));
-        }
-        return new CompressionProfile(defaultMode, overrides);
-    }
-
-    private static PrototypeCompressionMode ParseMode(string? value)
-    {
-        if (!Enum.TryParse(value, ignoreCase: false, out PrototypeCompressionMode mode))
-            throw new InvalidDataException($"未知 DataTable compression_mode：{value ?? "null"}。");
-        return mode;
-    }
-
     private static void WriteAtomically(string path, byte[] data)
     {
         string temporaryPath = path + ".tmp";
@@ -174,16 +149,6 @@ public sealed partial class DataTableCompressionTargetRunner : Node
     {
         if (!expected.AsSpan().SequenceEqual(actual))
             throw new InvalidOperationException(message);
-    }
-
-    private sealed record CompressionProfile(
-        PrototypeCompressionMode DefaultMode,
-        IReadOnlyDictionary<string, PrototypeCompressionMode> Overrides)
-    {
-        internal PrototypeCompressionMode GetMode(string tableId) =>
-            Overrides.TryGetValue(tableId, out PrototypeCompressionMode mode)
-                ? mode
-                : DefaultMode;
     }
 
     private sealed record CompressionReport(

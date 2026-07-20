@@ -40,7 +40,7 @@ python Verification/Experimental/DataTable/verify_export_plugin.py --godot E:\Go
 - 只实现阶段 A 所需的 string、bool、int32、float64 和 enum；
 - `.gdtb` v2 使用小端序，支持未压缩或 Godot Zstd payload；
 - `Auto` 当前只提供压缩建议并选择未压缩，`Never` / `Always` 已有实验语义；
-- 不包含加密、热更新、正式运行时 public API、移动端导出或完整 ExportRelease 可执行文件验证；
+- 不包含加密、热更新、移动端导出或完整 ExportRelease 可执行文件验证；正式 `IDataTableService` 另由 `Verification/Automated/DataTableServiceRegression.tscn` 验证；
 - 不进入永久 `Verification/Automated/run_all.py` 回归。
 
 ## 当前 Windows 证据

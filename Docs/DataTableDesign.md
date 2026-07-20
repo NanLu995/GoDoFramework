@@ -1,6 +1,6 @@
 # DataTable 设计
 
-> 状态：整体方案已确认，阶段 A / B 原型和阶段 C.1 至 C.6 编译前端、Editor 接入、安全单表生成、只读过期检查、目标导出过滤、可靠发布门禁与跨语言 Manifest 兼容契约已实现，但尚未进入稳定基线。本文中的具体类型名仍需通过真实业务表与完整 ExportRelease 流程验证后才能成为 public API。
+> 状态：整体方案已确认，阶段 A / B 原型、阶段 C.1 至 C.6 工具链以及 C.7 显式运行时加载服务已实现，但尚未进入稳定基线。生成门面、表级进度和事务加载已通过 Windows Godot 回归，移动端、AOT 与完整 ExportRelease 仍待验证。
 
 ## 1. 定位
 
@@ -8,9 +8,9 @@ DataTable 将策划维护的表格数据在 Editor / CI 阶段校验并生成紧
 
 - Config 继续管理业务手写的 Godot `Resource` 配置、复杂资源引用和 `ConfigTable<TKey, TEntry>` 索引；
 - DataTable 管理 CSV 等外部表格来源、批量格式校验、代码生成、二进制构建与版本摘要；
-- 两者都不接入 Services，不在每帧解析数据，也不建立隐式全局可变状态。
+- Config 不接入 Services；DataTable 由长期 `IDataTableService` 管理显式加载、缓存与卸载，但框架启动不自动读取业务数据，两者都不在每帧解析数据。
 
-功能名称为 **DataTable**。框架代码使用 `GoDo.DataTables` 命名空间，不声明名为 `GoDo.DataTable` 的 public 类型，避免与 .NET 的 `System.Data.DataTable` 冲突。生成的业务类型使用 `ItemRow`、`ItemTable` 等具体名称。
+功能名称为 **DataTable**。框架 public API 位于根命名空间 `GoDo`，使用 `IDataTableService`、`DataTableSetDefinition` 等明确名称，不声明名为 `GoDo.DataTable` 的类型，避免与 .NET 的 `System.Data.DataTable` 冲突。生成的业务类型使用 `ItemRow`、`ItemTable` 等具体名称。
 
 ## 2. 目标
 
@@ -76,6 +76,8 @@ Schema、类型、范围、主键与外键检查
 ```
 
 Schema 变化时重新生成 C# 类型和读取器，需要重新编译；只有数据值变化时只重新生成 `.gdtb` 与 Manifest，不应无意义改写 C# 文件。规范化 IR、可读 JSON、源位置映射和构建报告不默认落盘。
+
+生成代码还包含数据集聚合门面。`data_set_id` 最后一段决定稳定门面和默认目录，例如 `game.base` 生成 `BaseDataTables` 并默认指向 `res://DataTables/Base/Runtime`。业务调用 `BaseDataTables.LoadAsync()`，生成门面向 `IDataTableService` 提交表描述与强类型解码委托；Service 不反向依赖业务程序集。
 
 所有输出必须确定性生成：相同输入、Schema 和工具版本在不同操作系统上产生相同内容摘要。换行风格和 UTF-8 BOM 不应改变摘要，真实字段、值或行顺序变化必须改变摘要。
 
@@ -270,12 +272,14 @@ DataTable 编译器先产生与运行时语言无关的规范化 IR 和 Manifest
 
 原型产物包括规范化 IR、数据集 Manifest、共享与完整摘要、未压缩 `.gdtb`、`internal` C# Row / Table、Debug JSON 和构建诊断报告。C# 验证读取器必须实际读取 Python 编译器生成的二进制并检查查询结果、文件体积、加载耗时和托管内存变化。
 
-原型数据与性能验证放在 `Verification/Experimental/DataTable/`，不接入 `GoDoRuntime`、Services 或正式文档 API，不承诺 public API。正式离线编译前端与 Editor 扩展位于 `addons/godo_framework/Tools/DataTable/`；阶段 B 已验证 Zstd 候选、压缩模式选择与共用读取器，加密不保留标志、不实现接口。
+原型数据与性能验证放在 `Verification/Experimental/DataTable/`。正式离线编译前端与 Editor 扩展位于 `addons/godo_framework/Tools/DataTable/`；正式运行时服务位于 `addons/godo_framework/Runtime/DataTable/` 并由 `GoDoRuntime` 注册，但不自动加载任何数据。阶段 B 已验证 Zstd 候选、压缩模式选择与共用读取器，加密不保留标志、不实现接口。
 
 ## 14. 性能与生命周期
 
 - 解析、校验、代码生成和压缩只在 Editor / CI 执行；
 - Release 不执行反射、JSON 解析或每帧更新；
+- 运行时仅在业务显式请求时读取 Manifest 和 `.gdtb`，逐表完成后让出一帧并报告进度，全部成功后才发布缓存；
+- 单张表仍整文件读取和解码，取消只能在表边界观察；超大表分块与字节级进度后置；
 - 表在明确初始化边界加载并由业务持有只读引用；
 - 不在 `_Process` / `_PhysicsProcess` 中重复加载或重建索引；
 - 对源文件大小、行列数量、字符串长度和诊断数量设置上限；
@@ -320,6 +324,8 @@ DataTable 编译器先产生与运行时语言无关的规范化 IR 和 Manifest
 阶段 C.5.2 注册 DataTable `EditorExportPlugin`，普通 preset 选择 Client，带 `dedicated_server` feature tag 的 preset 选择 Server；包只加入目标 `.gdtb` 与 Manifest，并排除 Schema、Schema 声明的原始数据目录和诊断目录。新数据集默认使用 `.datafiles`，内部保留 `.gdignore`；旧 Schema 的其他源目录名继续兼容。Windows 隔离项目已实际验证 Client / Server PCK 内容与 PCK 内 `res://` 读取。Godot 4.7 虽将 `EXPORT_MESSAGE_ERROR` 记录为错误，但 `--export-pack` 实测仍可能成功返回并留下包，且 `EditorExportPlugin` 没有公开中止接口；因此正式发布通过 `godo_datatable_export.py` 先校验全部 Schema，成功后才启动 Godot，以“未启动导出”保证过期数据阻断。
 
 阶段 C.6 固化语言无关的目标 Manifest 契约并提供 `compare-manifests`。兼容性只要求两端的格式、数据集、协议和 Shared 表结构/内容严格一致，明确忽略 ClientOnly / ServerOnly 及目标级摘要的预期差异；错误 target、字段、重复 ID、JSON 和摘要差异均返回非零退出码。非 Godot 服务端可直接消费同次编译生成的 Server Manifest 与规范化 IR，不要求解析 Godot `.gdtb`，也不把 KBEngine-Nex 或任何握手策略引入框架。摘要只用于一致性检测，不提供签名或防篡改能力。
+
+阶段 C.7 新增 `IDataTableService` 与生成数据集门面。`GoDoRuntime` 只注册服务；业务显式触发 Base、DLC 等数据集加载。Service 校验 Manifest 与生成描述，按表解码并报告进度，失败或取消不发布半加载状态，重复加载复用缓存，并支持显式卸载。PCK 下载、挂载、可信版本选择、热更新和回滚继续属于外层系统。
 
 ### 阶段 D：后续能力
 

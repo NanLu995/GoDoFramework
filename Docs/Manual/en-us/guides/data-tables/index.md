@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/data-tables/index.md
-translation_source_hash: sha256:0c92425585894a2cde87f17150e292ae92bf5fa20ed24ffcc4ea104f853b41ce
+translation_source_hash: sha256:d23452cdb2d43db59b7a2cc065c542e8cdf1ea0dfce7324bb01f2e4e14ed8415
 ---
 
 # Generate Validated Data Tables from CSV
@@ -75,7 +75,7 @@ Open `GoDo → DataTable...`, select `.datatable.schema.json`, then choose **Edi
 ```json
 {
   "format_version": 2,
-  "data_set_id": "game.items",
+  "data_set_id": "game.base",
   "protocol_version": 1,
   "namespace": "MyGame.DataTables.Base",
   "source_directory": ".datafiles",
@@ -166,20 +166,22 @@ The Python path is stored only in local EditorSettings, not project configuratio
 
 ## 6. Read generated tables in the game
 
-Generated code uses the namespace declared in the Schema. The experimental generator currently produces a typed Loader and per-table lookup classes, for example:
+Generated code uses the namespace declared in the Schema. Framework startup only registers `DataTableService`; it never loads business data automatically. The business loading flow explicitly loads a dataset and receives table-level progress:
 
 ```csharp
-using MyGame.Generated;
+using MyGame.DataTables.Base;
 
-ItemTable items = DataTableLoader.LoadItem(
-    "res://DataTables/Base/Runtime/Item.gdtb");
+await BaseDataTables.LoadAsync(
+    progress => loadingView.SetProgress(progress.Ratio));
 
-ItemRow sword = items.Get("iron_sword");
-if (items.TryGet("health_potion", out ItemRow potion))
+ItemRow sword = BaseDataTables.Items.Get("iron_sword");
+if (BaseDataTables.Items.TryGet("health_potion", out ItemRow potion))
     GD.Print(potion.MaxStack);
 ```
 
-Generated types are currently assembly-internal and intended for direct use in the same Godot C# project. Generator and Loader naming is not stable. After a framework upgrade, regenerate and compile before building an additional public compatibility layer around generated code.
+The final segment of `data_set_id` determines the generated facade and default directory: `game.base` maps to `BaseDataTables` and `res://DataTables/Base/Runtime`. Tables become visible only after the whole dataset succeeds. Failure or cancellation leaves no partially loaded dataset. Repeated loads reuse existing tables, and `BaseDataTables.Unload()` releases references held by the Service. Use `LoadFromAsync(runtimeDirectory)` after business code mounts compatible data elsewhere.
+
+Generated types remain assembly-internal for direct use in the same Godot C# project. Business code chooses when to load Base or DLC datasets and how to retry or degrade. The framework does not download, mount PCKs, perform hot updates, or select business versions.
 
 Runtime reading validates file magic, format version, schema, table ID, field count, size, and SHA-256 payload digest. Corruption or incompatibility throws explicitly. A single file is limited to 2 GiB.
 
@@ -238,4 +240,4 @@ Manifest hashes detect mismatched Client/Server data. They are not digital signa
 - The game uses old data after CSV changes: run generate and confirm with verify-generated.
 - A Manifest hash is treated as a security signature: it only compares consistency and cannot prevent malicious replacement.
 
-DataTable is currently consumed mainly through generated code and has no stable GoDo public runtime API. After upgrading the framework, regenerate and rerun the complete verification workflow.
+DataTableService is currently a first-version public runtime API under validation. Regenerate and rerun the full verification workflow after framework upgrades. Mobile, AOT, and complete ExportRelease validation remain pending.

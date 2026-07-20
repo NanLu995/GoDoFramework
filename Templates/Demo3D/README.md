@@ -32,12 +32,19 @@ Templates/Demo3D/Boot/Boot.tscn
 - `CameraService`：Gameplay 流程通过语义 ID 激活主镜头，不负责解析 Phantom 节点。
 - `PhantomCameraRig`：把 CameraService 的激活/停用转换为 Phantom Camera 优先级。
 - `InputService`：向业务代码提供 Move、Look、Jump 等语义输入，不暴露 GUIDE 类型。
+- `DataTableService`：由 `BootProcedure` 显式加载 Base 数据集并报告逐表进度；框架启动本身不会自动读取业务数据。
 - `Integrations/GuideInput`：把 GUIDE Action / Mapping Context 转换为 InputService 快照。
 - Gameplay HUD：监听 `InputDeviceChangedEvent`，显示当前键鼠、手柄或触摸类别。
 - Gameplay HUD：通过 `IInputRebinding` 查询、捕获、检查冲突、应用或恢复跳跃主绑定，不接触 GUIDE 类型。
 - Gameplay HUD：右上角 Localization 验收面板通过 Settings 切换/保存语言，通过 Localization 查询动态文本和复数，并展示 Control 自动翻译、上下文、伪本地化与 RTL 状态。
 
 角色控制、视角协调和收集判定属于具体玩法，保留在 `Demo3D` 业务层。`PlayerController` 只从 `IInputService` 读取输入，仍通过 Phantom C# Wrapper 修改第三人称旋转；InputService 与 CameraService 彼此不依赖。
+
+## DataTable 用法
+
+Demo3D 在 `BootProcedure.EnterAsync()` 中显式等待 `BaseDataTables.LoadAsync()`。运行 `Boot.tscn` 后，Godot Output 应依次显示 `0/3`、`1/3`、`2/3`、`3/3`。加载完成后，示例通过生成的 `ItemCategories`、`Items` 和 `Rewards` 表分别读取一条记录，输出表总数、名称、枚举、数值和可空外键等部分字段，再进入 Gameplay。
+
+这段代码演示“业务决定何时加载，Service 负责校验、进度、缓存与失败语义”。Demo3D 不手动拼接 `.gdtb` 路径，也不直接调用底层 `DataTableLoader`。Base 数据集在整个 Demo 生命周期内保留，由 `GoDoRuntime` 退出清理。
 
 ## 输入链路
 

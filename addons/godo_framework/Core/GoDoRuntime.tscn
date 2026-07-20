@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" uid="uid://2y8nge3y4gp0" path="res://addons/godo_framework/Core/GoDoRuntime.cs" id="1_runtime"]
 [ext_resource type="Script" path="res://addons/godo_framework/Runtime/Scene/SceneService.cs" id="2_scene_service"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://addons/godo_framework/Runtime/UI/UiService.cs" id="5_ui_service"]
 [ext_resource type="PackedScene" path="res://addons/godo_framework/Runtime/UI/GoDoUiRoot.tscn" id="6_ui_root"]
 [ext_resource type="Script" path="res://addons/godo_framework/Runtime/Scheduler/SchedulerService.cs" id="7_scheduler_service"]
+[ext_resource type="Script" path="res://addons/godo_framework/Runtime/DataTable/DataTableService.cs" id="8_data_table_service"]
 
 [node name="GoDoRuntime" type="Node"]
 process_mode = 3
@@ -14,6 +15,7 @@ script = ExtResource("1_runtime")
 SchedulerServicePath = NodePath("SchedulerService")
 SceneServicePath = NodePath("SceneService")
 AudioServicePath = NodePath("AudioService")
+DataTableServicePath = NodePath("DataTableService")
 UiServicePath = NodePath("UiService")
 UiRootPath = NodePath("GoDoUI")
 
@@ -35,6 +37,9 @@ InitialSfxVoices = 8
 [node name="BgmPlayer" type="AudioStreamPlayer" parent="AudioService"]
 
 [node name="SfxRoot" type="Node" parent="AudioService"]
+
+[node name="DataTableService" type="Node" parent="."]
+script = ExtResource("8_data_table_service")
 
 [node name="UiService" type="Node" parent="."]
 script = ExtResource("5_ui_service")

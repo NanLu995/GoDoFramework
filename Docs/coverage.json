@@ -218,6 +218,15 @@
       ],
       "reviewed_contract_hash": "sha256:7eda5bfea75d6c181e551351622731bdfdabc26e5703d29f87d183e5bd786ee8"
     },
+    "data-table-runtime": {
+      "contract": "addons/godo_framework/Runtime/DataTable/USAGE.md",
+      "status": "documented",
+      "reason": "功能指南已覆盖业务显式加载、生成门面、表级进度、事务发布、重复加载、取消、失败、卸载、Client/Server 子集及更新边界；移动端、AOT 和完整 ExportRelease 仍待正式验收。",
+      "manual_pages": [
+        "guides/data-tables/index.md"
+      ],
+      "reviewed_contract_hash": "sha256:b4d44ad75bc383ad7bc1887cfe62a9b8ed25832f31b106003b098c7330c671e9"
+    },
     "data-table": {
       "contract": "addons/godo_framework/Tools/DataTable/USAGE.md",
       "status": "documented",
@@ -225,7 +234,7 @@
       "manual_pages": [
         "guides/data-tables/index.md"
       ],
-      "reviewed_contract_hash": "sha256:c0765447b4999227636e37ec5120664537c035f43a128ab2901e8b845511c80b"
+      "reviewed_contract_hash": "sha256:68ac12e78ff63c5559a4f21d9f86a62341465fd94eee9172e2cbf6cb9b448c43"
     }
   }
 }
