@@ -45,16 +45,16 @@ func _exit_tree() -> void:
 func _create_tool_menu() -> void:
 	_toolbar_menu_button = MenuButton.new()
 	_toolbar_menu_button.name = "GoDoFrameworkToolbarMenu"
-	_toolbar_menu_button.text = "GoDo"
+	_toolbar_menu_button.text = "GoDo Framework"
 	_toolbar_menu_button.tooltip_text = "GoDo Framework"
 	_tool_menu = _toolbar_menu_button.get_popup()
-	_tool_menu.add_item("设置 (Setup)...", MENU_SETUP_ID)
-	_tool_menu.add_separator()
+	_tool_menu.add_item("配置 (Setup)...", MENU_SETUP_ID)
+	_tool_menu.add_separator("资源管理")
 	_tool_menu.add_item("创建资源清单 (Create Resource Manifest)...", MENU_CREATE_MANIFEST_ID)
-	_tool_menu.add_item("选择资源并添加 (Select Resource to Add)...", MENU_ADD_SELECTED_RESOURCE_ID)
 	_tool_menu.add_item("管理资源清单 (Manage Resource Manifest)...", MENU_MANAGE_MANIFEST_ID)
-	_tool_menu.add_separator()
 	_tool_menu.add_item("校验资源清单 (Validate Resource Manifest)...", MENU_VALIDATE_MANIFEST_ID)
+	_tool_menu.add_separator()
+	_tool_menu.add_item("选择资源并添加 (Select Resource to Add)...", MENU_ADD_SELECTED_RESOURCE_ID)
 	_tool_menu.id_pressed.connect(_on_tool_menu_id_pressed)
 
 

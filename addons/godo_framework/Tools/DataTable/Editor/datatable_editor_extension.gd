@@ -21,6 +21,7 @@ var _config_input: LineEdit
 var _python_input: LineEdit
 var _table_selector: OptionButton
 var _report: RichTextLabel
+var _message_label: RichTextLabel
 var _check_button: Button
 var _generate_button: Button
 var _generate_selected_button: Button
@@ -33,7 +34,7 @@ var _pending_table := ""
 
 func activate(context) -> Error:
 	_context = context
-	var menu_error: Error = _context.add_menu_action("open", "DataTable...", _open_dialog)
+	var menu_error: Error = _context.add_menu_action("open", "数据表配置 (DataTable Configuration)...", _open_dialog)
 	if menu_error != OK:
 		return menu_error
 	_export_plugin = EXPORT_PLUGIN_SCRIPT.new()
@@ -86,13 +87,13 @@ func _create_dialog() -> void:
 	content.add_theme_constant_override("separation", 8)
 	_dialog.add_child(content)
 
-	content.add_child(_create_label("DataTable Schema"))
 	var config_row := HBoxContainer.new()
 	content.add_child(config_row)
+	config_row.add_child(_create_label("DataTable Schema"))
 	_config_input = LineEdit.new()
 	_config_input.name = "DataTableBuildConfigInput"
 	_config_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_config_input.placeholder_text = DEFAULT_SCHEMA
+	_config_input.placeholder_text = "例如：%s" % DEFAULT_SCHEMA
 	_config_input.text_changed.connect(_on_input_changed)
 	config_row.add_child(_config_input)
 	var config_browse := Button.new()
@@ -100,13 +101,13 @@ func _create_dialog() -> void:
 	config_browse.pressed.connect(_open_config_file_dialog)
 	config_row.add_child(config_browse)
 
-	content.add_child(_create_label("Python 3.10+（留空时自动检测 python3 / python）"))
 	var python_row := HBoxContainer.new()
 	content.add_child(python_row)
+	python_row.add_child(_create_label("Python 3.10+"))
 	_python_input = LineEdit.new()
 	_python_input.name = "DataTablePythonInput"
 	_python_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_python_input.placeholder_text = "自动检测"
+	_python_input.placeholder_text = "可留空，将自动检测 python3 / python"
 	_python_input.text_changed.connect(_on_input_changed)
 	python_row.add_child(_python_input)
 	var python_browse := Button.new()
@@ -114,38 +115,54 @@ func _create_dialog() -> void:
 	python_browse.pressed.connect(_open_python_file_dialog)
 	python_row.add_child(python_browse)
 
-	content.add_child(_create_label("单表生成"))
+	content.add_child(HSeparator.new())
+
+	var table_row := HBoxContainer.new()
+	content.add_child(table_row)
+	table_row.add_child(_create_label("数据表生成"))
 	_table_selector = OptionButton.new()
 	_table_selector.name = "DataTableTableSelector"
+	_table_selector.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	_table_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_child(_table_selector)
+	table_row.add_child(_table_selector)
+	_generate_selected_button = Button.new()
+	_generate_selected_button.text = "生成当前表..."
+	_generate_selected_button.name = "DataTableGenerateSelectedButton"
+	_generate_selected_button.pressed.connect(_request_generate_selected)
+	table_row.add_child(_generate_selected_button)
+	_generate_button = Button.new()
+	_generate_button.text = "生成全部表..."
+	_generate_button.name = "DataTableGenerateButton"
+	_generate_button.pressed.connect(_request_generate)
+	table_row.add_child(_generate_button)
 
 	_report = RichTextLabel.new()
 	_report.name = "DataTableReport"
-	_report.bbcode_enabled = false
+	_report.bbcode_enabled = true
 	_report.selection_enabled = true
 	_report.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_child(_report)
 
-	var refresh_button := _dialog.add_button("刷新状态", true)
+	_message_label = RichTextLabel.new()
+	_message_label.name = "DataTableMessage"
+	_message_label.bbcode_enabled = true
+	_message_label.custom_minimum_size.y = 44
+	_message_label.scroll_active = false
+	_message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	content.add_child(_message_label)
+
+	_check_button = _dialog.add_button("校验全部数据", false)
+	_check_button.name = "DataTableCheckButton"
 	var create_button := _dialog.add_button("新建 Schema", true)
+	create_button.name = "DataTableCreateSchemaButton"
 	var edit_button := _dialog.add_button("编辑 Schema...", true)
 	edit_button.name = "DataTableEditSchemaButton"
-	_check_button = _dialog.add_button("检查全部", true)
-	_check_button.name = "DataTableCheckButton"
-	_generate_button = _dialog.add_button("生成全部...", true)
-	_generate_button.name = "DataTableGenerateButton"
-	_generate_selected_button = _dialog.add_button("生成选中表...", true)
-	_generate_selected_button.name = "DataTableGenerateSelectedButton"
-	refresh_button.pressed.connect(_refresh_status)
 	create_button.pressed.connect(_create_schema)
 	edit_button.pressed.connect(_open_schema_editor)
 	_check_button.pressed.connect(_request_check)
-	_generate_button.pressed.connect(_request_generate)
-	_generate_selected_button.pressed.connect(_request_generate_selected)
 
 	_generate_confirmation = ConfirmationDialog.new()
-	_generate_confirmation.title = "生成全部 DataTable"
+	_generate_confirmation.title = "生成全部数据表"
 	_generate_confirmation.ok_button_text = "确认生成"
 	_generate_confirmation.cancel_button_text = "取消"
 	_generate_confirmation.confirmed.connect(_confirm_generate)
@@ -177,6 +194,7 @@ func _create_dialog() -> void:
 func _create_label(text: String) -> Label:
 	var label := Label.new()
 	label.text = text
+	label.custom_minimum_size.x = 150
 	return label
 
 
@@ -299,10 +317,16 @@ func _refresh_status() -> void:
 		return
 	var state := _inspect_schema()
 	_refresh_table_options(state)
+	var tool_ready := FileAccess.file_exists(TOOL_PATH)
+	var ready: bool = state.valid and tool_ready
 	var lines := PackedStringArray()
-	lines.append("DataTable 编辑器构建")
+	lines.append(
+		"当前状态：[color=#8bd49c]配置有效[/color]"
+		if ready
+		else "当前状态：[color=#ff6b6b]需要处理[/color]"
+	)
 	lines.append("")
-	lines.append(_status_line("编译前端", FileAccess.file_exists(TOOL_PATH), TOOL_PATH))
+	lines.append(_status_line("编译工具", tool_ready, TOOL_PATH if tool_ready else "文件缺失"))
 	lines.append(_status_line("Schema", state.valid, state.detail))
 	var python_value := _python_input.text.strip_edges()
 	var python_detail := python_value if not python_value.is_empty() else "自动检测 python3 / python"
@@ -311,15 +335,33 @@ func _refresh_status() -> void:
 	lines.append(_status_line("Python", true, python_detail))
 	if state.valid:
 		lines.append("")
-		lines.append("CSV：%s" % state.source)
-		lines.append("数据输出：%s" % state.output)
-		lines.append("C# 输出：%s" % state.csharp)
+		lines.append("CSV 源目录：%s" % state.source)
+		lines.append("运行数据目录：%s" % state.output)
+		lines.append("C# 代码文件：%s" % state.csharp)
 	_report.text = "\n".join(lines)
-	_set_actions_enabled(state.valid and FileAccess.file_exists(TOOL_PATH) and not _running)
+	_set_hint(
+		"配置有效，可以校验或生成运行数据。"
+		if ready
+		else "请先处理上方标记的配置问题。",
+		"#8bd49c" if ready else "#ff6b6b"
+	)
+	_set_actions_enabled(ready and not _running)
 
 
 func _status_line(name: String, healthy: bool, detail: String) -> String:
-	return "[%s] %s：%s" % ["正常" if healthy else "错误", name, detail]
+	var color := "#8bd49c" if healthy else "#ff6b6b"
+	return "[color=%s][%s][/color] %s：%s" % [color, "正常" if healthy else "错误", name, detail]
+
+
+func _set_hint(message: String, color: String) -> void:
+	_message_label.text = "[center][color=%s]提示：%s[/color][/center]" % [color, message]
+
+
+func _append_diagnostics(output: String) -> void:
+	if output.strip_edges().is_empty():
+		return
+	_report.append_text("\n\n[color=#ff6b6b][错误] 诊断信息[/color]\n")
+	_report.add_text(output)
 
 
 func _inspect_schema() -> Dictionary:
@@ -432,7 +474,7 @@ func _request_generate() -> void:
 		_refresh_status()
 		return
 	_pending_table = ""
-	_generate_confirmation.title = "生成全部 DataTable"
+	_generate_confirmation.title = "生成全部数据表"
 	_generate_confirmation.dialog_text = (
 		"将校验全部 DataTable，并替换以下生成产物：\n\n"
 		+ "数据目录：%s\n" % state.output
@@ -448,7 +490,7 @@ func _request_generate_selected() -> void:
 		_refresh_status()
 		return
 	_pending_table = _table_selector.get_item_text(_table_selector.selected)
-	_generate_confirmation.title = "生成选中 DataTable"
+	_generate_confirmation.title = "生成当前数据表"
 	_generate_confirmation.dialog_text = (
 		"将校验全部 DataTable，并仅提交选中表及数据集元数据：\n\n"
 		+ "数据表：%s\n" % _pending_table
@@ -472,21 +514,27 @@ func _start_operation(action: String, selected_table := "") -> void:
 	_save_editor_settings()
 	_running = true
 	_set_actions_enabled(false)
-	_report.text = "DataTable %s 正在运行，请稍候..." % ("检查" if action == "check" else "生成")
+	_set_hint(
+		"正在%s，请稍候..." % ("校验全部数据" if action == "check" else "生成运行数据"),
+		"#aeb6c2"
+	)
 	var payload := {
 		"action": action,
 		"tool": ProjectSettings.globalize_path(TOOL_PATH),
 		"schema": ProjectSettings.globalize_path(str(state.schema)),
 		"python": _python_input.text.strip_edges(),
 		"table": selected_table,
+		"output_file": ProjectSettings.globalize_path(
+			"user://godo_datatable_editor_output_%d.txt" % Time.get_ticks_msec()
+		),
 	}
 	_thread = Thread.new()
 	var start_error := _thread.start(_execute_operation.bind(payload))
 	if start_error != OK:
 		_running = false
 		_thread = null
-		_report.text = "DataTable 后台线程启动失败：%s" % error_string(start_error)
 		_refresh_status()
+		_set_hint("后台任务启动失败：%s" % error_string(start_error), "#ff6b6b")
 		return
 	_poll_timer.start()
 
@@ -511,11 +559,12 @@ func _execute_operation(payload: Dictionary) -> Dictionary:
 			failures.append("%s：需要 Python 3.10+，实际为 %s" % [executable, version_text.strip_edges()])
 			continue
 
-		var output: Array = []
 		var arguments := PackedStringArray([
 			"-X",
 			"utf8",
 			str(payload.tool),
+			"--editor-output-file",
+			str(payload.output_file),
 			str(payload.action),
 			"--schema",
 			str(payload.schema),
@@ -523,10 +572,11 @@ func _execute_operation(payload: Dictionary) -> Dictionary:
 		if not str(payload.table).is_empty():
 			arguments.append("--table")
 			arguments.append(str(payload.table))
-		var exit_code := OS.execute(executable, arguments, output, true)
+		var exit_code := OS.execute(executable, arguments)
 		return {
 			"exit_code": exit_code,
-			"output": "\n".join(output),
+			"output": "",
+			"output_file": payload.output_file,
 			"python": executable,
 			"version": version_text.strip_edges(),
 			"action": payload.action,
@@ -539,6 +589,7 @@ func _execute_operation(payload: Dictionary) -> Dictionary:
 		"version": "",
 		"action": payload.action,
 		"table": payload.table,
+		"output_file": payload.output_file,
 	}
 
 
@@ -562,17 +613,31 @@ func _poll_operation() -> void:
 	_running = false
 	_detected_python = str(result.python)
 	var output := str(result.output)
+	var output_file := str(result.get("output_file", ""))
+	if not output_file.is_empty() and FileAccess.file_exists(output_file):
+		var encoded_output := FileAccess.get_file_as_string(output_file).strip_edges()
+		DirAccess.remove_absolute(output_file)
+		if not encoded_output.is_empty():
+			output = Marshalls.base64_to_utf8(encoded_output)
+			if output.is_empty():
+				output = "[DataTableCompiler] FAIL: 编辑器诊断传输解码失败。"
+	if output.is_empty() and int(result.exit_code) != 0:
+		output = "[DataTableCompiler] FAIL: 编译器未返回诊断信息（退出码 %d）。" % int(result.exit_code)
 	if output.length() > MAX_OUTPUT_CHARACTERS:
 		output = output.left(MAX_OUTPUT_CHARACTERS) + "\n... 输出已截断。"
 	var succeeded := int(result.exit_code) == 0
-	_report.text = "%s DataTable %s（%s，%s）\n\n%s" % [
-		"[成功]" if succeeded else "[失败]",
-		"检查" if str(result.action) == "check" else "生成",
-		str(result.python) if not str(result.python).is_empty() else "Python 不可用",
-		str(result.version),
-		output,
-	]
 	if succeeded and str(result.action) == "generate":
 		_context.get_editor_interface().get_resource_filesystem().scan()
-	var state := _inspect_schema()
-	_set_actions_enabled(state.valid and FileAccess.file_exists(TOOL_PATH))
+	_refresh_status()
+	if succeeded:
+		var action_text := "全部数据校验通过，可以生成运行数据。"
+		if str(result.action) == "generate":
+			action_text = (
+				"当前表生成完成，Godot 正在刷新文件。"
+				if not str(result.table).is_empty()
+				else "全部数据表生成完成，Godot 正在刷新文件。"
+			)
+		_set_hint(action_text, "#8bd49c")
+	else:
+		_append_diagnostics(output)
+		_set_hint("操作失败，请查看上方诊断信息。", "#ff6b6b")

@@ -332,10 +332,41 @@ def run_editor_extension_check(godot_path: Path, timeout: int) -> bool:
             "Invalid access to property or key",
         )
     )
-    has_pass_summary = "[EditorExtensionUiRegression] PASS (2/2)" in output
+    has_pass_summary = "[EditorExtensionUiRegression] PASS (4/4)" in output
     if result.returncode == 0 and not has_script_error and has_pass_summary:
-        print("[EDITOR] PASS")
-        return True
+        try:
+            transport_result = subprocess.run(
+                [
+                    str(godot_path),
+                    "--headless",
+                    "--editor",
+                    "--path",
+                    str(REPOSITORY_ROOT),
+                    "--script",
+                    "res://Verification/Automated/DataTableEditorTransportRegression.gd",
+                ],
+                cwd=REPOSITORY_ROOT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as exception:
+            transport_output = (exception.stdout or "") + (exception.stderr or "")
+            print(transport_output + f"\nDataTable 诊断传输验证超时：{timeout} 秒", file=sys.stderr)
+            return False
+        transport_output = transport_result.stdout + transport_result.stderr
+        if (
+            transport_result.returncode == 0
+            and "[DataTableEditorTransportRegression] PASS" in transport_output
+            and "SCRIPT ERROR:" not in transport_output
+        ):
+            print("[EDITOR] PASS")
+            return True
+        print(f"[EDITOR] DataTable 诊断传输 FAIL (exit={transport_result.returncode})", file=sys.stderr)
+        print(transport_output, file=sys.stderr)
+        return False
 
     print(f"[EDITOR] FAIL (exit={result.returncode})", file=sys.stderr)
     print(output, file=sys.stderr)

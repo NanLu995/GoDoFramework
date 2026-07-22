@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import csv
 import hashlib
+import io
 import json
 import math
 import os
@@ -14,6 +16,7 @@ import shutil
 import struct
 import sys
 import tempfile
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -1591,5 +1594,32 @@ def main() -> int:
     return 0
 
 
+def run_editor_output_transport(output_path: Path | None = None) -> int:
+    """Run the CLI and emit its combined UTF-8 output through an ASCII-safe channel."""
+    output = io.StringIO()
+    with redirect_stdout(output), redirect_stderr(output):
+        exit_code = main()
+    payload = base64.b64encode(output.getvalue().encode("utf-8")).decode("ascii")
+    if output_path is None:
+        sys.stderr.write(payload + "\n")
+    else:
+        output_path.write_text(payload + "\n", encoding="ascii")
+    return exit_code
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    editor_transport = "--editor-output-base64" in sys.argv
+    if editor_transport:
+        sys.argv.remove("--editor-output-base64")
+    editor_output_path: Path | None = None
+    if "--editor-output-file" in sys.argv:
+        output_index = sys.argv.index("--editor-output-file")
+        try:
+            editor_output_path = Path(sys.argv[output_index + 1])
+        except IndexError:
+            raise SystemExit("--editor-output-file requires a path")
+        del sys.argv[output_index:output_index + 2]
+        editor_transport = True
+    raise SystemExit(
+        run_editor_output_transport(editor_output_path) if editor_transport else main()
+    )

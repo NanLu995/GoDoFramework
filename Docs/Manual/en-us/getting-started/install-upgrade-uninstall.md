@@ -43,7 +43,7 @@ Open in Godot:
 Project Settings → Plugins → GoDo Framework → Enable
 ```
 
-Enabling the plugin only adds the top-level `GoDo` menu and editor tools. It does not write an Autoload. The plugin uses GDScript, so its setup window should open even before the C# assembly is built.
+Enabling the plugin only adds the top-level `GoDo Framework` menu and editor tools. It does not write an Autoload. The plugin uses GDScript, so its setup window should open even before the C# assembly is built.
 
 If the plugin does not appear:
 
@@ -70,7 +70,7 @@ Setup reports an error when the root has no `.csproj`, has several `.csproj` fil
 Open:
 
 ```text
-GoDo → Setup...
+GoDo Framework → Setup...
 ```
 
 The window checks, in order:
@@ -130,9 +130,9 @@ Enable integrations only after core setup. Each has an independent health check 
 
 | Integration | Setup entry | Required by core |
 |---|---|---:|
-| GUIDE Input | `GoDo → GUIDE Input Setup...` | No |
-| Phantom Camera | `GoDo → Phantom Camera Setup...` | No |
-| DataTable | `GoDo → DataTable...` | No; development-time tool |
+| GUIDE Input | `GoDo Framework → Editor Extensions → 输入映射配置 (GUIDE Input Settings)...` | No |
+| Phantom Camera | `GoDo Framework → Editor Extensions → 幻影相机配置 (Phantom Camera Settings)...` | No |
+| DataTable | `GoDo Framework → Data Tables → 数据表配置 (DataTable Configuration)...` | No; development-time tool |
 
 Disabling or omitting an optional integration does not change core GoDoRuntime initialization. Game code must not reference an integration type that is not installed.
 
@@ -174,7 +174,7 @@ Disabling **GoDo Framework** in the plugin list removes only editor menus and wi
 
 For complete removal:
 
-1. Open `GoDo → Setup...`.
+1. Open `GoDo Framework → Setup...`.
 2. Click **Uninstall Runtime** and confirm.
 3. Confirm there is no exact `GoDoRuntime` entry in Autoload.
 4. Disable GoDo Framework in the plugin list.

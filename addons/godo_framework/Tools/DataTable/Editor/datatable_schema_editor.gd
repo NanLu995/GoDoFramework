@@ -3,6 +3,11 @@ extends RefCounted
 
 const SUPPORTED_TYPES := ["string", "bool", "int32", "float64", "enum"]
 const AUDIENCES := ["Shared", "ClientOnly", "ServerOnly"]
+const INLINE_EDITABLE_FIELD_COLUMNS := [0, 1, 3, 4, 5, 6, 7, 8, 9, 11]
+const NORMAL_COLOR := Color("#8BD49C")
+const PENDING_COLOR := Color("#FFD166")
+const ERROR_COLOR := Color("#FF6B6B")
+const FIELD_ROW_SELECTION_COLOR := Color("#354052")
 
 var _context
 var _schema_path := ""
@@ -14,19 +19,32 @@ var _protocol_version: SpinBox
 var _source_directory: LineEdit
 var _output_directory: LineEdit
 var _csharp_output: LineEdit
+var _advanced_settings: GridContainer
+var _advanced_settings_button: Button
 var _data_files: Tree
+var _add_data_file_button: Button
+var _remove_data_file_button: Button
 var _table_selector: OptionButton
 var _table_id: LineEdit
 var _table_source: LineEdit
 var _table_audience: OptionButton
-var _primary_key: LineEdit
+var _primary_key: OptionButton
 var _schema_version: Label
 var _fields: Tree
 var _status: Label
 var _remove_confirmation: ConfirmationDialog
+var _table_value_dialog: ConfirmationDialog
+var _table_value_input: LineEdit
+var _table_value_mode := ""
 var _schema: Dictionary = {}
 var _original_schema: Dictionary = {}
+var _removed_tables_by_source: Dictionary = {}
 var _selected_table := -1
+var _selected_field_column := 0
+var _editing_field_item: TreeItem
+var _editing_field_column := -1
+var _editing_field_previous_text := ""
+var _selected_field_item: TreeItem
 var _loading := false
 
 
@@ -40,7 +58,7 @@ func open(context, schema_path: String, saved_callback: Callable) -> void:
 		_create_dialog()
 	_populate_dataset()
 	_refresh_table_selector(0)
-	_dialog.popup_centered(Vector2i(1180, 900))
+	_dialog.popup_centered(Vector2i(1500, 900))
 
 
 func dispose() -> void:
@@ -61,6 +79,7 @@ func _load_schema() -> bool:
 		return false
 	_schema = parsed.duplicate(true)
 	_original_schema = parsed.duplicate(true)
+	_removed_tables_by_source.clear()
 	_annotate_schema_for_editing()
 	return true
 
@@ -76,7 +95,7 @@ func _create_dialog() -> void:
 	_dialog.exclusive = false
 	_dialog.title = "DataTable Schema 编辑器"
 	_dialog.ok_button_text = "关闭"
-	_dialog.min_size = Vector2i(1180, 900)
+	_dialog.min_size = Vector2i(1500, 900)
 	_dialog.get_label().hide()
 
 	var content := VBoxContainer.new()
@@ -93,46 +112,81 @@ func _create_dialog() -> void:
 	content.add_child(dataset_grid)
 	_data_set_id = _add_line_setting(dataset_grid, "数据集 ID")
 	_data_set_id.name = "DataTableSchemaDataSetId"
+	_data_set_id.tooltip_text = "稳定数据集标识；修改后会影响生成的数据集入口。"
 	_namespace = _add_line_setting(dataset_grid, "C# 命名空间")
+	_namespace.tooltip_text = "生成的行类型、表类型和数据集入口所在的 C# 命名空间。"
 	_protocol_version = SpinBox.new()
+	_protocol_version.name = "DataTableSchemaProtocolVersion"
 	_protocol_version.min_value = 1
 	_protocol_version.max_value = 2147483647
+	_protocol_version.tooltip_text = "Client/Server 共享数据契约发生不兼容变化时手动递增。"
 	dataset_grid.add_child(_label("协议版本"))
 	dataset_grid.add_child(_protocol_version)
-	_source_directory = _add_line_setting(dataset_grid, "原始表目录")
+	dataset_grid.add_child(_label("跨端数据契约变化时手动递增"))
+	dataset_grid.add_child(Control.new())
+
+	_advanced_settings_button = Button.new()
+	_advanced_settings_button.name = "DataTableSchemaAdvancedSettingsButton"
+	_advanced_settings_button.text = "显示高级设置"
+	_advanced_settings_button.toggle_mode = true
+	_advanced_settings_button.toggled.connect(_toggle_advanced_settings)
+	content.add_child(_advanced_settings_button)
+
+	_advanced_settings = GridContainer.new()
+	_advanced_settings.name = "DataTableSchemaAdvancedSettings"
+	_advanced_settings.columns = 4
+	_advanced_settings.visible = false
+	content.add_child(_advanced_settings)
+	_source_directory = _add_line_setting(_advanced_settings, "原始表目录")
 	_source_directory.text_submitted.connect(_on_source_directory_submitted)
 	_source_directory.focus_exited.connect(_refresh_data_files)
-	_output_directory = _add_line_setting(dataset_grid, "运行时目录")
-	_csharp_output = _add_line_setting(dataset_grid, "C# 输出")
+	_output_directory = _add_line_setting(_advanced_settings, "运行数据目录")
+	_csharp_output = _add_line_setting(_advanced_settings, "C# 代码文件")
 
 	var data_file_bar := HBoxContainer.new()
 	content.add_child(data_file_bar)
-	data_file_bar.add_child(_label("数据文件（未加入 Schema 即为排除）"))
+	data_file_bar.add_child(_label("数据文件"))
 	var refresh_data_files := Button.new()
 	refresh_data_files.text = "刷新"
 	refresh_data_files.pressed.connect(_refresh_data_files)
 	data_file_bar.add_child(refresh_data_files)
-	var add_data_file := Button.new()
-	add_data_file.name = "DataTableSchemaAddCsvButton"
-	add_data_file.text = "加入选中 CSV"
-	add_data_file.pressed.connect(_add_selected_csv)
-	data_file_bar.add_child(add_data_file)
 	var open_data_directory := Button.new()
 	open_data_directory.name = "DataTableSchemaOpenDataDirectoryButton"
 	open_data_directory.text = "打开数据目录"
 	open_data_directory.pressed.connect(_open_data_directory)
 	data_file_bar.add_child(open_data_directory)
+	var data_file_spacer := Control.new()
+	data_file_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	data_file_bar.add_child(data_file_spacer)
+	_add_data_file_button = Button.new()
+	_add_data_file_button.name = "DataTableSchemaAddCsvButton"
+	_add_data_file_button.text = "加入 Schema"
+	_add_data_file_button.disabled = true
+	_add_data_file_button.pressed.connect(_add_selected_csv)
+	data_file_bar.add_child(_add_data_file_button)
+	_remove_data_file_button = Button.new()
+	_remove_data_file_button.name = "DataTableSchemaRemoveCsvButton"
+	_remove_data_file_button.text = "移出 Schema..."
+	_remove_data_file_button.disabled = true
+	_remove_data_file_button.pressed.connect(_request_remove_selected_csv)
+	data_file_bar.add_child(_remove_data_file_button)
 
 	_data_files = Tree.new()
 	_data_files.name = "DataTableSchemaDataFiles"
-	_data_files.columns = 2
+	_data_files.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_data_files.columns = 3
 	_data_files.column_titles_visible = true
 	_data_files.hide_root = true
+	_data_files.select_mode = Tree.SELECT_ROW
 	_data_files.custom_minimum_size.y = 120
 	_data_files.set_column_title(0, "文件")
 	_data_files.set_column_title(1, "状态")
+	_data_files.set_column_title(2, "表 ID")
 	_data_files.set_column_expand(0, true)
-	_data_files.set_column_expand(1, true)
+	_data_files.set_column_expand(1, false)
+	_data_files.set_column_expand(2, true)
+	_data_files.set_column_custom_minimum_width(1, 100)
+	_data_files.item_selected.connect(_update_data_file_actions)
 	content.add_child(_data_files)
 
 	var table_bar := HBoxContainer.new()
@@ -140,56 +194,136 @@ func _create_dialog() -> void:
 	table_bar.add_child(_label("数据表"))
 	_table_selector = OptionButton.new()
 	_table_selector.name = "DataTableSchemaTableSelector"
+	_table_selector.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	_table_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_table_selector.item_selected.connect(_on_table_selected)
 	table_bar.add_child(_table_selector)
 	var add_table := Button.new()
-	add_table.text = "新增表"
-	add_table.pressed.connect(_add_table)
+	add_table.name = "DataTableSchemaCreateTableButton"
+	add_table.text = "新建数据表..."
+	add_table.pressed.connect(_request_add_table)
 	table_bar.add_child(add_table)
-	var remove_table := Button.new()
-	remove_table.text = "移除表..."
-	remove_table.pressed.connect(_request_remove_table)
-	table_bar.add_child(remove_table)
 
-	var table_grid := GridContainer.new()
-	table_grid.columns = 4
-	content.add_child(table_grid)
-	_table_id = _add_line_setting(table_grid, "表 ID")
-	_table_source = _add_line_setting(table_grid, "CSV 文件")
-	_primary_key = _add_line_setting(table_grid, "主键字段")
-	table_grid.add_child(_label("受众"))
+	var table_details := HBoxContainer.new()
+	table_details.add_theme_constant_override("separation", 20)
+	content.add_child(table_details)
+	var table_left := GridContainer.new()
+	table_left.columns = 2
+	table_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	table_left.size_flags_stretch_ratio = 1.0
+	table_details.add_child(table_left)
+	var table_right := GridContainer.new()
+	table_right.columns = 2
+	table_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	table_right.size_flags_stretch_ratio = 1.0
+	table_details.add_child(table_right)
+
+	table_left.add_child(_label("表 ID"))
+	var table_id_row := HBoxContainer.new()
+	table_id_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	table_left.add_child(table_id_row)
+	_table_id = LineEdit.new()
+	_table_id.name = "DataTableSchemaTableId"
+	_table_id.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_table_id.editable = false
+	_table_id.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_table_id.tooltip_text = "用于生成 C# 类型、数据集入口、Manifest 表 ID 和 .gdtb 文件名。"
+	table_id_row.add_child(_table_id)
+	var rename_table_id := Button.new()
+	rename_table_id.name = "DataTableSchemaRenameTableIdButton"
+	rename_table_id.text = "重命名..."
+	rename_table_id.pressed.connect(_request_rename_table_id)
+	table_id_row.add_child(rename_table_id)
+
+	table_right.add_child(_label("CSV 文件"))
+	var table_source_row := HBoxContainer.new()
+	table_source_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	table_right.add_child(table_source_row)
+	_table_source = LineEdit.new()
+	_table_source.name = "DataTableSchemaTableSource"
+	_table_source.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_table_source.editable = false
+	_table_source.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	table_source_row.add_child(_table_source)
+	var change_table_source := Button.new()
+	change_table_source.name = "DataTableSchemaChangeTableSourceButton"
+	change_table_source.text = "修改路径..."
+	change_table_source.pressed.connect(_request_change_table_source)
+	table_source_row.add_child(change_table_source)
+
+	table_left.add_child(_label("主键字段"))
+	_primary_key = OptionButton.new()
+	_primary_key.name = "DataTableSchemaPrimaryKey"
+	_primary_key.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_primary_key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	table_left.add_child(_primary_key)
+	table_right.add_child(_label("受众"))
 	_table_audience = OptionButton.new()
+	_table_audience.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	for audience in AUDIENCES:
 		_table_audience.add_item(audience)
-	table_grid.add_child(_table_audience)
-	table_grid.add_child(_label("Schema 版本"))
+	_table_audience.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	table_right.add_child(_table_audience)
+	table_left.add_child(_label("Schema 版本"))
 	_schema_version = Label.new()
-	table_grid.add_child(_schema_version)
+	_schema_version.name = "DataTableSchemaVersion"
+	_schema_version.tooltip_text = "字段、主键、受众或表标识发生结构变化时由工具自动递增。"
+	table_left.add_child(_schema_version)
+	table_right.add_child(Control.new())
+	table_right.add_child(Control.new())
+
+	content.add_child(HSeparator.new())
 
 	var field_bar := HBoxContainer.new()
 	content.add_child(field_bar)
-	field_bar.add_child(_label("字段（双击单元格编辑）"))
+	field_bar.add_child(_label("字段（单击选择整行；双击文本单元格，类型和复选框单击操作）"))
 	var add_field := Button.new()
-	add_field.text = "新增字段"
+	add_field.text = "新增字段..."
 	add_field.pressed.connect(_add_field)
 	field_bar.add_child(add_field)
 	var remove_field := Button.new()
 	remove_field.text = "移除字段..."
 	remove_field.pressed.connect(_request_remove_field)
 	field_bar.add_child(remove_field)
+	var empty_value_hint := Label.new()
+	empty_value_hint.name = "DataTableSchemaEmptyValueHint"
+	empty_value_hint.text = "空白表示未配置，不会自动采用 0、false 或空字符串。"
+	empty_value_hint.tooltip_text = "CSV 空单元格只有在字段配置了默认值时才使用默认值；否则按必填、允许空字符串和可空规则处理。"
+	content.add_child(empty_value_hint)
 
 	_fields = Tree.new()
 	_fields.name = "DataTableSchemaFields"
+	_fields.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	_fields.columns = 12
 	_fields.column_titles_visible = true
 	_fields.hide_root = true
+	_fields.select_mode = Tree.SELECT_SINGLE
+	_fields.scroll_horizontal_enabled = false
 	_fields.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var titles := ["名称", "类型", "必填", "默认值", "Min", "Max", "最短", "最长", "枚举值（逗号）", "外键 Table.field", "允许空字符串", "Null Token"]
+	_fields.item_mouse_selected.connect(_on_field_mouse_selected)
+	_fields.item_activated.connect(_edit_selected_field_cell)
+	_fields.item_edited.connect(_on_field_item_edited)
+	var titles := ["名称", "类型", "必填", "默认值", "最小值", "最大值", "最短长度", "最长长度", "枚举值", "外键", "允许空字符串", "Null Token"]
+	var widths := [140, 90, 64, 100, 80, 80, 84, 84, 160, 170, 100, 110]
 	for index in titles.size():
 		_fields.set_column_title(index, titles[index])
-		_fields.set_column_custom_minimum_width(index, 92 if index < 8 or index == 10 else 150)
+		_fields.set_column_custom_minimum_width(index, widths[index])
+		_fields.set_column_expand(index, index in [0, 8, 9])
+		if index in [2, 10]:
+			_fields.set_column_title_alignment(index, HORIZONTAL_ALIGNMENT_CENTER)
+	_fields.set_column_title_tooltip_text(1, "字段类型；新字段默认使用 string。")
+	_fields.set_column_title_tooltip_text(2, "关闭时字段可空；CSV 空单元格在没有默认值时读取为 null。")
+	_fields.set_column_title_tooltip_text(3, "CSV 单元格为空时使用；留空表示不配置默认值。")
+	_fields.set_column_title_tooltip_text(4, "仅数值类型可用；留空表示不限制最小值。")
+	_fields.set_column_title_tooltip_text(5, "仅数值类型可用；留空表示不限制最大值。")
+	_fields.set_column_title_tooltip_text(6, "仅字符串可用；留空表示不限制最短长度。")
+	_fields.set_column_title_tooltip_text(7, "仅字符串可用；留空表示不限制最长长度。")
+	_fields.set_column_title_tooltip_text(8, "仅 enum 类型使用，多个值用逗号分隔。")
+	_fields.set_column_title_tooltip_text(9, "格式为 Table.field；留空表示不校验外键。")
+	_fields.set_column_title_tooltip_text(10, "仅字符串可用；关闭时空单元格不会自动读取为空字符串。")
+	_fields.set_column_title_tooltip_text(11, "匹配该文本时读取为 null；留空表示不启用显式 null 标记。")
 	content.add_child(_fields)
+	content.add_child(HSeparator.new())
 
 	_status = Label.new()
 	_status.name = "DataTableSchemaStatus"
@@ -204,12 +338,29 @@ func _create_dialog() -> void:
 	_remove_confirmation.ok_button_text = "确认移除"
 	_remove_confirmation.cancel_button_text = "取消"
 	_dialog.add_child(_remove_confirmation)
+
+	_table_value_dialog = ConfirmationDialog.new()
+	_table_value_dialog.ok_button_text = "确认修改"
+	_table_value_dialog.cancel_button_text = "取消"
+	_table_value_dialog.get_label().hide()
+	_table_value_dialog.confirmed.connect(_apply_table_value_change)
+	_table_value_input = LineEdit.new()
+	_table_value_input.name = "DataTableSchemaTableValueInput"
+	_table_value_input.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_table_value_dialog.add_child(_table_value_input)
+	_table_value_input.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_table_value_input.offset_left = 16
+	_table_value_input.offset_right = -16
+	_table_value_input.offset_top = 16
+	_table_value_input.offset_bottom = 48
+	_dialog.add_child(_table_value_dialog)
 	_context.get_editor_interface().get_base_control().add_child(_dialog)
 
 
 func _add_line_setting(parent: GridContainer, title: String) -> LineEdit:
 	parent.add_child(_label(title))
 	var input := LineEdit.new()
+	input.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(input)
 	return input
@@ -219,6 +370,11 @@ func _label(text: String) -> Label:
 	var result := Label.new()
 	result.text = text
 	return result
+
+
+func _toggle_advanced_settings(visible: bool) -> void:
+	_advanced_settings.visible = visible
+	_advanced_settings_button.text = "隐藏高级设置" if visible else "显示高级设置"
 
 
 func _populate_dataset() -> void:
@@ -259,10 +415,14 @@ func _refresh_data_files() -> void:
 		var file_names := found.keys()
 		file_names.sort()
 		for file_name in file_names:
-			_add_data_file_item(root_item, file_name, "已加入 Schema（%s）" % configured[file_name] if configured.has(file_name) else "未加入（已排除）")
+			if configured.has(file_name):
+				_add_data_file_item(root_item, file_name, "已加入", str(configured[file_name]), NORMAL_COLOR)
+			else:
+				_add_data_file_item(root_item, file_name, "未加入", "—", PENDING_COLOR)
 	for source in configured:
 		if not found.has(source):
-			_add_data_file_item(root_item, source, "Schema 引用但文件缺失")
+			_add_data_file_item(root_item, source, "文件缺失", str(configured[source]), ERROR_COLOR)
+	_update_data_file_actions()
 
 
 func _collect_csv_files(root: String, relative: String, result: Dictionary) -> void:
@@ -283,11 +443,38 @@ func _collect_csv_files(root: String, relative: String, result: Dictionary) -> v
 	directory.list_dir_end()
 
 
-func _add_data_file_item(root: TreeItem, file_name: String, state: String) -> void:
+func _add_data_file_item(
+	root: TreeItem,
+	file_name: String,
+	state: String,
+	table_id: String,
+	state_color: Color
+) -> void:
 	var item := _data_files.create_item(root)
 	item.set_text(0, file_name)
 	item.set_text(1, state)
+	item.set_text(2, table_id)
+	item.set_custom_color(1, state_color)
 	item.set_metadata(0, file_name)
+
+
+func _update_data_file_actions() -> void:
+	if not is_instance_valid(_add_data_file_button) or not is_instance_valid(_remove_data_file_button):
+		return
+	var selected := _data_files.get_selected()
+	var configured := false
+	if selected != null:
+		configured = _table_index_for_source(str(selected.get_metadata(0))) >= 0
+	_add_data_file_button.disabled = selected == null or configured
+	_remove_data_file_button.disabled = selected == null or not configured
+
+
+func _table_index_for_source(source: String) -> int:
+	var tables: Array = _schema.get("tables", [])
+	for index in tables.size():
+		if str(tables[index].get("source", "")) == source:
+			return index
+	return -1
 
 
 func _add_selected_csv() -> void:
@@ -304,6 +491,17 @@ func _add_selected_csv() -> void:
 	for table in _schema.get("tables", []):
 		if str(table.get("source", "")) == source:
 			_status.text = "%s 已加入 Schema。" % source
+			return
+	if _removed_tables_by_source.has(source):
+		var restored: Dictionary = _removed_tables_by_source[source].duplicate(true)
+		var restored_tables: Array = _schema.get("tables", [])
+		if not _contains_table_id(restored_tables, str(restored.get("id", ""))):
+			restored_tables.append(restored)
+			_schema["tables"] = restored_tables
+			_removed_tables_by_source.erase(source)
+			_refresh_table_selector(restored_tables.size() - 1)
+			_refresh_data_files()
+			_status.text = "%s 已恢复到 Schema，原表 ID、字段类型和约束均已保留。" % source
 			return
 	var source_root := _source_root()
 	var path := source_root.path_join(source).simplify_path() if not source_root.is_empty() else ""
@@ -426,59 +624,232 @@ func _on_table_selected(index: int) -> void:
 	_refresh_data_files()
 
 
+func _request_rename_table_id() -> void:
+	if _selected_table < 0:
+		return
+	_table_value_mode = "table_id"
+	_table_value_dialog.title = "重命名数据表 ID"
+	_table_value_dialog.dialog_text = ""
+	_table_value_input.placeholder_text = "例如：Item"
+	_table_value_input.text = _table_id.text
+	_table_value_dialog.popup_centered(Vector2i(520, 130))
+	_table_value_input.grab_focus()
+	_table_value_input.select_all()
+
+
+func _request_change_table_source() -> void:
+	if _selected_table < 0:
+		return
+	_table_value_mode = "table_source"
+	_table_value_dialog.title = "修改 CSV 相对路径"
+	_table_value_dialog.dialog_text = ""
+	_table_value_input.placeholder_text = "例如：Items.csv"
+	_table_value_input.text = _table_source.text
+	_table_value_dialog.popup_centered(Vector2i(520, 130))
+	_table_value_input.grab_focus()
+	_table_value_input.select_all()
+
+
+func _apply_table_value_change() -> void:
+	var value := _table_value_input.text.strip_edges()
+	if _table_value_mode == "new_table":
+		_add_table(value)
+		return
+	if _selected_table < 0:
+		return
+	if _table_value_mode == "table_id":
+		if not value.is_valid_identifier():
+			_status.text = "重命名失败：表 ID 必须是有效标识符。"
+			return
+		if _table_value_used_by_other("id", value):
+			_status.text = "重命名失败：表 ID 已存在：%s。" % value
+			return
+		if value == _table_id.text:
+			return
+		_table_id.text = value
+		_commit_current_table()
+		_refresh_table_selector(_selected_table)
+		_status.text = "表 ID 已改为 %s；保存后生成代码和运行数据文件名会同步变化。" % value
+		return
+	if _table_value_mode != "table_source":
+		return
+	if not _is_safe_relative_path(value) or value.get_extension().to_lower() != "csv":
+		_status.text = "修改失败：CSV 文件必须是原始表目录内的安全 .csv 相对路径。"
+		return
+	if _table_value_used_by_other("source", value):
+		_status.text = "修改失败：CSV 文件已被其他数据表使用：%s。" % value
+		return
+	if value == _table_source.text:
+		return
+	var source_root := _source_root()
+	var target_path := source_root.path_join(value).simplify_path() if not source_root.is_empty() else ""
+	if not target_path.is_empty() and FileAccess.file_exists(target_path):
+		_status.text = "修改失败：目标 CSV 已存在，不会自动覆盖：%s。" % value
+		return
+	_table_source.text = value
+	_commit_current_table()
+	_refresh_data_files()
+	_status.text = "CSV 路径已改为 %s；保存时写入新文件，旧文件会保留。" % value
+
+
+func _table_value_used_by_other(key: String, value: String) -> bool:
+	var tables: Array = _schema.get("tables", [])
+	for index in tables.size():
+		if index != _selected_table and str(tables[index].get(key, "")) == value:
+			return true
+	return false
+
+
 func _populate_table() -> void:
 	_loading = true
+	_selected_field_item = null
+	_editing_field_item = null
 	_fields.clear()
 	var root := _fields.create_item()
 	var tables: Array = _schema.get("tables", [])
 	var enabled := _selected_table >= 0 and _selected_table < tables.size()
-	for control in [_table_id, _table_source, _primary_key]:
-		control.editable = enabled
 	_table_audience.disabled = not enabled
+	_primary_key.disabled = not enabled
 	_fields.mouse_filter = Control.MOUSE_FILTER_STOP if enabled else Control.MOUSE_FILTER_IGNORE
 	if not enabled:
 		_table_id.text = ""
 		_table_source.text = ""
-		_primary_key.text = ""
+		_primary_key.clear()
 		_schema_version.text = "-"
 		_loading = false
 		return
 	var table: Dictionary = tables[_selected_table]
 	_table_id.text = str(table.get("id", ""))
 	_table_source.text = str(table.get("source", ""))
-	_primary_key.text = str(table.get("primary_key", "id"))
+	_refresh_primary_key_options(table.get("fields", []), str(table.get("primary_key", "id")))
 	_table_audience.select(maxi(0, AUDIENCES.find(str(table.get("audience", "Shared")))))
-	_schema_version.text = str(table.get("schema_version", 1))
+	_schema_version.text = "%d（结构变化时自动递增）" % int(table.get("schema_version", 1))
 	for field in table.get("fields", []):
 		_add_field_item(root, field)
 	_loading = false
 
 
-func _add_field_item(root: TreeItem, field: Dictionary) -> void:
+func _refresh_primary_key_options(fields: Array, selected_name: String) -> void:
+	_primary_key.clear()
+	for field in fields:
+		_primary_key.add_item(str(field.get("name", "")))
+	var selected_index := -1
+	for index in _primary_key.item_count:
+		if _primary_key.get_item_text(index) == selected_name:
+			selected_index = index
+			break
+	if selected_index >= 0:
+		_primary_key.select(selected_index)
+	elif _primary_key.item_count > 0:
+		_primary_key.select(0)
+
+
+func _selected_primary_key() -> String:
+	if _primary_key.selected < 0:
+		return ""
+	return _primary_key.get_item_text(_primary_key.selected)
+
+
+func _add_field_item(root: TreeItem, field: Dictionary) -> TreeItem:
 	var item := _fields.create_item(root)
 	item.set_metadata(0, field.duplicate(true))
-	for column in [0, 3, 4, 5, 6, 7, 8, 9, 11]:
-		item.set_editable(column, true)
 	item.set_text(0, str(field.get("name", "field")))
 	item.set_cell_mode(1, TreeItem.CELL_MODE_RANGE)
 	item.set_text(1, ",".join(SUPPORTED_TYPES))
 	item.set_range_config(1, 0, SUPPORTED_TYPES.size() - 1, 1)
 	item.set_range(1, maxi(0, SUPPORTED_TYPES.find(str(field.get("type", "string")))))
 	item.set_editable(1, true)
+	item.set_tooltip_text(1, "字段类型；新字段默认使用 string。")
 	item.set_cell_mode(2, TreeItem.CELL_MODE_CHECK)
 	item.set_checked(2, bool(field.get("required", false)))
 	item.set_editable(2, true)
+	item.set_text_alignment(2, HORIZONTAL_ALIGNMENT_CENTER)
 	item.set_text(3, _format_optional(field, "default"))
+	item.set_tooltip_text(3, "留空表示不配置默认值，不会自动采用类型默认值。")
 	item.set_text(4, _format_optional(field, "min"))
+	item.set_tooltip_text(4, "留空表示不限制最小值。")
 	item.set_text(5, _format_optional(field, "max"))
+	item.set_tooltip_text(5, "留空表示不限制最大值。")
 	item.set_text(6, _format_optional(field, "min_length"))
+	item.set_tooltip_text(6, "留空表示不限制最短长度。")
 	item.set_text(7, _format_optional(field, "max_length"))
+	item.set_tooltip_text(7, "留空表示不限制最长长度。")
 	item.set_text(8, ",".join(field.get("values", [])))
+	item.set_tooltip_text(8, "仅 enum 类型使用，多个值用逗号分隔。")
 	item.set_text(9, str(field.get("foreign_key", "")))
+	item.set_tooltip_text(9, "格式为 Table.field；留空表示不校验外键。")
 	item.set_cell_mode(10, TreeItem.CELL_MODE_CHECK)
 	item.set_checked(10, bool(field.get("allow_empty", false)))
 	item.set_editable(10, true)
+	item.set_text_alignment(10, HORIZONTAL_ALIGNMENT_CENTER)
 	item.set_text(11, str(field.get("null_token", "")))
+	item.set_tooltip_text(11, "留空表示不启用显式 null 标记。")
+	return item
+
+
+func _on_field_mouse_selected(mouse_position: Vector2, mouse_button_index: int) -> void:
+	if mouse_button_index != MOUSE_BUTTON_LEFT:
+		return
+	_restore_field_row_selection()
+	_selected_field_column = clampi(_fields.get_column_at_position(mouse_position), 0, _fields.columns - 1)
+	_select_field_row(_fields.get_selected(), _selected_field_column)
+
+
+func _edit_selected_field_cell() -> void:
+	var item := _selected_field_item
+	if item == null or _selected_field_column not in INLINE_EDITABLE_FIELD_COLUMNS:
+		return
+	_editing_field_item = item
+	_editing_field_column = _selected_field_column
+	_editing_field_previous_text = item.get_text(_editing_field_column)
+	item.set_editable(_editing_field_column, true)
+	_select_field_row(item, _editing_field_column)
+	if not _fields.edit_selected():
+		_restore_field_row_selection()
+
+
+func _on_field_item_edited() -> void:
+	if _editing_field_item == null:
+		return
+	if _editing_field_column == 0:
+		var selected_primary := _selected_primary_key()
+		var renamed_primary := _editing_field_item.get_text(0) if selected_primary == _editing_field_previous_text else selected_primary
+		_refresh_primary_key_options(_field_option_values(), renamed_primary)
+	call_deferred("_restore_field_row_selection")
+
+
+func _restore_field_row_selection() -> void:
+	if _editing_field_item != null and is_instance_valid(_editing_field_item):
+		if _editing_field_column in INLINE_EDITABLE_FIELD_COLUMNS and _editing_field_column != 1:
+			_editing_field_item.set_editable(_editing_field_column, false)
+		_select_field_row(_editing_field_item, _editing_field_column)
+	_editing_field_item = null
+	_editing_field_column = -1
+	_editing_field_previous_text = ""
+
+
+func _select_field_row(item: TreeItem, focus_column: int) -> void:
+	if item == null:
+		return
+	if _selected_field_item != null and is_instance_valid(_selected_field_item):
+		for column in _fields.columns:
+			_selected_field_item.clear_custom_bg_color(column)
+	_selected_field_item = item
+	for column in _fields.columns:
+		item.set_custom_bg_color(column, FIELD_ROW_SELECTION_COLOR)
+	_fields.set_selected(item, clampi(focus_column, 0, _fields.columns - 1))
+
+
+func _field_option_values() -> Array:
+	var result: Array = []
+	var root := _fields.get_root()
+	if root == null:
+		return result
+	var item := root.get_first_child()
+	while item != null:
+		result.append({"name": item.get_text(0)})
+		item = item.get_next()
+	return result
 
 
 func _format_optional(value: Dictionary, key: String) -> String:
@@ -494,7 +865,7 @@ func _commit_current_table() -> void:
 	var table: Dictionary = tables[_selected_table]
 	table["id"] = _table_id.text.strip_edges()
 	table["source"] = _table_source.text.strip_edges()
-	table["primary_key"] = _primary_key.text.strip_edges()
+	var primary_key := _selected_primary_key()
 	table["audience"] = AUDIENCES[_table_audience.selected]
 	var fields: Array = []
 	var root := _fields.get_root()
@@ -503,9 +874,22 @@ func _commit_current_table() -> void:
 		while item != null:
 			fields.append(_field_from_item(item))
 			item = item.get_next()
+	if not _contains_field_name(fields, primary_key):
+		for field in fields:
+			if str(field.get("_editor_original_name", "")) == primary_key:
+				primary_key = str(field.get("name", ""))
+				break
+	table["primary_key"] = primary_key
 	table["fields"] = fields
 	tables[_selected_table] = table
 	_schema["tables"] = tables
+
+
+func _contains_field_name(fields: Array, field_name: String) -> bool:
+	for field in fields:
+		if str(field.get("name", "")) == field_name:
+			return true
+	return false
 
 
 func _field_from_item(item: TreeItem) -> Dictionary:
@@ -575,21 +959,41 @@ func _set_optional_string(target: Dictionary, key: String, text: String) -> void
 		target[key] = text.strip_edges()
 
 
-func _add_table() -> void:
+func _request_add_table() -> void:
 	var error := _validate_field_inputs()
 	if not error.is_empty():
 		_status.text = "新增失败：%s" % error
 		return
+	_table_value_mode = "new_table"
+	_table_value_dialog.title = "新建数据表"
+	_table_value_dialog.dialog_text = ""
+	_table_value_input.placeholder_text = "输入表 ID，例如：Quest"
+	_table_value_input.text = ""
+	_table_value_dialog.popup_centered(Vector2i(520, 130))
+	_table_value_input.grab_focus()
+
+
+func _add_table(id: String) -> void:
+	if not id.is_valid_identifier():
+		_status.text = "新增失败：表 ID 必须是有效标识符。"
+		return
 	_commit_current_table()
 	var tables: Array = _schema.get("tables", [])
-	var suffix := tables.size() + 1
-	var id := "Table%d" % suffix
-	while _contains_table_id(tables, id):
-		suffix += 1
-		id = "Table%d" % suffix
+	if _contains_table_id(tables, id):
+		_status.text = "新增失败：表 ID 已存在：%s。" % id
+		return
+	var source := "%s.csv" % id
+	if _table_index_for_source(source) >= 0:
+		_status.text = "新增失败：CSV 文件已被其他数据表使用：%s。" % source
+		return
+	var source_root := _source_root()
+	var source_path := source_root.path_join(source).simplify_path() if not source_root.is_empty() else ""
+	if not source_path.is_empty() and FileAccess.file_exists(source_path):
+		_status.text = "新增失败：%s 已存在，请在数据文件列表中将它加入 Schema。" % source
+		return
 	tables.append({
 		"id": id,
-		"source": "%s.csv" % id,
+		"source": source,
 		"schema_version": 1,
 		"audience": "Shared",
 		"primary_key": "id",
@@ -598,6 +1002,7 @@ func _add_table() -> void:
 	_schema["tables"] = tables
 	_refresh_table_selector(tables.size() - 1)
 	_refresh_data_files()
+	_status.text = "已新建数据表 %s；保存 Schema 时会创建 %s。" % [id, source]
 
 
 func _contains_table_id(tables: Array, id: String) -> bool:
@@ -607,46 +1012,80 @@ func _contains_table_id(tables: Array, id: String) -> bool:
 	return false
 
 
-func _request_remove_table() -> void:
-	if _selected_table < 0:
+func _request_remove_selected_csv() -> void:
+	var selected := _data_files.get_selected()
+	if selected == null:
+		_status.text = "请先选择一个已加入 Schema 的 CSV。"
 		return
-	_remove_confirmation.dialog_text = "只从 Schema 移除数据表；CSV 文件会保留。确认继续？"
-	var callback := _remove_table
+	var source := str(selected.get_metadata(0))
+	var table_index := _table_index_for_source(source)
+	if table_index < 0:
+		_status.text = "%s 尚未加入 Schema。" % source
+		return
+	var tables: Array = _schema.get("tables", [])
+	var table_id := str(tables[table_index].get("id", ""))
+	_remove_confirmation.dialog_text = (
+		"确认将 %s（%s）移出 Schema？\nCSV 文件会保留。" % [source, table_id]
+	)
+	var callback := _remove_table.bind(table_index)
 	_reset_confirmation(callback)
 	_remove_confirmation.popup_centered(Vector2i(560, 180))
 
 
-func _remove_table() -> void:
+func _remove_table(table_index: int) -> void:
+	var field_error := _validate_field_inputs()
+	if not field_error.is_empty():
+		_status.text = "移出失败：%s" % field_error
+		return
+	_commit_current_table()
 	var tables: Array = _schema.get("tables", [])
-	if _selected_table >= 0 and _selected_table < tables.size():
-		tables.remove_at(_selected_table)
+	if table_index < 0 or table_index >= tables.size():
+		return
+	var source := str(tables[table_index].get("source", ""))
+	_removed_tables_by_source[source] = tables[table_index].duplicate(true)
+	tables.remove_at(table_index)
 	_schema["tables"] = tables
-	_refresh_table_selector(mini(_selected_table, tables.size() - 1))
+	_refresh_table_selector(mini(table_index, tables.size() - 1))
 	_refresh_data_files()
+	_status.text = "%s 已移出 Schema；CSV 文件仍保留在数据目录中。" % source
 
 
 func _add_field() -> void:
 	if _selected_table < 0:
 		return
 	var root := _fields.get_root()
-	_add_field_item(root, {"name": "field", "type": "string", "required": false})
+	var item := _add_field_item(root, {"name": "field", "type": "string", "required": false})
+	_select_field_row(item, 0)
+	_selected_field_column = 0
+	_refresh_primary_key_options(_field_option_values(), _selected_primary_key())
 
 
 func _request_remove_field() -> void:
-	var selected := _fields.get_selected()
+	var selected := _selected_field_item
 	if selected == null:
 		_status.text = "请先选择需要移除的字段。"
 		return
-	_remove_confirmation.dialog_text = "移除字段会在保存时删除 CSV 中对应列。确认继续？"
+	_remove_confirmation.dialog_text = (
+		"确认移除字段“%s”？\n保存 Schema 时会删除 CSV 中对应列。" % selected.get_text(0)
+	)
 	var callback := _remove_field
 	_reset_confirmation(callback)
 	_remove_confirmation.popup_centered(Vector2i(560, 180))
 
 
 func _remove_field() -> void:
-	var selected := _fields.get_selected()
-	if selected != null:
-		selected.free()
+	var selected := _selected_field_item
+	if selected == null:
+		return
+	var next_selection := selected.get_next()
+	if next_selection == null:
+		next_selection = selected.get_prev()
+	var primary_key := _selected_primary_key()
+	selected.free()
+	_selected_field_item = null
+	_refresh_primary_key_options(_field_option_values(), primary_key)
+	if next_selection != null:
+		_select_field_row(next_selection, 0)
 
 
 func _reset_confirmation(callback: Callable) -> void:

@@ -38,7 +38,7 @@ res://addons/godo_framework/
 项目设置 → 插件 → GoDo Framework → 启用
 ```
 
-启用插件只增加顶部 `GoDo` 菜单和编辑器工具，不会自动写入 Autoload。插件使用 GDScript，因此即使 C# 尚未编译，也应能打开设置窗口。
+启用插件只增加顶部 `GoDo Framework` 菜单和编辑器工具，不会自动写入 Autoload。插件使用 GDScript，因此即使 C# 尚未编译，也应能打开设置窗口。
 
 如果插件没有出现：
 
@@ -65,7 +65,7 @@ res://addons/godo_framework/
 打开：
 
 ```text
-GoDo → 设置 (Setup)...
+GoDo Framework → 配置 (Setup)...
 ```
 
 检查窗口按顺序验证：
@@ -125,9 +125,9 @@ public partial class FrameworkProbe : Node
 
 | 集成 | 安装入口 | 核心是否依赖 |
 |---|---|---:|
-| GUIDE Input | `GoDo → GUIDE Input 设置...` | 否 |
-| Phantom Camera | `GoDo → Phantom Camera 设置...` | 否 |
-| DataTable | `GoDo → DataTable...` | 否，开发期工具 |
+| GUIDE Input | `GoDo Framework → 编辑器扩展 → 输入映射配置 (GUIDE Input Settings)...` | 否 |
+| Phantom Camera | `GoDo Framework → 编辑器扩展 → 幻影相机配置 (Phantom Camera Settings)...` | 否 |
+| DataTable | `GoDo Framework → 数据表 → 数据表配置 (DataTable Configuration)...` | 否，开发期工具 |
 
 禁用或不复制可选集成不会改变 GoDoRuntime 的核心初始化。对应业务代码必须避免引用未安装集成的类型。
 
@@ -169,7 +169,7 @@ public partial class FrameworkProbe : Node
 
 彻底卸载按以下顺序执行：
 
-1. 打开 `GoDo → 设置 (Setup)...`。
+1. 打开 `GoDo Framework → 配置 (Setup)...`。
 2. 点击 **卸载 Runtime** 并确认。
 3. 确认 Autoload 中已没有精确匹配的 `GoDoRuntime`。
 4. 在插件列表禁用 GoDo Framework。

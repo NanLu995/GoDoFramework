@@ -6,7 +6,7 @@ const SCHEMA := "res://Verification/Experimental/DataTable/prototype.datatable.s
 const BASE_SCHEMA := "res://DataTables/Base/.datatable.schema.json"
 const PROBE_CSV := "res://DataTables/Base/.datafiles/ProbeExcluded.csv"
 const SETTINGS_SECTION := "godo_framework/datatable"
-const CONFIG_METADATA_KEY := "build_config_path"
+const CONFIG_METADATA_KEY := "schema_path"
 const PYTHON_SETTING := "godo_framework/datatable/python_executable"
 
 var _settings: EditorSettings
@@ -37,7 +37,7 @@ func _run() -> void:
 		_fail("未找到 GoDo 工具栏菜单。")
 		return
 	var menu := menu_button.get_popup()
-	var menu_id := _find_menu_id(menu, "DataTable...")
+	var menu_id := _find_menu_id(menu, "数据表配置 (DataTable Configuration)...")
 	if menu_id < 0:
 		_fail("未找到 DataTable 菜单。")
 		return
@@ -54,6 +54,7 @@ func _run() -> void:
 	var table_selector := dialog.find_child("DataTableTableSelector", true, false) as OptionButton
 	var generate_selected_button := dialog.find_child("DataTableGenerateSelectedButton", true, false) as Button
 	var report := dialog.find_child("DataTableReport", true, false) as RichTextLabel
+	var message := dialog.find_child("DataTableMessage", true, false) as RichTextLabel
 	var edit_schema_button := dialog.find_child("DataTableEditSchemaButton", true, false) as Button
 	if (
 		config_input == null
@@ -62,6 +63,7 @@ func _run() -> void:
 		or table_selector == null
 		or generate_selected_button == null
 		or report == null
+		or message == null
 		or edit_schema_button == null
 	):
 		_fail("DataTable 窗口缺少必需控件。")
@@ -74,19 +76,19 @@ func _run() -> void:
 		_fail("有效 Schema 未启用检查按钮：%s" % report.text)
 		return
 	check_button.pressed.emit()
-	if not await _wait_for_report(report, "CHECK PASS"):
-		_fail("DataTable 检查未成功：%s" % report.text)
+	if not await _wait_for_message(message, "全部数据校验通过"):
+		_fail("DataTable 检查未成功：%s" % message.text)
 		return
 
 	generate_button.pressed.emit()
 	await process_frame
-	var confirmation := _find_window(root, "生成全部 DataTable") as ConfirmationDialog
+	var confirmation := _find_window(root, "生成全部数据表") as ConfirmationDialog
 	if confirmation == null:
 		_fail("生成操作未显示确认窗口。")
 		return
 	confirmation.confirmed.emit()
-	if not await _wait_for_report(report, "GENERATE PASS"):
-		_fail("DataTable 生成未成功：%s" % report.text)
+	if not await _wait_for_message(message, "全部数据表生成完成"):
+		_fail("DataTable 生成未成功：%s" % message.text)
 		return
 	if not FileAccess.file_exists(
 		"res://Verification/Experimental/DataTable/Artifacts/editor-output/manifest.json"
@@ -124,16 +126,20 @@ func _run() -> void:
 	while data_file_item != null:
 		if data_file_item.get_text(0) == "ProbeExcluded.csv":
 			excluded_file = data_file_item
-		elif data_file_item.get_text(1).begins_with("已加入 Schema"):
+		elif data_file_item.get_text(1) == "已加入" and not data_file_item.get_text(2).is_empty():
 			configured_file_count += 1
 		else:
 			_fail("Base 数据文件状态异常：%s。" % data_file_item.get_text(1))
 			return
 		data_file_item = data_file_item.get_next()
-	if configured_file_count != 3 or excluded_file == null or excluded_file.get_text(1) != "未加入（已排除）":
+	if configured_file_count != 3 or excluded_file == null or excluded_file.get_text(1) != "未加入":
 		_fail("Schema 编辑器未正确区分三张已加入 CSV 和一张排除 CSV。")
 		return
 	excluded_file.select(0)
+	data_files.item_selected.emit()
+	if add_csv.disabled:
+		_fail("未加入 CSV 被选中后，加入 Schema 操作仍不可用。")
+		return
 	add_csv.pressed.emit()
 	var schema_table_selector := schema_dialog.find_child("DataTableSchemaTableSelector", true, false) as OptionButton
 	if schema_table_selector == null or _find_option_index(schema_table_selector, "ProbeExcluded") < 0:
@@ -144,8 +150,8 @@ func _run() -> void:
 	edit_schema_button.pressed.emit()
 	await process_frame
 	save_schema.pressed.emit()
-	if not await _wait_for_report(report, "CHECK PASS"):
-		_fail("Schema 保存后未通过自动检查：%s\nSchema 状态：%s" % [report.text, schema_status.text])
+	if not await _wait_for_message(message, "全部数据校验通过"):
+		_fail("Schema 保存后未通过自动检查：%s\nSchema 状态：%s" % [message.text, schema_status.text])
 		return
 	var saved_schema := FileAccess.get_file_as_string(BASE_SCHEMA)
 	if not '"format_version": 2,' in saved_schema or not '"schema_version": 1,' in saved_schema:
@@ -163,13 +169,13 @@ func _run() -> void:
 	table_selector.select(item_index)
 	generate_selected_button.pressed.emit()
 	await process_frame
-	var selected_confirmation := _find_window(root, "生成选中 DataTable") as ConfirmationDialog
+	var selected_confirmation := _find_window(root, "生成当前数据表") as ConfirmationDialog
 	if selected_confirmation == null:
 		_fail("单表生成未显示确认窗口。")
 		return
 	selected_confirmation.confirmed.emit()
-	if not await _wait_for_report(report, "GENERATE PASS"):
-		_fail("DataTable 单表生成未成功：%s" % report.text)
+	if not await _wait_for_message(message, "当前表生成完成"):
+		_fail("DataTable 单表生成未成功：%s" % message.text)
 		return
 	if not FileAccess.file_exists(
 		"res://Verification/Experimental/DataTable/Artifacts/editor-output/Item.gdtb"
@@ -187,11 +193,11 @@ func _run() -> void:
 	quit(0)
 
 
-func _wait_for_report(report: RichTextLabel, marker: String) -> bool:
+func _wait_for_message(message: RichTextLabel, marker: String) -> bool:
 	for _attempt in 200:
-		if marker in report.text:
+		if marker in message.text:
 			return true
-		if "[失败]" in report.text:
+		if "失败" in message.text:
 			return false
 		await create_timer(0.05).timeout
 	return false

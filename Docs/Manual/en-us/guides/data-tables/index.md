@@ -44,7 +44,7 @@ DataTables/
    └─ BaseDataTables.g.cs
 ```
 
-Use `GoDo → DataTable...` to maintain the Schema and `.datafiles`. `Runtime` and `BaseDataTables.g.cs` are generated and must not be edited. Committing generated artifacts is recommended so a fresh checkout compiles immediately and CI can verify that they are current. The Schema and `.datafiles` are excluded from the final game package.
+Use `数据表配置 (DataTable Configuration)...` in the **Data Tables** section of the `GoDo Framework` menu to maintain the Schema and `.datafiles`. `Runtime` and `BaseDataTables.g.cs` are generated and must not be edited. Committing generated artifacts is recommended so a fresh checkout compiles immediately and CI can verify that they are current. The Schema and `.datafiles` are excluded from the final game package.
 
 Source CSV uses UTF-8 and may contain a BOM. Column names must match Schema field names.
 
@@ -70,7 +70,7 @@ Stable IDs are case-sensitive. Do not use localized display copy as an ID. A pro
 
 ## 3. Declare structure in the Schema editor
 
-Open `GoDo → DataTable...`, select `.datatable.schema.json`, then choose **Edit Schema...**. The data-file panel distinguishes included, excluded, and missing CSV files. It can read an excluded CSV header to create initial fields; set the real types, defaults, ranges, primary key, and foreign keys in the editor. The JSON below explains the saved result and is not intended for manual editing:
+Open `数据表配置 (DataTable Configuration)...` in the **Data Tables** section of the `GoDo Framework` menu, select `.datatable.schema.json`, then choose **Edit Schema...**. The data-file panel shows the file, state, and table ID, using green for included files, yellow for files not yet included, and red for missing files. Select a whole row to include an unconfigured CSV or remove an included CSV from the Schema without deleting the file. **新建数据表...** creates a new CSV when the Schema is saved. Godot translation is disabled for table IDs, field names, and CSV paths. Table IDs and CSV paths change only through explicit actions, while the tool maintains the Schema version. A row background marks the active field; double-click edits text cells, while types and checkboxes use a single click. A blank default means no fallback is configured—it does not silently become `0`, `false`, or an empty string. The JSON below explains the saved result and is not intended for manual editing:
 
 ```json
 {
@@ -157,10 +157,10 @@ Do not edit these files manually; the next generation replaces them.
 Enable the single **GoDo Framework** plugin, then open:
 
 ```text
-GoDo → DataTable...
+GoDo Framework → Data Tables → 数据表配置 (DataTable Configuration)...
 ```
 
-The window looks for `res://DataTables/Base/.datatable.schema.json` by default. It can edit the Schema, inspect or include data files, and run **Check All**, **Generate All...**, or **Generate Selected Table...**. Generation previews its targets and asks for confirmation, then tells Godot to rescan files when complete.
+The window looks for `res://DataTables/Base/.datatable.schema.json` by default. It can edit the Schema, inspect or include data files, run **校验全部数据** for read-only validation, or use **生成当前表...** and **生成全部表...** in the data-generation row. Generation previews its targets and asks for confirmation, then tells Godot to rescan files when complete.
 
 The Python path is stored only in local EditorSettings, not project configuration. Teams and CI share the version-controlled Schema.
 

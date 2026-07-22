@@ -5,8 +5,9 @@ const HOST_API_VERSION := 1
 const EXTENSION_CONTEXT_SCRIPT := preload("res://addons/godo_framework/Editor/godo_editor_extension_context.gd")
 const MANIFEST_NAME := "godo_editor_extension.cfg"
 const EXTENSION_SECTION := "extension"
-const MENU_SEPARATOR_ID := 9000
-const MENU_STATUS_ID := 9001
+const MENU_DATA_TABLE_SEPARATOR_ID := 9000
+const MENU_EDITOR_EXTENSION_SEPARATOR_ID := 9001
+const MENU_STATUS_ID := 9002
 const FIRST_EXTENSION_MENU_ID := 10000
 const EXTENSION_ID_CHARACTERS := "abcdefghijklmnopqrstuvwxyz0123456789._-"
 
@@ -24,9 +25,7 @@ var _status_dialog: AcceptDialog
 func activate(owner: EditorPlugin, menu: PopupMenu) -> void:
 	_owner = owner
 	_menu = menu
-	_menu.add_separator("编辑器扩展", MENU_SEPARATOR_ID)
 	_discover_extensions()
-	_menu.add_item("编辑器扩展状态...", MENU_STATUS_ID)
 	_menu.id_pressed.connect(_on_menu_id_pressed)
 
 
@@ -43,7 +42,8 @@ func deactivate() -> void:
 		for menu_id in _action_callbacks.keys():
 			_remove_menu_item(int(menu_id))
 		_remove_menu_item(MENU_STATUS_ID)
-		_remove_menu_item(MENU_SEPARATOR_ID)
+		_remove_menu_item(MENU_EDITOR_EXTENSION_SEPARATOR_ID)
+		_remove_menu_item(MENU_DATA_TABLE_SEPARATOR_ID)
 
 	if is_instance_valid(_status_dialog):
 		_status_dialog.queue_free()
@@ -85,7 +85,25 @@ func _discover_extensions() -> void:
 	_append_manifest_descriptors("res://addons/godo_framework/Tools", descriptors)
 
 	descriptors.sort_custom(_compare_descriptors)
+	var data_table_descriptors: Array[Dictionary] = []
+	var editor_extension_descriptors: Array[Dictionary] = []
+	for descriptor in descriptors:
+		if descriptor.menu_section == "data_tables":
+			data_table_descriptors.append(descriptor)
+		else:
+			editor_extension_descriptors.append(descriptor)
+
 	var loaded_ids: Dictionary = {}
+	if not data_table_descriptors.is_empty():
+		_menu.add_separator("数据表", MENU_DATA_TABLE_SEPARATOR_ID)
+		_load_descriptors(data_table_descriptors, loaded_ids)
+
+	_menu.add_separator("编辑器扩展", MENU_EDITOR_EXTENSION_SEPARATOR_ID)
+	_menu.add_item("编辑器扩展状态 (Editor Extension Status)...", MENU_STATUS_ID)
+	_load_descriptors(editor_extension_descriptors, loaded_ids)
+
+
+func _load_descriptors(descriptors: Array[Dictionary], loaded_ids: Dictionary) -> void:
 	for descriptor in descriptors:
 		var extension_id: String = descriptor.id
 		if loaded_ids.has(extension_id):
@@ -124,6 +142,7 @@ func _read_manifest(manifest_path: String, package_root: String) -> Dictionary:
 	var api_version := int(config.get_value(EXTENSION_SECTION, "api_version", 0))
 	var script_path := str(config.get_value(EXTENSION_SECTION, "script", "")).strip_edges()
 	var menu_order := int(config.get_value(EXTENSION_SECTION, "menu_order", 0))
+	var menu_section := str(config.get_value(EXTENSION_SECTION, "menu_section", "editor_extensions")).strip_edges()
 
 	if extension_id.is_empty() or display_name.is_empty() or script_path.is_empty():
 		_record_failure(manifest_path, display_name if not display_name.is_empty() else package_root.get_file(), "清单必填字段为空。")
@@ -140,12 +159,16 @@ func _read_manifest(manifest_path: String, package_root: String) -> Dictionary:
 	if not FileAccess.file_exists(script_path):
 		_record_failure(extension_id, display_name, "扩展脚本不存在：%s" % script_path)
 		return {}
+	if menu_section != "data_tables" and menu_section != "editor_extensions":
+		_record_failure(extension_id, display_name, "菜单分区必须是 data_tables 或 editor_extensions。")
+		return {}
 
 	return {
 		"id": extension_id,
 		"display_name": display_name,
 		"script": script_path,
 		"menu_order": menu_order,
+		"menu_section": menu_section,
 	}
 
 

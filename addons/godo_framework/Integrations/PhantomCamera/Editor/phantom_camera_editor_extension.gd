@@ -17,12 +17,12 @@ var _dialog: AcceptDialog
 var _confirmation: ConfirmationDialog
 var _report: RichTextLabel
 var _enable_button: Button
-var _message_label: Label
+var _message_label: RichTextLabel
 
 
 func activate(context) -> Error:
 	_context = context
-	return _context.add_menu_action("status", "Phantom Camera 设置...", _open_dialog)
+	return _context.add_menu_action("status", "幻影相机配置 (Phantom Camera Settings)...", _open_dialog)
 
 
 func deactivate() -> void:
@@ -36,7 +36,6 @@ func deactivate() -> void:
 func _open_dialog() -> void:
 	if not is_instance_valid(_dialog):
 		_create_dialogs()
-	_message_label.text = ""
 	_refresh()
 	_dialog.popup_centered(Vector2i(680, 400))
 
@@ -63,8 +62,12 @@ func _create_dialogs() -> void:
 	_report.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_child(_report)
 
-	_message_label = Label.new()
-	_message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_message_label = RichTextLabel.new()
+	_message_label.name = "PhantomCameraMessage"
+	_message_label.bbcode_enabled = true
+	_message_label.custom_minimum_size.y = 44
+	_message_label.scroll_active = false
+	_message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	content.add_child(_message_label)
 
 	var refresh_button := _dialog.add_button("重新检查", true)
@@ -81,19 +84,43 @@ func _create_dialogs() -> void:
 	_dialog.add_child(_confirmation)
 
 
-func _refresh() -> void:
+func _refresh(message: String = "", message_color: String = "") -> void:
 	var state := _inspect_state()
 	var lines := PackedStringArray()
-	lines.append("[font_size=20]Phantom Camera 集成状态[/font_size]")
+	var configured: bool = state["files_ready"] and state["version_supported"] and state["plugin_enabled"]
+	lines.append(
+		"当前状态：[color=#8bd49c]已正确配置[/color]"
+		if configured
+		else "当前状态：[color=#ffd166]需要处理[/color]"
+	)
 	lines.append("")
 	lines.append(_status_line("第三方与适配文件", state["files_ready"], "已找到" if state["files_ready"] else "文件不完整"))
 	lines.append(_status_line("第三方版本", state["version_supported"], state["version"] if not state["version"].is_empty() else "未知"))
 	lines.append(_status_line("第三方插件", state["plugin_enabled"], "已启用" if state["plugin_enabled"] else "未启用"))
-	if not state["version_supported"] and not state["version"].is_empty():
-		lines.append("")
-		lines.append("[color=#ffd166]当前仅验证 Phantom Camera %s；其他版本必须先完成编译、回归和真实镜头验证。[/color]" % SUPPORTED_VERSION)
 	_report.text = "\n".join(lines)
 	_enable_button.disabled = state["plugin_enabled"] or not state["can_enable"]
+	if message.is_empty():
+		var hint := _hint_for_state(state)
+		_set_hint(str(hint.text), str(hint.color))
+	else:
+		_set_hint(message, message_color)
+
+
+func _hint_for_state(state: Dictionary) -> Dictionary:
+	if not state["files_ready"]:
+		return {"text": "请先完整安装 Phantom Camera 及 GoDo 适配文件。", "color": "#ff6b6b"}
+	if not state["version_supported"]:
+		return {
+			"text": "当前仅验证 Phantom Camera %s；其他版本需要重新完成兼容验证。" % SUPPORTED_VERSION,
+			"color": "#ffd166",
+		}
+	if not state["plugin_enabled"]:
+		return {"text": "点击“启用 Phantom Camera...”完成编辑器插件配置。", "color": "#ffd166"}
+	return {"text": "Phantom Camera 已正确配置，可以使用 GoDo 相机适配。", "color": "#8bd49c"}
+
+
+func _set_hint(message: String, color: String) -> void:
+	_message_label.text = "[center][color=%s]提示：%s[/color][/center]" % [color, message]
 
 
 func _inspect_state() -> Dictionary:
@@ -124,7 +151,7 @@ func _read_plugin_version() -> String:
 func _request_enable() -> void:
 	var state := _inspect_state()
 	if state["plugin_enabled"] or not state["can_enable"]:
-		_refresh()
+		_refresh("当前状态无需启用，或暂时不允许自动启用。", "#ffd166")
 		return
 	_confirmation.popup_centered()
 
@@ -132,22 +159,19 @@ func _request_enable() -> void:
 func _enable_plugin() -> void:
 	var state := _inspect_state()
 	if state["plugin_enabled"]:
-		_message_label.text = "Phantom Camera 已启用，无需重复操作。"
-		_refresh()
+		_refresh("Phantom Camera 已启用，无需重复操作。", "#8bd49c")
 		return
 	if not state["can_enable"]:
-		_message_label.text = "当前状态已变化，无法安全启用；请重新检查。"
-		_refresh()
+		_refresh("当前状态已变化，无法安全启用；请重新检查。", "#ff6b6b")
 		return
 
 	var editor_interface = _context.get_editor_interface()
 	editor_interface.set_plugin_enabled(PHANTOM_PLUGIN, true)
 	await editor_interface.get_base_control().get_tree().process_frame
 	if editor_interface.is_plugin_enabled(PHANTOM_PLUGIN):
-		_message_label.text = "Phantom Camera 已启用。请继续执行编译、自动回归和真实镜头验证。"
+		_refresh("Phantom Camera 已启用；请继续执行编译、自动回归和真实镜头验证。", "#8bd49c")
 	else:
-		_message_label.text = "Phantom Camera 启用失败，请检查编辑器输出。"
-	_refresh()
+		_refresh("Phantom Camera 启用失败，请检查编辑器输出。", "#ff6b6b")
 
 
 func _status_line(name: String, healthy: bool, detail: String) -> String:

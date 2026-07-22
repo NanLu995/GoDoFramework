@@ -15,13 +15,13 @@ var _dialog: AcceptDialog
 var _confirmation: ConfirmationDialog
 var _report: RichTextLabel
 var _repair_button: Button
-var _message_label: Label
+var _message_label: RichTextLabel
 var _context
 
 
 func activate(context) -> Error:
 	_context = context
-	return _context.add_menu_action("settings", "GUIDE Input 设置...", _open_dialog)
+	return _context.add_menu_action("settings", "输入映射配置 (GUIDE Input Settings)...", _open_dialog)
 
 
 func deactivate() -> void:
@@ -56,8 +56,12 @@ func _create_dialogs() -> void:
 	_report.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_child(_report)
 
-	_message_label = Label.new()
-	_message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_message_label = RichTextLabel.new()
+	_message_label.name = "GuideInputMessage"
+	_message_label.bbcode_enabled = true
+	_message_label.custom_minimum_size.y = 44
+	_message_label.scroll_active = false
+	_message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	content.add_child(_message_label)
 
 	var refresh_button := _dialog.add_button("重新检查", true)
@@ -81,15 +85,19 @@ func _create_dialogs() -> void:
 func _open_dialog() -> void:
 	if not is_instance_valid(_dialog):
 		_create_dialogs()
-	_message_label.text = ""
 	_refresh()
 	_dialog.popup_centered(Vector2i(720, 460))
 
 
-func _refresh() -> void:
+func _refresh(message: String = "", message_color: String = "") -> void:
 	var state := _inspect_state()
 	_report.text = _format_report(state)
 	_repair_button.disabled = not state["can_repair"] or not state["needs_repair"]
+	if message.is_empty():
+		var hint := _hint_for_state(state)
+		_set_hint(str(hint.text), str(hint.color))
+	else:
+		_set_hint(message, message_color)
 
 
 func _inspect_state() -> Dictionary:
@@ -141,7 +149,12 @@ func _inspect_state() -> Dictionary:
 
 func _format_report(state: Dictionary) -> String:
 	var lines := PackedStringArray()
-	lines.append("[font_size=20]GUIDE Input 集成状态[/font_size]")
+	var configured: bool = not state["needs_repair"] and state["runtime_present"] and not state["has_conflict"]
+	lines.append(
+		"当前状态：[color=#8bd49c]已正确配置[/color]"
+		if configured
+		else "当前状态：[color=#ffd166]需要处理[/color]"
+	)
 	lines.append("")
 	lines.append(_status_line("第三方文件", state["files_ready"], "已找到固定目录" if state["files_ready"] else "缺少 addons/guideCS/ 完整文件"))
 	lines.append(_status_line("文件扫描", not state["scanning"], "已完成" if not state["scanning"] else "仍在扫描，请等待"))
@@ -152,13 +165,27 @@ func _format_report(state: Dictionary) -> String:
 	lines.append(_autoload_line(GUIDE_CS_AUTOLOAD_NAME, state["guide_cs_path"], GUIDE_CS_AUTOLOAD_PATH))
 	lines.append(_autoload_line(GODO_AUTOLOAD_NAME, state["godo_path"], GODO_AUTOLOAD_PATH))
 	lines.append(_status_line("Autoload 顺序", state["order_ready"], "GUIDE → GuideCs → GoDoRuntime" if state["order_ready"] else "尚未满足要求"))
-	if state["has_conflict"]:
-		lines.append("")
-		lines.append("[color=#ff6b6b]检测到同名 Autoload 指向其他路径，工具不会自动覆盖。[/color]")
-	elif not state["runtime_present"]:
-		lines.append("")
-		lines.append("[color=#ffd166]GoDoRuntime 尚未安装；工具会先保证 GUIDE → GuideCs，之后请用 GoDo Setup 安装 Runtime。[/color]")
 	return "\n".join(lines)
+
+
+func _hint_for_state(state: Dictionary) -> Dictionary:
+	if state["has_conflict"]:
+		return {"text": "检测到同名 Autoload 冲突，请先手动处理。", "color": "#ff6b6b"}
+	if not state["files_ready"]:
+		return {"text": "请先完整安装 addons/guideCS/，然后重新检查。", "color": "#ff6b6b"}
+	if state["scanning"]:
+		return {"text": "Godot 正在扫描文件，请等待完成后重新检查。", "color": "#ffd166"}
+	if not state["class_ready"]:
+		return {"text": "请等待脚本类扫描完成，并确认 C# 已成功编译。", "color": "#ffd166"}
+	if state["needs_repair"]:
+		return {"text": "点击“安装 / 修复顺序...”完成 GUIDE Input 配置。", "color": "#ffd166"}
+	if not state["runtime_present"]:
+		return {"text": "GUIDE Input 已就绪；请通过 GoDo 配置安装 Runtime。", "color": "#ffd166"}
+	return {"text": "GUIDE Input 已正确配置，无需重复安装。", "color": "#8bd49c"}
+
+
+func _set_hint(message: String, color: String) -> void:
+	_message_label.text = "[center][color=%s]提示：%s[/color][/center]" % [color, message]
 
 
 func _status_line(name: String, healthy: bool, detail: String) -> String:
@@ -178,7 +205,7 @@ func _autoload_line(name: String, actual_path: String, expected_path: String) ->
 func _request_repair() -> void:
 	var state := _inspect_state()
 	if not state["can_repair"] or not state["needs_repair"]:
-		_refresh()
+		_refresh("当前状态无需修复，或暂时不允许自动修复。", "#ffd166")
 		return
 	_confirmation.popup_centered()
 
@@ -186,8 +213,7 @@ func _request_repair() -> void:
 func _perform_repair() -> void:
 	var state := _inspect_state()
 	if not state["can_repair"] or not state["needs_repair"]:
-		_message_label.text = "当前状态已变化，无法安全修复；请重新检查。"
-		_refresh()
+		_refresh("当前状态已变化，无法安全修复；请重新检查。", "#ff6b6b")
 		return
 
 	var editor_interface = _context.get_editor_interface()
@@ -198,18 +224,15 @@ func _perform_repair() -> void:
 	await editor_interface.get_base_control().get_tree().process_frame
 
 	if not editor_interface.is_plugin_enabled(GUIDE_PLUGIN):
-		_message_label.text = "基础 GUIDE 插件启用失败，请检查编辑器输出。"
-		_refresh()
+		_refresh("基础 GUIDE 插件启用失败，请检查编辑器输出。", "#ff6b6b")
 		return
 	if not editor_interface.is_plugin_enabled(GUIDE_CS_PLUGIN):
-		_message_label.text = "GUIDE-CSharp 插件启用失败，请先编译 C#，然后重试。"
-		_refresh()
+		_refresh("GUIDE-CSharp 插件启用失败，请先编译 C#，然后重试。", "#ff6b6b")
 		return
 
 	state = _inspect_state()
 	if state["has_conflict"]:
-		_message_label.text = "插件启用后检测到同名 Autoload 冲突，已停止修复。"
-		_refresh()
+		_refresh("插件启用后检测到同名 Autoload 冲突，已停止修复。", "#ff6b6b")
 		return
 	if (
 		state["guide_path"] != GUIDE_AUTOLOAD_PATH
@@ -217,8 +240,7 @@ func _perform_repair() -> void:
 		or not state["order_ready"]
 	):
 		_rewrite_autoload_order(state["runtime_present"])
-	_message_label.text = "安装与顺序修复完成。请重新检查；首次安装后建议重启编辑器。"
-	_refresh()
+	_refresh("安装与顺序修复完成；首次安装后建议重启编辑器。", "#8bd49c")
 
 
 func _rewrite_autoload_order(runtime_present: bool) -> void:

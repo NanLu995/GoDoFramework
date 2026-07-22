@@ -84,15 +84,21 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py compare-manifests
 
 ## EditorPlugin
 
-启用唯一的 GoDo EditorPlugin 后，打开顶部 `GoDo → DataTable...`。窗口默认查找 `res://DataTables/Base/.datatable.schema.json`，也可选择其他项目内 Schema；文件选择器会显示隐藏文件。选择结果按项目保存在 EditorSettings，不修改 `project.godot`。Python 留空时依次检测 `python3` 与 `python`，也可选择本机解释器文件。
+启用唯一的 GoDo EditorPlugin 后，在顶部 `GoDo Framework` 菜单“数据表”分组中打开“数据表配置 (DataTable Configuration)...”。窗口默认查找 `res://DataTables/Base/.datatable.schema.json`，也可选择其他项目内 Schema；文件选择器会显示隐藏文件。选择结果按项目保存在 EditorSettings，不修改 `project.godot`。Python 留空时依次检测 `python3` 与 `python`，也可选择本机解释器文件。
 
 首次使用可点击“新建 Schema”。菜单会创建一个最小可校验的数据集目录、`.datafiles/Example.csv` 和默认运行时输出位置，并直接打开可视化 Schema 编辑器。`.datafiles` 是工具管理的原始数据目录，保留 `.gdignore` 以明确阻止 Godot 把 CSV 导入为翻译；已有 Schema 仍可继续使用 `Authoring` 或其他安全相对路径。
 
-Schema JSON 是工具维护的内部项目文件，不要求开发者手写；数据集设置、表与字段的新增/移除、类型、默认值、范围、enum、主键、外键、空值规则和受众均在编辑器中维护。数据文件面板会递归列出 CSV，并区分“已加入 Schema”“未加入（已排除）”和“Schema 引用但文件缺失”；“加入选中 CSV”读取表头创建初始 string 字段，不猜测业务类型，保存前必须由开发者设置真实类型。“打开数据目录”通过系统文件管理器访问 Godot 文件系统面板中隐藏的 `.datafiles`。
+Schema JSON 是工具维护的内部项目文件，不要求开发者手写；数据集 ID、C# 命名空间和协议版本直接维护，通常不需修改的原始表目录、运行时目录与 C# 输出位于默认折叠的高级设置中。数据文件面板按“文件 / 状态 / 表 ID”显示：绿色“已加入”、黄色“未加入”和红色“文件缺失”。单击选中整行后，“加入 Schema”读取未加入 CSV 的表头创建初始 string 字段，“移出 Schema...”只移除表配置并保留 CSV。“打开数据目录”通过系统文件管理器访问 Godot 文件系统面板中隐藏的 `.datafiles`。
+
+“新建数据表...”要求先输入表 ID，并在保存 Schema 时创建带默认 `id` 字段的 CSV。表 ID 和 CSV 相对路径默认只读，必须通过紧凑的“重命名...”或“修改路径...”输入窗口显式操作，避免误触造成生成类型或文件路径变化；所有 ID、路径、字段和枚举值均关闭 Godot 自动翻译，保存时不会把 `Item` 改写为本地化文本。主键从当前字段中选择，Schema 版本由工具自动维护。同一编辑会话内把 CSV 移出后重新加入，会恢复原表 ID、字段类型和约束；重新打开编辑器后再加入则只能从 CSV 表头创建 string 字段，需要重新配置 Schema。
+
+字段列表内部只保留一个真实焦点单元格，同时以背景色标出整行：双击编辑文本单元格，类型和复选框单击操作，删除始终作用于高亮行。类型列始终显示实际类型，新字段默认 `string`。默认值留空表示没有 fallback，并不等于 `0`、`false` 或空字符串；CSV 空单元格在存在 default 时使用 default，否则按 required、allow_empty 和可空规则处理。最小值、最大值、长度、外键与 Null Token 留空都表示不启用对应规则。CSV 仍只保留一行表头，字段元数据以 Schema 为唯一来源，避免两套定义漂移。
 
 保存时会校验输入、同步 CSV 表头，并只为结构确实变化的表递增 `schema_version`；字段或 CSV 文件改名会按原名称把已有列数据写入新 CSV，旧 CSV 会保留。移除字段会先确认，移除表只修改 Schema 并保留 CSV。已有表引用的 CSV 若被意外删除，保存会拒绝创建空文件；应恢复 CSV 或从 Schema 移除该表，再执行“生成全部”清理旧 `.gdtb`。
 
-“检查全部”只读取并显示完整诊断；“生成全部...”先展示数据目录与 C# 文件并要求确认。“生成选中表...”从 Schema 填充表 ID 下拉框，确认窗口会列出目标 `.gdtb`、数据集元数据和聚合 C#。外部 Python 在独立线程中执行，操作期间禁止并发 DataTable 命令；生成成功后通知 Godot 重新扫描文件。禁用插件时若命令仍在运行，会等待该进程结束并可靠回收线程。
+“校验全部数据”只读取并显示完整诊断。“数据表生成”行提供表 ID 下拉框、“生成当前表...”和“生成全部表...”：“生成当前表...”的确认窗口会列出目标 `.gdtb`、数据集元数据和聚合 C#；“生成全部表...”会先展示数据目录与 C# 文件并要求确认。外部 Python 在独立线程中执行，操作期间禁止并发 DataTable 命令；生成成功后通知 Godot 重新扫描文件。禁用插件时若命令仍在运行，会等待该进程结束并可靠回收线程。
+
+Windows 下编辑器诊断通过 `user://` 中单次使用的 ASCII/Base64 临时载荷传递，回到主线程后按 UTF-8 解码并立即删除，避免 Godot 子进程捕获按系统代码页产生乱码。该文件不位于项目目录、不参与导出；普通 Python CLI 输出保持不变。
 
 ### 导出过滤与可靠发布门禁
 
