@@ -7,11 +7,11 @@
 ```powershell
 python Verification/Experimental/DataTable/verify_prototype.py
 dotnet build GoDoFramework.sln
-E:\Godot\Godot_v4.7.1\Godot_v4.7.1-stable_mono_win64_console.exe --headless --path . res://Verification/Experimental/DataTable/DataTableCompressionTargetRunner.tscn
-E:\Godot\Godot_v4.7.1\Godot_v4.7.1-stable_mono_win64_console.exe --headless --path . res://Verification/Experimental/DataTable/DataTablePrototypeBenchmark.tscn
-E:\Godot\Godot_v4.7.1\Godot_v4.7.1-stable_mono_win64_console.exe --headless --editor --path . --script res://Verification/Experimental/DataTable/DataTableEditorExtensionProbe.gd
-E:\Godot\Godot_v4.7.1\Godot_v4.7.1-stable_mono_win64_console.exe --headless --editor --path . --script res://Verification/Experimental/DataTable/DataTableExportPluginProbe.gd
-python Verification/Experimental/DataTable/verify_export_plugin.py --godot E:\Godot\Godot_v4.7.1\Godot_v4.7.1-stable_mono_win64_console.exe
+& $env:GODOT_PATH --headless --path . res://Verification/Experimental/DataTable/DataTableCompressionTargetRunner.tscn
+& $env:GODOT_PATH --headless --path . res://Verification/Experimental/DataTable/DataTablePrototypeBenchmark.tscn
+& $env:GODOT_PATH --headless --editor --path . --script res://Verification/Experimental/DataTable/DataTableEditorExtensionProbe.gd
+& $env:GODOT_PATH --headless --editor --path . --script res://Verification/Experimental/DataTable/DataTableExportPluginProbe.gd
+python Verification/Experimental/DataTable/verify_export_plugin.py --godot $env:GODOT_PATH
 ```
 
 第一条命令使用固定种子生成小型数据、约一万行性能数据和六类错误样例，然后通过正式工具验证：

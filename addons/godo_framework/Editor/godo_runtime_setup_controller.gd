@@ -6,6 +6,7 @@ const AUTOLOAD_SETTING := "autoload/GoDoRuntime"
 const RUNTIME_SCENE_PATH := "res://addons/godo_framework/Core/GoDoRuntime.tscn"
 const RUNTIME_SCRIPT_PATH := "res://addons/godo_framework/Core/GoDoRuntime.cs"
 const FRAMEWORK_PATH := "res://addons/godo_framework"
+const MIN_GODOT_VERSION := Vector3i(4, 7, 1)
 const NORMAL_COLOR := Color("#8BD49C")
 const PENDING_COLOR := Color("#AEB6C2")
 const WARNING_COLOR := Color("#FFD166")
@@ -213,13 +214,24 @@ func _check_version(report: Dictionary) -> void:
 	var major: int = version.major
 	var minor: int = version.minor
 	var patch: int = version.patch
-	report.version_supported = major == 4 and (minor > 7 or (minor == 7 and patch >= 1))
+	report.version_supported = (
+		major == MIN_GODOT_VERSION.x
+		and (
+			minor > MIN_GODOT_VERSION.y
+			or (minor == MIN_GODOT_VERSION.y and patch >= MIN_GODOT_VERSION.z)
+		)
+	)
+	var required_version := "%d.%d.%d" % [
+		MIN_GODOT_VERSION.x,
+		MIN_GODOT_VERSION.y,
+		MIN_GODOT_VERSION.z,
+	]
 	_add_item(
 		report,
 		HealthLevel.NORMAL if report.version_supported else HealthLevel.ERROR,
 		"Godot 版本",
 		"%d.%d.%d" % [major, minor, patch] if report.version_supported
-		else "当前为 %d.%d.%d，需要 Godot 4.7.1 或更高的 4.x 版本" % [major, minor, patch]
+		else "当前为 %d.%d.%d，需要 Godot %s 或更高的 4.x 版本" % [major, minor, patch, required_version]
 	)
 
 
@@ -370,7 +382,12 @@ func _render_report(report: Dictionary) -> void:
 
 func _framework_status(report: Dictionary) -> Dictionary:
 	if not report.version_supported:
-		return {"name": "Godot 版本不兼容", "level": HealthLevel.ERROR, "advice": "请使用 Godot 4.7.1 或更高的 4.x 版本。"}
+		var required_version := "%d.%d.%d" % [
+			MIN_GODOT_VERSION.x,
+			MIN_GODOT_VERSION.y,
+			MIN_GODOT_VERSION.z,
+		]
+		return {"name": "Godot 版本不兼容", "level": HealthLevel.ERROR, "advice": "请使用 Godot %s 或更高的 4.x 版本。" % required_version}
 	if not report.runtime_scene_valid:
 		return {"name": "框架资源缺失", "level": HealthLevel.ERROR, "advice": "请重新复制完整的框架文件。"}
 	if not report.csharp_ready:

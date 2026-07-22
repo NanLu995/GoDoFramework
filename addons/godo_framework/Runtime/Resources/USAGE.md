@@ -119,7 +119,7 @@ private void OnProgressChanged(float progress)
 `Verification/Automated/ResourceKeyRegression.tscn` 验证合法路径规范化、空白与非法前缀拒绝、非规范路径、父目录跳转、区分大小写的相等性、默认值、哈希集合、`uid://` 创建与空 UID 拒绝，以及 UID 反查失败时的路径回退。
 
 ```powershell
-Godot_v4.7.1-stable_mono_win64_console.exe --headless --path . Verification/Automated/ResourceKeyRegression.tscn
+& $env:GODOT_PATH --headless --path . Verification/Automated/ResourceKeyRegression.tscn
 ```
 
 成功退出码为 0，失败退出码为 1。
@@ -129,10 +129,10 @@ Godot_v4.7.1-stable_mono_win64_console.exe --headless --path . Verification/Auto
 `Verification/Automated/ResourceHubRegression.tscn` 复用现有强类型 `.tres`，验证同步加载、无效与缺失资源、同步类型不匹配、异步请求合并、同路径类型冲突、异步期间同步冲突，以及完成操作从活动表清理；不调用 Shutdown。
 
 ```powershell
-Godot_v4.7.1-stable_mono_win64_console.exe --headless --path . Verification/Automated/ResourceHubRegression.tscn
+& $env:GODOT_PATH --headless --path . Verification/Automated/ResourceHubRegression.tscn
 ```
 
-ResourceHub runner 已通过 `dotnet build` 编译，并在 Godot 4.7.1 Mono Headless 中完成 5/5 项验证；成功退出码为 0，失败退出码为 1。
+ResourceHub runner 已通过 `dotnet build` 编译，并在项目声明的 Godot Mono Headless 版本中完成 5/5 项验证；成功退出码为 0，失败退出码为 1。
 
 ## 不负责的能力
 

@@ -6,6 +6,24 @@
 
 GoDoFramework 是面向 Godot 4.7.1 C# / .NET 的轻量游戏开发框架，用于沉淀跨项目可复用的通信、诊断、生命周期管理和运行时服务，让具体项目把主要精力放在游戏逻辑与内容上。
 
+## 升级 Godot
+
+`GoDoFramework.csproj` 是 Godot patch 版本的来源。升级工具会同步最低版本检查、本机 VS Code 路径、版本说明和文档哈希；CI 与验证脚本会动态读取 csproj，不需要再手工修改下载地址或可执行文件名。
+
+```powershell
+python Tools/update_godot_version.py 4.7.2 `
+    --godot "E:\Godot\Godot_v4.7.2\Godot_v4.7.2-stable_mono_win64_console.exe" `
+    --verify
+```
+
+只检查当前仓库是否一致：
+
+```powershell
+python Tools/update_godot_version.py --check
+```
+
+`project.godot` 的 `config/features` 使用 Godot 主次版本标签，patch 升级时仍保持 `4.7`；升级到新的主次版本时，需要额外复核该标签、离线 API 文档和 DataTable 导出限制。
+
 框架不会替代 Godot，也不包含角色、战斗、关卡等具体玩法逻辑。所有框架 API 位于 `GoDo` 命名空间。
 
 ## 第三方插件

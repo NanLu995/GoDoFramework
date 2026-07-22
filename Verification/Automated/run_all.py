@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -70,6 +71,14 @@ PHANTOM_EDITOR_PLUGIN = "res://addons/phantom_camera/plugin.cfg"
 SUPPORTED_PHANTOM_VERSION = "0.11"
 
 
+def read_godot_version() -> str:
+    project = (REPOSITORY_ROOT / "GoDoFramework.csproj").read_text(encoding="utf-8")
+    match = re.search(r'Godot\.NET\.Sdk/([0-9]+\.[0-9]+\.[0-9]+)', project)
+    if match is None:
+        raise RuntimeError("GoDoFramework.csproj 未声明 Godot.NET.Sdk 版本。")
+    return match.group(1)
+
+
 def configure_console_encoding() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -77,13 +86,14 @@ def configure_console_encoding() -> None:
 
 
 def parse_arguments() -> argparse.Namespace:
+    godot_version = read_godot_version()
     parser = argparse.ArgumentParser(
         description="编译项目并依次运行 GoDoFramework Headless 自动回归。"
     )
     parser.add_argument(
         "--godot",
         type=Path,
-        help="Godot 4.7.1 Mono Console 可执行文件；也可设置 GODOT_PATH。",
+        help=f"Godot {godot_version} Mono Console 可执行文件；也可设置 GODOT_PATH。",
     )
     parser.add_argument(
         "--skip-build",
@@ -106,12 +116,13 @@ def parse_arguments() -> argparse.Namespace:
 
 
 def resolve_godot_path(argument: Path | None) -> Path:
+    godot_version = read_godot_version()
     candidates: list[str | Path | None] = [
         argument,
         os.environ.get("GODOT_PATH"),
         shutil.which("godot"),
         shutil.which("godot4"),
-            shutil.which("Godot_v4.7.1-stable_mono_win64_console.exe"),
+        shutil.which(f"Godot_v{godot_version}-stable_mono_win64_console.exe"),
     ]
     for candidate in candidates:
         if candidate is None:
@@ -121,7 +132,7 @@ def resolve_godot_path(argument: Path | None) -> Path:
             return path
 
     raise RuntimeError(
-        "未找到 Godot 4.7.1 Mono Console；请使用 --godot <exe路径> 或设置 GODOT_PATH。"
+        f"未找到 Godot {godot_version} Mono Console；请使用 --godot <exe路径> 或设置 GODOT_PATH。"
     )
 
 

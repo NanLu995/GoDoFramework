@@ -1,11 +1,11 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/index.md
-translation_source_hash: sha256:a07f03cd8f826080a1032801d6eb647f2c5408fd878f16ef3bc211d42b1a1e0a
+translation_source_hash: sha256:f03dc011f9ccfb7462c5f92f441843370ffb119fb7f2d9426bbc4dcb24dae8a4
 ---
 
 # 5-Minute Quick Start
 
-This page adds GoDoFramework to an existing Godot 4.7.1 C# project and verifies that its Runtime services are available.
+This page adds GoDoFramework to an existing Godot C# project and verifies that its Runtime services are available.
 
 ## Prerequisites
 

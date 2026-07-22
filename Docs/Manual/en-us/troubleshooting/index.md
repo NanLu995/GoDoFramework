@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/troubleshooting/index.md
-translation_source_hash: sha256:b082b3870e8aa0f77dd59fce0a7d0c13dc6005f7ab3e2073176d51994ebe69a8
+translation_source_hash: sha256:9c7ef5880c9fbdda8ef4679cd8e979744753670538ac3c1dd48b65bbf4a1d08d
 ---
 
 # Troubleshooting
@@ -13,7 +13,7 @@ This page is organized by runtime symptom. Find the closest match and confirm ca
 
 **Confirm:**
 
-- The project uses Godot 4.7.1 .NET.
+- The project uses the Godot .NET version declared in Getting Started.
 - Exactly one `.csproj` exists at root and a Debug build succeeded.
 - `addons/godo_framework/Core/GoDoRuntime.tscn` exists.
 - No other Autoload owns `GoDoRuntime` or points another name to the same path.
@@ -111,7 +111,7 @@ Release false usually means a duplicate return, wrong Pool, or external QueueFre
 - Run `check` and fix CSV encoding, types, keys, ranges, and foreign keys.
 - After source changes, run `generate`, then `verify-generated`.
 - Single-table mode needs a healthy full baseline; generate all after table-set or other-table changes.
-- Use `godo_datatable_export.py` for release; Godot 4.7.1 direct export cannot reliably abort a bad package.
+- Use `godo_datatable_export.py` for release; direct export in the supported Godot 4.x version cannot reliably abort a bad package, so revalidate this limitation after an engine upgrade.
 
 DataTable is experimental; regenerate and build after upgrading.
 

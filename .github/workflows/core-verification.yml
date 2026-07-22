@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - ".github/workflows/core-verification.yml"
+      - "Tools/update_godot_version.py"
       - "addons/godo_framework/**"
       - "Verification/Automated/**"
       - "Verification/Package/**"
@@ -38,14 +39,25 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Download Godot 4.7.1 Mono
+      - name: Resolve Godot version
+        shell: bash
+        run: |
+          GODOT_VERSION="$(sed -n 's/.*Godot.NET.Sdk\/\([0-9][0-9.]*\).*/\1/p' GoDoFramework.csproj)"
+          test -n "$GODOT_VERSION"
+          echo "GODOT_VERSION=$GODOT_VERSION" >> "$GITHUB_ENV"
+          echo "GODOT_BIN=.godot-ci/Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64/Godot_v${GODOT_VERSION}-stable_mono_linux.x86_64" >> "$GITHUB_ENV"
+
+      - name: Download Godot Mono
         shell: bash
         run: |
           curl --fail --location --retry 3 \
             --output godot.zip \
-            https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_mono_linux_x86_64.zip
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64.zip"
           unzip -q godot.zip -d .godot-ci
-          chmod +x .godot-ci/Godot_v4.7.1-stable_mono_linux_x86_64/Godot_v4.7.1-stable_mono_linux.x86_64
+          chmod +x "$GODOT_BIN"
+
+      - name: Verify Godot version metadata
+        run: python Tools/update_godot_version.py --check
 
       - name: Build core configuration
         run: >-
@@ -59,5 +71,5 @@ jobs:
         run: >-
           python Verification/Automated/run_all.py
           --suite core
-          --godot .godot-ci/Godot_v4.7.1-stable_mono_linux_x86_64/Godot_v4.7.1-stable_mono_linux.x86_64
+          --godot "$GODOT_BIN"
           --timeout 60

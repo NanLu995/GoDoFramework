@@ -1,6 +1,6 @@
 # 5 分钟快速开始
 
-本页帮助你把 GoDoFramework 接入现有 Godot 4.7.1 C# 项目，并确认 Runtime 服务已经可用。
+本页帮助你把 GoDoFramework 接入现有 Godot C# 项目，并确认 Runtime 服务已经可用。
 
 ## 前置条件
 

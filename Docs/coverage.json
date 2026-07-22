@@ -10,7 +10,7 @@
         "getting-started/install-upgrade-uninstall.md",
         "guides/resources-and-scenes/index.md"
       ],
-      "reviewed_contract_hash": "sha256:5a17d07b65daffe5d5387146c05be62569400a81ca031515f1e8d84329eed8b2"
+      "reviewed_contract_hash": "sha256:e84eb485b055e324e555f859e610aacc376e571abe5c6c90ff44eca13be811d6"
     },
     "error-hub": {
       "contract": "addons/godo_framework/Core/ErrorHub/USAGE.md",
@@ -19,7 +19,7 @@
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:45f6373e1515123eac426c03bb2f652cc577db59d2912638deecd19a92db4528"
+      "reviewed_contract_hash": "sha256:f7761c3aba4088354e3052d96839eb91ce72e24228e0253d020d96d606d10cb2"
     },
     "event-channel": {
       "contract": "addons/godo_framework/Core/EventChannel/USAGE.md",
@@ -30,7 +30,7 @@
         "getting-started/localize-game-text.md",
         "guides/services-and-events/index.md"
       ],
-      "reviewed_contract_hash": "sha256:704a2f6891c7de1e91da098cc4a00a1e3c7ffa5fdf6d340fe07455c4724b9f1e"
+      "reviewed_contract_hash": "sha256:45a5bd863728d807af9728315452e3d87c6cc76c366cf9ec112a41cbf24b22b1"
     },
     "log-hub": {
       "contract": "addons/godo_framework/Core/LogHub/USAGE.md",
@@ -39,7 +39,7 @@
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:5fa92254e710f5bc79ef4bb369c2ac9d7d78fbabf45b7d1adb6cdcccc995dd47"
+      "reviewed_contract_hash": "sha256:884da1ca2ca0a33419328dee47f34fefcf5b326053247cd673beb97e7c7fbb4f"
     },
     "services": {
       "contract": "addons/godo_framework/Core/Services/USAGE.md",
@@ -48,7 +48,7 @@
       "manual_pages": [
         "guides/services-and-events/index.md"
       ],
-      "reviewed_contract_hash": "sha256:fe032f1e3714cdc2af6dceae00e3746ef85b7ed25d910763f9463220858a74bd"
+      "reviewed_contract_hash": "sha256:da48e586814585f4fcc98c885afe5ee7c1a43942bb55806d5701116ac0bd79c0"
     },
     "debugger": {
       "contract": "addons/godo_framework/Debugger/USAGE.md",
@@ -105,7 +105,7 @@
       "manual_pages": [
         "guides/configuration/index.md"
       ],
-      "reviewed_contract_hash": "sha256:194dabdee4ddaf89d7715aa9c71fae94b5b6aee3abae869e9939940b1daa7710"
+      "reviewed_contract_hash": "sha256:03f4f0786316c75d85cfbc97c59efd3f2b41484cb07ef1fc7a837936815bc4cb"
     },
     "input": {
       "contract": "addons/godo_framework/Runtime/Input/USAGE.md",
@@ -125,7 +125,7 @@
         "getting-started/localize-game-text.md",
         "guides/save-settings-localization/index.md"
       ],
-      "reviewed_contract_hash": "sha256:3696fe22ceaa36e977fd019732369621cffd9ac06d12501e5b3e1bf0c5146e5f"
+      "reviewed_contract_hash": "sha256:9866aa4631e99a83fd5b4283ff017b6587510421f9048f8e9b9f9f334f44f675"
     },
     "pool": {
       "contract": "addons/godo_framework/Runtime/Pool/USAGE.md",
@@ -134,7 +134,7 @@
       "manual_pages": [
         "guides/node-pool/index.md"
       ],
-      "reviewed_contract_hash": "sha256:1753854695eb4943bc5d8d84498d799a63b2d1c4919e9c7d7414f1e65e5e48f1"
+      "reviewed_contract_hash": "sha256:790e256f7d7f21a2f99a0255d23b2c1bbe87d3eded175eccc21247b2e1a820b7"
     },
     "procedure": {
       "contract": "addons/godo_framework/Runtime/Procedure/USAGE.md",
@@ -163,7 +163,7 @@
         "getting-started/add-audio.md",
         "guides/resources-and-scenes/index.md"
       ],
-      "reviewed_contract_hash": "sha256:0a260e16371546cfaccf0f76df4b695117abba0b42e26cf5afa7475e79a8a97b"
+      "reviewed_contract_hash": "sha256:227f31467ee4efc8630d0164e961cd9c526e2182aecd18e8d211e7eba931c046"
     },
     "save": {
       "contract": "addons/godo_framework/Runtime/Save/USAGE.md",
@@ -173,7 +173,7 @@
         "getting-started/save-progress-and-settings.md",
         "guides/save-settings-localization/index.md"
       ],
-      "reviewed_contract_hash": "sha256:e03d7bbfa53a518e7125a6dd8e836d2dd97bb29ce5eef5c5332fb533e109ce9c"
+      "reviewed_contract_hash": "sha256:218433ec687a765092d80fdf894726d293b583f3c93bb2f2806e74dc69cb1b9a"
     },
     "scene": {
       "contract": "addons/godo_framework/Runtime/Scene/USAGE.md",
@@ -216,7 +216,7 @@
         "getting-started/localize-game-text.md",
         "guides/ui-and-audio/index.md"
       ],
-      "reviewed_contract_hash": "sha256:67002aac0ef7cdd4622bce23261dc7acab7fc499b37a0d7dc8ce70e26f7880e5"
+      "reviewed_contract_hash": "sha256:7ce921ec398e71a4e94a7f14fe01ec1f295a9122198f7a862540a1c5bd48e33c"
     },
     "data-table-runtime": {
       "contract": "addons/godo_framework/Runtime/DataTable/USAGE.md",
@@ -234,7 +234,7 @@
       "manual_pages": [
         "guides/data-tables/index.md"
       ],
-      "reviewed_contract_hash": "sha256:978e7ce90be6e0a579d49aa8064a6ce5c88dffb20532f32e4d2769f00b285787"
+      "reviewed_contract_hash": "sha256:8c97aa12ce517409390fcfe73256d7ff3757fdd5a303b5cdfea96283aa08b352"
     }
   }
 }

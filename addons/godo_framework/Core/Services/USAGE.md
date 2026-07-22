@@ -50,10 +50,10 @@ Services.Unregister<ISceneService>(sceneService);
 `Verification/Automated/ServicesRegression.tscn` 使用专属测试接口验证缺失查询、注册与获取、重复注册、具体类型拒绝、实例匹配注销和注销后状态，不会清空或替换 GoDoRuntime 已注册的真实服务。
 
 ```powershell
-Godot_v4.7.1-stable_mono_win64_console.exe --headless --path . Verification/Automated/ServicesRegression.tscn
+& $env:GODOT_PATH --headless --path . Verification/Automated/ServicesRegression.tscn
 ```
 
-当前 runner 已通过 `dotnet build` 编译，并在 Godot 4.7.1 Mono Headless 中完成 6/6 项验证；成功退出码为 0，失败退出码为 1。
+当前 runner 已通过 `dotnet build` 编译，并在项目声明的 Godot Mono Headless 版本中完成 6/6 项验证；成功退出码为 0，失败退出码为 1。
 
 ## 常见误用
 

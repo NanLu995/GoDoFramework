@@ -2,7 +2,7 @@
 
 ## 定位与边界
 
-LocalizationService 复用 Godot 4.7.1 的 `TranslationServer`，提供项目已加载语言的查询、翻译、语言有效性校验和语言变更通知。它不解析 PO/CSV，不维护翻译缓存，也不负责持久化玩家选择。
+LocalizationService 复用当前 Godot 4.x 的 `TranslationServer`，提供项目已加载语言的查询、翻译、语言有效性校验和语言变更通知。它不解析 PO/CSV，不维护翻译缓存，也不负责持久化玩家选择。
 
 SettingsService 负责语言选择与保存；业务代码通过 Settings 切换语言，通过 Localization 查询翻译。
 

@@ -68,10 +68,10 @@ if (result.HasValue)
 `Verification/Automated/SaveServiceRegression.tscn` 使用随机 `godo-regression-*` 槽位验证 NotFound、保存读取与元数据、正式档损坏后的备份恢复、Codec 异常边界，以及正式档与备份的完整删除。runner 在最外层 `finally` 清理本次创建的全部槽位，不使用正式游戏槽位。
 
 ```powershell
-Godot_v4.7.1-stable_mono_win64_console.exe --headless --path . Verification/Automated/SaveServiceRegression.tscn
+& $env:GODOT_PATH --headless --path . Verification/Automated/SaveServiceRegression.tscn
 ```
 
-当前 runner 已通过 `dotnet build` 编译，并在 Godot 4.7.1 Mono Headless 中完成 5/5 项验证；成功退出码为 0，失败退出码为 1，验证后未残留 `godo-regression-*` 文件。
+当前 runner 已通过 `dotnet build` 编译，并在项目声明的 Godot Mono Headless 版本中完成 5/5 项验证；成功退出码为 0，失败退出码为 1，验证后未残留 `godo-regression-*` 文件。
 
 ## 后续可选扩展
 

@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/data-tables/index.md
-translation_source_hash: sha256:9d70d8c4e1b2540fb5346522567e378476723461947b5de67ed2142e1d98c72e
+translation_source_hash: sha256:d4cb612308e811dc3da02fc8aed1ec4b17e6e0a75fe8a6118d262f7247a94562
 ---
 
 # Generate Validated Data Tables from CSV
@@ -216,11 +216,11 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py compare-manifests
   --server DataTables/Base/Runtime/manifest.server.json
 ```
 
-Do not rely on clicking Godot Export for a formal release. Godot 4.7.1 EditorExportPlugin cannot reliably abort a bad export. Use the wrapper to run the read-only gate before launching Godot:
+Do not rely on clicking Godot Export for a formal release. The supported Godot 4.x EditorExportPlugin cannot reliably abort a bad export; revalidate this limitation after an engine upgrade. Use the wrapper to run the read-only gate before launching Godot:
 
 ```powershell
 python addons/godo_framework/Tools/DataTable/godo_datatable_export.py `
-    --godot "E:/Godot/Godot_v4.7.1/Godot_v4.7.1-stable_mono_win64_console.exe" `
+    --godot $env:GODOT_PATH `
   --project . `
   --preset "Windows Desktop" `
   --output Builds/Windows/Game.exe `

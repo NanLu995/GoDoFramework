@@ -1,11 +1,11 @@
 ---
 translation_of: Docs/Manual/zh-cn/index.md
-translation_source_hash: sha256:05831465c36a7477c0ea3cc6d2e7fc89e31d13b8498401c07c37167e5bb4f0b4
+translation_source_hash: sha256:0281e73fe2c6b4ebfa9f1dcd15313423eda4c1a363d9e8a9af79e0a9cd7dadc1
 ---
 
 # GoDoFramework User Manual
 
-GoDoFramework is a game-development framework for Godot 4.7.1 C# projects. It provides consistent ways to handle scene transitions, UI navigation, audio, input, saves, settings, and top-level game flow so you can focus on the game itself.
+GoDoFramework is a game-development framework for the currently supported Godot 4.x C# release. It provides consistent ways to handle scene transitions, UI navigation, audio, input, saves, settings, and top-level game flow so you can focus on the game itself. See Getting Started for the exact minimum version.
 
 ## Projects it is designed for
 

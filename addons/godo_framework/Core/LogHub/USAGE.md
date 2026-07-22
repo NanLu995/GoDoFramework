@@ -49,14 +49,14 @@ Release 默认不输出 LogHub；ErrorHub 仍按自身最低等级策略输出 W
 `Verification/Automated/LogHubRegression.tscn` 验证 Debug、Info 的统一格式、空消息和空模块拒绝、主线程控制台输出路径，以及环形历史的容量与淘汰顺序。
 
 ```powershell
-Godot_v4.7.1-stable_mono_win64_console.exe --headless --path . Verification/Automated/LogHubRegression.tscn
+& $env:GODOT_PATH --headless --path . Verification/Automated/LogHubRegression.tscn
 ```
 
 ## 验证状态
 
 - 已通过 Debug 与 ExportRelease 的 `dotnet build`。
 - 已在 Windows Godot Debug 运行时手动验证控制台输出、Debugger 最近日志展示，以及主场景切换后的持续可见性。
-- 已在 Windows Godot 4.7.1 Mono Headless 完成 `LogHubRegression` 5/5 项验证；运行时需允许 Godot 写入 AppData 与 `user://` 目录。
+- 已在 Windows 当前项目声明的 Godot Mono Headless 版本完成 `LogHubRegression` 5/5 项验证；运行时需允许 Godot 写入 AppData 与 `user://` 目录。
 
 ## 常见误用
 

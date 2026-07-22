@@ -104,10 +104,10 @@ public sealed class SessionObserver : IDisposable
 
 `Verification/Automated/EventChannelRegression.tscn` 覆盖优先级与稳定顺序、重复监听去重、Once 重入、派发期间增删、嵌套派发的延迟提交、监听者异常隔离、EventScope 释放后拒绝注册、树外 Bind 拒绝注册、重复 Bind 和 Node 生命周期解绑。
 
-先完成 C# 编译，再使用 Godot 4.7.1 Mono 可执行文件运行：
+先完成 C# 编译，再设置 `GODOT_PATH` 指向项目声明版本的 Godot Mono Console：
 
 ```powershell
-Godot_v4.7.1-stable_mono_win64_console.exe --headless --path . Verification/Automated/EventChannelRegression.tscn
+& $env:GODOT_PATH --headless --path . Verification/Automated/EventChannelRegression.tscn
 ```
 
 全部通过时进程退出码为 0；任一断言失败时退出码为 1。当前 runner 已通过 `dotnet build` 编译；本次新增无数据事件派发用例，完整 Headless 回归待运行环境恢复后执行。

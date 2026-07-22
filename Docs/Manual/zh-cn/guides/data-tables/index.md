@@ -211,11 +211,11 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py compare-manifests
   --server DataTables/Base/Runtime/manifest.server.json
 ```
 
-正式发布不要只点击 Godot 导出。Godot 4.7.1 的 EditorExportPlugin 无法可靠中止错误导出，应使用包装脚本先执行只读门禁，再启动 Godot：
+正式发布不要只点击 Godot 导出。当前支持的 Godot 4.x EditorExportPlugin 无法可靠中止错误导出；升级引擎后也应重新验证该限制。正式流程应使用包装脚本先执行只读门禁，再启动 Godot：
 
 ```powershell
 python addons/godo_framework/Tools/DataTable/godo_datatable_export.py `
-    --godot "E:/Godot/Godot_v4.7.1/Godot_v4.7.1-stable_mono_win64_console.exe" `
+    --godot $env:GODOT_PATH `
   --project . `
   --preset "Windows Desktop" `
   --output Builds/Windows/Game.exe `
