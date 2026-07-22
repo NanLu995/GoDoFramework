@@ -21,17 +21,26 @@ INCLUDED_SUFFIXES = {".cfg", ".cs", ".gd", ".py", ".tscn", ".uid"}
 EXCLUDED_NAMES = {".DS_Store", "Thumbs.db"}
 
 
-def read_plugin_version() -> str:
+def read_plugin_metadata() -> tuple[str, str, str]:
     config = configparser.ConfigParser()
     if not config.read(PLUGIN_CONFIG, encoding="utf-8"):
         raise RuntimeError(f"无法读取插件配置：{PLUGIN_CONFIG}")
 
-    version = config.get("plugin", "version", fallback="").strip().strip('"')
-    if not version:
-        raise RuntimeError("plugin.cfg 缺少 plugin.version。")
-    if re.fullmatch(r"[0-9A-Za-z][0-9A-Za-z.-]*", version) is None:
-        raise RuntimeError(f"plugin.cfg 包含非法版本号：{version}")
-    return version
+    values = tuple(
+        config.get("plugin", key, fallback="").strip().strip('"')
+        for key in ("version", "min_godot_version", "tested_godot_version")
+    )
+    framework_version, minimum_version, tested_version = values
+    if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?", framework_version) is None:
+        raise RuntimeError("plugin.cfg 的框架版本不是有效的语义化版本。")
+    if any(re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", value) is None for value in (minimum_version, tested_version)):
+        raise RuntimeError("plugin.cfg 的 Godot 兼容版本不是 major.minor.patch。")
+
+    minimum_parts = tuple(map(int, minimum_version.split(".")))
+    tested_parts = tuple(map(int, tested_version.split(".")))
+    if minimum_parts > tested_parts or minimum_parts[0] != tested_parts[0]:
+        raise RuntimeError("plugin.cfg 的 Godot 兼容范围无效。")
+    return values
 
 
 def collect_release_files() -> list[Path]:
@@ -116,7 +125,7 @@ def main() -> int:
         sys.stderr.reconfigure(encoding="utf-8")
 
     arguments = parse_arguments()
-    plugin_version = read_plugin_version()
+    plugin_version, minimum_version, tested_version = read_plugin_metadata()
     version = arguments.version or plugin_version
 
     if version != plugin_version:
@@ -125,6 +134,9 @@ def main() -> int:
         )
 
     archive_path = build_archive(version)
+    print(f"GoDoFramework：{plugin_version}")
+    print(f"Godot 已验证范围：{minimum_version}～{tested_version}")
+    print(f"更高的 Godot {tested_version.split('.')[0]}.x 版本需要项目回归验证。")
     if arguments.publish:
         publish_release(version, archive_path)
     return 0

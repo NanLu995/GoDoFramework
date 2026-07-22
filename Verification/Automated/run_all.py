@@ -343,7 +343,7 @@ def run_editor_extension_check(godot_path: Path, timeout: int) -> bool:
             "Invalid access to property or key",
         )
     )
-    has_pass_summary = "[EditorExtensionUiRegression] PASS (4/4)" in output
+    has_pass_summary = "[EditorExtensionUiRegression] PASS (5/5)" in output
     if result.returncode == 0 and not has_script_error and has_pass_summary:
         try:
             transport_result = subprocess.run(

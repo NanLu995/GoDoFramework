@@ -186,7 +186,7 @@ Input 的活动设备、有效 Context 和 Action 当前值已通过 Debug-only 
 
 当前开发与验收收尾完成后，再建立正式版本发布流程，不在此阶段打断框架开发：
 
-1. 使用语义化版本，并同步更新 `plugin.cfg` 版本号；
+1. 使用语义化版本，并同步更新 `plugin.cfg` 的框架版本、最低 Godot 版本和最高已验证 Godot 版本；
 2. 使用 Git 标签标记版本，例如 `v0.1.0`；
 3. 通过 GitHub Release 发布 ZIP，压缩包只保留 `addons/godo_framework/` 的运行与编辑器资源，Markdown 文档留在仓库中；
 4. 使用 `CHANGELOG.md` 记录兼容版本、主要改动和迁移注意事项；

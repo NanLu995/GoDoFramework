@@ -126,7 +126,7 @@ Settings 负责玩家 Locale 的选择、内存快照与持久化；Localization
 ```text
 addons/
 └── godo_framework/       可整体复制的 GoDo 插件包
-    ├── plugin.cfg        EditorPlugin 发现入口
+    ├── plugin.cfg        EditorPlugin 发现入口、框架版本与 Godot 兼容性声明
     ├── Editor/           安装、健康检查、资源清单校验与可选扩展宿主，不进入运行时依赖（对应第 4 节 Editor 层）
     ├── Core/             最小稳定核心与 GoDoRuntime
     ├── Runtime/          Resources、Pool 与长期运行时服务

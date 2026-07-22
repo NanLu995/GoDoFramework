@@ -2,6 +2,7 @@
 extends SceneTree
 
 const MENU_BUTTON_NAME := "GoDoFrameworkToolbarMenu"
+const SETUP_CONTROLLER_SCRIPT := preload("res://addons/godo_framework/Editor/godo_runtime_setup_controller.gd")
 
 
 func _initialize() -> void:
@@ -18,6 +19,8 @@ func _run() -> void:
 
 	var menu := menu_button.get_popup()
 	if not _verify_menu_layout(menu):
+		return
+	if not await _open_and_verify_setup(menu):
 		return
 	if not await _open_and_verify_datatable(menu):
 		return
@@ -40,7 +43,7 @@ func _run() -> void:
 	):
 		return
 
-	print("[EditorExtensionUiRegression] PASS (4/4)")
+	print("[EditorExtensionUiRegression] PASS (5/5)")
 	quit(0)
 
 
@@ -108,6 +111,40 @@ func _open_and_verify(
 	var action_button := dialog.find_child(action_button_name, true, false) as Button
 	if action_button == null or not action_button.disabled:
 		_fail("%s 在健康状态下仍允许重复写入。" % dialog_title)
+		return false
+	dialog.hide()
+	return true
+
+
+func _open_and_verify_setup(menu: PopupMenu) -> bool:
+	var controller = SETUP_CONTROLLER_SCRIPT.new()
+	var minimum := Vector3i(4, 7, 1)
+	var tested := Vector3i(4, 7, 1)
+	if controller._evaluate_version(Vector3i(4, 7, 0), minimum, tested).supported:
+		_fail("低于最低版本的 Godot 未被拒绝。")
+		return false
+	var newer: Dictionary = controller._evaluate_version(Vector3i(4, 7, 2), minimum, tested)
+	if not newer.supported or newer.tested:
+		_fail("高于已验证版本的同 major Godot 未进入兼容但未验证状态。")
+		return false
+
+	var menu_id := _find_menu_id(menu, "配置 (Setup)...")
+	if menu_id < 0:
+		_fail("未找到 Setup 菜单项。")
+		return false
+	menu.id_pressed.emit(menu_id)
+	await process_frame
+	var dialog := _find_window(root, "GoDo Framework")
+	if dialog == null:
+		_fail("未找到 GoDo Framework 配置窗口。")
+		return false
+	var report := dialog.find_child("ReportLabel", true, false) as RichTextLabel
+	if (
+		report == null
+		or not report.get_parsed_text().contains("GoDoFramework 版本")
+		or not report.get_parsed_text().contains("Godot 兼容性")
+	):
+		_fail("Setup 未显示框架版本和 Godot 兼容性：%s" % ("<missing>" if report == null else report.get_parsed_text()))
 		return false
 	dialog.hide()
 	return true
