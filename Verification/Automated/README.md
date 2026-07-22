@@ -5,19 +5,19 @@
 `Verification/Package/verify_core_package.py` 则在系统临时目录创建干净的 Godot C# 项目，只复制 `addons/godo_framework/`，验证核心包不依赖 GUIDE、Phantom Camera 或任何 `godo_*` 适配包：
 
 ```powershell
-python Verification/Package/verify_core_package.py --godot "E:\Godot\Godot_v4.7\Godot_v4.7-stable_mono_win64_console.exe"
+python Verification/Package/verify_core_package.py --godot "E:\Godot\Godot_v4.7.1\Godot_v4.7.1-stable_mono_win64_console.exe"
 ```
 
 默认无论通过或失败都会清理临时项目；排查时添加 `--keep`，失败后会输出保留目录。
 
 ```powershell
-python Verification/Automated/run_all.py --godot "E:\Godot\Godot_v4.7\Godot_v4.7-stable_mono_win64_console.exe"
+python Verification/Automated/run_all.py --godot "E:\Godot\Godot_v4.7.1\Godot_v4.7.1-stable_mono_win64_console.exe"
 ```
 
 也可以设置环境变量后省略参数：
 
 ```powershell
-$env:GODOT_PATH = "E:\Godot\Godot_v4.7\Godot_v4.7-stable_mono_win64_console.exe"
+$env:GODOT_PATH = "E:\Godot\Godot_v4.7.1\Godot_v4.7.1-stable_mono_win64_console.exe"
 python Verification/Automated/run_all.py
 ```
 
@@ -37,7 +37,7 @@ dotnet build GoDoFramework.csproj -c CoreVerification -p:GoDoIncludeGuideInput=f
 
 必须使用独立的 `CoreVerification` 配置并直接构建 `.csproj`。不要用上述强制禁用参数构建默认 Debug：它会覆盖 Godot 编辑器当前加载的 Debug 程序集，导致已安装的 GUIDE / Phantom C# 插件脚本暂时无法实例化，直到重新执行默认 Debug 构建。
 
-GitHub Actions 的 `Core Verification` 工作流复用上述边界：在 Linux 上使用 Godot 4.7 Mono，先以 `CoreVerification` 配置强制关闭可选适配，再运行 `--suite core`。相关框架、验证或工程文件推送到 `master` 时会自动触发，也可以在 Actions 页面手动运行；它只验证可分发核心包的编译与 9 项长期服务启动，不把本地工作台的 GUIDE、Phantom Camera 或 Demo 配置视为 CI 前置条件。
+GitHub Actions 的 `Core Verification` 工作流复用上述边界：在 Linux 上使用 Godot 4.7.1 Mono，先以 `CoreVerification` 配置强制关闭可选适配，再运行 `--suite core`。相关框架、验证或工程文件推送到 `master` 时会自动触发，也可以在 Actions 页面手动运行；它只验证可分发核心包的编译与 9 项长期服务启动，不把本地工作台的 GUIDE、Phantom Camera 或 Demo 配置视为 CI 前置条件。
 
 `SchedulerCoreRegression` 使用人工时间推进验证三种时钟、Process/Physics、重复/取消/暂停、异常隔离、DelayAsync、跨线程 Token 取消与 Shutdown，并通过真实 SceneTree 验证 Owner 入树约束、绑定清理和退出树自动取消；Debug 构建另验证只读快照。该场景不进行真实等待，也不依赖 Scheduler 已接入 GoDoRuntime。
 

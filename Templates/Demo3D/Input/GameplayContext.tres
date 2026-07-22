@@ -75,7 +75,6 @@ input = SubResource("MoveRightInput")
 
 [sub_resource type="Resource" id="MoveJoyInput"]
 script = ExtResource("5_joy_axis")
-joy_index = -1
 
 [sub_resource type="Resource" id="MoveJoyDeadzone"]
 script = ExtResource("11_deadzone")
@@ -108,7 +107,6 @@ modifiers = Array[ExtResource("8_modifier")]([SubResource("LookMouseScale")])
 script = ExtResource("5_joy_axis")
 x = 2
 y = 3
-joy_index = -1
 
 [sub_resource type="Resource" id="LookJoyDeadzone"]
 script = ExtResource("11_deadzone")
@@ -140,7 +138,6 @@ input = SubResource("JumpKeyInput")
 
 [sub_resource type="Resource" id="JumpJoyInput"]
 script = ExtResource("6_joy_button")
-joy_index = -1
 
 [sub_resource type="Resource" id="JumpJoyMapping"]
 script = ExtResource("3_input_mapping")

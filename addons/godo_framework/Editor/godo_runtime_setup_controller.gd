@@ -212,13 +212,14 @@ func _check_version(report: Dictionary) -> void:
 	var version := Engine.get_version_info()
 	var major: int = version.major
 	var minor: int = version.minor
-	report.version_supported = major == 4 and minor >= 7
+	var patch: int = version.patch
+	report.version_supported = major == 4 and (minor > 7 or (minor == 7 and patch >= 1))
 	_add_item(
 		report,
 		HealthLevel.NORMAL if report.version_supported else HealthLevel.ERROR,
 		"Godot 版本",
-		"%d.%d" % [major, minor] if report.version_supported
-		else "当前为 %d.%d，需要 Godot 4.7 或更高的 4.x 版本" % [major, minor]
+		"%d.%d.%d" % [major, minor, patch] if report.version_supported
+		else "当前为 %d.%d.%d，需要 Godot 4.7.1 或更高的 4.x 版本" % [major, minor, patch]
 	)
 
 
@@ -369,7 +370,7 @@ func _render_report(report: Dictionary) -> void:
 
 func _framework_status(report: Dictionary) -> Dictionary:
 	if not report.version_supported:
-		return {"name": "Godot 版本不兼容", "level": HealthLevel.ERROR, "advice": "请使用 Godot 4.7 或更高的 4.x 版本。"}
+		return {"name": "Godot 版本不兼容", "level": HealthLevel.ERROR, "advice": "请使用 Godot 4.7.1 或更高的 4.x 版本。"}
 	if not report.runtime_scene_valid:
 		return {"name": "框架资源缺失", "level": HealthLevel.ERROR, "advice": "请重新复制完整的框架文件。"}
 	if not report.csharp_ready:

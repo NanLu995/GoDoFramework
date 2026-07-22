@@ -65,7 +65,7 @@ health_potion,consumable,Health Potion,true,20,0.2,Uncommon,Restores health
 
 ## 3. 用 Schema 编辑器声明结构
 
-打开 `GoDo Framework` 菜单“数据表”分组中的“数据表配置 (DataTable Configuration)...”，选择 `.datatable.schema.json` 后点击“编辑 Schema...”。数据文件面板按文件、状态和表 ID 显示绿色“已加入”、黄色“未加入”或红色“文件缺失”；单击选中整行后，可以将未加入 CSV 加入 Schema，也可以把已加入 CSV 移出 Schema 而不删除文件。“新建数据表...”会在保存时创建新 CSV。表 ID、字段名和 CSV 路径不会经过 Godot 自动翻译。表 ID 与 CSV 路径通过独立按钮显式修改，Schema 版本由工具自动维护；字段以整行背景标识当前目标，双击编辑文本，类型和复选框单击操作。默认值留空表示不配置 fallback，不会自动变成 `0`、`false` 或空字符串。以下 JSON 仅用于解释保存结果，不要求手工编辑：
+打开 `GoDo Framework` 菜单“数据表”分组中的“数据表配置 (DataTable Configuration)...”，选择 `.datatable.schema.json` 后点击“编辑 Schema...”。数据文件面板按文件、状态和数据表 ID 显示绿色“已加入”、黄色“未加入”或红色“文件缺失”；单击选中整行后，可以将未加入 CSV 加入 Schema，也可以把已加入 CSV 移出 Schema 而不删除文件。“新建数据表...”会在保存时创建新 CSV。数据表 ID、字段名和 CSV 路径不会经过 Godot 自动翻译。数据表 ID 与 CSV 路径通过独立按钮显式修改，“当前表结构版本”只读并由工具维护；字段以整行背景标识当前目标，双击编辑文本，类型和复选框单击操作。默认值留空表示不配置 fallback，不会自动变成 `0`、`false` 或空字符串。以下 JSON 仅用于解释保存结果，不要求手工编辑：
 
 ```json
 {
@@ -111,13 +111,15 @@ health_potion,consumable,Health Potion,true,20,0.2,Uncommon,Restores health
 }
 ```
 
-当前支持 `string`、`bool`、`int32`、`float64` 和受控 `enum`。`audience` 可取：
+当前支持 `string`、`bool`、`int32`、`float64` 和受控 `enum`。编辑器中的“数据导出范围”对应 `audience`：
 
 - `Shared`：Client 和 Server 都包含。
 - `ClientOnly`：只进入客户端目标。
 - `ServerOnly`：只进入专服目标。
 
-Schema 编辑器在结构真实变化时自动递增表的 `schema_version`。跨端数据协议发生约定变化时由项目递增 `protocol_version`。这些版本不会自动迁移旧二进制或网络连接。
+Schema 编辑器在结构真实变化时自动递增表的 `schema_version`；只修改 CSV 路径不会递增。重命名数据表 ID 或字段会同步维护引用它的外键，仍被外键引用的表或字段不能直接移除。跨端数据 Schema 出现不兼容变化时由项目递增 `protocol_version`。这些版本不会自动迁移旧二进制或网络连接。
+
+保存会先在内存中校验完整 Schema 和所有 CSV 更新，再把 Schema、CSV 表头与 `.gdignore` 作为同一事务提交。任一文件无法写入时，已替换的文件会回滚，不会留下 Schema 与 CSV 只更新一半的状态。
 
 Schema 同时保存源目录、运行时目录和 C# 输出路径。所有路径相对于 Schema，使用正斜杠，不能是绝对路径或包含 `..`。C# 文件必须位于运行时目录之外，因为运行时目录生成时会整体替换。
 
@@ -155,7 +157,7 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py generate `
 GoDo Framework → 数据表 → 数据表配置 (DataTable Configuration)...
 ```
 
-窗口默认寻找 `res://DataTables/Base/.datatable.schema.json`。可以编辑 Schema、查看或加入数据文件，使用“校验全部数据”执行只读校验，或在“数据表生成”行执行“生成当前表...”和“生成全部表...”。生成操作会先展示目标并要求确认，完成后通知 Godot 扫描新文件。
+窗口默认寻找 `res://DataTables/Base/.datatable.schema.json`。可以编辑 Schema、查看或加入数据文件，使用“校验全部数据”执行只读校验，或在“数据表导出”行执行“导出当前表...”和“导出全部表...”。导出操作会先展示目标并要求确认，完成后通知 Godot 扫描新文件。
 
 Python 路径只保存在本机 EditorSettings，不写入项目配置。团队和 CI 共用版本控制内的 Schema。
 
@@ -209,11 +211,11 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py compare-manifests
   --server DataTables/Base/Runtime/manifest.server.json
 ```
 
-正式发布不要只点击 Godot 导出。Godot 4.7 的 EditorExportPlugin 无法可靠中止错误导出，应使用包装脚本先执行只读门禁，再启动 Godot：
+正式发布不要只点击 Godot 导出。Godot 4.7.1 的 EditorExportPlugin 无法可靠中止错误导出，应使用包装脚本先执行只读门禁，再启动 Godot：
 
 ```powershell
 python addons/godo_framework/Tools/DataTable/godo_datatable_export.py `
-  --godot "E:/Godot/Godot_v4.7/Godot_v4.7-stable_mono_win64_console.exe" `
+    --godot "E:/Godot/Godot_v4.7.1/Godot_v4.7.1-stable_mono_win64_console.exe" `
   --project . `
   --preset "Windows Desktop" `
   --output Builds/Windows/Game.exe `

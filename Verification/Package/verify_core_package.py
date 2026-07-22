@@ -46,7 +46,7 @@ renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 """
 
-PROJECT_FILE = """<Project Sdk="Godot.NET.Sdk/4.7.0">
+PROJECT_FILE = """<Project Sdk="Godot.NET.Sdk/4.7.1">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
@@ -112,7 +112,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--godot",
         type=Path,
-        help="Godot 4.7 Mono Console 可执行文件；也可设置 GODOT_PATH。",
+        help="Godot 4.7.1 Mono Console 可执行文件；也可设置 GODOT_PATH。",
     )
     parser.add_argument(
         "--timeout",
@@ -134,7 +134,7 @@ def resolve_godot_path(argument: Path | None) -> Path:
         os.environ.get("GODOT_PATH"),
         shutil.which("godot"),
         shutil.which("godot4"),
-        shutil.which("Godot_v4.7-stable_mono_win64_console.exe"),
+            shutil.which("Godot_v4.7.1-stable_mono_win64_console.exe"),
     ]
     for candidate in candidates:
         if candidate is None:
@@ -144,7 +144,7 @@ def resolve_godot_path(argument: Path | None) -> Path:
             return path
 
     raise RuntimeError(
-        "未找到 Godot 4.7 Mono Console；请使用 --godot <exe路径> 或设置 GODOT_PATH。"
+        "未找到 Godot 4.7.1 Mono Console；请使用 --godot <exe路径> 或设置 GODOT_PATH。"
     )
 
 

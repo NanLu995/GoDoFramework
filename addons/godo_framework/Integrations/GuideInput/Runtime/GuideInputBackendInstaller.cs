@@ -29,7 +29,7 @@ public sealed partial class GuideInputBackendInstaller : Node
     /// <inheritdoc />
     public override void _Ready()
     {
-        if (!GodotObject.IsInstanceValid(Profile))
+        if (!IsInstanceValid(Profile))
             throw new InvalidOperationException("GuideInputBackendInstaller 缺少 Profile。");
 
         InputService service = Services.Get<IInputService>() as InputService ??

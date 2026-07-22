@@ -38,14 +38,14 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Download Godot 4.7 Mono
+      - name: Download Godot 4.7.1 Mono
         shell: bash
         run: |
           curl --fail --location --retry 3 \
             --output godot.zip \
-            https://github.com/godotengine/godot-builds/releases/download/4.7-stable/Godot_v4.7-stable_mono_linux_x86_64.zip
+            https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_mono_linux_x86_64.zip
           unzip -q godot.zip -d .godot-ci
-          chmod +x .godot-ci/Godot_v4.7-stable_mono_linux_x86_64/Godot_v4.7-stable_mono_linux.x86_64
+          chmod +x .godot-ci/Godot_v4.7.1-stable_mono_linux_x86_64/Godot_v4.7.1-stable_mono_linux.x86_64
 
       - name: Build core configuration
         run: >-
@@ -59,5 +59,5 @@ jobs:
         run: >-
           python Verification/Automated/run_all.py
           --suite core
-          --godot .godot-ci/Godot_v4.7-stable_mono_linux_x86_64/Godot_v4.7-stable_mono_linux.x86_64
+          --godot .godot-ci/Godot_v4.7.1-stable_mono_linux_x86_64/Godot_v4.7.1-stable_mono_linux.x86_64
           --timeout 60

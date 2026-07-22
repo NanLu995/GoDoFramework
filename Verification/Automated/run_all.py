@@ -83,7 +83,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--godot",
         type=Path,
-        help="Godot 4.7 Mono Console 可执行文件；也可设置 GODOT_PATH。",
+        help="Godot 4.7.1 Mono Console 可执行文件；也可设置 GODOT_PATH。",
     )
     parser.add_argument(
         "--skip-build",
@@ -111,7 +111,7 @@ def resolve_godot_path(argument: Path | None) -> Path:
         os.environ.get("GODOT_PATH"),
         shutil.which("godot"),
         shutil.which("godot4"),
-        shutil.which("Godot_v4.7-stable_mono_win64_console.exe"),
+            shutil.which("Godot_v4.7.1-stable_mono_win64_console.exe"),
     ]
     for candidate in candidates:
         if candidate is None:
@@ -121,7 +121,7 @@ def resolve_godot_path(argument: Path | None) -> Path:
             return path
 
     raise RuntimeError(
-        "未找到 Godot 4.7 Mono Console；请使用 --godot <exe路径> 或设置 GODOT_PATH。"
+        "未找到 Godot 4.7.1 Mono Console；请使用 --godot <exe路径> 或设置 GODOT_PATH。"
     )
 
 
@@ -362,8 +362,42 @@ def run_editor_extension_check(godot_path: Path, timeout: int) -> bool:
             and "[DataTableEditorTransportRegression] PASS" in transport_output
             and "SCRIPT ERROR:" not in transport_output
         ):
-            print("[EDITOR] PASS")
-            return True
+            try:
+                schema_save_result = subprocess.run(
+                    [
+                        str(godot_path),
+                        "--headless",
+                        "--editor",
+                        "--path",
+                        str(REPOSITORY_ROOT),
+                        "--script",
+                        "res://Verification/Automated/DataTableSchemaEditorSaveRegression.gd",
+                    ],
+                    cwd=REPOSITORY_ROOT,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=timeout,
+                )
+            except subprocess.TimeoutExpired as exception:
+                schema_save_output = (exception.stdout or "") + (exception.stderr or "")
+                print(schema_save_output + f"\nDataTable Schema 保存验证超时：{timeout} 秒", file=sys.stderr)
+                return False
+            schema_save_output = schema_save_result.stdout + schema_save_result.stderr
+            if (
+                schema_save_result.returncode == 0
+                and "[DataTableSchemaEditorSaveRegression] PASS (4/4)" in schema_save_output
+                and "SCRIPT ERROR:" not in schema_save_output
+            ):
+                print("[EDITOR] PASS")
+                return True
+            print(
+                f"[EDITOR] DataTable Schema 保存 FAIL (exit={schema_save_result.returncode})",
+                file=sys.stderr,
+            )
+            print(schema_save_output, file=sys.stderr)
+            return False
         print(f"[EDITOR] DataTable 诊断传输 FAIL (exit={transport_result.returncode})", file=sys.stderr)
         print(transport_output, file=sys.stderr)
         return False

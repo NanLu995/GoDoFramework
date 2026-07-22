@@ -1,10 +1,10 @@
 # 5 分钟快速开始
 
-本页帮助你把 GoDoFramework 接入现有 Godot 4.7 C# 项目，并确认 Runtime 服务已经可用。
+本页帮助你把 GoDoFramework 接入现有 Godot 4.7.1 C# 项目，并确认 Runtime 服务已经可用。
 
 ## 前置条件
 
-- Godot 4.7 .NET 版本。
+- Godot 4.7.1 .NET 版本。
 - 可用的 C# 解决方案，并已至少成功完成一次 Debug 编译。
 - 目标项目使用 .NET 8；Android 构建按项目要求使用 .NET 9。
 

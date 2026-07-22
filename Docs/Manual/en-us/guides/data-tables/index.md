@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/data-tables/index.md
-translation_source_hash: sha256:d23452cdb2d43db59b7a2cc065c542e8cdf1ea0dfce7324bb01f2e4e14ed8415
+translation_source_hash: sha256:9d70d8c4e1b2540fb5346522567e378476723461947b5de67ed2142e1d98c72e
 ---
 
 # Generate Validated Data Tables from CSV
@@ -70,7 +70,7 @@ Stable IDs are case-sensitive. Do not use localized display copy as an ID. A pro
 
 ## 3. Declare structure in the Schema editor
 
-Open `数据表配置 (DataTable Configuration)...` in the **Data Tables** section of the `GoDo Framework` menu, select `.datatable.schema.json`, then choose **Edit Schema...**. The data-file panel shows the file, state, and table ID, using green for included files, yellow for files not yet included, and red for missing files. Select a whole row to include an unconfigured CSV or remove an included CSV from the Schema without deleting the file. **新建数据表...** creates a new CSV when the Schema is saved. Godot translation is disabled for table IDs, field names, and CSV paths. Table IDs and CSV paths change only through explicit actions, while the tool maintains the Schema version. A row background marks the active field; double-click edits text cells, while types and checkboxes use a single click. A blank default means no fallback is configured—it does not silently become `0`, `false`, or an empty string. The JSON below explains the saved result and is not intended for manual editing:
+Open `数据表配置 (DataTable Configuration)...` in the **Data Tables** section of the `GoDo Framework` menu, select `.datatable.schema.json`, then choose **Edit Schema...**. The data-file panel shows the file, state, and data table ID, using green for included files, yellow for files not yet included, and red for missing files. Select a whole row to include an unconfigured CSV or remove an included CSV from the Schema without deleting the file. **新建数据表...** creates a new CSV when the Schema is saved. Godot translation is disabled for data table IDs, field names, and CSV paths. Data table IDs and CSV paths change only through explicit actions, while the read-only current table-structure version is maintained by the tool. A row background marks the active field; double-click edits text cells, while types and checkboxes use a single click. A blank default means no fallback is configured—it does not silently become `0`, `false`, or an empty string. The JSON below explains the saved result and is not intended for manual editing:
 
 ```json
 {
@@ -116,13 +116,15 @@ Open `数据表配置 (DataTable Configuration)...` in the **Data Tables** secti
 }
 ```
 
-Supported types are currently `string`, `bool`, `int32`, `float64`, and controlled `enum`. `audience` can be:
+Supported types are currently `string`, `bool`, `int32`, `float64`, and controlled `enum`. The editor's **Data export scope** maps to `audience`:
 
 - `Shared`: included for Client and Server.
 - `ClientOnly`: included only in the client target.
 - `ServerOnly`: included only in the dedicated-server target.
 
-The Schema editor increments a table's `schema_version` only after a real structural change. The project increments `protocol_version` after changing a cross-endpoint data contract. These versions do not migrate old binaries or network connections automatically.
+The Schema editor increments a table's `schema_version` only after a real structural change; changing only the CSV path does not increment it. Renaming a data table ID or field updates foreign keys that target it, while a referenced table or field cannot be removed directly. The project increments `protocol_version` after an incompatible cross-endpoint Data Schema change. These versions do not migrate old binaries or network connections automatically.
+
+Save validates the complete Schema and every CSV update in memory, then commits the Schema, CSV headers, and `.gdignore` as one transaction. If any file cannot be written, replaced files are rolled back instead of leaving a partially updated Schema and CSV set.
 
 The Schema also stores the source directory, runtime directory, and C# output path. Every path is relative to the Schema, uses forward slashes, and cannot be absolute or contain `..`. The C# file must remain outside the runtime directory because data generation replaces that directory as a unit.
 
@@ -160,7 +162,7 @@ Enable the single **GoDo Framework** plugin, then open:
 GoDo Framework → Data Tables → 数据表配置 (DataTable Configuration)...
 ```
 
-The window looks for `res://DataTables/Base/.datatable.schema.json` by default. It can edit the Schema, inspect or include data files, run **校验全部数据** for read-only validation, or use **生成当前表...** and **生成全部表...** in the data-generation row. Generation previews its targets and asks for confirmation, then tells Godot to rescan files when complete.
+The window looks for `res://DataTables/Base/.datatable.schema.json` by default. It can edit the Schema, inspect or include data files, run **校验全部数据** for read-only validation, or use **导出当前表...** and **导出全部表...** in the data-export row. Export previews its targets and asks for confirmation, then tells Godot to rescan files when complete.
 
 The Python path is stored only in local EditorSettings, not project configuration. Teams and CI share the version-controlled Schema.
 
@@ -214,11 +216,11 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py compare-manifests
   --server DataTables/Base/Runtime/manifest.server.json
 ```
 
-Do not rely on clicking Godot Export for a formal release. Godot 4.7 EditorExportPlugin cannot reliably abort a bad export. Use the wrapper to run the read-only gate before launching Godot:
+Do not rely on clicking Godot Export for a formal release. Godot 4.7.1 EditorExportPlugin cannot reliably abort a bad export. Use the wrapper to run the read-only gate before launching Godot:
 
 ```powershell
 python addons/godo_framework/Tools/DataTable/godo_datatable_export.py `
-  --godot "E:/Godot/Godot_v4.7/Godot_v4.7-stable_mono_win64_console.exe" `
+    --godot "E:/Godot/Godot_v4.7.1/Godot_v4.7.1-stable_mono_win64_console.exe" `
   --project . `
   --preset "Windows Desktop" `
   --output Builds/Windows/Game.exe `

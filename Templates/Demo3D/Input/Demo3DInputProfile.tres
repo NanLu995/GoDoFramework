@@ -103,6 +103,6 @@ GuideContextResource = ExtResource("9_result")
 
 [resource]
 script = ExtResource("1_profile")
-Actions = [SubResource("MoveBinding"), SubResource("LookBinding"), SubResource("JumpBinding"), SubResource("ReleasePointerBinding")]
-Contexts = [SubResource("GameplayBinding"), SubResource("ResultBinding")]
-Bindings = [SubResource("MoveForwardBinding"), SubResource("MoveBackwardBinding"), SubResource("MoveLeftBinding"), SubResource("MoveRightBinding"), SubResource("MoveGamepadBinding"), SubResource("LookMouseBinding"), SubResource("LookGamepadBinding"), SubResource("JumpPrimaryBinding"), SubResource("JumpGamepadBinding")]
+Actions = Array[ExtResource("2_action_binding")]([SubResource("MoveBinding"), SubResource("LookBinding"), SubResource("JumpBinding"), SubResource("ReleasePointerBinding")])
+Contexts = Array[ExtResource("3_context_binding")]([SubResource("GameplayBinding"), SubResource("ResultBinding")])
+Bindings = Array[ExtResource("10_binding_definition")]([SubResource("MoveForwardBinding"), SubResource("MoveBackwardBinding"), SubResource("MoveLeftBinding"), SubResource("MoveRightBinding"), SubResource("MoveGamepadBinding"), SubResource("LookMouseBinding"), SubResource("LookGamepadBinding"), SubResource("JumpPrimaryBinding"), SubResource("JumpGamepadBinding")])

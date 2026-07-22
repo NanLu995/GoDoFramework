@@ -29,7 +29,7 @@ var _table_id: LineEdit
 var _table_source: LineEdit
 var _table_audience: OptionButton
 var _primary_key: OptionButton
-var _schema_version: Label
+var _schema_version: LineEdit
 var _fields: Tree
 var _status: Label
 var _remove_confirmation: ConfirmationDialog
@@ -108,40 +108,65 @@ func _create_dialog() -> void:
 	_dialog.add_child(content)
 
 	var dataset_grid := GridContainer.new()
+	dataset_grid.name = "DataTableSchemaDatasetGrid"
 	dataset_grid.columns = 4
+	dataset_grid.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	content.add_child(dataset_grid)
 	_data_set_id = _add_line_setting(dataset_grid, "数据集 ID")
 	_data_set_id.name = "DataTableSchemaDataSetId"
+	_data_set_id.custom_minimum_size.x = 360
+	_data_set_id.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_data_set_id.tooltip_text = "稳定数据集标识；修改后会影响生成的数据集入口。"
 	_namespace = _add_line_setting(dataset_grid, "C# 命名空间")
+	_namespace.custom_minimum_size.x = 480
+	_namespace.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_namespace.tooltip_text = "生成的行类型、表类型和数据集入口所在的 C# 命名空间。"
+
+	var dataset_options := HBoxContainer.new()
+	dataset_options.name = "DataTableSchemaDatasetOptions"
+	content.add_child(dataset_options)
+	dataset_options.add_child(_label("协议版本"))
 	_protocol_version = SpinBox.new()
 	_protocol_version.name = "DataTableSchemaProtocolVersion"
 	_protocol_version.min_value = 1
 	_protocol_version.max_value = 2147483647
-	_protocol_version.tooltip_text = "Client/Server 共享数据契约发生不兼容变化时手动递增。"
-	dataset_grid.add_child(_label("协议版本"))
-	dataset_grid.add_child(_protocol_version)
-	dataset_grid.add_child(_label("跨端数据契约变化时手动递增"))
-	dataset_grid.add_child(Control.new())
+	_protocol_version.custom_minimum_size.x = 120
+	_protocol_version.tooltip_text = "客户端与服务器共享的数据表结构发生不兼容变化时手动递增。"
+	dataset_options.add_child(_protocol_version)
+	var protocol_version_hint := _label("客户端与服务器共享数据结构不兼容时手动递增")
+	protocol_version_hint.name = "DataTableSchemaProtocolVersionHint"
+	dataset_options.add_child(protocol_version_hint)
+	var dataset_options_spacer := Control.new()
+	dataset_options_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dataset_options.add_child(dataset_options_spacer)
 
 	_advanced_settings_button = Button.new()
 	_advanced_settings_button.name = "DataTableSchemaAdvancedSettingsButton"
 	_advanced_settings_button.text = "显示高级设置"
 	_advanced_settings_button.toggle_mode = true
 	_advanced_settings_button.toggled.connect(_toggle_advanced_settings)
-	content.add_child(_advanced_settings_button)
+	dataset_options.add_child(_advanced_settings_button)
 
 	_advanced_settings = GridContainer.new()
 	_advanced_settings.name = "DataTableSchemaAdvancedSettings"
-	_advanced_settings.columns = 4
+	_advanced_settings.columns = 6
+	_advanced_settings.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_advanced_settings.visible = false
 	content.add_child(_advanced_settings)
 	_source_directory = _add_line_setting(_advanced_settings, "原始表目录")
+	_source_directory.custom_minimum_size.x = 300
+	_source_directory.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_source_directory.text_submitted.connect(_on_source_directory_submitted)
 	_source_directory.focus_exited.connect(_refresh_data_files)
 	_output_directory = _add_line_setting(_advanced_settings, "运行数据目录")
+	_output_directory.custom_minimum_size.x = 300
+	_output_directory.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_csharp_output = _add_line_setting(_advanced_settings, "C# 代码文件")
+	_csharp_output.custom_minimum_size.x = 300
+	_csharp_output.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var data_files_top_separator := HSeparator.new()
+	data_files_top_separator.name = "DataTableSchemaDataFilesTopSeparator"
+	content.add_child(data_files_top_separator)
 
 	var data_file_bar := HBoxContainer.new()
 	content.add_child(data_file_bar)
@@ -181,13 +206,17 @@ func _create_dialog() -> void:
 	_data_files.custom_minimum_size.y = 120
 	_data_files.set_column_title(0, "文件")
 	_data_files.set_column_title(1, "状态")
-	_data_files.set_column_title(2, "表 ID")
+	_data_files.set_column_title(2, "数据表 ID")
 	_data_files.set_column_expand(0, true)
 	_data_files.set_column_expand(1, false)
-	_data_files.set_column_expand(2, true)
+	_data_files.set_column_expand(2, false)
 	_data_files.set_column_custom_minimum_width(1, 100)
+	_data_files.set_column_custom_minimum_width(2, 300)
 	_data_files.item_selected.connect(_update_data_file_actions)
 	content.add_child(_data_files)
+	var data_files_bottom_separator := HSeparator.new()
+	data_files_bottom_separator.name = "DataTableSchemaDataFilesBottomSeparator"
+	content.add_child(data_files_bottom_separator)
 
 	var table_bar := HBoxContainer.new()
 	content.add_child(table_bar)
@@ -195,7 +224,8 @@ func _create_dialog() -> void:
 	_table_selector = OptionButton.new()
 	_table_selector.name = "DataTableSchemaTableSelector"
 	_table_selector.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-	_table_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_table_selector.custom_minimum_size.x = 420
+	_table_selector.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_table_selector.item_selected.connect(_on_table_selected)
 	table_bar.add_child(_table_selector)
 	var add_table := Button.new()
@@ -205,20 +235,24 @@ func _create_dialog() -> void:
 	table_bar.add_child(add_table)
 
 	var table_details := HBoxContainer.new()
+	table_details.name = "DataTableSchemaTableDetails"
+	table_details.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	table_details.add_theme_constant_override("separation", 20)
 	content.add_child(table_details)
 	var table_left := GridContainer.new()
 	table_left.columns = 2
-	table_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	table_left.size_flags_stretch_ratio = 1.0
+	table_left.custom_minimum_size.x = 580
+	table_left.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	table_details.add_child(table_left)
 	var table_right := GridContainer.new()
 	table_right.columns = 2
-	table_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	table_right.size_flags_stretch_ratio = 1.0
+	table_right.custom_minimum_size.x = 620
+	table_right.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	table_details.add_child(table_right)
 
-	table_left.add_child(_label("表 ID"))
+	var table_id_label := _label("数据表 ID")
+	table_id_label.name = "DataTableSchemaTableIdLabel"
+	table_left.add_child(table_id_label)
 	var table_id_row := HBoxContainer.new()
 	table_id_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	table_left.add_child(table_id_row)
@@ -227,7 +261,7 @@ func _create_dialog() -> void:
 	_table_id.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	_table_id.editable = false
 	_table_id.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_table_id.tooltip_text = "用于生成 C# 类型、数据集入口、Manifest 表 ID 和 .gdtb 文件名。"
+	_table_id.tooltip_text = "用于生成 C# 类型、数据集入口、Manifest 数据表 ID 和 .gdtb 文件名。"
 	table_id_row.add_child(_table_id)
 	var rename_table_id := Button.new()
 	rename_table_id.name = "DataTableSchemaRenameTableIdButton"
@@ -257,18 +291,30 @@ func _create_dialog() -> void:
 	_primary_key.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	_primary_key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	table_left.add_child(_primary_key)
-	table_right.add_child(_label("受众"))
+	var export_scope_label := _label("数据导出范围")
+	export_scope_label.name = "DataTableSchemaExportScopeLabel"
+	table_right.add_child(export_scope_label)
 	_table_audience = OptionButton.new()
 	_table_audience.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_table_audience.tooltip_text = "Shared 同时导出到客户端和服务器；ClientOnly 仅客户端；ServerOnly 仅服务器。"
 	for audience in AUDIENCES:
 		_table_audience.add_item(audience)
 	_table_audience.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	table_right.add_child(_table_audience)
-	table_left.add_child(_label("Schema 版本"))
-	_schema_version = Label.new()
+	table_left.add_child(_label("当前表结构版本"))
+	var schema_version_row := HBoxContainer.new()
+	table_left.add_child(schema_version_row)
+	_schema_version = LineEdit.new()
 	_schema_version.name = "DataTableSchemaVersion"
-	_schema_version.tooltip_text = "字段、主键、受众或表标识发生结构变化时由工具自动递增。"
-	table_left.add_child(_schema_version)
+	_schema_version.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_schema_version.editable = false
+	_schema_version.custom_minimum_size.x = 120
+	_schema_version.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_schema_version.tooltip_text = "字段、主键、数据导出范围或数据表标识发生结构变化时由工具自动递增。"
+	schema_version_row.add_child(_schema_version)
+	var schema_version_hint := _label("保存结构变更时由工具自动递增")
+	schema_version_hint.name = "DataTableSchemaVersionHint"
+	schema_version_row.add_child(schema_version_hint)
 	table_right.add_child(Control.new())
 	table_right.add_child(Control.new())
 
@@ -501,7 +547,7 @@ func _add_selected_csv() -> void:
 			_removed_tables_by_source.erase(source)
 			_refresh_table_selector(restored_tables.size() - 1)
 			_refresh_data_files()
-			_status.text = "%s 已恢复到 Schema，原表 ID、字段类型和约束均已保留。" % source
+			_status.text = "%s 已恢复到 Schema，原数据表 ID、字段类型和约束均已保留。" % source
 			return
 	var source_root := _source_root()
 	var path := source_root.path_join(source).simplify_path() if not source_root.is_empty() else ""
@@ -551,7 +597,7 @@ func _validate_csv_header(header: PackedStringArray) -> String:
 	var names := {}
 	for raw_name in header:
 		var name := raw_name.strip_edges()
-		if name != raw_name or not name.is_valid_identifier():
+		if name != raw_name or not _is_ascii_identifier(name):
 			return "CSV 字段名必须是无首尾空格的有效标识符：%s。" % raw_name
 		if names.has(name):
 			return "CSV 字段名不能重复：%s。" % name
@@ -568,7 +614,7 @@ func _table_id_from_source(source: String) -> String:
 			continue
 		result += character.to_upper() if capitalize_next else character
 		capitalize_next = false
-	if result.is_empty() or not result.is_valid_identifier():
+	if not _is_ascii_identifier(result):
 		return "Table"
 	return result
 
@@ -658,18 +704,21 @@ func _apply_table_value_change() -> void:
 	if _selected_table < 0:
 		return
 	if _table_value_mode == "table_id":
-		if not value.is_valid_identifier():
-			_status.text = "重命名失败：表 ID 必须是有效标识符。"
+		if not _is_ascii_identifier(value):
+			_status.text = "重命名失败：数据表 ID 必须是有效标识符。"
 			return
 		if _table_value_used_by_other("id", value):
-			_status.text = "重命名失败：表 ID 已存在：%s。" % value
+			_status.text = "重命名失败：数据表 ID 已存在：%s。" % value
 			return
 		if value == _table_id.text:
 			return
+		var previous_table_id := _table_id.text
 		_table_id.text = value
 		_commit_current_table()
+		_replace_foreign_key_target(previous_table_id, "", value, "")
 		_refresh_table_selector(_selected_table)
-		_status.text = "表 ID 已改为 %s；保存后生成代码和运行数据文件名会同步变化。" % value
+		_refresh_data_files()
+		_status.text = "数据表 ID 已改为 %s；保存后生成代码和运行数据文件名会同步变化。" % value
 		return
 	if _table_value_mode != "table_source":
 		return
@@ -700,6 +749,59 @@ func _table_value_used_by_other(key: String, value: String) -> bool:
 	return false
 
 
+func _replace_foreign_key_target(
+	old_table_id: String,
+	old_field_name: String,
+	new_table_id: String,
+	new_field_name: String
+) -> void:
+	var tables: Array = _schema.get("tables", [])
+	for table in tables:
+		for field in table.get("fields", []):
+			var foreign_key := str(field.get("foreign_key", ""))
+			var separator := foreign_key.find(".")
+			if separator < 0:
+				continue
+			var target_table := foreign_key.left(separator)
+			var target_field := foreign_key.substr(separator + 1)
+			if target_table != old_table_id:
+				continue
+			if not old_field_name.is_empty() and target_field != old_field_name:
+				continue
+			field["foreign_key"] = "%s.%s" % [
+				new_table_id,
+				new_field_name if not old_field_name.is_empty() else target_field,
+			]
+	var root := _fields.get_root()
+	var item := root.get_first_child() if root != null else null
+	while item != null:
+		var foreign_key := item.get_text(9)
+		var separator := foreign_key.find(".")
+		if separator >= 0:
+			var target_table := foreign_key.left(separator)
+			var target_field := foreign_key.substr(separator + 1)
+			if target_table == old_table_id and (old_field_name.is_empty() or target_field == old_field_name):
+				item.set_text(9, "%s.%s" % [
+					new_table_id,
+					new_field_name if not old_field_name.is_empty() else target_field,
+				])
+		item = item.get_next()
+
+
+func _foreign_key_referrers(target_table_id: String, target_field_name := "") -> PackedStringArray:
+	var result := PackedStringArray()
+	for table in _schema.get("tables", []):
+		for field in table.get("fields", []):
+			var foreign_key := str(field.get("foreign_key", ""))
+			var expected := "%s.%s" % [target_table_id, target_field_name]
+			if (
+				foreign_key == expected
+				or (target_field_name.is_empty() and foreign_key.begins_with(target_table_id + "."))
+			):
+				result.append("%s.%s" % [table.get("id", ""), field.get("name", "")])
+	return result
+
+
 func _populate_table() -> void:
 	_loading = true
 	_selected_field_item = null
@@ -723,7 +825,7 @@ func _populate_table() -> void:
 	_table_source.text = str(table.get("source", ""))
 	_refresh_primary_key_options(table.get("fields", []), str(table.get("primary_key", "id")))
 	_table_audience.select(maxi(0, AUDIENCES.find(str(table.get("audience", "Shared")))))
-	_schema_version.text = "%d（结构变化时自动递增）" % int(table.get("schema_version", 1))
+	_schema_version.text = str(int(table.get("schema_version", 1)))
 	for field in table.get("fields", []):
 		_add_field_item(root, field)
 	_loading = false
@@ -813,7 +915,15 @@ func _on_field_item_edited() -> void:
 		return
 	if _editing_field_column == 0:
 		var selected_primary := _selected_primary_key()
-		var renamed_primary := _editing_field_item.get_text(0) if selected_primary == _editing_field_previous_text else selected_primary
+		var new_field_name := _editing_field_item.get_text(0).strip_edges()
+		var renamed_primary := new_field_name if selected_primary == _editing_field_previous_text else selected_primary
+		if new_field_name != _editing_field_previous_text and _selected_table >= 0:
+			_replace_foreign_key_target(
+				_table_id.text,
+				_editing_field_previous_text,
+				_table_id.text,
+				new_field_name
+			)
 		_refresh_primary_key_options(_field_option_values(), renamed_primary)
 	call_deferred("_restore_field_row_selection")
 
@@ -868,11 +978,18 @@ func _commit_current_table() -> void:
 	var primary_key := _selected_primary_key()
 	table["audience"] = AUDIENCES[_table_audience.selected]
 	var fields: Array = []
+	var renamed_fields: Array[Dictionary] = []
 	var root := _fields.get_root()
 	if root != null:
 		var item := root.get_first_child()
 		while item != null:
-			fields.append(_field_from_item(item))
+			var field := _field_from_item(item)
+			var original_name := str(field.get("_editor_reference_name", field.get("name", "")))
+			var current_name := str(field.get("name", ""))
+			if original_name != current_name:
+				renamed_fields.append({"old": original_name, "new": current_name})
+			field["_editor_reference_name"] = current_name
+			fields.append(field)
 			item = item.get_next()
 	if not _contains_field_name(fields, primary_key):
 		for field in fields:
@@ -883,6 +1000,8 @@ func _commit_current_table() -> void:
 	table["fields"] = fields
 	tables[_selected_table] = table
 	_schema["tables"] = tables
+	for rename in renamed_fields:
+		_replace_foreign_key_target(table.id, rename.old, table.id, rename.new)
 
 
 func _contains_field_name(fields: Array, field_name: String) -> bool:
@@ -896,6 +1015,7 @@ func _field_from_item(item: TreeItem) -> Dictionary:
 	var field = item.get_metadata(0)
 	var result: Dictionary = field.duplicate(true) if field is Dictionary else {}
 	result["_editor_original_name"] = str(result.get("_editor_original_name", result.get("name", "")))
+	result["_editor_reference_name"] = str(result.get("_editor_reference_name", result.get("name", "")))
 	result["name"] = item.get_text(0).strip_edges()
 	result["type"] = SUPPORTED_TYPES[clampi(int(item.get_range(1)), 0, SUPPORTED_TYPES.size() - 1)]
 	result["required"] = item.is_checked(2)
@@ -967,20 +1087,20 @@ func _request_add_table() -> void:
 	_table_value_mode = "new_table"
 	_table_value_dialog.title = "新建数据表"
 	_table_value_dialog.dialog_text = ""
-	_table_value_input.placeholder_text = "输入表 ID，例如：Quest"
+	_table_value_input.placeholder_text = "输入数据表 ID，例如：Quest"
 	_table_value_input.text = ""
 	_table_value_dialog.popup_centered(Vector2i(520, 130))
 	_table_value_input.grab_focus()
 
 
 func _add_table(id: String) -> void:
-	if not id.is_valid_identifier():
-		_status.text = "新增失败：表 ID 必须是有效标识符。"
+	if not _is_ascii_identifier(id):
+		_status.text = "新增失败：数据表 ID 必须是有效标识符。"
 		return
 	_commit_current_table()
 	var tables: Array = _schema.get("tables", [])
 	if _contains_table_id(tables, id):
-		_status.text = "新增失败：表 ID 已存在：%s。" % id
+		_status.text = "新增失败：数据表 ID 已存在：%s。" % id
 		return
 	var source := "%s.csv" % id
 	if _table_index_for_source(source) >= 0:
@@ -1041,6 +1161,11 @@ func _remove_table(table_index: int) -> void:
 	var tables: Array = _schema.get("tables", [])
 	if table_index < 0 or table_index >= tables.size():
 		return
+	var table_id := str(tables[table_index].get("id", ""))
+	var referrers := _foreign_key_referrers(table_id)
+	if not referrers.is_empty():
+		_status.text = "移出失败：数据表 %s 仍被这些字段引用：%s。" % [table_id, ", ".join(referrers)]
+		return
 	var source := str(tables[table_index].get("source", ""))
 	_removed_tables_by_source[source] = tables[table_index].duplicate(true)
 	tables.remove_at(table_index)
@@ -1064,6 +1189,20 @@ func _request_remove_field() -> void:
 	var selected := _selected_field_item
 	if selected == null:
 		_status.text = "请先选择需要移除的字段。"
+		return
+	var field_error := _validate_field_inputs()
+	if not field_error.is_empty():
+		_status.text = "移除失败：%s" % field_error
+		return
+	_commit_current_table()
+	var field_name := selected.get_text(0)
+	var referrers := _foreign_key_referrers(_table_id.text, field_name)
+	if not referrers.is_empty():
+		_status.text = "移除失败：字段 %s.%s 仍被这些字段引用：%s。" % [
+			_table_id.text,
+			field_name,
+			", ".join(referrers),
+		]
 		return
 	_remove_confirmation.dialog_text = (
 		"确认移除字段“%s”？\n保存 Schema 时会删除 CSV 中对应列。" % selected.get_text(0)
@@ -1112,15 +1251,17 @@ func _save() -> void:
 		_status.text = "保存失败：%s" % error
 		return
 	_apply_schema_versions()
-	if not _sync_csv_files():
+	var csv_state := _build_csv_files()
+	if not csv_state.valid:
 		return
-	_normalize_schema_numbers()
-	_strip_editor_metadata()
-	var file := FileAccess.open(_schema_path, FileAccess.WRITE)
-	if file == null:
-		_status.text = "保存失败：无法写入 %s" % _schema_path
+	var saved_schema := _schema.duplicate(true)
+	_normalize_schema_numbers(saved_schema)
+	_strip_editor_metadata(saved_schema)
+	var files: Dictionary = csv_state.files
+	files[_schema_path] = JSON.stringify(saved_schema, "\t") + "\n"
+	if not _commit_text_files(files):
 		return
-	file.store_string(JSON.stringify(_schema, "\t") + "\n")
+	_schema = saved_schema
 	_original_schema = _schema.duplicate(true)
 	_annotate_schema_for_editing()
 	_status.text = "Schema 已保存；CSV 表头已同步，结构变化的表版本已自动递增。"
@@ -1133,37 +1274,146 @@ func _save() -> void:
 func _validate_schema() -> String:
 	if _data_set_id.text.strip_edges().is_empty():
 		return "数据集 ID 不能为空。"
-	if _namespace.text.strip_edges().is_empty():
+	var namespace_value := _namespace.text.strip_edges()
+	if namespace_value.is_empty():
 		return "C# 命名空间不能为空。"
+	for part in namespace_value.split(".", true):
+		if not _is_ascii_identifier(part):
+			return "C# 命名空间包含无效标识符：%s。" % part
 	for path in [_source_directory.text, _output_directory.text, _csharp_output.text]:
 		if not _is_safe_relative_path(path):
 			return "目录和输出文件必须是 Schema 目录内的安全相对路径。"
+	var schema_root := _schema_path.get_base_dir()
+	var source_root := schema_root.path_join(_source_directory.text).simplify_path()
+	var output_root := schema_root.path_join(_output_directory.text).simplify_path()
+	var csharp_path := schema_root.path_join(_csharp_output.text).simplify_path()
+	if _is_same_or_child(source_root, output_root):
+		return "运行数据目录不能包含原始表目录。"
+	if _is_same_or_child(csharp_path, output_root):
+		return "C# 输出必须位于运行数据目录之外。"
 	var tables: Array = _schema.get("tables", [])
 	if tables.is_empty():
 		return "至少需要一张数据表。"
 	var ids := {}
 	var sources := {}
+	var tables_by_id := {}
 	for table in tables:
 		var table_id := str(table.get("id", ""))
-		if not table_id.is_valid_identifier() or ids.has(table_id):
-			return "表 ID 必须是唯一的有效标识符：%s。" % table_id
+		if not _is_ascii_identifier(table_id) or ids.has(table_id):
+			return "数据表 ID 必须是唯一的有效标识符：%s。" % table_id
 		ids[table_id] = true
+		tables_by_id[table_id] = table
 		var source := str(table.get("source", ""))
-		if not _is_safe_relative_path(source) or sources.has(source):
-			return "CSV 文件必须是唯一的安全相对路径：%s。" % source
+		if not _is_safe_relative_path(source) or source.get_extension().to_lower() != "csv" or sources.has(source):
+			return "CSV 文件必须是唯一的安全 .csv 相对路径：%s。" % source
 		sources[source] = true
+		if str(table.get("audience", "")) not in AUDIENCES:
+			return "数据表 %s 的数据导出范围无效。" % table_id
+		var fields_value = table.get("fields", null)
+		if not fields_value is Array or fields_value.is_empty():
+			return "数据表 %s 至少需要一个字段。" % table_id
 		var names := {}
-		for field in table.get("fields", []):
+		for field in fields_value:
+			if not field is Dictionary:
+				return "数据表 %s 包含无效字段配置。" % table_id
 			var name := str(field.get("name", ""))
-			if not name.is_valid_identifier() or names.has(name):
+			if not _is_ascii_identifier(name) or names.has(name):
 				return "字段名必须是唯一的有效标识符：%s.%s。" % [table_id, name]
 			names[name] = true
 			if not SUPPORTED_TYPES.has(str(field.get("type", ""))):
 				return "字段类型不受支持：%s.%s。" % [table_id, name]
-			if field.get("type") == "enum" and field.get("values", []).is_empty():
-				return "enum 字段必须至少有一个枚举值：%s.%s。" % [table_id, name]
-		if not names.has(str(table.get("primary_key", ""))):
-			return "主键字段不存在：%s.%s。" % [table_id, table.get("primary_key", "")]
+			var constraint_error := _validate_field_constraints(table_id, field)
+			if not constraint_error.is_empty():
+				return constraint_error
+		var primary_key := str(table.get("primary_key", ""))
+		if not names.has(primary_key):
+			return "主键字段不存在：%s.%s。" % [table_id, primary_key]
+		for field in fields_value:
+			if str(field.get("name", "")) == primary_key:
+				if str(field.get("type", "")) != "string":
+					return "主键字段必须使用 string：%s.%s。" % [table_id, primary_key]
+				if not bool(field.get("required", false)):
+					return "主键字段必须设为必填：%s.%s。" % [table_id, primary_key]
+				break
+	for table in tables:
+		for field in table.get("fields", []):
+			var foreign_key := str(field.get("foreign_key", ""))
+			if foreign_key.is_empty():
+				continue
+			var parts := foreign_key.split(".", false)
+			if parts.size() != 2 or not tables_by_id.has(parts[0]):
+				return "外键目标无效：%s.%s -> %s。" % [table.id, field.name, foreign_key]
+			var target: Dictionary = tables_by_id[parts[0]]
+			if str(target.get("primary_key", "")) != parts[1]:
+				return "外键必须引用目标表主键：%s.%s -> %s。" % [table.id, field.name, foreign_key]
+			if str(field.get("type", "")) != "string":
+				return "外键字段必须使用 string：%s.%s。" % [table.id, field.name]
+	return ""
+
+
+func _validate_field_constraints(table_id: String, field: Dictionary) -> String:
+	var field_name := str(field.get("name", ""))
+	var field_type := str(field.get("type", ""))
+	if field_type == "enum":
+		var values = field.get("values", null)
+		if not values is Array or values.is_empty():
+			return "enum 字段必须至少有一个枚举值：%s.%s。" % [table_id, field_name]
+		var unique_values := {}
+		for value in values:
+			if not value is String or str(value).is_empty() or unique_values.has(value):
+				return "enum 枚举值必须是唯一的非空字符串：%s.%s。" % [table_id, field_name]
+			unique_values[value] = true
+	for key in ["min", "max"]:
+		if not field.has(key):
+			continue
+		if field_type not in ["int32", "float64"]:
+			return "%s 只有数值字段才能设置 %s：%s.%s。" % [key.to_upper(), key, table_id, field_name]
+		var number = field[key]
+		if not number is int and not number is float:
+			return "%s.%s 的 %s 必须是数字。" % [table_id, field_name, key]
+		if not is_finite(float(number)):
+			return "%s.%s 的 %s 必须是有限数字。" % [table_id, field_name, key]
+		if field_type == "int32" and (int(number) < -2147483648 or int(number) > 2147483647):
+			return "%s.%s 的 %s 超出 int32 范围。" % [table_id, field_name, key]
+	if field.has("min") and field.has("max") and field.min > field.max:
+		return "%s.%s 的最小值不能大于最大值。" % [table_id, field_name]
+	for key in ["min_length", "max_length"]:
+		if not field.has(key):
+			continue
+		if field_type != "string":
+			return "只有 string 字段才能设置长度限制：%s.%s。" % [table_id, field_name]
+		if not field[key] is int or int(field[key]) < 0:
+			return "%s.%s 的 %s 必须是非负整数。" % [table_id, field_name, key]
+	if field.has("min_length") and field.has("max_length") and field.min_length > field.max_length:
+		return "%s.%s 的最短长度不能大于最长长度。" % [table_id, field_name]
+	if not field.has("default"):
+		return ""
+	var default_value = field.default
+	if field_type == "string" and not default_value is String:
+		return "%s.%s 的默认值必须是字符串。" % [table_id, field_name]
+	if field_type == "bool" and not default_value is bool:
+		return "%s.%s 的默认值必须是 true 或 false。" % [table_id, field_name]
+	if field_type == "int32" and (
+		not default_value is int
+		or int(default_value) < -2147483648
+		or int(default_value) > 2147483647
+	):
+		return "%s.%s 的默认值超出 int32 范围。" % [table_id, field_name]
+	if field_type == "float64" and (
+		(not default_value is int and not default_value is float)
+		or not is_finite(float(default_value))
+	):
+		return "%s.%s 的默认值必须是有限数字。" % [table_id, field_name]
+	if field_type == "enum" and not field.get("values", []).has(default_value):
+		return "%s.%s 的默认值不在枚举值中。" % [table_id, field_name]
+	if field.has("min") and default_value < field.min:
+		return "%s.%s 的默认值小于最小值。" % [table_id, field_name]
+	if field.has("max") and default_value > field.max:
+		return "%s.%s 的默认值大于最大值。" % [table_id, field_name]
+	if default_value is String and field.has("min_length") and default_value.length() < field.min_length:
+		return "%s.%s 的默认值短于最短长度。" % [table_id, field_name]
+	if default_value is String and field.has("max_length") and default_value.length() > field.max_length:
+		return "%s.%s 的默认值长于最长长度。" % [table_id, field_name]
 	return ""
 
 
@@ -1182,8 +1432,14 @@ func _validate_field_inputs() -> String:
 			return "%s 的默认值必须是 true 或 false。" % name
 		if type == "int32" and not default_value.is_empty() and not _is_integer_text(default_value):
 			return "%s 的默认值必须是整数。" % name
+		if type == "int32" and not default_value.is_empty():
+			var parsed_default := _parse_integer(default_value)
+			if parsed_default < -2147483648 or parsed_default > 2147483647:
+				return "%s 的默认值超出 int32 范围。" % name
 		if type == "float64" and not default_value.is_empty() and not default_value.is_valid_float():
 			return "%s 的默认值必须是数字。" % name
+		if type == "float64" and not default_value.is_empty() and not is_finite(float(default_value)):
+			return "%s 的默认值必须是有限数字。" % name
 		for column in [4, 5]:
 			var number := item.get_text(column).strip_edges()
 			if number.is_empty():
@@ -1192,12 +1448,20 @@ func _validate_field_inputs() -> String:
 				return "%s 只有数值类型才能设置 Min/Max。" % name
 			if type == "int32" and not _is_integer_text(number):
 				return "%s 的 Min/Max 必须是整数。" % name
+			if type == "int32" and _is_integer_text(number):
+				var parsed_number := _parse_integer(number)
+				if parsed_number < -2147483648 or parsed_number > 2147483647:
+					return "%s 的 Min/Max 超出 int32 范围。" % name
 			if type == "float64" and not number.is_valid_float():
 				return "%s 的 Min/Max 必须是数字。" % name
+			if type == "float64" and number.is_valid_float() and not is_finite(float(number)):
+				return "%s 的 Min/Max 必须是有限数字。" % name
 		for column in [6, 7]:
 			var length := item.get_text(column).strip_edges()
 			if not length.is_empty() and not _is_integer_text(length):
 				return "%s 的长度限制必须是整数。" % name
+			if not length.is_empty() and _parse_integer(length) < 0:
+				return "%s 的长度限制不能为负数。" % name
 		item = item.get_next()
 	return ""
 
@@ -1230,23 +1494,19 @@ func _apply_schema_versions() -> void:
 		var new_structure := _without_editor_metadata(table)
 		old_structure.erase("schema_version")
 		new_structure.erase("schema_version")
+		old_structure.erase("source")
+		new_structure.erase("source")
 		if old_structure != new_structure:
 			table["schema_version"] = int(old.get("schema_version", 1)) + 1
 		else:
 			table["schema_version"] = int(old.get("schema_version", 1))
 
 
-func _sync_csv_files() -> bool:
+func _build_csv_files() -> Dictionary:
 	var schema_root := _schema_path.get_base_dir()
 	var source_root := schema_root.path_join(str(_schema.source_directory)).simplify_path()
 	var original_source_root := schema_root.path_join(str(_original_schema.get("source_directory", _schema.source_directory))).simplify_path()
-	var directory_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(source_root))
-	if directory_error != OK:
-		_status.text = "保存失败：无法创建原始表目录。"
-		return false
-	var ignore := FileAccess.open(source_root.path_join(".gdignore"), FileAccess.WRITE)
-	if ignore != null:
-		ignore.store_string("\n")
+	var files := {source_root.path_join(".gdignore"): "\n"}
 	for table in _schema.get("tables", []):
 		var path := source_root.path_join(str(table.source)).simplify_path()
 		var original_source := str(table.get("_editor_original_source", table.source))
@@ -1255,20 +1515,22 @@ func _sync_csv_files() -> bool:
 			input_path = path
 		if table.has("_editor_original_id") and not FileAccess.file_exists(input_path):
 			_status.text = "保存失败：Schema 引用的 CSV 已缺失，请恢复文件或移除数据表：%s" % table.source
-			return false
-		if not _sync_csv(input_path, path, table):
-			return false
-	return true
+			return {"valid": false}
+		var csv_state := _build_csv_text(input_path, table)
+		if not csv_state.valid:
+			return {"valid": false}
+		files[path] = csv_state.text
+	return {"valid": true, "files": files}
 
 
-func _sync_csv(input_path: String, output_path: String, table: Dictionary) -> bool:
+func _build_csv_text(input_path: String, table: Dictionary) -> Dictionary:
 	var rows: Array[PackedStringArray] = []
 	var old_header := PackedStringArray()
 	if FileAccess.file_exists(input_path):
 		var input := FileAccess.open(input_path, FileAccess.READ)
 		if input == null:
 			_status.text = "保存失败：无法读取 CSV：%s" % input_path
-			return false
+			return {"valid": false}
 		if input.get_position() < input.get_length():
 			old_header = input.get_csv_line()
 		while input.get_position() < input.get_length():
@@ -1277,11 +1539,7 @@ func _sync_csv(input_path: String, output_path: String, table: Dictionary) -> bo
 	var new_header := PackedStringArray()
 	for field in fields:
 		new_header.append(str(field.name))
-	var output := FileAccess.open(output_path, FileAccess.WRITE)
-	if output == null:
-		_status.text = "保存失败：无法写入 CSV：%s" % output_path
-		return false
-	output.store_csv_line(new_header)
+	var text := _encode_csv_line(new_header)
 	for old_row in rows:
 		var new_row := PackedStringArray()
 		for index in new_header.size():
@@ -1289,8 +1547,93 @@ func _sync_csv(input_path: String, output_path: String, table: Dictionary) -> bo
 			var old_name := str(field.get("_editor_original_name", new_header[index]))
 			var old_index := old_header.find(old_name)
 			new_row.append(old_row[old_index] if old_index >= 0 and old_index < old_row.size() else "")
-		output.store_csv_line(new_row)
+		text += _encode_csv_line(new_row)
+	return {"valid": true, "text": text}
+
+
+func _encode_csv_line(values: PackedStringArray) -> String:
+	var encoded := PackedStringArray()
+	for raw_value in values:
+		var value := str(raw_value)
+		var must_quote := value.contains(",") or value.contains("\"") or value.contains("\n") or value.contains("\r")
+		value = value.replace("\"", "\"\"")
+		encoded.append("\"%s\"" % value if must_quote else value)
+	return ",".join(encoded) + "\n"
+
+
+func _commit_text_files(files: Dictionary) -> bool:
+	var token := "%d_%d" % [Time.get_unix_time_from_system(), Time.get_ticks_usec()]
+	var entries: Array[Dictionary] = []
+	var index := 0
+	for path in files:
+		var destination := ProjectSettings.globalize_path(str(path))
+		var directory_error := DirAccess.make_dir_recursive_absolute(destination.get_base_dir())
+		if directory_error != OK:
+			_cleanup_transaction_files(entries)
+			_status.text = "保存失败：无法创建目录 %s。" % destination.get_base_dir()
+			return false
+		var temporary := "%s.godo-datatable-%s-%d.tmp" % [destination, token, index]
+		var backup := "%s.godo-datatable-%s-%d.bak" % [destination, token, index]
+		var output := FileAccess.open(temporary, FileAccess.WRITE)
+		if output == null:
+			_cleanup_transaction_files(entries)
+			_status.text = "保存失败：无法暂存 %s。" % destination
+			return false
+		output.store_string(str(files[path]))
+		var write_error := output.get_error()
+		output.close()
+		if write_error != OK:
+			DirAccess.remove_absolute(temporary)
+			_cleanup_transaction_files(entries)
+			_status.text = "保存失败：暂存 %s 时发生错误：%s。" % [destination, error_string(write_error)]
+			return false
+		entries.append({
+			"destination": destination,
+			"temporary": temporary,
+			"backup": backup,
+			"had_original": FileAccess.file_exists(destination),
+		})
+		index += 1
+
+	var committed := 0
+	for entry in entries:
+		if entry.had_original:
+			var backup_error := DirAccess.rename_absolute(entry.destination, entry.backup)
+			if backup_error != OK:
+				_rollback_text_files(entries, committed)
+				_status.text = "保存失败：无法备份 %s：%s。" % [entry.destination, error_string(backup_error)]
+				return false
+		var replace_error := DirAccess.rename_absolute(entry.temporary, entry.destination)
+		if replace_error != OK:
+			if entry.had_original and FileAccess.file_exists(entry.backup):
+				DirAccess.rename_absolute(entry.backup, entry.destination)
+			_rollback_text_files(entries, committed)
+			_status.text = "保存失败：无法提交 %s：%s；原文件已恢复。" % [entry.destination, error_string(replace_error)]
+			return false
+		committed += 1
+
+	for entry in entries:
+		if FileAccess.file_exists(entry.backup):
+			DirAccess.remove_absolute(entry.backup)
 	return true
+
+
+func _rollback_text_files(entries: Array[Dictionary], committed: int) -> void:
+	for index in range(committed - 1, -1, -1):
+		var entry: Dictionary = entries[index]
+		if FileAccess.file_exists(entry.destination):
+			DirAccess.remove_absolute(entry.destination)
+		if entry.had_original and FileAccess.file_exists(entry.backup):
+			DirAccess.rename_absolute(entry.backup, entry.destination)
+	_cleanup_transaction_files(entries)
+
+
+func _cleanup_transaction_files(entries: Array[Dictionary]) -> void:
+	for entry in entries:
+		if FileAccess.file_exists(entry.temporary):
+			DirAccess.remove_absolute(entry.temporary)
+		if FileAccess.file_exists(entry.backup) and FileAccess.file_exists(entry.destination):
+			DirAccess.remove_absolute(entry.backup)
 
 
 func _without_editor_metadata(value: Dictionary) -> Dictionary:
@@ -1299,6 +1642,7 @@ func _without_editor_metadata(value: Dictionary) -> Dictionary:
 	result.erase("_editor_original_source")
 	for field in result.get("fields", []):
 		field.erase("_editor_original_name")
+		field.erase("_editor_reference_name")
 		var type := str(field.get("type", ""))
 		for key in ["default", "min", "max"]:
 			if not field.has(key):
@@ -1313,8 +1657,8 @@ func _without_editor_metadata(value: Dictionary) -> Dictionary:
 	return result
 
 
-func _normalize_schema_numbers() -> void:
-	for table in _schema.get("tables", []):
+func _normalize_schema_numbers(schema: Dictionary) -> void:
+	for table in schema.get("tables", []):
 		table["schema_version"] = int(table.get("schema_version", 1))
 		for field in table.get("fields", []):
 			var type := str(field.get("type", ""))
@@ -1330,12 +1674,13 @@ func _normalize_schema_numbers() -> void:
 					field[key] = int(field[key])
 
 
-func _strip_editor_metadata() -> void:
-	for table in _schema.get("tables", []):
+func _strip_editor_metadata(schema: Dictionary) -> void:
+	for table in schema.get("tables", []):
 		table.erase("_editor_original_id")
 		table.erase("_editor_original_source")
 		for field in table.get("fields", []):
 			field.erase("_editor_original_name")
+			field.erase("_editor_reference_name")
 
 
 func _is_safe_relative_path(value: String) -> bool:
@@ -1345,3 +1690,24 @@ func _is_safe_relative_path(value: String) -> bool:
 		if part == "..":
 			return false
 	return true
+
+
+func _is_ascii_identifier(value: String) -> bool:
+	if value.is_empty():
+		return false
+	for index in value.length():
+		var code := value.unicode_at(index)
+		var valid := (
+			code == 95
+			or (code >= 65 and code <= 90)
+			or (code >= 97 and code <= 122)
+			or (index > 0 and code >= 48 and code <= 57)
+		)
+		if not valid:
+			return false
+	return true
+
+
+func _is_same_or_child(path: String, parent: String) -> bool:
+	var normalized_parent := parent.trim_suffix("/")
+	return path == normalized_parent or path.begins_with(normalized_parent + "/")

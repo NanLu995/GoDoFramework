@@ -4,7 +4,7 @@
 
 [在线文档](https://nanlu995.github.io/GoDoFramework/) · [文档维护说明](Docs/README.md)
 
-GoDoFramework 是面向 Godot 4.7 C# / .NET 的轻量游戏开发框架，用于沉淀跨项目可复用的通信、诊断、生命周期管理和运行时服务，让具体项目把主要精力放在游戏逻辑与内容上。
+GoDoFramework 是面向 Godot 4.7.1 C# / .NET 的轻量游戏开发框架，用于沉淀跨项目可复用的通信、诊断、生命周期管理和运行时服务，让具体项目把主要精力放在游戏逻辑与内容上。
 
 框架不会替代 Godot，也不包含角色、战斗、关卡等具体玩法逻辑。所有框架 API 位于 `GoDo` 命名空间。
 

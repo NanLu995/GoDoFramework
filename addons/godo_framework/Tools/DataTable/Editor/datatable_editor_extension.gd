@@ -119,19 +119,19 @@ func _create_dialog() -> void:
 
 	var table_row := HBoxContainer.new()
 	content.add_child(table_row)
-	table_row.add_child(_create_label("数据表生成"))
+	table_row.add_child(_create_label("数据表导出"))
 	_table_selector = OptionButton.new()
 	_table_selector.name = "DataTableTableSelector"
 	_table_selector.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	_table_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	table_row.add_child(_table_selector)
 	_generate_selected_button = Button.new()
-	_generate_selected_button.text = "生成当前表..."
+	_generate_selected_button.text = "导出当前表..."
 	_generate_selected_button.name = "DataTableGenerateSelectedButton"
 	_generate_selected_button.pressed.connect(_request_generate_selected)
 	table_row.add_child(_generate_selected_button)
 	_generate_button = Button.new()
-	_generate_button.text = "生成全部表..."
+	_generate_button.text = "导出全部表..."
 	_generate_button.name = "DataTableGenerateButton"
 	_generate_button.pressed.connect(_request_generate)
 	table_row.add_child(_generate_button)
@@ -162,8 +162,8 @@ func _create_dialog() -> void:
 	_check_button.pressed.connect(_request_check)
 
 	_generate_confirmation = ConfirmationDialog.new()
-	_generate_confirmation.title = "生成全部数据表"
-	_generate_confirmation.ok_button_text = "确认生成"
+	_generate_confirmation.title = "导出全部数据表"
+	_generate_confirmation.ok_button_text = "确认导出"
 	_generate_confirmation.cancel_button_text = "取消"
 	_generate_confirmation.confirmed.connect(_confirm_generate)
 	_dialog.add_child(_generate_confirmation)
@@ -340,7 +340,7 @@ func _refresh_status() -> void:
 		lines.append("C# 代码文件：%s" % state.csharp)
 	_report.text = "\n".join(lines)
 	_set_hint(
-		"配置有效，可以校验或生成运行数据。"
+		"配置有效，可以校验或导出运行数据。"
 		if ready
 		else "请先处理上方标记的配置问题。",
 		"#8bd49c" if ready else "#ff6b6b"
@@ -474,9 +474,9 @@ func _request_generate() -> void:
 		_refresh_status()
 		return
 	_pending_table = ""
-	_generate_confirmation.title = "生成全部数据表"
+	_generate_confirmation.title = "导出全部数据表"
 	_generate_confirmation.dialog_text = (
-		"将校验全部 DataTable，并替换以下生成产物：\n\n"
+		"将校验全部 DataTable，并替换以下运行数据产物：\n\n"
 		+ "数据目录：%s\n" % state.output
 		+ "C# 文件：%s\n\n" % state.csharp
 		+ "CSV、Schema 和其他项目文件不会被修改。"
@@ -490,14 +490,14 @@ func _request_generate_selected() -> void:
 		_refresh_status()
 		return
 	_pending_table = _table_selector.get_item_text(_table_selector.selected)
-	_generate_confirmation.title = "生成当前数据表"
+	_generate_confirmation.title = "导出当前数据表"
 	_generate_confirmation.dialog_text = (
 		"将校验全部 DataTable，并仅提交选中表及数据集元数据：\n\n"
 		+ "数据表：%s\n" % _pending_table
 		+ "目标二进制：%s/%s.gdtb\n" % [state.output, _pending_table]
 		+ "数据集元数据目录：%s\n" % state.output
 		+ "聚合 C#：%s\n\n" % state.csharp
-		+ "未选表缺失、过期或结构变化时会拒绝生成，并要求先生成全部。"
+		+ "未选表缺失、过期或结构变化时会拒绝导出，并要求先导出全部。"
 	)
 	_generate_confirmation.popup_centered(Vector2i(700, 340))
 
@@ -515,7 +515,7 @@ func _start_operation(action: String, selected_table := "") -> void:
 	_running = true
 	_set_actions_enabled(false)
 	_set_hint(
-		"正在%s，请稍候..." % ("校验全部数据" if action == "check" else "生成运行数据"),
+		"正在%s，请稍候..." % ("校验全部数据" if action == "check" else "导出运行数据"),
 		"#aeb6c2"
 	)
 	var payload := {
@@ -630,12 +630,12 @@ func _poll_operation() -> void:
 		_context.get_editor_interface().get_resource_filesystem().scan()
 	_refresh_status()
 	if succeeded:
-		var action_text := "全部数据校验通过，可以生成运行数据。"
+		var action_text := "全部数据校验通过，可以导出运行数据。"
 		if str(result.action) == "generate":
 			action_text = (
-				"当前表生成完成，Godot 正在刷新文件。"
+				"当前表导出完成，Godot 正在刷新文件。"
 				if not str(result.table).is_empty()
-				else "全部数据表生成完成，Godot 正在刷新文件。"
+				else "全部数据表导出完成，Godot 正在刷新文件。"
 			)
 		_set_hint(action_text, "#8bd49c")
 	else:

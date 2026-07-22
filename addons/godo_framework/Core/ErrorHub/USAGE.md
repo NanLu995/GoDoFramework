@@ -107,10 +107,10 @@ GoDoRuntime 安装 `AppDomain.UnhandledException`，以 `Fatal`、模块 `Runtim
 `Verification/Automated/ErrorHubRegression.tscn` 验证最低等级过滤、结构化异常报告、Reporter 引用去重与移除、OnError 与 Reporter 异常隔离，以及 Fatal 只上报不主动退出。runner 会恢复原始 `MinLevel` 并对称移除自己的监听者和 Reporter，不调用全局 Shutdown。
 
 ```powershell
-Godot_v4.7-stable_mono_win64_console.exe --headless --path . Verification/Automated/ErrorHubRegression.tscn
+Godot_v4.7.1-stable_mono_win64_console.exe --headless --path . Verification/Automated/ErrorHubRegression.tscn
 ```
 
-当前 runner 已通过 `dotnet build` 编译，并在 Godot 4.7 Mono Headless 中完成 6/6 项验证；成功退出码为 0，失败退出码为 1。测试会刻意产生 Warning、Error、Fatal 和降级隔离日志，以断言结果与进程退出码判断成功。
+当前 runner 已通过 `dotnet build` 编译，并在 Godot 4.7.1 Mono Headless 中完成 6/6 项验证；成功退出码为 0，失败退出码为 1。测试会刻意产生 Warning、Error、Fatal 和降级隔离日志，以断言结果与进程退出码判断成功。
 
 ## 常见误用
 

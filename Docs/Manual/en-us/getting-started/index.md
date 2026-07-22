@@ -1,15 +1,15 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/index.md
-translation_source_hash: sha256:e68b7f4ba26937147ff8ee10c1d7d5975b158b50b80b10e15c827f1a73a5e84e
+translation_source_hash: sha256:a07f03cd8f826080a1032801d6eb647f2c5408fd878f16ef3bc211d42b1a1e0a
 ---
 
 # 5-Minute Quick Start
 
-This page adds GoDoFramework to an existing Godot 4.7 C# project and verifies that its Runtime services are available.
+This page adds GoDoFramework to an existing Godot 4.7.1 C# project and verifies that its Runtime services are available.
 
 ## Prerequisites
 
-- The .NET edition of Godot 4.7.
+- The .NET edition of Godot 4.7.1.
 - A working C# solution that has completed at least one successful Debug build.
 - .NET 8 for the target project; Android builds use .NET 9 according to the project requirements.
 

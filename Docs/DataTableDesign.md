@@ -172,7 +172,7 @@ public enum DataTableCompressionMode
 该名称目前只表达设计语义，不是已承诺 API。默认 `Auto`：
 
 1. 生成未压缩二进制；
-2. 同时尝试 Godot 4.7 自带的 Zstd；
+2. 同时尝试 Godot 4.7.1 自带的 Zstd；
 3. 比较压缩比例和绝对节省量；
 4. 按经过目标平台基准验证的规则选择；
 5. 允许 Schema 对单表覆盖为 `Never` 或 `Always`。
@@ -313,7 +313,7 @@ DataTable 编译器先产生与运行时语言无关的规范化 IR 和 Manifest
 - Debug 保留可读产物，Release 排除源数据；
 - 验证客户端、Godot 专服和非 Godot 服务器摘要边界。
 
-阶段 C.1 已将 Python 编译前端放入 `addons/godo_framework/Tools/DataTable/`，提供整套 `generate` 和真正不写项目文件的 `check`。阶段 C.2 已收敛为每数据集一个可移植 Schema：字段规则、CSV 源目录和生成输出都由该文件声明，并由唯一 GoDo EditorPlugin 在后台线程调用 Python；可视化编辑器负责维护 Schema、同步 CSV 表头和结构版本，开发者不手写 JSON。数据文件面板递归显示已加入、未加入和缺失 CSV，可从表头创建初始字段；未加入 Schema 的 CSV 明确排除，已引用 CSV 缺失时拒绝保存为空文件。检查不写入，生成先展示准确目标并确认，成功后刷新编辑器文件系统。工具拒绝绝对路径、`..` 逃逸、非法 C# 标识符、无效默认值和可能覆盖源数据的危险输出目录。
+阶段 C.1 已将 Python 编译前端放入 `addons/godo_framework/Tools/DataTable/`，提供整套 `generate` 和真正不写项目文件的 `check`。阶段 C.2 已收敛为每数据集一个可移植 Schema：字段规则、CSV 源目录和生成输出都由该文件声明，并由唯一 GoDo EditorPlugin 在后台线程调用 Python；可视化编辑器负责维护 Schema、同步 CSV 表头和结构版本，开发者不手写 JSON。数据文件面板递归显示已加入、未加入和缺失 CSV，可从表头创建初始字段；未加入 Schema 的 CSV 明确排除，已引用 CSV 缺失时拒绝保存为空文件。编辑器保存前完成完整本地校验，并将 Schema、CSV 表头和 `.gdignore` 作为同一事务提交；数据表 ID 或字段重命名同步维护外键引用，仍被引用的目标不可直接删除，仅修改 CSV 来源路径不递增表结构版本。检查不写入，生成先展示准确目标并确认，成功后刷新编辑器文件系统。工具拒绝绝对路径、`..` 逃逸、非法 C# 标识符、无效默认值和可能覆盖源数据的危险输出目录。
 
 阶段 C.3 在不拆分聚合 C# 的前提下提供 `generate --table <ID>`。它始终全量校验输入和构建候选，只提交选中 `.gdtb`、数据集级元数据，以及内容变化的聚合 C#；提交前通过已有 Manifest 证明表集合一致，并确认未选表结构与二进制均未过期。首次生成、增删表、未选表变化或产物缺失会被拒绝并要求生成全部。局部变化通过多文件事务回滚，未选表与未变化 C# 不改写。
 
@@ -321,7 +321,7 @@ DataTable 编译器先产生与运行时语言无关的规范化 IR 和 Manifest
 
 阶段 C.5.1 为导出准备按需的 `manifest.client.json` 与 `manifest.server.json`：客户端目标只包含 `Shared + ClientOnly`，权威服务器目标只包含 `Shared + ServerOnly`，共享摘要在两端保持一致。全 Shared 数据集不重复生成目标 Manifest。生成 C# 改用 Godot `FileAccess`，已验证普通绝对路径和项目内 `res://`；PCK 实际读取、`dedicated_server` 目标选择、导出前过期阻断和源文件过滤属于 C.5.2。
 
-阶段 C.5.2 注册 DataTable `EditorExportPlugin`，普通 preset 选择 Client，带 `dedicated_server` feature tag 的 preset 选择 Server；包只加入目标 `.gdtb` 与 Manifest，并排除 Schema、Schema 声明的原始数据目录和诊断目录。新数据集默认使用 `.datafiles`，内部保留 `.gdignore`；旧 Schema 的其他源目录名继续兼容。Windows 隔离项目已实际验证 Client / Server PCK 内容与 PCK 内 `res://` 读取。Godot 4.7 虽将 `EXPORT_MESSAGE_ERROR` 记录为错误，但 `--export-pack` 实测仍可能成功返回并留下包，且 `EditorExportPlugin` 没有公开中止接口；因此正式发布通过 `godo_datatable_export.py` 先校验全部 Schema，成功后才启动 Godot，以“未启动导出”保证过期数据阻断。
+阶段 C.5.2 注册 DataTable `EditorExportPlugin`，普通 preset 选择 Client，带 `dedicated_server` feature tag 的 preset 选择 Server；包只加入目标 `.gdtb` 与 Manifest，并排除 Schema、Schema 声明的原始数据目录和诊断目录。新数据集默认使用 `.datafiles`，内部保留 `.gdignore`；旧 Schema 的其他源目录名继续兼容。Windows 隔离项目已实际验证 Client / Server PCK 内容与 PCK 内 `res://` 读取。Godot 4.7.1 虽将 `EXPORT_MESSAGE_ERROR` 记录为错误，但 `--export-pack` 实测仍可能成功返回并留下包，且 `EditorExportPlugin` 没有公开中止接口；因此正式发布通过 `godo_datatable_export.py` 先校验全部 Schema，成功后才启动 Godot，以“未启动导出”保证过期数据阻断。
 
 阶段 C.6 固化语言无关的目标 Manifest 契约并提供 `compare-manifests`。兼容性只要求两端的格式、数据集、协议和 Shared 表结构/内容严格一致，明确忽略 ClientOnly / ServerOnly 及目标级摘要的预期差异；错误 target、字段、重复 ID、JSON 和摘要差异均返回非零退出码。非 Godot 服务端可直接消费同次编译生成的 Server Manifest 与规范化 IR，不要求解析 Godot `.gdtb`，也不把 KBEngine-Nex 或任何握手策略引入框架。摘要只用于一致性检测，不提供签名或防篡改能力。
 

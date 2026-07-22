@@ -116,7 +116,7 @@ UiService 没有每帧更新，也不池化或维护第二套资源缓存。View
 
 - `dotnet build GoDoFramework.sln`：验证 C# API、Godot 绑定和场景资源引用可编译。
 - `Verification/Automated/UiServiceRegression.tscn`：Headless 验证三层打开与关闭、View / Modal 栈约束、失败后的状态保持，以及主场景变更事件对 Scene 层的清理。
-- `python Verification/Automated/run_all.py --suite all --godot <Godot 4.7 Mono Console>`：运行包含 UiService 在内的工作台永久回归套件。
+- `python Verification/Automated/run_all.py --suite all --godot <Godot 4.7.1 Mono Console>`：运行包含 UiService 在内的工作台永久回归套件。
 - `Verification/UI/UiVerificationScene.tscn`：使用 F6 手动验证 View 恢复、嵌套 Modal、视觉层级和 GUI 指针阻挡。
 - Scene 层清理：先打开 Scene 层标记和 View A，再在 View A 内点击“切换主场景（验证 Scene 清理）”；切换后 View A 必须继续显示，关闭 View A 后应看到只有说明 Label 的目标场景，且顶部 Scene 层标记必须不存在。
 - 失败语义：在 View A 或 View B 点击“运行失败语义验证”，结果必须显示通过，当前 View 的计数与导航仍应正常工作。

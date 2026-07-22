@@ -19,7 +19,7 @@ Runtime Foundation（Resources / Pool）── 对应第 4 节表格中的 Found
         ↓
 Core（ErrorHub / EventChannel / Services / GoDoRuntime）
         ↓
-Godot 4.7 C# / .NET
+Godot 4.7.1 C# / .NET
 ```
 
 > 上图只描述主依赖链路。Editor（Installer / Validator）与 Development（Debugger）两层不在这条链路上，属于侧挂关系：它们可以依赖 Core / Foundation，但不允许被 Runtime Services 或业务层之外的运行时模块反向依赖（见规则 6）。第 4 节表格中的“层”一列与本图术语对应关系已在表头注明。

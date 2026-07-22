@@ -137,10 +137,10 @@ func _open_and_verify_datatable(menu: PopupMenu) -> bool:
 		or generate_button.get_parent() != selector.get_parent()
 		or generate_all_button.get_parent() != selector.get_parent()
 	):
-		_fail("数据表生成按钮未与表选择器排列在同一行。")
+		_fail("数据表导出按钮未与表选择器排列在同一行。")
 		return false
-	if generate_button.text != "生成当前表..." or generate_all_button.text != "生成全部表...":
-		_fail("数据表生成按钮文本不准确。")
+	if generate_button.text != "导出当前表..." or generate_all_button.text != "导出全部表...":
+		_fail("数据表导出按钮文本不准确。")
 		return false
 	var python_input := dialog.find_child("DataTablePythonInput", true, false) as LineEdit
 	if python_input == null or python_input.placeholder_text != "可留空，将自动检测 python3 / python":
@@ -226,9 +226,27 @@ func _verify_datatable_schema_editor(datatable_dialog: Window) -> bool:
 	if advanced == null or advanced_button == null or advanced.visible:
 		_fail("Schema 高级路径设置未默认折叠。")
 		return false
+	var dataset_grid := dialog.find_child("DataTableSchemaDatasetGrid", true, false) as GridContainer
+	var dataset_options := dialog.find_child("DataTableSchemaDatasetOptions", true, false) as HBoxContainer
+	var data_set_id := dialog.find_child("DataTableSchemaDataSetId", true, false) as LineEdit
+	if (
+		dataset_grid == null
+		or dataset_options == null
+		or data_set_id == null
+		or dataset_grid.size_flags_horizontal != Control.SIZE_SHRINK_BEGIN
+		or data_set_id.size_flags_horizontal != Control.SIZE_SHRINK_BEGIN
+		or advanced_button.size_flags_horizontal == Control.SIZE_EXPAND_FILL
+	):
+		_fail("Schema 数据集配置区未使用紧凑布局。")
+		return false
+	var data_files_top_separator := dialog.find_child("DataTableSchemaDataFilesTopSeparator", true, false) as HSeparator
+	var data_files_bottom_separator := dialog.find_child("DataTableSchemaDataFilesBottomSeparator", true, false) as HSeparator
+	if data_files_top_separator == null or data_files_bottom_separator == null:
+		_fail("Schema 数据文件区域缺少上下分隔线。")
+		return false
 	var data_files := dialog.find_child("DataTableSchemaDataFiles", true, false) as Tree
-	if data_files == null or data_files.columns != 3 or data_files.get_column_title(2) != "表 ID":
-		_fail("Schema 数据文件未按文件、状态、表 ID 三列显示。")
+	if data_files == null or data_files.columns != 3 or data_files.get_column_title(2) != "数据表 ID":
+		_fail("Schema 数据文件未按文件、状态、数据表 ID 三列显示。")
 		return false
 	var data_file := data_files.get_root().get_first_child()
 	if data_file == null or data_file.get_text(1) != "已加入" or data_file.get_text(2).is_empty():
@@ -250,21 +268,139 @@ func _verify_datatable_schema_editor(datatable_dialog: Window) -> bool:
 	var table_id := dialog.find_child("DataTableSchemaTableId", true, false) as LineEdit
 	var table_source := dialog.find_child("DataTableSchemaTableSource", true, false) as LineEdit
 	var primary_key := dialog.find_child("DataTableSchemaPrimaryKey", true, false) as OptionButton
-	var schema_version := dialog.find_child("DataTableSchemaVersion", true, false) as Label
+	var schema_version := dialog.find_child("DataTableSchemaVersion", true, false) as LineEdit
+	var schema_version_hint := dialog.find_child("DataTableSchemaVersionHint", true, false) as Label
+	var table_selector := dialog.find_child("DataTableSchemaTableSelector", true, false) as OptionButton
+	var table_details := dialog.find_child("DataTableSchemaTableDetails", true, false) as HBoxContainer
+	var table_id_label := dialog.find_child("DataTableSchemaTableIdLabel", true, false) as Label
+	var export_scope_label := dialog.find_child("DataTableSchemaExportScopeLabel", true, false) as Label
+	var protocol_version_hint := dialog.find_child("DataTableSchemaProtocolVersionHint", true, false) as Label
 	if (
 		table_id == null
 		or table_source == null
 		or primary_key == null
 		or schema_version == null
+		or schema_version_hint == null
+		or table_selector == null
+		or table_details == null
+		or table_id_label == null
+		or export_scope_label == null
+		or protocol_version_hint == null
 		or table_id.editable
 		or table_source.editable
+		or schema_version.editable
 		or table_id.auto_translate_mode != Node.AUTO_TRANSLATE_MODE_DISABLED
 		or table_source.auto_translate_mode != Node.AUTO_TRANSLATE_MODE_DISABLED
+		or schema_version.auto_translate_mode != Node.AUTO_TRANSLATE_MODE_DISABLED
+		or table_selector.size_flags_horizontal != Control.SIZE_SHRINK_BEGIN
+		or table_details.size_flags_horizontal != Control.SIZE_SHRINK_BEGIN
 		or table_id.text != "ItemCategory"
 		or primary_key.item_count == 0
-		or not schema_version.text.contains("自动递增")
+		or not schema_version.text.is_valid_int()
+		or schema_version_hint.text != "保存结构变更时由工具自动递增"
+		or schema_version_hint.get_parent() != schema_version.get_parent()
+		or table_id_label.text != "数据表 ID"
+		or export_scope_label.text != "数据导出范围"
+		or protocol_version_hint.text != "客户端与服务器共享数据结构不兼容时手动递增"
 	):
 		_fail("Schema 表级安全编辑控件状态错误。")
+		return false
+	var rename_table_id := dialog.find_child("DataTableSchemaRenameTableIdButton", true, false) as Button
+	var table_value_input := dialog.find_child("DataTableSchemaTableValueInput", true, false) as LineEdit
+	if rename_table_id == null or table_value_input == null:
+		_fail("Schema 缺少表 ID 重命名控件。")
+		return false
+	var rename_connections := rename_table_id.pressed.get_connections()
+	var schema_editor: Object = (
+		rename_connections[0].callable.get_object() if not rename_connections.is_empty() else null
+	)
+	if schema_editor == null:
+		_fail("Schema 表 ID 重命名操作未连接到编辑器。")
+		return false
+	var original_file_name := data_file.get_text(0)
+	var original_state := data_file.get_text(1)
+	var original_table_id := data_file.get_text(2)
+	schema_editor.set("_table_value_mode", "table_id")
+	table_value_input.text = "%sUiRegression" % original_table_id
+	schema_editor.call("_apply_table_value_change")
+	await process_frame
+	var renamed_data_file := data_files.get_root().get_first_child()
+	while renamed_data_file != null and renamed_data_file.get_text(0) != original_file_name:
+		renamed_data_file = renamed_data_file.get_next()
+	if (
+		renamed_data_file == null
+		or renamed_data_file.get_text(1) != original_state
+		or renamed_data_file.get_text(2) != "%sUiRegression" % original_table_id
+	):
+		_fail("Schema 表 ID 重命名后，数据文件列表未立即同步。")
+		return false
+	var renamed_table_id := "%sUiRegression" % original_table_id
+	var item_index := _find_option_index(table_selector, "Item")
+	if item_index < 0:
+		_fail("Schema 外键联动回归缺少 Item 数据表。")
+		return false
+	table_selector.select(item_index)
+	table_selector.item_selected.emit(item_index)
+	await process_frame
+	var relation_fields := dialog.find_child("DataTableSchemaFields", true, false) as Tree
+	var category_field := _find_tree_item(relation_fields, "category_id")
+	if category_field == null or category_field.get_text(9) != "%s.id" % renamed_table_id:
+		_fail("重命名数据表 ID 后，引用它的外键未同步更新。")
+		return false
+	var renamed_index := _find_option_index(table_selector, renamed_table_id)
+	if renamed_index < 0:
+		_fail("重命名后的数据表未保留在选择器中。")
+		return false
+	table_selector.select(renamed_index)
+	table_selector.item_selected.emit(renamed_index)
+	await process_frame
+	schema_editor.set("_table_value_mode", "table_id")
+	table_value_input.text = original_table_id
+	schema_editor.call("_apply_table_value_change")
+	await process_frame
+	item_index = _find_option_index(table_selector, "Item")
+	table_selector.select(item_index)
+	table_selector.item_selected.emit(item_index)
+	await process_frame
+	relation_fields = dialog.find_child("DataTableSchemaFields", true, false) as Tree
+	category_field = _find_tree_item(relation_fields, "category_id")
+	if category_field == null or category_field.get_text(9) != "%s.id" % original_table_id:
+		_fail("恢复数据表 ID 后，引用它的外键未同步恢复。")
+		return false
+	var category_index := _find_option_index(table_selector, original_table_id)
+	table_selector.select(category_index)
+	table_selector.item_selected.emit(category_index)
+	await process_frame
+	var category_fields := dialog.find_child("DataTableSchemaFields", true, false) as Tree
+	var category_id_field := _find_tree_item(category_fields, "id")
+	if category_id_field == null:
+		_fail("Schema 外键联动回归缺少 ItemCategory.id。")
+		return false
+	await _edit_tree_text_cell(category_fields, category_id_field, 0, "category_key")
+	item_index = _find_option_index(table_selector, "Item")
+	table_selector.select(item_index)
+	table_selector.item_selected.emit(item_index)
+	await process_frame
+	relation_fields = dialog.find_child("DataTableSchemaFields", true, false) as Tree
+	category_field = _find_tree_item(relation_fields, "category_id")
+	if category_field == null or category_field.get_text(9) != "%s.category_key" % original_table_id:
+		_fail("重命名主键字段后，引用它的外键未同步更新：%s。" % (
+			"<missing>" if category_field == null else category_field.get_text(9)
+		))
+		return false
+	table_selector.select(category_index)
+	table_selector.item_selected.emit(category_index)
+	await process_frame
+	category_fields = dialog.find_child("DataTableSchemaFields", true, false) as Tree
+	category_id_field = _find_tree_item(category_fields, "category_key")
+	await _edit_tree_text_cell(category_fields, category_id_field, 0, "id")
+	table_selector.select(item_index)
+	table_selector.item_selected.emit(item_index)
+	await process_frame
+	relation_fields = dialog.find_child("DataTableSchemaFields", true, false) as Tree
+	category_field = _find_tree_item(relation_fields, "category_id")
+	if category_field == null or category_field.get_text(9) != "%s.id" % original_table_id:
+		_fail("恢复主键字段后，引用它的外键未同步恢复。")
 		return false
 	var create_table := dialog.find_child("DataTableSchemaCreateTableButton", true, false) as Button
 	if create_table == null:
@@ -334,6 +470,34 @@ func _find_window(node: Node, title: String) -> Window:
 		if nested != null:
 			return nested
 	return null
+
+
+func _find_option_index(options: OptionButton, text: String) -> int:
+	for index in options.item_count:
+		if options.get_item_text(index) == text:
+			return index
+	return -1
+
+
+func _find_tree_item(tree: Tree, text: String) -> TreeItem:
+	if tree == null or tree.get_root() == null:
+		return null
+	var item := tree.get_root().get_first_child()
+	while item != null:
+		if item.get_text(0) == text:
+			return item
+		item = item.get_next()
+	return null
+
+
+func _edit_tree_text_cell(tree: Tree, item: TreeItem, column: int, text: String) -> void:
+	var position := tree.get_item_area_rect(item, column).get_center()
+	tree.item_mouse_selected.emit(position, MOUSE_BUTTON_LEFT)
+	tree.item_activated.emit()
+	await process_frame
+	item.set_text(column, text)
+	tree.item_edited.emit()
+	await process_frame
 
 
 func _fail(message: String) -> void:

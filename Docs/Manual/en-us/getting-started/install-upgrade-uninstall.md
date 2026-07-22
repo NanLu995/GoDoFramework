@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/install-upgrade-uninstall.md
-translation_source_hash: sha256:2703fff4942309f56e9b6462999329600a034805700da2373d13a438f44eb3b3
+translation_source_hash: sha256:cf8d39e301a49ec841cf3cd123342f9405503a6b907aac70988e2358320169ed
 ---
 
 # Install, Upgrade, and Uninstall the Framework
@@ -13,7 +13,7 @@ This page covers adding a specific framework version to an existing Godot C# pro
 
 The target project needs:
 
-- Godot 4.7 .NET.
+- Godot 4.7.1 .NET.
 - Exactly one usable `.csproj` at the project root.
 - At least one successful Debug C# build.
 - .NET 8 for runtime targets; Android uses .NET 9 according to project requirements.
