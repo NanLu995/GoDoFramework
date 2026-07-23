@@ -9,6 +9,8 @@ const SETTINGS_SECTION := "godo_framework/datatable"
 const CONFIG_METADATA_KEY := "schema_path"
 const PYTHON_SETTING := "godo_framework/datatable/python_executable"
 const MAX_OUTPUT_CHARACTERS := 65536
+const TABLE_SELECTOR_WIDTH := 380.0
+const PRIMARY_ACTION_COLOR := Color("#8BD49C")
 
 var _context
 var _export_plugin: EditorExportPlugin
@@ -123,16 +125,36 @@ func _create_dialog() -> void:
 	_table_selector = OptionButton.new()
 	_table_selector.name = "DataTableTableSelector"
 	_table_selector.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-	_table_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_table_selector.custom_minimum_size.x = TABLE_SELECTOR_WIDTH
+	_table_selector.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	table_row.add_child(_table_selector)
 	_generate_selected_button = Button.new()
 	_generate_selected_button.text = "导出当前表..."
 	_generate_selected_button.name = "DataTableGenerateSelectedButton"
 	_generate_selected_button.pressed.connect(_request_generate_selected)
 	table_row.add_child(_generate_selected_button)
+	var export_spacer := Control.new()
+	export_spacer.name = "DataTableExportSpacer"
+	export_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	table_row.add_child(export_spacer)
 	_generate_button = Button.new()
 	_generate_button.text = "导出全部表..."
 	_generate_button.name = "DataTableGenerateButton"
+	_generate_button.add_theme_color_override("font_color", PRIMARY_ACTION_COLOR)
+	_generate_button.add_theme_color_override("font_hover_color", PRIMARY_ACTION_COLOR.lightened(0.15))
+	_generate_button.add_theme_color_override("font_pressed_color", PRIMARY_ACTION_COLOR.darkened(0.1))
+	_generate_button.add_theme_stylebox_override(
+		"normal",
+		_create_primary_action_style(Color("#8BD49C0A"), PRIMARY_ACTION_COLOR)
+	)
+	_generate_button.add_theme_stylebox_override(
+		"hover",
+		_create_primary_action_style(Color("#8BD49C20"), PRIMARY_ACTION_COLOR.lightened(0.15))
+	)
+	_generate_button.add_theme_stylebox_override(
+		"pressed",
+		_create_primary_action_style(Color("#8BD49C30"), PRIMARY_ACTION_COLOR.darkened(0.1))
+	)
 	_generate_button.pressed.connect(_request_generate)
 	table_row.add_child(_generate_button)
 
@@ -196,6 +218,19 @@ func _create_label(text: String) -> Label:
 	label.text = text
 	label.custom_minimum_size.x = 150
 	return label
+
+
+func _create_primary_action_style(background: Color, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = background
+	style.border_color = border
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 8.0
+	style.content_margin_right = 8.0
+	style.content_margin_top = 4.0
+	style.content_margin_bottom = 4.0
+	return style
 
 
 func _load_editor_settings() -> void:
