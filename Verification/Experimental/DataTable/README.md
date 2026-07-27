@@ -12,7 +12,21 @@ dotnet build GoDoFramework.sln
 & $env:GODOT_PATH --headless --editor --path . --script res://Verification/Experimental/DataTable/DataTableEditorExtensionProbe.gd
 & $env:GODOT_PATH --headless --editor --path . --script res://Verification/Experimental/DataTable/DataTableExportPluginProbe.gd
 python Verification/Experimental/DataTable/verify_export_plugin.py --godot $env:GODOT_PATH
+python Verification/Experimental/DataTable/verify_export_release.py --godot $env:GODOT_PATH --output-root <新目录> --prepare-only
 ```
+
+性能样例默认生成 10,000 行。需要观察大表加载峰值时，可生成 100,000 行后重新编译并运行同一基准：
+
+```powershell
+python Verification/Experimental/DataTable/verify_prototype.py --performance-rows 100000
+dotnet build GoDoFramework.sln
+& $env:GODOT_PATH --headless --path . res://Verification/Experimental/DataTable/DataTableCompressionTargetRunner.tscn
+& $env:GODOT_PATH --headless --path . res://Verification/Experimental/DataTable/DataTablePrototypeBenchmark.tscn
+```
+
+加载报告中的 `RetainedManagedBytes` 表示表仍被持有时相对基线保留的托管内存；`PostReleaseManagedBytes` 表示加载方法返回并完成完整 GC 后相对基线的变化。后者用于观察趋势，不设置跨机器固定阈值。
+
+`verify_export_release.py` 会创建独立 C# 项目，复用正式发布门禁和 `DataTableServiceRegression.tscn`。`--prepare-only` 只准备并导入项目，适合手动安装导出模板后从 Godot 导出；省略该参数会继续导出并运行 Windows ExportRelease。输出目录必须不存在，脚本不会覆盖或删除已有验收产物。
 
 第一条命令使用固定种子生成小型数据、约一万行性能数据和六类错误样例，然后通过正式工具验证：
 
@@ -40,22 +54,24 @@ python Verification/Experimental/DataTable/verify_export_plugin.py --godot $env:
 - 只实现阶段 A 所需的 string、bool、int32、float64 和 enum；
 - `.gdtb` v2 使用小端序，支持未压缩或 Godot Zstd payload；
 - `Auto` 当前只提供压缩建议并选择未压缩，`Never` / `Always` 已有实验语义；
-- 不包含加密、热更新、移动端导出或完整 ExportRelease 可执行文件验证；正式 `IDataTableService` 另由 `Verification/Automated/DataTableServiceRegression.tscn` 验证；
+- 不包含加密、热更新或移动端导出；Windows 完整 ExportRelease 可执行文件通过 `verify_export_release.py` 准备或自动验收，正式 `IDataTableService` 语义由 `Verification/Automated/DataTableServiceRegression.tscn` 验证；
 - 不进入永久 `Verification/Automated/run_all.py` 回归。
 
 ## 当前 Windows 证据
 
-2026-07-17 在 Godot 4.7 Mono、.NET 8 和 Windows 环境中，10,004 行的两张表生成未压缩 v2 二进制共 812,987 bytes，Zstd 候选共 158,646 bytes，减少约 80.49%。以下均为一次 Headless 样本：
+2026-07-27 在 Godot 4.7 Mono、.NET 8 和 Windows Debug 环境中，生成读取器改为顺序读取文件头和一份存储 payload。以下均为一次 Headless 样本：
 
-| 构建 | 压缩 | 加载耗时 | 总托管分配 | GC 后保留托管内存 | 100,000 次查询 |
-|---|---|---:|---:|---:|---:|
-| Debug | 无 | 9.559 ms | 4,088,888 bytes | 1,851,808 bytes | 11.077 ms / 0 B |
-| Debug | Zstd | 9.414 ms | 4,405,608 bytes | 1,851,808 bytes | 10.954 ms / 0 B |
-| Release | 无 | 2.901 ms | 4,088,888 bytes | 1,851,808 bytes | 1.814 ms / 0 B |
-| Release | Zstd | 3.367 ms | 4,405,608 bytes | 1,851,808 bytes | 1.894 ms / 0 B |
+| 构建 | Item 行数 | 压缩 | 加载耗时 | 总托管分配 | GC 后保留托管内存 | 释放后变化 | 100,000 次查询 |
+|---|---:|---|---:|---:|---:|---:|---:|
+| Debug | 10,000 | 无 | 9.453 ms | 4,089,224 bytes | 1,843,584 bytes | -8,224 bytes | 11.822 ms / 0 B |
+| Debug | 10,000 | Zstd | 9.714 ms | 4,247,800 bytes | 1,851,808 bytes | 0 bytes | 11.420 ms / 0 B |
+| Debug | 100,000 | 无 | 61.673 ms | 41,984,008 bytes | 19,434,368 bytes | -8,224 bytes | 3.169 ms / 0 B |
+| Debug | 100,000 | Zstd | 59.684 ms | 43,496,336 bytes | 19,442,592 bytes | 0 bytes | 2.835 ms / 0 B |
+| ExportRelease | 10,000 | 无 | 3.449 ms | 4,089,224 bytes | 1,843,584 bytes | -8,224 bytes | 2.002 ms / 0 B |
+| ExportRelease | 10,000 | Zstd | 3.711 ms | 4,247,800 bytes | 1,851,808 bytes | 0 bytes | 1.857 ms / 0 B |
+| ExportRelease | 100,000 | 无 | 34.271 ms | 41,984,032 bytes | 19,434,368 bytes | -8,224 bytes | 3.777 ms / 0 B |
+| ExportRelease | 100,000 | Zstd | 46.347 ms | 43,496,344 bytes | 19,442,592 bytes | 0 bytes | 3.666 ms / 0 B |
 
-Release 压缩目标单次样本中，`Item` 从 812,726 bytes 降至 158,419 bytes，压缩约 2.965 ms、解压约 1.607 ms；仅 261 bytes 的 `ItemCategory` 压缩后为 227 bytes。当前报告对两张表都建议 Zstd，但 `Auto` 不据此直接选择，避免在移动端和真实表分布验证前固化错误阈值。
+10 万行 Debug 样本中，移除重复压缩 payload 后，Zstd 总托管分配从 45,008,320 bytes 降至 43,496,336 bytes，减少 1,511,984 bytes。剩余额外分配约等于一份压缩输入；完整解压 payload 仍是当前加载峰值的一部分。表中 ExportRelease 样本通过临时加载 ExportRelease 程序集验证 IL/JIT 行为；独立完整 ExportRelease 可执行文件另已实际运行并通过 `DataTableServiceRegression (10/10)`，但没有把包体和启动性能纳入本表。
 
-Release 样本通过构建 Release 程序集并临时放入 Godot Headless 的 Debug 加载位置获得；验证结束后已经恢复普通 Debug 构建。它验证 Release IL/JIT 行为，不是正式 ExportRelease 包体性能。
-
-该数据只用于证明原型路径可测，不是性能承诺或压缩 `Auto` 阈值。正式 ExportRelease、其他硬件和移动平台仍需单独基准。
+该数据只用于证明原型路径可测，不是性能承诺或压缩 `Auto` 阈值。其他硬件、真实业务长期体验和移动平台仍需单独基准。

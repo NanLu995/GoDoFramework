@@ -11,6 +11,7 @@ public sealed partial class DebuggerOverlayRegression : Node
     {
         try
         {
+#if DEBUG
             CanvasLayer overlay = GetNode<CanvasLayer>("/root/GoDoRuntime/GoDoDebugger");
             Button toggle = overlay.GetNode<Button>("Panel/Margin/VBox/Header/FpsButton");
             Label title = overlay.GetNode<Label>("Panel/Margin/VBox/Header/TitleLabel");
@@ -42,6 +43,22 @@ public sealed partial class DebuggerOverlayRegression : Node
             Assert(title.Text == "Input", "运行时默认页面错误");
             pages.CurrentTab = 1;
             Assert(title.Text == "Scheduler", "Scheduler 页面切换失败");
+            Assert(debuggerLabel.Text.Contains("【任务】", StringComparison.Ordinal) &&
+                debuggerLabel.Text.Contains("【Process】", StringComparison.Ordinal) &&
+                debuggerLabel.Text.Contains("【Physics】", StringComparison.Ordinal) &&
+                debuggerLabel.Text.Contains("【累计统计】", StringComparison.Ordinal),
+                "Scheduler 快照内容没有完整渲染");
+
+            categories.CurrentTab = 2;
+            Assert(pages.Visible && pages.TabCount == 2, "框架二级页面错误");
+            Assert(title.Text == "Services" &&
+                debuggerLabel.Text.Contains("【已注册服务】", StringComparison.Ordinal) &&
+                debuggerLabel.Text.Contains("ISchedulerService", StringComparison.Ordinal),
+                "Services 快照内容没有完整渲染");
+            pages.CurrentTab = 1;
+            Assert(title.Text == "Events" &&
+                debuggerLabel.Text.Contains("【事件通道】", StringComparison.Ordinal),
+                "Events 快照内容没有完整渲染");
 
             categories.CurrentTab = 3;
             Assert(pages.Visible && pages.TabCount == 5, "控制台过滤页面错误");
@@ -50,7 +67,12 @@ public sealed partial class DebuggerOverlayRegression : Node
             toggle.EmitSignal(BaseButton.SignalName.Pressed);
             Assert(!content.Visible && !categories.Visible && !title.Visible, "Debugger 点击后未折叠");
 
-            GD.Print("[DebuggerOverlayRegression] PASS");
+            GD.Print("[DebuggerOverlayRegression] PASS: Debug 节点与快照页面");
+#else
+            Assert(GetNodeOrNull<Node>("/root/GoDoRuntime/GoDoDebugger") is null,
+                "Release 构建仍创建了 Debugger 节点");
+            GD.Print("[DebuggerOverlayRegression] PASS: Release 未创建 Debugger");
+#endif
             GetTree().Quit(0);
         }
         catch (Exception exception)

@@ -69,4 +69,4 @@ Input 页面最多显示前 32 个 Action，并明确显示省略数量，避免
 Verification/Automated/DebuggerOverlayRegression.tscn
 ```
 
-覆盖默认折叠、点击展开、调试控件不取得键盘/手柄焦点、一级分类、Runtime 与 Console 二级页面切换和再次折叠。Input 快照由 `InputServiceRegression.tscn` 覆盖后端、设备、Frame、Action 状态及 Context 有效性。移动端触摸、窄视口和真实设备显示仍需在目标平台手动验证。
+Windows Debug 回归覆盖默认折叠、点击展开、调试控件不取得键盘/手柄焦点、两层页面切换、Scheduler / Services / Events 快照内容渲染和再次折叠；同一场景使用 Release 程序集运行时，验证 GoDoRuntime 不创建 Debugger 节点。Input 快照由 `InputServiceRegression.tscn` 覆盖后端、设备、Frame、Action 状态及 Context 有效性。移动端触摸、窄视口和真实设备显示仍需在目标平台手动验证。

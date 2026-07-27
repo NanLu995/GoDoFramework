@@ -128,7 +128,7 @@ python addons/godo_framework/Tools/DataTable/godo_datatable_export.py `
 - `generate --table <ID>` 仍解析并校验全部 CSV、Schema、外键、摘要和二进制候选，只局部提交目标 `.gdtb`、必要 Manifest，以及内容确有变化的聚合 C#；
 - 单表生成要求先有一次成功的全量生成。已有 IR、Manifest、`.gdtb` 表集合必须完整，所有未选表的结构与二进制必须和当前输入一致；否则不写入并提示先生成全部；
 - 单表提交的所有变化文件使用同一备份/回滚事务；未变化文件不改写，因此未选表和未变化 C# 保留时间戳；
-- 生成读取器使用 Godot `FileAccess`，支持普通绝对路径和 `res://`；当前已验证编辑器、Headless 项目目录和实际加载 PCK 内的 `res://` 读取；单文件读取上限为 2 GiB；
+- 生成读取器使用 Godot `FileAccess` 顺序读取文件头和一份存储 payload，支持普通绝对路径和 `res://`；当前已验证编辑器、Headless 项目目录和实际加载 PCK 内的 `res://` 读取；单文件读取上限为 2 GiB；
 - 生成 C# 同时提供由稳定 `data_set_id` 推导的聚合门面；例如 `game.base` 生成 `BaseDataTables`，默认通过 `IDataTableService` 加载 `res://DataTables/Base/Runtime`，输出文件名和 Schema 的临时绝对位置不会改变生成内容；
 - 生成的 C# 内容未变化时保留原文件和时间戳，避免触发无意义的 Godot / .NET 重编译；
 - 数据输出目录会被整体替换，因此工具拒绝把 Schema、源目录或它们的祖先作为输出目录；
@@ -146,10 +146,10 @@ Python 工具是一次性离线进程，不读取 Autoload，也不产生游戏�
 - 只支持 `string`、`bool`、`int32`、`float64` 和受控 `enum`；
 - 单表生成不会绕过全量校验，也不能用于首次生成、增删表或修复已过期的未选表；这些情况必须生成全部；
 - 已提供可供本地、手动工作流或 CI 调用的只读过期检查、跨语言 Manifest 兼容比较与可靠导出包装命令，但本阶段不新增或修改 GitHub Actions 触发规则；
-- 导出过滤已验证 Windows Client / Server PCK；完整 ExportRelease 可执行文件、移动平台和真实权威服务器仍需后续验证；
+- 导出过滤已验证 Windows Client / Server PCK，Shared Base 数据集已通过独立完整 ExportRelease 可执行文件回归；移动平台和真实权威服务器仍需后续验证；
 - 当前支持的 Godot 4.x 直接导出不能由 `EditorExportPlugin` 可靠中止，发布流程必须调用包装脚本；
 - Zstd 正式选择仍需移动端和真实表分布验证。
 
 ## 验证
 
-运行 `python Verification/Experimental/DataTable/verify_prototype.py`，会验证确定性、六类数据错误、`check` 不写入、CLI 错误码、单一 Schema、危险输出目录拒绝、空格路径、失败不覆盖旧产物、全量提交回滚，单表数据/结构变化、未选表保留、基线拒绝和多文件回滚，`verify-generated` 的只读过期检查，Client / Server audience 隔离，以及 Manifest 正常兼容与六类拒绝语义。`DataTablePrototypeBenchmark.tscn` 已实际验证绝对路径、项目目录和 PCK 内 `res://` 读取、损坏拒绝及查询性能；`DataTableExportPluginProbe.gd` 验证导出规划，`verify_export_plugin.py` 在隔离项目中验证实际 Client / Server PCK 和发布门禁。实验验证不加入永久 `run_all.py`。
+运行 `python Verification/Experimental/DataTable/verify_prototype.py`，会验证确定性、六类数据错误、`check` 不写入、CLI 错误码、单一 Schema、危险输出目录拒绝、空格路径、失败不覆盖旧产物、全量提交回滚，单表数据/结构变化、未选表保留、基线拒绝和多文件回滚，`verify-generated` 的只读过期检查，Client / Server audience 隔离，以及 Manifest 正常兼容与六类拒绝语义。`DataTablePrototypeBenchmark.tscn` 已实际验证绝对路径、项目目录和 PCK 内 `res://` 读取、损坏拒绝及查询性能；`DataTableExportPluginProbe.gd` 验证导出规划，`verify_export_plugin.py` 在隔离项目中验证实际 Client / Server PCK 和发布门禁；`verify_export_release.py` 准备或自动运行独立 Windows ExportRelease 全链路验收。实验验证不加入永久 `run_all.py`。

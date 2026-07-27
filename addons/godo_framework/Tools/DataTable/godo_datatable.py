@@ -746,47 +746,50 @@ internal static class DataTableLoader
         ulong fileLength = file.GetLength();
         if (fileLength > int.MaxValue)
             throw new InvalidDataException($"DataTable 文件超过 2 GiB 读取上限：{{path}}");
-        byte[] data = file.GetBuffer(checked((long)fileLength));
-        if (data.Length != checked((int)fileLength))
-            throw new IOException($"DataTable 未完整读取：{{path}}");
-        using var headerStream = new MemoryStream(data, writable: false);
-        using var headerReader = new BinaryReader(headerStream, Encoding.UTF8, leaveOpen: true);
-        if (!headerReader.ReadBytes(4).AsSpan().SequenceEqual("GDTB"u8))
+        byte[] fixedHeader = ReadFileExactly(file, 14, path);
+        using var fixedHeaderStream = new MemoryStream(fixedHeader, writable: false);
+        using var fixedHeaderReader =
+            new BinaryReader(fixedHeaderStream, Encoding.UTF8, leaveOpen: false);
+        if (!fixedHeaderReader.ReadBytes(4).AsSpan().SequenceEqual("GDTB"u8))
             throw new InvalidDataException("DataTable magic 不匹配。");
-        if (headerReader.ReadUInt16() != {FORMAT_VERSION})
+        if (fixedHeaderReader.ReadUInt16() != {FORMAT_VERSION})
             throw new InvalidDataException("DataTable 格式版本不兼容。");
-        if (headerReader.ReadUInt16() != schemaVersion)
+        if (fixedHeaderReader.ReadUInt16() != schemaVersion)
             throw new InvalidDataException("DataTable schema 版本不兼容。");
-        uint flags = headerReader.ReadUInt32();
+        uint flags = fixedHeaderReader.ReadUInt32();
         if ((flags & ~CompressionZstdFlag) != 0)
             throw new InvalidDataException("DataTable 包含未知 flags。");
-        ushort tableIdLength = headerReader.ReadUInt16();
-        string actualTableId = Encoding.UTF8.GetString(headerReader.ReadBytes(tableIdLength));
+        ushort tableIdLength = fixedHeaderReader.ReadUInt16();
+
+        byte[] variableHeader = ReadFileExactly(file, checked(tableIdLength + 42), path);
+        using var variableHeaderStream = new MemoryStream(variableHeader, writable: false);
+        using var variableHeaderReader =
+            new BinaryReader(variableHeaderStream, Encoding.UTF8, leaveOpen: false);
+        string actualTableId =
+            Encoding.UTF8.GetString(variableHeaderReader.ReadBytes(tableIdLength));
         if (!StringComparer.Ordinal.Equals(actualTableId, tableId))
             throw new InvalidDataException($"DataTable ID 不匹配：{{actualTableId}}。");
-        int rowCount = checked((int)headerReader.ReadUInt32());
+        int rowCount = checked((int)variableHeaderReader.ReadUInt32());
         if (rowCount > MaxRowCount)
             throw new InvalidDataException("DataTable 行数超过读取上限。");
-        if (headerReader.ReadUInt16() != fieldCount)
+        if (variableHeaderReader.ReadUInt16() != fieldCount)
             throw new InvalidDataException("DataTable 字段数量不匹配。");
-        int uncompressedSize = checked((int)headerReader.ReadUInt32());
+        int uncompressedSize = checked((int)variableHeaderReader.ReadUInt32());
         if (uncompressedSize > MaxUncompressedPayloadBytes)
             throw new InvalidDataException("DataTable payload 超过读取上限。");
-        byte[] expectedHash = headerReader.ReadBytes(32);
-        int storedPayloadOffset = checked((int)headerStream.Position);
+        byte[] expectedHash = variableHeaderReader.ReadBytes(32);
+        long storedPayloadLength = checked((long)(fileLength - file.GetPosition()));
+        byte[] storedPayload = ReadFileExactly(file, storedPayloadLength, path);
 
         byte[] payloadData;
-        int payloadOffset;
         if ((flags & CompressionZstdFlag) == 0)
         {{
-            if (data.Length - storedPayloadOffset != uncompressedSize)
+            if (storedPayload.Length != uncompressedSize)
                 throw new InvalidDataException("DataTable 未压缩 payload 大小不匹配。");
-            payloadData = data;
-            payloadOffset = storedPayloadOffset;
+            payloadData = storedPayload;
         }}
         else
         {{
-            byte[] storedPayload = data.AsSpan(storedPayloadOffset).ToArray();
             try
             {{
                 payloadData = storedPayload.Decompress(
@@ -799,16 +802,14 @@ internal static class DataTableLoader
             }}
             if (payloadData.Length != uncompressedSize)
                 throw new InvalidDataException("DataTable Zstd 解压大小不匹配。");
-            payloadOffset = 0;
         }}
 
-        byte[] actualHash = SHA256.HashData(
-            payloadData.AsSpan(payloadOffset, uncompressedSize));
+        byte[] actualHash = SHA256.HashData(payloadData);
         if (!CryptographicOperations.FixedTimeEquals(expectedHash, actualHash))
             throw new InvalidDataException("DataTable payload 摘要不匹配。");
         var stream = new MemoryStream(
             payloadData,
-            payloadOffset,
+            0,
             uncompressedSize,
             writable: false,
             publiclyVisible: false);
@@ -832,6 +833,14 @@ internal static class DataTableLoader
             }}
         }}
         return new ReaderContext(stream, reader, rowCount, strings);
+    }}
+
+    private static byte[] ReadFileExactly(GodotFileAccess file, long count, string path)
+    {{
+        byte[] bytes = file.GetBuffer(count);
+        if (bytes.LongLength != count)
+            throw new IOException($"DataTable 未完整读取：{{path}}");
+        return bytes;
     }}
 
     private static Dictionary<string, int> ReadIndex(ReaderContext context, int rowCount)

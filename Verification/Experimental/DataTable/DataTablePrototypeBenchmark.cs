@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
 using Godot;
 using GoDoFramework.Verification.DataTablePrototype.Generated;
 
@@ -11,7 +12,6 @@ namespace GoDoFramework.Verification;
 /// <summary>DataTable 阶段 A 跨语言二进制读取与 Windows 基础性能验证入口。</summary>
 public sealed partial class DataTablePrototypeBenchmark : Node
 {
-    private const int ExpectedItemCount = 10_000;
     private const int LookupCount = 100_000;
 
 #if DEBUG
@@ -36,22 +36,32 @@ public sealed partial class DataTablePrototypeBenchmark : Node
                 compressionDirectory,
                 "ItemCategory.gdtb");
             string compressedItemsPath = Path.Combine(compressionDirectory, "Item.gdtb");
+            int expectedItemCount = int.Parse(
+                File.ReadAllText(Path.Combine(outputDirectory, "benchmark_rows.txt")));
 
-            VerifySemantics(categoriesPath, itemsPath);
-            VerifyResPathSemantics();
-            VerifyPckSemantics(categoriesPath, itemsPath);
+            VerifySemantics(categoriesPath, itemsPath, expectedItemCount);
+            VerifyResPathSemantics(expectedItemCount);
+            VerifyPckSemantics(categoriesPath, itemsPath, expectedItemCount);
             VerifyCorruptionFailures(outputDirectory);
             VerifyCompressedSemantics(
                 compressedCategoriesPath,
                 compressedItemsPath,
                 selectedDirectory,
                 categoriesPath,
-                itemsPath);
-            BenchmarkLoad("None", categoriesPath, itemsPath);
-            BenchmarkLoad("Zstd", compressedCategoriesPath, compressedItemsPath);
-            BenchmarkLookup("None", itemsPath);
-            BenchmarkLookup("Zstd", compressedItemsPath);
-            GD.Print("[DataTablePrototypeBenchmark] PASS (9/9)");
+                itemsPath,
+                expectedItemCount);
+            LoadMeasurement uncompressedLoad =
+                BenchmarkLoad("None", categoriesPath, itemsPath);
+            LoadMeasurement zstdLoad =
+                BenchmarkLoad("Zstd", compressedCategoriesPath, compressedItemsPath);
+            AssertZstdAllocation(
+                uncompressedLoad,
+                zstdLoad,
+                compressedCategoriesPath,
+                compressedItemsPath);
+            BenchmarkLookup("None", itemsPath, expectedItemCount);
+            BenchmarkLookup("Zstd", compressedItemsPath, expectedItemCount);
+            GD.Print("[DataTablePrototypeBenchmark] PASS (10/10)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -61,13 +71,16 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         }
     }
 
-    private static void VerifySemantics(string categoriesPath, string itemsPath)
+    private static void VerifySemantics(
+        string categoriesPath,
+        string itemsPath,
+        int expectedItemCount)
     {
         ItemCategoryTable categories = DataTableLoader.LoadItemCategory(categoriesPath);
         ItemTable items = DataTableLoader.LoadItem(itemsPath);
 
         Assert(categories.Count == 4, "ItemCategory 行数不正确");
-        Assert(items.Count == ExpectedItemCount, "Item 行数不正确");
+        Assert(items.Count == expectedItemCount, "Item 行数不正确");
         Assert(categories.Get("equipment").DisplayName == "装备", "UTF-8 字符串池读取错误");
 
         ItemRow first = items.Get("item_00001");
@@ -81,7 +94,7 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         GD.Print("[DataTablePrototypeBenchmark] PASS: 二进制语义");
     }
 
-    private static void VerifyResPathSemantics()
+    private static void VerifyResPathSemantics(int expectedItemCount)
     {
         ItemCategoryTable categories = DataTableLoader.LoadItemCategory(
             "res://Verification/Experimental/DataTable/Artifacts/output/ItemCategory.gdtb");
@@ -89,11 +102,14 @@ public sealed partial class DataTablePrototypeBenchmark : Node
             "res://Verification/Experimental/DataTable/Artifacts/output/Item.gdtb");
 
         Assert(categories.Count == 4, "res:// ItemCategory 行数不正确");
-        Assert(items.Count == ExpectedItemCount, "res:// Item 行数不正确");
+        Assert(items.Count == expectedItemCount, "res:// Item 行数不正确");
         GD.Print("[DataTablePrototypeBenchmark] PASS: res:// 读取语义");
     }
 
-    private static void VerifyPckSemantics(string categoriesPath, string itemsPath)
+    private static void VerifyPckSemantics(
+        string categoriesPath,
+        string itemsPath,
+        int expectedItemCount)
     {
         string pckPath = ProjectSettings.GlobalizePath("user://datatable-prototype-test.pck");
         if (File.Exists(pckPath))
@@ -115,7 +131,7 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         ItemTable items = DataTableLoader.LoadItem(
             "res://__godo_datatable_pck_test/Item.gdtb");
         Assert(categories.Count == 4, "PCK ItemCategory 行数不正确");
-        Assert(items.Count == ExpectedItemCount, "PCK Item 行数不正确");
+        Assert(items.Count == expectedItemCount, "PCK Item 行数不正确");
         GD.Print("[DataTablePrototypeBenchmark] PASS: PCK res:// 读取语义");
     }
 
@@ -171,12 +187,13 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         string itemsPath,
         string selectedDirectory,
         string uncompressedCategoriesPath,
-        string uncompressedItemsPath)
+        string uncompressedItemsPath,
+        int expectedItemCount)
     {
         ItemCategoryTable categories = DataTableLoader.LoadItemCategory(categoriesPath);
         ItemTable items = DataTableLoader.LoadItem(itemsPath);
         Assert(categories.Count == 4, "Zstd ItemCategory 行数不正确");
-        Assert(items.Count == ExpectedItemCount, "Zstd Item 行数不正确");
+        Assert(items.Count == expectedItemCount, "Zstd Item 行数不正确");
         Assert(items.Get("item_00005").Description is null, "Zstd null 语义错误");
 
         Assert(
@@ -192,36 +209,61 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         GD.Print("[DataTablePrototypeBenchmark] PASS: Zstd 与 Auto 保守选择语义");
     }
 
-    private static void BenchmarkLoad(string compression, string categoriesPath, string itemsPath)
+    private static LoadMeasurement BenchmarkLoad(
+        string compression,
+        string categoriesPath,
+        string itemsPath)
     {
         _ = DataTableLoader.LoadItemCategory(categoriesPath);
         _ = DataTableLoader.LoadItem(itemsPath);
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
+        ForceFullCollection();
 
-        long memoryBefore = GC.GetTotalMemory(forceFullCollection: true);
+        long memoryBefore = GC.GetTotalMemory(forceFullCollection: false);
+        LoadMeasurement measurement = MeasureLoad(categoriesPath, itemsPath);
+        ForceFullCollection();
+        long memoryAfterRelease = GC.GetTotalMemory(forceFullCollection: false);
+
+        long binaryBytes = new FileInfo(categoriesPath).Length + new FileInfo(itemsPath).Length;
+        GD.Print(
+            $"[DataTablePrototypeBenchmark] Load: Build={BuildConfiguration}; " +
+            $"Compression={compression}; " +
+            $"Rows={measurement.RowCount}; " +
+            $"BinaryBytes={binaryBytes}; ElapsedMs={measurement.Elapsed.TotalMilliseconds:F3}; " +
+            $"AllocatedBytes={measurement.AllocatedBytes}; " +
+            $"RetainedManagedBytes={measurement.MemoryWhileLoaded - memoryBefore}; " +
+            $"PostReleaseManagedBytes={memoryAfterRelease - memoryBefore}");
+        return measurement;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static LoadMeasurement MeasureLoad(
+        string categoriesPath,
+        string itemsPath)
+    {
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         long started = Stopwatch.GetTimestamp();
         ItemCategoryTable categories = DataTableLoader.LoadItemCategory(categoriesPath);
         ItemTable items = DataTableLoader.LoadItem(itemsPath);
         TimeSpan elapsed = Stopwatch.GetElapsedTime(started);
         long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
-        long memoryAfter = GC.GetTotalMemory(forceFullCollection: true);
-
-        long binaryBytes = new FileInfo(categoriesPath).Length + new FileInfo(itemsPath).Length;
-        GD.Print(
-            $"[DataTablePrototypeBenchmark] Load: Build={BuildConfiguration}; " +
-            $"Compression={compression}; " +
-            $"Rows={categories.Count + items.Count}; " +
-            $"BinaryBytes={binaryBytes}; ElapsedMs={elapsed.TotalMilliseconds:F3}; " +
-            $"AllocatedBytes={allocated}; RetainedManagedBytes={memoryAfter - memoryBefore}");
+        int rowCount = categories.Count + items.Count;
+        long memoryWhileLoaded = GC.GetTotalMemory(forceFullCollection: true);
+        GC.KeepAlive(categories);
+        GC.KeepAlive(items);
+        return new LoadMeasurement(
+            rowCount,
+            elapsed,
+            allocated,
+            memoryWhileLoaded);
     }
 
-    private static void BenchmarkLookup(string compression, string itemsPath)
+    private static void BenchmarkLookup(
+        string compression,
+        string itemsPath,
+        int expectedItemCount)
     {
         ItemTable items = DataTableLoader.LoadItem(itemsPath);
-        var ids = new string[ExpectedItemCount];
+        var ids = new string[expectedItemCount];
         for (int index = 0; index < ids.Length; index++)
             ids[index] = $"item_{index + 1:00000}";
 
@@ -229,7 +271,7 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         long started = Stopwatch.GetTimestamp();
         double weightSum = 0;
         for (int index = 0; index < LookupCount; index++)
-            weightSum += items.Get(ids[index % ExpectedItemCount]).Weight;
+            weightSum += items.Get(ids[index % expectedItemCount]).Weight;
         TimeSpan elapsed = Stopwatch.GetElapsedTime(started);
         long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
 
@@ -238,6 +280,30 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         GD.Print(
             $"[DataTablePrototypeBenchmark] Lookup: Compression={compression}; Count={LookupCount}; " +
             $"ElapsedMs={elapsed.TotalMilliseconds:F3}; AllocatedBytes={allocated}");
+    }
+
+    private static void ForceFullCollection()
+    {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+    }
+
+    private static void AssertZstdAllocation(
+        LoadMeasurement uncompressed,
+        LoadMeasurement zstd,
+        string categoriesPath,
+        string itemsPath)
+    {
+        long compressedBytes =
+            new FileInfo(categoriesPath).Length + new FileInfo(itemsPath).Length;
+        long allocationOverhead = zstd.AllocatedBytes - uncompressed.AllocatedBytes;
+        const long toleranceBytes = 64 * 1024;
+        Assert(
+            allocationOverhead <= compressedBytes + toleranceBytes,
+            $"Zstd 加载复制了压缩 payload：额外分配 {allocationOverhead} bytes，" +
+            $"压缩文件 {compressedBytes} bytes。");
+        GD.Print("[DataTablePrototypeBenchmark] PASS: Zstd 压缩 payload 单份分配");
     }
 
     private static void AssertInvalidData(Action action, string messageFragment, string caseName)
@@ -262,4 +328,10 @@ public sealed partial class DataTablePrototypeBenchmark : Node
         if (!condition)
             throw new InvalidOperationException(message);
     }
+
+    private readonly record struct LoadMeasurement(
+        int RowCount,
+        TimeSpan Elapsed,
+        long AllocatedBytes,
+        long MemoryWhileLoaded);
 }

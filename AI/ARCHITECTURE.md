@@ -76,7 +76,7 @@ GoDoRuntime 不承载菜单、关卡、登录等具体游戏流程。业务场�
 | Service | Input | 语义 Action 当前帧快照、Context 栈、可选运行时重绑定/持久化、文本提示查询与可替换后端边界 | Core、Godot 值类型、`IInputBackend` | `IInputService` | 首版完成 |
 | Service | Audio | BGM、SFX 池与音量分组 | ResourceHub、NodePool、Core | `IAudioService` | 稳定基线 |
 | Service | Localization | TranslationServer 薄封装、语言有效性、翻译查询与变更通知 | Core、Godot TranslationServer | `ILocalizationService` | 首版完成 |
-| Service | DataTable | 业务显式触发的数据集 Manifest 校验、逐表加载、事务发布、缓存与卸载 | Core、Godot FileAccess、生成解码委托 | `IDataTableService` / 生成数据集门面 | 首版验证中 |
+| Service | DataTable | 业务显式触发的数据集 Manifest 校验、逐表加载、事务发布、缓存与卸载 | Core、Godot FileAccess、生成解码委托 | `IDataTableService` / 生成数据集门面 | 首版完成 |
 | Service | UI | 屏幕空间 UI 的 Scene、View、Modal 层与返回栈 | ResourceHub、Core | `IUiService` | 稳定基线 |
 | Service | Save | 多槽位可靠容器、校验、备份和 Codec 边界 | Core、Godot FileAccess | `ISaveService` | 稳定基线 |
 | Service | Settings | 音量、Locale 选择与持久化、显示偏好 | Audio、Save、Localization、平台适配器 | `ISettingsService` | Windows 稳定基线（其他平台待验证，见上方图例） |

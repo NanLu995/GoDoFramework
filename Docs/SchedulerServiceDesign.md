@@ -272,12 +272,13 @@ Scheduler 的时间推进逻辑应允许测试传入人工 delta 和单调时间
 - Owner 退出场景树自动取消；
 - `DelayAsync` 正常完成、Token 取消和 Runtime 退出取消；
 - ErrorHub 收到结构化 callback 异常。
+- 10 FPS 持续低帧下，重复任务每帧最多派发一次，不补发遗漏周期。
 
 ### 13.3 手动验证
 
 - 编辑器暂停菜单与慢动作体验（Windows Demo3D 已验证）；
 - 窗口失焦、最小化和恢复后的 RealTime 行为（Windows Demo3D 已验证）；
-- 低 FPS 与长卡帧下的回调节奏（750 毫秒主线程卡顿已验证，持续低 FPS 待真实项目验证）；
+- 低 FPS 与长卡帧下的回调节奏（750 毫秒主线程卡顿和 Headless 10 FPS 持续低帧已验证，真实项目长期体验待验证）；
 - Debugger 快照可读性（Windows Demo3D 已验证）。
 
 ## 14. 实现顺序
