@@ -39,7 +39,7 @@
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:884da1ca2ca0a33419328dee47f34fefcf5b326053247cd673beb97e7c7fbb4f"
+      "reviewed_contract_hash": "sha256:dfafaefd5db8d14895e9563a97b94738e08d6ee9eb3c019f3b57b63f304116c4"
     },
     "services": {
       "contract": "addons/godo_framework/Core/Services/USAGE.md",
@@ -53,11 +53,11 @@
     "debugger": {
       "contract": "addons/godo_framework/Debugger/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖自动加载、折叠与展开、内置页面、刷新和历史容量及 Release 边界；仍等待各页面的深度排障示例。",
+      "reason": "功能指南已覆盖自动加载、折叠与展开、卡片式概览、结构化 Input、Scheduler、Audio、Services 与 Events 检查器、树状导航、布局操作、控制台交互、刷新和历史容量及 Release 边界；仍等待各页面的深度排障示例。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:b6e8d771ca7e4e17aa35759d7fab24362afd4906281065192f035aafdb78c166"
+      "reviewed_contract_hash": "sha256:c652f97cf2dd16a514ac424c0e537e353f452ca49232695905eb7643f01c722d"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
@@ -81,13 +81,14 @@
     "audio": {
       "contract": "addons/godo_framework/Runtime/Audio/USAGE.md",
       "status": "documented",
-      "reason": "教程和功能指南已覆盖流程 BGM、暂停恢复、加载取消、按钮 SFX、并发容量、循环音效边界、分组音量、设置持久化和非关键失败；仍等待淡入淡出、混音与空间音频未来能力。",
+      "reason": "教程和功能指南已覆盖流程 BGM、暂停恢复、加载取消、按钮 SFX、并发容量、循环音效边界、分组音量、设置持久化、非关键失败和 Debugger 只读诊断；仍等待淡入淡出、混音与空间音频未来能力。",
       "manual_pages": [
         "getting-started/add-audio.md",
         "getting-started/save-progress-and-settings.md",
-        "guides/ui-and-audio/index.md"
+        "guides/ui-and-audio/index.md",
+        "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:c3dbdae9fa7da25b3bd9c8e448133958193521945c7a48ad9990333019a8bf8a"
+      "reviewed_contract_hash": "sha256:e2b1c1b286f227c60f2fbd6b374f2e33351cb98d491d2113fa96105375906944"
     },
     "camera": {
       "contract": "addons/godo_framework/Runtime/Camera/USAGE.md",
@@ -110,12 +111,13 @@
     "input": {
       "contract": "addons/godo_framework/Runtime/Input/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖语义 Action、Frame、Context、帧边界、设备提示、运行时重绑定、持久化、能力检测和失败原子性。",
+      "reason": "功能指南已覆盖语义 Action、Frame、Context、帧边界、设备提示、运行时重绑定、持久化、能力检测、失败原子性和 Debugger 只读诊断。",
       "manual_pages": [
         "guides/input/index.md",
-        "guides/input-rebinding/index.md"
+        "guides/input-rebinding/index.md",
+        "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:0efcd691c9f78f10d954be44b7e09fa9fd5ba41e9973eeed787a4ba98a33c7c3"
+      "reviewed_contract_hash": "sha256:2420b72db73319b32656e5194dbe7037e354135c3cccae569a7ca28309cf1fa1"
     },
     "localization": {
       "contract": "addons/godo_framework/Runtime/Localization/USAGE.md",

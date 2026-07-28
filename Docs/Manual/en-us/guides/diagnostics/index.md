@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:b98578dbbf4b351a609029fb9a98edce205ed1c944c7279e609ab6d56c5809af
+translation_source_hash: sha256:33c902d773dd15b107a0814970b3fb25c5d6ec862ea828fa8cb50e46adc97085
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
@@ -153,12 +153,23 @@ Before connecting a remote platform, the game project must define user consent, 
 After enabling the `GoDoRuntime.tscn` Autoload, Debug builds automatically show a compact health button with no shortcut configuration.
 
 - Collapsed mode shows FPS and recent Warning/Error counts.
-- Click it to inspect Services, Events, Input, Scheduler, and Console pages.
+- Click it to open a card-based runtime overview, then use the navigation tree to inspect Services, Events, Input, the structured Scheduler and Audio dashboards, and Console pages.
+- Drag the title bar to move the window, drag the lower-right Resize Debugger handle to resize the entire panel, or click Reset to restore the default layout.
 - The current page refreshes every 0.25 seconds while expanded; collapsed mode creates no module snapshots.
 - The panel is read-only and cannot modify services or game data.
 - Release builds do not create it, so game logic must never depend on it.
 
-Console pages retain only limited recent data. LogHub uses a 64-entry ring and the panel displays at most five recent normal logs. ErrorHub summary capacity is 16, with recent entries displayed by level. This is a quick inspection tool, not a persistent log archive or profiler.
+The Services page maps each registered service contract to its current implementation type. Search matches short and fully qualified names for both sides, and selecting a row displays the complete contract-to-implementation relationship below the list. The page is read-only: it neither returns service instances nor replaces registrations.
+
+The Events page summarizes event types and listener counts. Its search field matches both short and fully qualified type names, and selecting a row displays the full type name below the list so same-named events from different namespaces remain distinguishable. This page shows events that currently have listeners; it does not retain an event-emission history.
+
+The Input page uses status cards for the current backend, active device, sample sequence, and Action count, followed by separate Context-stack and Action-state tables. The sequence normally increases after each successful per-frame sample, remains unchanged after a failed sample, and resets when the backend is reinstalled or the service shuts down. Action rows include value type, current value, and just-pressed/just-released edges. Search filters the complete snapshot by Action name or value type and renders at most the first 32 matches.
+
+The Audio page reports whether BGM is loading, playing, loaded but not playing, or stopped, together with the current resource key. Its SFX card shows active voices, capacity, and utilization, while the lower cards show linear Master, BGM, and SFX volume. Because the current audio interface cannot distinguish a paused stream from one that ended naturally, either case is conservatively reported as loaded but not playing.
+
+The Console toolbar provides counted All, Debug, Info, Warning, and Error chips. All is selected by default. Click a level to show only that level, click additional levels to combine them, or click All to reset. Search scans the complete in-memory history; when results span multiple pages, use Previous and Next, or click the separate Latest Logs button on the right to return directly to the final page and scroll to the bottom. While you remain on the latest page and refresh is not paused, new logs automatically follow the bottom. Scrolling upward stops following and enables Latest Logs; scrolling back to the bottom or clicking that button resumes following. Pause stops automatic refresh and scrolling. Copy copies only the text currently displayed by the active filters, search, and page. The search field captures input only after a click and releases focus when you submit the search or leave the Console.
+
+Console pages retain only limited recent data. LogHub uses a 1,000-entry ring; filtering and search scan the entire history, while each page renders at most 100 normal logs. Consecutive identical logs are aggregated into a `×count` entry with first and last timestamps. The Godot output console receives at most 100 LogHub lines per second, while suppressed lines remain available in Debugger history. ErrorHub summary capacity is 16, and each Warning/Error filter displays at most 12 matching entries. This is a quick inspection tool, not a persistent log archive or profiler. Use a future rolling file-log facility when diagnostics must survive a session or cover the complete runtime.
 
 ## Background threads and error storms
 

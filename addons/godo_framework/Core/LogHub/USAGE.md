@@ -27,9 +27,10 @@ LogHub.Info("进入主菜单流程", "Procedure");
 - API 只能在 Godot 主线程调用。
 - `message` 与 `module` 不得为空或全空白，否则抛出 `ArgumentException`。
 - 两个 API 都带 `Conditional("DEBUG")`；Release / ExportRelease 会在调用点移除，参数表达式不会求值。
-- 首版仅写入 Godot 控制台；不写文件、不上传远程端。
-- Debug 构建会用预分配的 64 条环形缓冲保留最近日志，写满后覆盖最早条目；Release 不保留日志历史。
-- Debugger 仅在展开状态、每 0.25 秒读取一次时间顺序快照，并最多显示最近 5 条普通日志。
+- 当前仅写入 Godot 控制台与 Debugger 内存历史；不写文件、不上传远程端。
+- Debug 构建会用预分配的 1000 条环形缓冲保留最近日志，写满后覆盖最早条目；连续且等级、模块、上下文、消息完全相同的日志聚合为一个条目并记录重复次数、首次时间与最后时间。Release 不保留日志历史。
+- Godot 控制台每秒最多输出 100 条 LogHub 记录；重复日志只在第 1、2、4、8……次输出。被抑制的控制台文本仍完整计入 Debugger 内存历史，窗口轮换或退出时输出抑制数量摘要。
+- Debugger 搜索与筛选会扫描全部 1000 条聚合历史，每页最多渲染 100 条普通日志。
 
 ## 与 ErrorHub 的分工
 
@@ -46,7 +47,7 @@ Release 默认不输出 LogHub；ErrorHub 仍按自身最低等级策略输出 W
 
 ## 自动回归验证
 
-`Verification/Automated/LogHubRegression.tscn` 验证 Debug、Info 的统一格式、空消息和空模块拒绝、主线程控制台输出路径，以及环形历史的容量与淘汰顺序。
+`Verification/Automated/LogHubRegression.tscn` 验证 Debug、Info 的统一格式、空消息和空模块拒绝、主线程控制台输出路径、连续重复聚合，以及环形历史的容量与淘汰顺序。
 
 ```powershell
 & $env:GODOT_PATH --headless --path . Verification/Automated/LogHubRegression.tscn
@@ -56,7 +57,7 @@ Release 默认不输出 LogHub；ErrorHub 仍按自身最低等级策略输出 W
 
 - 已通过 Debug 与 ExportRelease 的 `dotnet build`。
 - 已在 Windows Godot Debug 运行时手动验证控制台输出、Debugger 最近日志展示，以及主场景切换后的持续可见性。
-- 已在 Windows 当前项目声明的 Godot Mono Headless 版本完成 `LogHubRegression` 5/5 项验证；运行时需允许 Godot 写入 AppData 与 `user://` 目录。
+- 已在 Windows 当前项目声明的 Godot Mono Headless 版本完成 `LogHubRegression` 6/6 项验证；运行时需允许 Godot 写入 AppData 与 `user://` 目录。
 
 ## 常见误用
 

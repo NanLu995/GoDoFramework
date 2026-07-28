@@ -21,6 +21,7 @@ public sealed partial class LogHubRegression : Node
             Run("空参数拒绝", VerifyInvalidArguments);
             Run("控制台输出", VerifyConsoleOutput);
 #if DEBUG
+            Run("重复日志聚合", VerifyDuplicateAggregation);
             Run("环形历史", VerifyDebugHistory);
 #endif
 
@@ -70,6 +71,20 @@ public sealed partial class LogHubRegression : Node
     }
 
 #if DEBUG
+    private static void VerifyDuplicateAggregation()
+    {
+        LogHub.Initialize();
+        for (int i = 0; i < 128; i++)
+            LogHub.Debug("repeated-entry", "LogHubRegression");
+
+        LogEntry[] snapshot = LogHub.GetDebugSnapshot();
+        AssertEqual(1, snapshot.Length, "连续重复日志没有聚合为单个条目");
+        AssertEqual(128, snapshot[0].RepeatCount, "重复日志聚合次数错误");
+        AssertEqual("repeated-entry", snapshot[0].Message, "重复日志聚合后消息错误");
+        if (snapshot[0].FirstTimestampUtc > snapshot[0].TimestampUtc)
+            throw new InvalidOperationException("重复日志首次时间晚于最后时间");
+    }
+
     private static void VerifyDebugHistory()
     {
         LogHub.Initialize();

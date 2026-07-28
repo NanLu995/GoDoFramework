@@ -31,9 +31,7 @@ namespace GoDo
             // P1: 缓存 typeof(T)，避免重复调用
             var type = typeof(T);
 
-#if DEBUG
-            GD.Print($"[EventChannel] Emit → {type.Name}");
-#endif
+            LogHub.Debug($"Emit → {type.Name}", "EventChannel");
             if (_registry.TryGetValue(type, out var group))
                 ((HandlerGroup<T>)group).Dispatch(evt);
         }

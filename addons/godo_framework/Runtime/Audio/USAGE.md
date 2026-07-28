@@ -64,6 +64,7 @@ float bgmVolume = audio.GetVolume(AudioGroup.Bgm);
 ## 性能与验证基线
 
 - SFX 使用 NodePool，空闲 Voice 保持在场景树外，不在每次播放时 Instantiate/QueueFree。
+- Debug 构建可在 Debugger 的 `运行时 / Audio` 页面只读查看 BGM 状态与资源键、SFX 活跃数/容量和三组 Bus 线性音量；该页面直接读取现有接口，不维护音频历史或新增 AudioService 快照分配。
 - 100 次缓存音效播放/停止 Debug 验证为 2 ms、当前线程累计分配 44688 bytes、活动 Voice 0。
 - 已验证 Bus 重复初始化、音量、失败语义、BGM 并发拒绝、加载取消、自然回收、32 路上限、StopAll 和服务离树清理。
 - 分配数据包含 Task、测试代码和 Godot 包装层开销，不等同于泄漏结论。
