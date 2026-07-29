@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:0e58f03d63c45261173ab50af3762855435a6b7ac688afcd904ed6cd0dbd9e68
+translation_source_hash: sha256:1da31847b656f4f054cefd8038511ec6735066eabca5565d35ccc0b1cb3c2533
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
@@ -183,7 +183,13 @@ The Procedure page reports the current procedure, entering or exiting phase, and
 
 The Console toolbar provides counted All, Debug, Info, Warning, and Error chips. All is selected by default. Click a level to show only that level, click additional levels to combine them, or click All to reset. Search scans the complete in-memory history; when results span multiple pages, use Previous and Next, or click the separate Latest Logs button on the right to return directly to the final page and scroll to the bottom. While you remain on the latest page and refresh is not paused, new logs automatically follow the bottom. Scrolling upward stops following and enables Latest Logs; scrolling back to the bottom or clicking that button resumes following. Pause stops automatic refresh and scrolling. Copy copies only the text currently displayed by the active filters, search, and page. The search field captures input only after a click and releases focus when you submit the search or leave the Console.
 
-Console pages retain only limited recent data. LogHub uses a 1,000-entry ring; filtering and search scan the entire history, while each page renders at most 100 normal logs. Consecutive identical logs are aggregated into a `×count` entry with first and last timestamps. The Godot output console receives at most 100 LogHub lines per second, while suppressed lines remain available in Debugger history. ErrorHub summary capacity is 16, and each Warning/Error filter displays at most 12 matching entries. This is a quick inspection tool, not a persistent log archive or profiler. Use a future rolling file-log facility when diagnostics must survive a session or cover the complete runtime.
+Console pages retain only limited recent data. LogHub uses a 1,000-entry ring; filtering and search scan the entire history, while each page renders at most 100 normal logs. Consecutive identical logs are aggregated into a `×count` entry with first and last timestamps. The Godot output console receives at most 100 LogHub lines per second, while suppressed lines remain available in Debugger history. ErrorHub summary capacity is 16, and each Warning/Error filter displays at most 12 matching entries. This is a quick inspection tool, not a persistent log archive or profiler.
+
+## Inspect rolling logs across sessions
+
+GoDoRuntime automatically writes logs to `user://logs/godo_framework.log`. A file rolls after reaching 2 MiB, and up to four archives named `godo_framework.1.log` through `godo_framework.4.log` are retained. Debug builds record Debug, Info, Warning, Error, and Fatal entries. Release builds record only the Warning, Error, and Fatal entries that remain in the compiled application.
+
+Disk writes run through a bounded background queue and do not block error dispatch. A full queue drops entries and emits a summary warning. If the directory cannot be created or the disk cannot be written, file logging is disabled for the current run and the console reports the failure once. Other tools may open the active log file for reading while the game runs. The current baseline is validated on Windows; mobile sandbox paths and shutdown flushing still require device testing.
 
 ## Background threads and error storms
 

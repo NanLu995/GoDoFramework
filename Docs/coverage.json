@@ -19,7 +19,7 @@
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:f7761c3aba4088354e3052d96839eb91ce72e24228e0253d020d96d606d10cb2"
+      "reviewed_contract_hash": "sha256:dacef3dc9ff68619ae9b0f072ad3e30b3dce55deed317523fd0209c37e35eabd"
     },
     "event-channel": {
       "contract": "addons/godo_framework/Core/EventChannel/USAGE.md",
@@ -35,11 +35,11 @@
     "log-hub": {
       "contract": "addons/godo_framework/Core/LogHub/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖 Debug/Info 选择、模块与上下文、主线程约束、Release 移除行为及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
+      "reason": "功能指南已覆盖 Debug/Info 选择、模块与上下文、主线程约束、Release 移除行为、滚动文件与失败降级及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:dfafaefd5db8d14895e9563a97b94738e08d6ee9eb3c019f3b57b63f304116c4"
+      "reviewed_contract_hash": "sha256:7415b717a756ef2218722e0c2504c02e7e7b0fb77614d32e08fd10b3a33cd603"
     },
     "services": {
       "contract": "addons/godo_framework/Core/Services/USAGE.md",
@@ -127,7 +127,7 @@
         "getting-started/localize-game-text.md",
         "guides/save-settings-localization/index.md"
       ],
-      "reviewed_contract_hash": "sha256:9866aa4631e99a83fd5b4283ff017b6587510421f9048f8e9b9f9f334f44f675"
+      "reviewed_contract_hash": "sha256:8525f7e941c24d19754c5c4a0a008ad0f45867cf746a4ae77af214ab705cf752"
     },
     "pool": {
       "contract": "addons/godo_framework/Runtime/Pool/USAGE.md",
@@ -175,7 +175,7 @@
         "getting-started/save-progress-and-settings.md",
         "guides/save-settings-localization/index.md"
       ],
-      "reviewed_contract_hash": "sha256:218433ec687a765092d80fdf894726d293b583f3c93bb2f2806e74dc69cb1b9a"
+      "reviewed_contract_hash": "sha256:00cc6c1384ac098950d62615eaf349946176a0273fc75cde149cd5c75cff6bc7"
     },
     "scene": {
       "contract": "addons/godo_framework/Runtime/Scene/USAGE.md",
@@ -206,7 +206,7 @@
         "getting-started/localize-game-text.md",
         "guides/save-settings-localization/index.md"
       ],
-      "reviewed_contract_hash": "sha256:ab5e6a37398919b19b7bb25783ca37f25ce398c1cada0e543379235c6b0f9706"
+      "reviewed_contract_hash": "sha256:dbbcd7b74a2201f169b7d755914f0e176951150c92b1d77ce7b36239d885793d"
     },
     "ui": {
       "contract": "addons/godo_framework/Runtime/UI/USAGE.md",

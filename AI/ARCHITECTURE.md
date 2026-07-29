@@ -65,7 +65,7 @@ GoDoRuntime 不承载菜单、关卡、登录等具体游戏流程。业务场�
 |---|---|---|---|---|---|
 | Core | EventChannel | 类型安全的一对多同步通知与订阅生命周期 | ErrorHub（异常报告，见规则 2 的例外说明） | 静态 API | 稳定基线 |
 | Core | ErrorHub | 结构化错误、控制台输出、Reporter 与后台队列 | 无框架内部依赖（仅使用 Godot 日志/文件 API）；不存在任何模块反向依赖它以外的模块 | 静态 API | 稳定基线 |
-| Core | LogHub | Debug 构建中的普通开发日志、统一控制台格式与固定容量历史；异常、降级和失败仍由 ErrorHub 处理 | Core 主线程约束、Godot 控制台 API | 静态 API | 首版完成 |
+| Core | LogHub | Debug 构建中的普通开发日志、统一控制台格式与固定容量历史；通过内部有界后台写入器与 ErrorHub 共用 `user://logs` 滚动文件，异常、降级和失败仍由 ErrorHub 处理 | Core 主线程约束、Godot 控制台 API、.NET 文件 API | 静态 API | 首版完成 |
 | Core | Services | 按接口登记长期服务 | 无 | `Services.Get<T>()` | 稳定基线 |
 | Core | GoDoRuntime | 唯一 Autoload 入口：初始化/关闭 ResourceHub 与 ErrorHub、注册与注销长期服务、安装进程级异常兜底（详见第 3 节） | Core 其余模块（ErrorHub、EventChannel、Services）、Godot Autoload 机制 | 无（框架内部入口，不面向业务代码直接调用） | 已采用 |
 | Foundation | ResourceHub | `ResourceKey`、语义资源注册表、同步/线程化加载、类型检查与请求合并 | Core、Godot ResourceLoader | 静态 API | 稳定基线 |

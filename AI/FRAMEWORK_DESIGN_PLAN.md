@@ -55,8 +55,8 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 | 模块 | 状态 | 首版边界或下一步 |
 |---|---|---|
 | EventChannel | 稳定基线 | 继续补关键回归测试；避免事件总线替代直接调用和 Signal |
-| ErrorHub | 稳定基线 | 远程 Reporter 等真实需求出现后再实现 |
-| LogHub | 首版完成 | Debug / Info 普通开发日志、控制台规范与 Debugger 历史已接入；框架调用已迁移，ErrorHub 仅保留 Warning / Error / Fatal 异常上报 |
+| ErrorHub | 稳定基线 | 已接入本地滚动文件 Reporter；远程 Reporter 等真实需求出现后再实现 |
+| LogHub | 首版完成 | Debug / Info、控制台规范、Debugger 历史与本地滚动文件已接入；ErrorHub 仅保留 Warning / Error / Fatal 异常上报 |
 | Services | 稳定基线 | 保持为业务层长期服务注册表，不扩张成 DI 容器 |
 | GoDoRuntime | 已采用 | 只管理框架生命周期和服务注册，不承载游戏流程 |
 | ResourceHub | 稳定基线 | 不加入远程下载、PCK/DLC、目录加载或第二套缓存 |
@@ -130,6 +130,7 @@ Timer 的真实缺口已经确认：业务需要统一的一次性/重复延迟�
 - Async：不建设泛化协程框架，不用 `Task.Run` 操作 Godot 对象。
 - Extensions：先验证 Godot 原生能力的真实缺口；Localization 已按 TranslationServer 薄封装完成首版。
 - Remote Asset、PCK/DLC、热更新、高级缓存：作为未来独立扩展，不混入 ResourceHub。
+- FileSystem：滚动日志、Save 与 Settings 继续直接使用各自受控的 `user://` 路径，不为普通持久化建立通用文件系统服务。只有出现 PCK/DLC/热更新包挂载、下载恢复、多文件容器、加密/压缩容器、分段读取或多版本资源包并存等真实需求时，才单独评估虚拟文件系统。
 - 不照搬全局大门面、Unity Entity/UI 抽象或 DataNode。
 
 ## 6. 分阶段路线

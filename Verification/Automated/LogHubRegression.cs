@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Threading;
 using Godot;
 using GoDo;
 
@@ -20,6 +22,9 @@ public sealed partial class LogHubRegression : Node
             Run("Info 格式", VerifyInfoFormat);
             Run("空参数拒绝", VerifyInvalidArguments);
             Run("控制台输出", VerifyConsoleOutput);
+            Run("滚动文件与退出刷新", VerifyRollingFileAndShutdownFlush);
+            Run("文件日志队列满", VerifyFileQueueCapacity);
+            Run("文件日志目录不可写", VerifyUnavailableLogDirectory);
 #if DEBUG
             Run("重复日志聚合", VerifyDuplicateAggregation);
             Run("环形历史", VerifyDebugHistory);
@@ -70,6 +75,113 @@ public sealed partial class LogHubRegression : Node
         LogHub.Info("信息输出", "LogHubRegression");
     }
 
+    private static void VerifyRollingFileAndShutdownFlush()
+    {
+        string directory = CreateArtifactPath("rolling");
+        try
+        {
+            using (var writer = new RollingFileLogWriter(
+                directory,
+                maxFileBytes: 256,
+                archiveCount: 2,
+                queueCapacity: 64))
+            {
+                for (int i = 0; i < 16; i++)
+                {
+                    writer.Write(
+                        DateTime.UtcNow,
+                        LogLevel.Info,
+                        $"entry={i}; payload=abcdefghijklmnopqrstuvwxyz",
+                        "LogHubRegression",
+                        context: null);
+                }
+            }
+
+            string currentPath = Path.Combine(directory, RollingFileLogWriter.CurrentFileName);
+            string firstArchivePath =
+                Path.Combine(directory, $"{RollingFileLogWriter.FileNamePrefix}.1.log");
+            Assert(File.Exists(currentPath), "退出刷新后没有生成当前日志文件");
+            Assert(File.Exists(firstArchivePath), "达到容量后没有生成滚动日志文件");
+            Assert(
+                !File.Exists(Path.Combine(
+                    directory,
+                    $"{RollingFileLogWriter.FileNamePrefix}.3.log")),
+                "保留数量超过配置上限");
+            Assert(
+                File.ReadAllText(currentPath).Contains("entry=15", StringComparison.Ordinal),
+                "退出刷新没有保留最后一条日志");
+        }
+        finally
+        {
+            DeleteArtifactPath(directory);
+        }
+    }
+
+    private static void VerifyFileQueueCapacity()
+    {
+        using var writer = new RollingFileLogWriter(
+            CreateArtifactPath("queue"),
+            maxFileBytes: 1024,
+            archiveCount: 1,
+            queueCapacity: 2,
+            startWorker: false);
+
+        writer.Write(DateTime.UtcNow, LogLevel.Info, "first", "LogHubRegression", null);
+        writer.Write(DateTime.UtcNow, LogLevel.Info, "second", "LogHubRegression", null);
+        writer.Write(DateTime.UtcNow, LogLevel.Info, "third", "LogHubRegression", null);
+
+        AssertEqual(1, writer.DroppedLineCount, "队列满时没有准确统计丢弃数量");
+        Assert(
+            writer.TryConsumeDroppedLineCount(out int droppedCount) && droppedCount == 1,
+            "队列满摘要没有返回本轮丢弃数量");
+        Assert(
+            !writer.TryConsumeDroppedLineCount(out _),
+            "已消费的队列满摘要被重复返回");
+    }
+
+    private static void VerifyUnavailableLogDirectory()
+    {
+        string parentDirectory = CreateArtifactPath("unavailable");
+        try
+        {
+            Directory.CreateDirectory(parentDirectory);
+            string filePath = Path.Combine(parentDirectory, "not-a-directory");
+            File.WriteAllText(filePath, "block directory creation");
+
+            using var writer = new RollingFileLogWriter(
+                filePath,
+                maxFileBytes: 1024,
+                archiveCount: 1,
+                queueCapacity: 4);
+
+            Assert(
+                SpinWait.SpinUntil(() => writer.HasFailed, TimeSpan.FromSeconds(2)),
+                "目录不可用时文件写入线程没有进入失败状态");
+            Assert(
+                writer.TryConsumeFailure(out string message) &&
+                message.Contains("已停用", StringComparison.Ordinal),
+                "目录不可用时没有提供一次性降级信息");
+            Assert(!writer.TryConsumeFailure(out _), "文件写入失败被重复上报");
+        }
+        finally
+        {
+            DeleteArtifactPath(parentDirectory);
+        }
+    }
+
+    private static string CreateArtifactPath(string category)
+    {
+        string root = ProjectSettings.GlobalizePath(
+            $"user://verification/rolling-file-log/{category}");
+        return Path.Combine(root, Guid.NewGuid().ToString("N"));
+    }
+
+    private static void DeleteArtifactPath(string path)
+    {
+        if (Directory.Exists(path))
+            Directory.Delete(path, recursive: true);
+    }
+
 #if DEBUG
     private static void VerifyDuplicateAggregation()
     {
@@ -111,6 +223,12 @@ public sealed partial class LogHubRegression : Node
     {
         if (expected != actual)
             throw new InvalidOperationException($"{message}；期望 {expected}，实际 {actual}");
+    }
+
+    private static void Assert(bool condition, string message)
+    {
+        if (!condition)
+            throw new InvalidOperationException(message);
     }
 
     private static void AssertThrows<TException>(Action action, string message)

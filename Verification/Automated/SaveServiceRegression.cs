@@ -25,10 +25,13 @@ public sealed partial class SaveServiceRegression : Node
             Run("NotFound 正常结果", VerifyNotFound);
             Run("保存读取与元数据", VerifyRoundTrip);
             Run("正式档损坏后备份恢复", VerifyBackupRecovery);
+            Run("正式档损坏且无备份", VerifyPrimaryCorruptionWithoutBackup);
+            Run("正式档与备份双重损坏", VerifyPrimaryAndBackupCorruption);
+            Run("健康备份不被损坏正式档覆盖", VerifyHealthyBackupProtection);
             Run("Codec 异常边界", VerifyCodecFailure);
             Run("删除正式档与备份", VerifyDelete);
 
-            GD.Print($"[SaveServiceRegression] PASS ({_passed}/5)");
+            GD.Print($"[SaveServiceRegression] PASS ({_passed}/8)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -117,6 +120,52 @@ public sealed partial class SaveServiceRegression : Node
         AssertEqual(SaveOperation.Load, decodeFailure.Operation, "解码异常操作类型错误");
     }
 
+    private void VerifyPrimaryCorruptionWithoutBackup()
+    {
+        SaveSlot slot = CreateSlot();
+        _saves.Save(slot, new TestData(1, "primary-only"), 1, TestCodec.Instance);
+        CorruptFile(slot, string.Empty);
+
+        SaveException failure = AssertThrows<SaveException>(
+            () => _saves.Load(slot, TestCodec.Instance),
+            "损坏正式档且无备份时没有抛出 SaveException");
+        AssertEqual(SaveOperation.Load, failure.Operation, "正式档损坏的操作类型错误");
+    }
+
+    private void VerifyPrimaryAndBackupCorruption()
+    {
+        SaveSlot slot = CreateSlot();
+        _saves.Save(slot, new TestData(1, "backup"), 1, TestCodec.Instance);
+        _saves.Save(slot, new TestData(2, "primary"), 2, TestCodec.Instance);
+        CorruptFile(slot, string.Empty);
+        CorruptFile(slot, ".bak");
+
+        SaveException failure = AssertThrows<SaveException>(
+            () => _saves.Load(slot, TestCodec.Instance),
+            "正式档与备份双重损坏时没有抛出 SaveException");
+        AssertEqual(SaveOperation.Load, failure.Operation, "双重损坏的操作类型错误");
+        Assert(
+            failure.InnerException is AggregateException aggregate &&
+            aggregate.InnerExceptions.Count == 2,
+            "双重损坏没有保留两条底层失败原因");
+    }
+
+    private void VerifyHealthyBackupProtection()
+    {
+        SaveSlot slot = CreateSlot();
+        var protectedBackup = new TestData(1, "protected-backup");
+        _saves.Save(slot, protectedBackup, 1, TestCodec.Instance);
+        _saves.Save(slot, new TestData(2, "corrupt-primary"), 2, TestCodec.Instance);
+        CorruptFile(slot, string.Empty);
+
+        _saves.Save(slot, new TestData(3, "new-primary"), 3, TestCodec.Instance);
+        CorruptFile(slot, string.Empty);
+
+        SaveLoadResult<TestData> result = _saves.Load(slot, TestCodec.Instance);
+        AssertEqual(SaveLoadStatus.RecoveredFromBackup, result.Status, "未从受保护备份恢复");
+        AssertEqual(protectedBackup, result.Value, "健康备份被损坏正式档覆盖");
+    }
+
     private void VerifyDelete()
     {
         SaveSlot slot = CreateSlot();
@@ -136,8 +185,11 @@ public sealed partial class SaveServiceRegression : Node
     }
 
     private static void CorruptPrimary(SaveSlot slot)
+        => CorruptFile(slot, string.Empty);
+
+    private static void CorruptFile(SaveSlot slot, string suffix)
     {
-        string path = $"user://saves/{slot.Value}.gdsave";
+        string path = $"user://saves/{slot.Value}.gdsave{suffix}";
         using GodotFileAccess? file = GodotFileAccess.Open(path, GodotFileAccess.ModeFlags.Write);
         if (file is null)
             throw new InvalidOperationException($"无法打开测试正式档进行损坏验证：{path}");

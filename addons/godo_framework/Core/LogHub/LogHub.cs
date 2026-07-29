@@ -24,6 +24,7 @@ public static class LogHub
     private static long _consoleOutputWindowStart = Stopwatch.GetTimestamp();
     private static int _consoleOutputCount;
     private static int _suppressedConsoleOutputCount;
+    private static RollingFileLogWriter? _fileWriter;
 
     internal static int DebugHistoryVersion => _debugHistoryVersion;
 #endif
@@ -46,10 +47,11 @@ public static class LogHub
 #endif
     }
 
-    internal static void Initialize()
+    internal static void Initialize(RollingFileLogWriter? fileWriter = null)
     {
 #if DEBUG
         MainThreadGuard.VerifyAccess();
+        _fileWriter = fileWriter;
         ClearDebugHistory();
 #endif
     }
@@ -59,6 +61,7 @@ public static class LogHub
 #if DEBUG
         MainThreadGuard.VerifyAccess();
         FlushSuppressedConsoleOutput();
+        _fileWriter = null;
         ClearDebugHistory();
 #endif
     }
@@ -99,6 +102,7 @@ public static class LogHub
 
 #if DEBUG
         DateTime timestampUtc = DateTime.UtcNow;
+        _fileWriter?.Write(timestampUtc, level, message, module, context);
         int repeatCount = 1;
         if (_debugHistoryCount > 0)
         {
