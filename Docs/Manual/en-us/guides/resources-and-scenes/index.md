@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/resources-and-scenes/index.md
-translation_source_hash: sha256:50e8efb78a9dd93d3e814a369dce8b54d0c95b6003e0dbe3d2e6625f06443656
+translation_source_hash: sha256:14eebda7ed636f688e8120e5dd8a3a47d135746f9c7b36ecc4fbe5b4f2288830
 ---
 
 # Manage Resource Manifests, Async Loading, and Scene Changes
@@ -104,7 +104,7 @@ finally
 
 Progress ranges from 0 to 1 and is delivered on Godot's main thread. Use a named method and unsubscribe in `finally`. Do not call `.Wait()`, `.Result`, or poll Godot's threaded API yourself.
 
-Concurrent async requests for the same Key and type share one operation. Synchronous loading of that path during async work, or requesting another type, fails explicitly. Completed operations leave the active table; later loads continue to use Godot's cache.
+Concurrent async requests for the same Key and type share one operation. Synchronous loading of that path during async work, or requesting another type, fails explicitly. An operation leaves the active table before code after `await` resumes, so an immediate reload receives a new operation while continuing to use Godot's cache.
 
 ## 5. Change the main content scene
 

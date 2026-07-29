@@ -80,6 +80,19 @@ public static class LogHub
 #endif
     }
 
+#if DEBUG
+    internal static void AddDebugHistoryEntryForTesting(
+        string message,
+        string module,
+        string? context = null)
+    {
+        MainThreadGuard.VerifyAccess();
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        ArgumentException.ThrowIfNullOrWhiteSpace(module);
+        RecordDebugHistory(DateTime.UtcNow, LogLevel.Debug, message, module, context);
+    }
+#endif
+
     internal static FileLogDebugSnapshot GetFileLogDebugSnapshot()
     {
 #if DEBUG
@@ -113,7 +126,19 @@ public static class LogHub
 #if DEBUG
         DateTime timestampUtc = DateTime.UtcNow;
         _fileWriter?.Write(timestampUtc, level, message, module, context);
-        int repeatCount = 1;
+        int repeatCount = RecordDebugHistory(timestampUtc, level, message, module, context);
+        WriteConsoleOutput(level, message, module, context, repeatCount);
+#endif
+    }
+
+#if DEBUG
+    private static int RecordDebugHistory(
+        DateTime timestampUtc,
+        LogLevel level,
+        string message,
+        string module,
+        string? context)
+    {
         if (_debugHistoryCount > 0)
         {
             int lastIndex =
@@ -123,10 +148,8 @@ public static class LogHub
             {
                 LogEntry repeatedEntry = lastEntry.Repeat(timestampUtc);
                 _debugHistory[lastIndex] = repeatedEntry;
-                repeatCount = repeatedEntry.RepeatCount;
                 IncrementDebugHistoryVersion();
-                WriteConsoleOutput(level, message, module, context, repeatCount);
-                return;
+                return repeatedEntry.RepeatCount;
             }
         }
 
@@ -144,11 +167,9 @@ public static class LogHub
             _debugHistoryStart = (_debugHistoryStart + 1) % DebugHistoryCapacity;
         }
 
-        WriteConsoleOutput(level, message, module, context, repeatCount);
-#endif
+        return 1;
     }
 
-#if DEBUG
     private static void WriteConsoleOutput(
         LogLevel level,
         string message,

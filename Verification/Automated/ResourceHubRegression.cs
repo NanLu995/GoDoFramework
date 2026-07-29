@@ -33,9 +33,12 @@ public sealed partial class ResourceHubRegression : Node
             Run("同步类型不匹配", VerifySynchronousTypeMismatch);
             await RunAsync("异步合并、冲突与完成", VerifyAsyncLoading);
             await RunAsync("完成后可创建新操作", VerifyOperationCleanup);
+            await RunAsync("异步失败发布前清理", VerifyAsyncFailureCleanup);
 #if DEBUG
+            await RunAsync("错误线程拒绝不污染诊断", VerifyWrongThreadDiagnostics);
             Run("Debug 资源诊断快照", VerifyDebugDiagnostics);
 #endif
+            await RunAsync("Shutdown 取消与重新初始化", VerifyShutdownCancellation);
 
             GD.Print($"[ResourceHubRegression] PASS ({_passed}/{_passed})");
             GetTree().Quit(0);
@@ -93,11 +96,17 @@ public sealed partial class ResourceHubRegression : Node
     private async Task VerifyAsyncLoading()
     {
         float lastProgress = 0f;
+        int survivingProgressNotifications = 0;
         void OnProgress(float progress) => lastProgress = progress;
+        void OnThrowingProgress(float _) =>
+            throw new InvalidOperationException("ResourceHub progress listener test");
+        void OnSurvivingProgress(float _) => survivingProgressNotifications++;
 
         ResourceLoadOperation<ConfigTestResource> first =
             ResourceHub.LoadAsync<ConfigTestResource>(ValidKey);
         first.ProgressChanged += OnProgress;
+        first.ProgressChanged += OnThrowingProgress;
+        first.ProgressChanged += OnSurvivingProgress;
         try
         {
             ResourceLoadOperation<ConfigTestResource> second =
@@ -122,11 +131,15 @@ public sealed partial class ResourceHubRegression : Node
             AssertEqual(ResourceLoadStatus.Completed, first.Status, "异步操作完成状态错误");
             AssertEqual(1f, first.Progress, "异步操作最终进度不为 1");
             AssertEqual(1f, lastProgress, "进度监听者没有收到最终进度");
+            Assert(survivingProgressNotifications > 0,
+                "进度监听者异常阻断了后续监听者");
             AssertEqual(42, resource.Value, "异步加载资源内容错误");
         }
         finally
         {
             first.ProgressChanged -= OnProgress;
+            first.ProgressChanged -= OnThrowingProgress;
+            first.ProgressChanged -= OnSurvivingProgress;
         }
 
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -140,11 +153,67 @@ public sealed partial class ResourceHubRegression : Node
         ConfigTestResource resource = await operation.Completion;
 
         AssertEqual(42, resource.Value, "后续异步加载资源内容错误");
-        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-        AssertEqual(0, ResourceHub.ActiveOperationCount, "后续操作完成后没有清理");
+        AssertEqual(0, ResourceHub.ActiveOperationCount,
+            "await 恢复前异步操作尚未从活动表移除");
+
+        ResourceLoadOperation<ConfigTestResource> nextOperation =
+            ResourceHub.LoadAsync<ConfigTestResource>(ValidKey);
+        Assert(!ReferenceEquals(operation, nextOperation),
+            "await 恢复后立即重载仍返回已完成的旧操作");
+        await nextOperation.Completion;
+        AssertEqual(0, ResourceHub.ActiveOperationCount,
+            "立即重载完成后异步操作尚未从活动表移除");
+    }
+
+    private static async Task VerifyAsyncFailureCleanup()
+    {
+        ResourceLoadOperation<PackedScene> operation =
+            ResourceHub.LoadAsync<PackedScene>(ValidKey);
+        try
+        {
+            await operation.Completion;
+            throw new InvalidOperationException("异步类型不匹配没有抛出 ResourceLoadException");
+        }
+        catch (ResourceLoadException exception)
+        {
+            AssertEqual(ValidKey, exception.Key, "异步类型不匹配异常 Key 错误");
+            AssertEqual(typeof(PackedScene), exception.RequestedType,
+                "异步类型不匹配异常请求类型错误");
+        }
+
+        AssertEqual(ResourceLoadStatus.Failed, operation.Status,
+            "异步类型不匹配后的操作状态错误");
+        AssertEqual(0, ResourceHub.ActiveOperationCount,
+            "异步失败恢复 await 前操作尚未从活动表移除");
     }
 
 #if DEBUG
+    private static async Task VerifyWrongThreadDiagnostics()
+    {
+        ResourceDebugSnapshot before = ResourceHub.GetDebugSnapshot();
+        Exception? failure = await Task.Run(() =>
+        {
+            try
+            {
+                ResourceHub.Load<ConfigTestResource>(ValidKey);
+                return null;
+            }
+            catch (Exception exception)
+            {
+                return exception;
+            }
+        });
+        ResourceDebugSnapshot after = ResourceHub.GetDebugSnapshot();
+
+        Assert(failure is InvalidOperationException, "错误线程调用没有被主线程守卫拒绝");
+        AssertEqual(before.SynchronousRequestCount, after.SynchronousRequestCount,
+            "错误线程调用污染了同步请求统计");
+        AssertEqual(before.FailedRequestCount, after.FailedRequestCount,
+            "错误线程调用污染了失败请求统计");
+        AssertEqual(before.History.Length, after.History.Length,
+            "错误线程调用污染了资源诊断历史");
+    }
+
     private static void VerifyDebugDiagnostics()
     {
         ResourceDebugSnapshot snapshot = ResourceHub.GetDebugSnapshot();
@@ -186,6 +255,54 @@ public sealed partial class ResourceHubRegression : Node
             "资源诊断历史顺序或最新记录错误");
     }
 #endif
+
+    private async Task VerifyShutdownCancellation()
+    {
+        ResourceLoadOperation<ConfigTestResource> operation =
+            ResourceHub.LoadAsync<ConfigTestResource>(ValidKey);
+        ResourceHub.Shutdown();
+        try
+        {
+            try
+            {
+                await operation.Completion;
+                throw new InvalidOperationException("Shutdown 后等待中的资源操作没有被取消");
+            }
+            catch (OperationCanceledException)
+            {
+            }
+
+            // Shutdown 只取消框架等待；测试需取走自己启动的 Godot 底层请求，避免退出残留。
+            ResourceLoader.ThreadLoadStatus underlyingStatus;
+            do
+            {
+                underlyingStatus = ResourceLoader.LoadThreadedGetStatus(ValidKey.Value);
+                if (underlyingStatus == ResourceLoader.ThreadLoadStatus.InProgress)
+                    await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            }
+            while (underlyingStatus == ResourceLoader.ThreadLoadStatus.InProgress);
+
+            if (underlyingStatus == ResourceLoader.ThreadLoadStatus.Loaded)
+                ResourceLoader.LoadThreadedGet(ValidKey.Value);
+        }
+        finally
+        {
+            ResourceHub.Initialize();
+        }
+
+        AssertEqual(ResourceLoadStatus.Failed, operation.Status,
+            "Shutdown 取消后的操作状态错误");
+        AssertEqual(0, ResourceHub.ActiveOperationCount,
+            "ResourceHub 重新初始化后仍保留旧活动操作");
+
+        ResourceLoadOperation<ConfigTestResource> recoveredOperation =
+            ResourceHub.LoadAsync<ConfigTestResource>(ValidKey);
+        ConfigTestResource recoveredResource = await recoveredOperation.Completion;
+        AssertEqual(42, recoveredResource.Value,
+            "ResourceHub 重新初始化后无法继续加载资源");
+        AssertEqual(0, ResourceHub.ActiveOperationCount,
+            "ResourceHub 恢复加载完成后仍保留活动操作");
+    }
 
     private static void Assert(bool condition, string message)
     {

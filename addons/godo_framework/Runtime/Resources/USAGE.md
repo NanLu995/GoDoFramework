@@ -104,8 +104,8 @@ private void OnProgressChanged(float progress)
 - 同一 ResourceKey、同一类型的并发请求返回同一个操作实例。
 - 同一路径按不同类型并发请求会明确失败。
 - 异步加载期间不能对同一路径执行同步加载。
-- 完成的操作会从 ResourceHub 活动表移除；后续请求继续复用 Godot 缓存，而不是旧操作对象。
-- Shutdown 使等待方收到 `OperationCanceledException`；Godot 已启动的底层加载可能继续完成。
+- 完成或失败的操作会先从 ResourceHub 活动表移除，再发布 `Completion`；因此 `await` 恢复后立即请求同一资源会创建新操作，并继续复用 Godot 缓存。
+- Shutdown 先清空活动表，再使等待方收到 `OperationCanceledException`；操作状态为 `Failed`，Godot 已启动的底层加载可能继续完成。
 
 ## 缓存、生命周期与性能
 
@@ -113,6 +113,7 @@ private void OnProgressChanged(float progress)
 - 调用方只在实际需要期间持有 Resource 引用。
 - 每个异步操作复用进度数组，Update 复用缓冲列表；不要自行重复轮询 Godot API。
 - `ActiveOperationCount` 只表示 ResourceHub 当前活动请求，不代表 Godot 全局缓存数量。
+- 主线程和初始化检查通过后才更新 Debug 诊断统计；错误线程调用会被拒绝且不污染历史。
 
 ## 自动回归验证
 
@@ -126,13 +127,13 @@ private void OnProgressChanged(float progress)
 
 `Verification/Automated/ResourceRegistryRegression.tscn` 验证未加载状态、清单加载、获取成功、获取失败、`TryGetKey`、重复 ID 覆盖、合并加载和清空语义。
 
-`Verification/Automated/ResourceHubRegression.tscn` 复用现有强类型 `.tres`，验证同步加载、无效与缺失资源、同步类型不匹配、异步请求合并、同路径类型冲突、异步期间同步冲突，以及完成操作从活动表清理；不调用 Shutdown。
+`Verification/Automated/ResourceHubRegression.tscn` 复用现有强类型 `.tres`，验证同步加载、无效与缺失资源、同步类型不匹配、异步请求合并、同路径类型冲突、异步期间同步冲突、进度监听者异常隔离、完成发布前清理活动表、错误线程不污染诊断，以及 Shutdown 取消、底层请求收尾和重新初始化。
 
 ```powershell
 & $env:GODOT_PATH --headless --path . Verification/Automated/ResourceHubRegression.tscn
 ```
 
-ResourceHub runner 已通过 `dotnet build` 编译，并在项目声明的 Godot Mono Headless 版本中完成 5/5 项验证；成功退出码为 0，失败退出码为 1。
+ResourceHub runner 已通过 `dotnet build` 编译，并在项目声明的 Godot Mono Headless 版本中完成 9/9 项验证；成功退出码为 0，失败退出码为 1。
 
 ## 不负责的能力
 

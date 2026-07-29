@@ -157,7 +157,7 @@
     "resources": {
       "contract": "addons/godo_framework/Runtime/Resources/USAGE.md",
       "status": "documented",
-      "reason": "教程和功能指南已覆盖 ResourceKey 路径/UID、资源清单编辑与合并、同步和异步加载、进度、并发冲突、Godot 缓存及关闭行为；仍等待远程内容与高级缓存未来扩展。",
+      "reason": "教程和功能指南已覆盖 ResourceKey 路径/UID、资源清单编辑与合并、同步和异步加载、进度、并发冲突、完成发布顺序、Godot 缓存及关闭行为；仍等待远程内容与高级缓存未来扩展。",
       "manual_pages": [
         "getting-started/first-scene.md",
         "getting-started/first-ui.md",
@@ -165,7 +165,7 @@
         "getting-started/add-audio.md",
         "guides/resources-and-scenes/index.md"
       ],
-      "reviewed_contract_hash": "sha256:227f31467ee4efc8630d0164e961cd9c526e2182aecd18e8d211e7eba931c046"
+      "reviewed_contract_hash": "sha256:a6521e5fdb423be4004eb6c5042a316849f8c47b0d46e14fa7086b7d8fa3c395"
     },
     "save": {
       "contract": "addons/godo_framework/Runtime/Save/USAGE.md",

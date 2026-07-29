@@ -47,12 +47,12 @@ public static class ResourceHub
     /// <summary>同步加载并验证资源类型。</summary>
     public static T Load<T>(ResourceKey key) where T : Resource
     {
+        VerifyReady();
 #if DEBUG
         _debugSynchronousRequestCount++;
         try
         {
 #endif
-        VerifyReady();
         ValidateKey(key);
         EnsureExists<T>(key);
 
@@ -94,12 +94,12 @@ public static class ResourceHub
     /// </summary>
     public static ResourceLoadOperation<T> LoadAsync<T>(ResourceKey key) where T : Resource
     {
+        VerifyReady();
 #if DEBUG
         _debugAsynchronousRequestCount++;
         try
         {
 #endif
-        VerifyReady();
         ValidateKey(key);
         EnsureExists<T>(key);
 
@@ -172,6 +172,7 @@ public static class ResourceHub
                 RecordDebugOperationCompletion(operation);
 #endif
                 _operations.Remove(operation.Key);
+                operation.PublishCompletion();
             }
         }
 
@@ -198,6 +199,7 @@ public static class ResourceHub
 #if DEBUG
             RecordDebugOperationCompletion(_updateBuffer[i]);
 #endif
+            _updateBuffer[i].PublishCompletion();
         }
 
         _updateBuffer.Clear();
@@ -235,6 +237,7 @@ public static class ResourceHub
         bool IsFinished { get; }
         void Poll();
         void Fail(Exception exception);
+        void PublishCompletion();
 #if DEBUG
         ResourceLoadStatus DebugStatus { get; }
         float DebugProgress { get; }
@@ -259,6 +262,8 @@ public static class ResourceHub
         public void Poll() => Operation.Poll();
 
         public void Fail(Exception exception) => Operation.Fail(exception);
+
+        public void PublishCompletion() => Operation.PublishCompletion();
 #if DEBUG
         public ResourceLoadStatus DebugStatus => Operation.Status;
         public float DebugProgress => Operation.Progress;

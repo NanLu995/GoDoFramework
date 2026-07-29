@@ -978,7 +978,11 @@ public sealed partial class DebuggerOverlayRegression : Node
                 "控制台取消最后一个 Error 筛选后没有恢复 All");
 
             for (int index = 0; index < LogHub.DebugHistoryCapacity - 18; index++)
-                LogHub.Debug($"Debugger preload sample {index}", "DebuggerRegression");
+            {
+                LogHub.AddDebugHistoryEntryForTesting(
+                    $"prefill-entry-{index}",
+                    "DebuggerRegression");
+            }
             LogHub.Debug("Debugger debug filter", "DebuggerRegression");
             LogHub.Info("Debugger search needle", "DebuggerRegression");
             for (int index = 0; index < 8; index++)
@@ -1062,34 +1066,38 @@ public sealed partial class DebuggerOverlayRegression : Node
 
             int stressRenderCount = overlay.ConsoleRenderCount;
             for (int index = 0; index < LogHub.DebugHistoryCapacity; index++)
-                LogHub.Debug($"Debugger stress sample {index}", "DebuggerRegression");
+            {
+                LogHub.AddDebugHistoryEntryForTesting(
+                    $"history-entry-{index}",
+                    "DebuggerRegression");
+            }
             overlay._Process(0.3d);
             Assert(overlay.ConsoleRenderCount == stressRenderCount + 1 &&
-                debuggerLabel.Text.Contains("Debugger stress sample 999", StringComparison.Ordinal) &&
-                !debuggerLabel.Text.Contains("Debugger stress sample 0", StringComparison.Ordinal),
+                debuggerLabel.Text.Contains("history-entry-999", StringComparison.Ordinal) &&
+                !debuggerLabel.Text.Contains("history-entry-0", StringComparison.Ordinal),
                 "控制台高日志量最新页或有界历史显示错误");
             Assert(pageStatus.Text.StartsWith("日志 10", StringComparison.Ordinal) &&
                 pageStatus.Text.EndsWith("11/11", StringComparison.Ordinal) &&
                 !olderPage.Disabled && newerPage.Disabled && latestPage.Disabled,
                 "控制台混排 Warning/Error 后的最新分页状态错误");
 
-            search.Text = "Debugger stress sample 0";
+            search.Text = "history-entry-0";
             search.EmitSignal(LineEdit.SignalName.TextChanged, search.Text);
-            Assert(debuggerLabel.Text.Contains("Debugger stress sample 0", StringComparison.Ordinal) &&
+            Assert(debuggerLabel.Text.Contains("history-entry-0", StringComparison.Ordinal) &&
                 pageStatus.Text.Contains("日志 1", StringComparison.Ordinal),
                 "控制台未能从完整 1000 条历史中搜索最早日志");
 
-            search.Text = "Debugger stress sample";
+            search.Text = "history-entry";
             search.EmitSignal(LineEdit.SignalName.TextChanged, search.Text);
             for (int index = 0; index < 9; index++)
                 olderPage.EmitSignal(BaseButton.SignalName.Pressed);
-            Assert(debuggerLabel.Text.Contains("Debugger stress sample 0", StringComparison.Ordinal) &&
+            Assert(debuggerLabel.Text.Contains("history-entry-0", StringComparison.Ordinal) &&
                 pageStatus.Text.Contains("1–100", StringComparison.Ordinal) &&
                 olderPage.Disabled && !newerPage.Disabled && !latestPage.Disabled,
                 "控制台无法翻到最早一页日志");
             int latestScrollCount = overlay.ConsoleScrollToBottomCount;
             latestPage.EmitSignal(BaseButton.SignalName.Pressed);
-            Assert(debuggerLabel.Text.Contains("Debugger stress sample 999", StringComparison.Ordinal) &&
+            Assert(debuggerLabel.Text.Contains("history-entry-999", StringComparison.Ordinal) &&
                 pageStatus.Text.Contains("901–1000", StringComparison.Ordinal) &&
                 newerPage.Disabled && latestPage.Disabled &&
                 overlay.ConsoleScrollToBottomCount == latestScrollCount + 1,
