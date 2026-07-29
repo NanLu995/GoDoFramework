@@ -49,6 +49,8 @@ GitHub Actions 的 `Core Verification` 工作流从 `GoDoFramework.csproj` 读�
 
 `SchedulerRuntimeRegression` 使用 Autoload 注册的 `ISchedulerService` 验证真实 Process/Physics 采样、TimeScale、SceneTree 暂停、Owner 退出与服务退出清理。该场景包含短暂真实等待，外层 runner 超时仍是最终卡死保护。
 
+`GoDoRuntimeLifecycleRegression` 验证正常启动时的长期服务注册、Runtime 与 UiRoot 关闭清理、错误节点配置的 Fatal 报告与半初始化回滚，以及清理后重新实例化 Runtime。该场景会故意创建一次缺少必需子节点的 Runtime，因此日志中预期出现一条 `[Runtime] [FATAL]`，最终以 3/3 和进程退出码判断结果。
+
 已经完成编译时可使用 `--skip-build` 跳过集成工作区构建。每个场景默认超时 60 秒，可通过 `--timeout` 调整。
 
 SaveService runner 会在 `user://saves/` 创建随机 `godo-regression-*` 槽位，并在最外层 `finally` 清理；其他 runner 不写外部数据。InputService 与 InputRuntime runner 使用内存假后端；GuideInputBackend runner 使用仓库内 Fixture；Demo3DInputProfile runner 验证模板的真实 Profile、WASD、鼠标视角缩放、跳跃与 Result Context 隔离。输入回归不读取真实设备或写入改键配置。验证目录不进入框架发布 ZIP。

@@ -95,6 +95,36 @@ public sealed partial class GoDoRuntime : Node
         if (_instance != this || _subscribed)
             return;
 
+        try
+        {
+            InitializeServices();
+        }
+        catch (Exception exception)
+        {
+            try
+            {
+                ErrorHub.Fatal(
+                    exception,
+                    module: "Runtime",
+                    context: "GoDoRuntime 初始化失败，已清理半初始化状态");
+            }
+            finally
+            {
+                SetProcess(false);
+                try
+                {
+                    ShutdownFramework();
+                }
+                finally
+                {
+                    QueueFree();
+                }
+            }
+        }
+    }
+
+    private void InitializeServices()
+    {
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
         _subscribed = true;
 
@@ -174,6 +204,11 @@ public sealed partial class GoDoRuntime : Node
 
     /// <inheritdoc />
     public override void _ExitTree()
+    {
+        ShutdownFramework();
+    }
+
+    private void ShutdownFramework()
     {
         if (_subscribed)
         {

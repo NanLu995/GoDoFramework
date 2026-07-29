@@ -19,6 +19,8 @@
 
 **常见原因：**GoDoRuntime 未安装、调用发生在 Runtime 初始化前、业务场景重复创建框架，或查询了不存在的接口。
 
+如果日志先出现 `[Runtime] [FATAL]` 和“GoDoRuntime 初始化失败”，说明 Runtime 场景缺少必需子节点、节点路径失效，或某项长期服务未能初始化。框架会立即清理已经注册的服务并释放失败实例，不会继续保留半初始化状态；应先恢复完整的框架 Runtime 场景并重新运行。
+
 **解决：**确认唯一 Autoload 正常，业务入口在场景 `_Ready()` 或 Procedure 中查询服务。必需服务缺失不应改成 `TryGet` 静默跳过。参见[服务与事件](../guides/services-and-events/index.md)。
 
 ## 资源或场景无法加载

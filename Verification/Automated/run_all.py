@@ -20,6 +20,7 @@ WORKBENCH_REGRESSION_SCENES = (
     "ErrorHubRegression.tscn",
     "LogHubRegression.tscn",
     "ServicesRegression.tscn",
+    "GoDoRuntimeLifecycleRegression.tscn",
     "ResourceKeyRegression.tscn",
     "ResourceRegistryRegression.tscn",
     "ResourceHubRegression.tscn",
