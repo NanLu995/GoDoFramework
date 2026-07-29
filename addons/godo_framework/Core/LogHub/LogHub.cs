@@ -80,6 +80,16 @@ public static class LogHub
 #endif
     }
 
+    internal static FileLogDebugSnapshot GetFileLogDebugSnapshot()
+    {
+#if DEBUG
+        MainThreadGuard.VerifyAccess();
+        return _fileWriter?.GetDebugSnapshot() ?? FileLogDebugSnapshot.Disabled;
+#else
+        return FileLogDebugSnapshot.Disabled;
+#endif
+    }
+
     internal static string FormatForConsole(
         LogLevel level,
         string message,

@@ -12,7 +12,9 @@ namespace GoDoFramework.Verification;
 /// <summary>验证 Demo3D 的真实 GUIDE Profile、语义映射与 Context 隔离。</summary>
 public sealed partial class Demo3DInputProfileRegression : Node
 {
+    private const string BootScenePath = "res://Templates/Demo3D/Boot/Boot.tscn";
     private const string ProfilePath = "res://Templates/Demo3D/Input/Demo3DInputProfile.tres";
+    private const string ExpectedPersistenceSlot = "godo-input-bindings";
 
     private InputService? _service;
     private Node _guideNode = null!;
@@ -26,6 +28,7 @@ public sealed partial class Demo3DInputProfileRegression : Node
             _service = Services.Get<IInputService>() as InputService ??
                 throw new InvalidOperationException("IInputService 不是 InputService 实例。");
 
+            VerifyBootSceneConfiguration();
             GuideInputProfile profile = ResourceLoader.Load<GuideInputProfile>(ProfilePath) ??
                 throw new InvalidOperationException($"无法加载 Demo3D 输入 Profile: {ProfilePath}");
             AddChild(new GuideInputBackendInstaller { Profile = profile });
@@ -37,7 +40,7 @@ public sealed partial class Demo3DInputProfileRegression : Node
             VerifyResultIsolation();
 
             _service.Shutdown();
-            GD.Print("[Demo3DInputProfileRegression] PASS (5/5)");
+            GD.Print("[Demo3DInputProfileRegression] PASS (6/6)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -46,6 +49,21 @@ public sealed partial class Demo3DInputProfileRegression : Node
             GD.PushError($"[Demo3DInputProfileRegression] FAIL: {exception}");
             GetTree().Quit(1);
         }
+    }
+
+    private static void VerifyBootSceneConfiguration()
+    {
+        PackedScene scene = ResourceLoader.Load<PackedScene>(BootScenePath) ??
+            throw new InvalidOperationException($"无法加载 Demo3D 启动场景: {BootScenePath}");
+        using Node boot = scene.Instantiate();
+        GuideInputBackendInstaller installer =
+            boot.GetNode<GuideInputBackendInstaller>("GuideInputBackendInstaller");
+        Assert(
+            string.Equals(
+                installer.PersistenceSlot,
+                ExpectedPersistenceSlot,
+                StringComparison.Ordinal),
+            "Demo3D 启动场景的输入绑定存档槽位为空或配置错误");
     }
 
     private void VerifyProfileInstallation()

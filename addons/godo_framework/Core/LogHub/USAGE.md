@@ -50,13 +50,14 @@ Release 默认不输出 LogHub；ErrorHub 仍按自身最低等级策略输出 W
 - GoDoRuntime 自动写入 `user://logs/godo_framework.log`，达到 2 MiB 后滚动为 `godo_framework.1.log`，最多保留 4 个历史文件。
 - Debug 构建记录 LogHub 的 Debug/Info 和 ErrorHub 的 Warning/Error/Fatal；Release 只记录 ErrorHub。
 - 主线程只向最大 2048 条的有界队列非阻塞入队，实际目录创建、写入和轮转由单一后台线程完成。
+- 后台线程在空闲后约 0.25 秒刷新；持续刷屏时最迟约 1 秒或累计 64 条刷新一次，使运行中的日志文件保持可读，同时避免每条日志都触发刷新。
 - 队列满时丢弃并在主线程汇总 Warning；文件目录不可创建或磁盘写入失败时，本次运行停用文件日志并只提示一次。
 - 退出时最多等待后台线程 2 秒刷新。日志文件允许其他工具只读打开，不允许并发写入。
 - 当前只完成 Windows 基线验证；其他平台需要确认 `user://` 全局路径、应用沙盒和退出刷新行为。
 
 ## 自动回归验证
 
-`Verification/Automated/LogHubRegression.tscn` 验证 Debug、Info 的统一格式、空消息和空模块拒绝、主线程控制台输出路径、连续重复聚合、环形历史、文件轮转、退出刷新、队列满和目录不可写降级。
+`Verification/Automated/LogHubRegression.tscn` 验证 Debug、Info 的统一格式、空消息和空模块拒绝、主线程控制台输出路径、连续重复聚合、环形历史、文件轮转、运行中刷新、退出刷新、状态快照、队列满和目录不可写降级。
 
 ```powershell
 & $env:GODOT_PATH --headless --path . Verification/Automated/LogHubRegression.tscn

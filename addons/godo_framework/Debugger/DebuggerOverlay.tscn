@@ -252,6 +252,7 @@ OlderConsolePageButtonPath = NodePath("Panel/Margin/VBox/Body/Page/ConsolePagina
 NewerConsolePageButtonPath = NodePath("Panel/Margin/VBox/Body/Page/ConsolePagination/Newer")
 LatestConsolePageButtonPath = NodePath("Panel/Margin/VBox/Body/Page/ConsolePagination/Latest")
 ConsolePageStatusPath = NodePath("Panel/Margin/VBox/Body/Page/ConsolePagination/Status")
+ConsoleFileLinkPath = NodePath("Panel/Margin/VBox/Body/Page/ConsolePagination/FileLink")
 ResizeRowPath = NodePath("Panel/Margin/VBox/ResizeRow")
 ResizeGripPath = NodePath("Panel/Margin/VBox/ResizeRow/ResizeGrip")
 
@@ -2913,10 +2914,26 @@ theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
 theme_override_font_sizes/font_size = 11
 text = "日志 0"
 vertical_alignment = 1
+clip_text = true
+
+[node name="FileLink" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsolePagination"]
+layout_mode = 2
+custom_minimum_size = Vector2(148, 26)
+focus_mode = 0
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.42, 0.68, 0.94, 1)
+theme_override_colors/font_hover_color = Color(0.72, 0.86, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.88, 0.94, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_tool_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+tooltip_text = "完整日志文件尚未就绪"
+text = "godo_framework.log (启动中)"
 
 [node name="Older" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsolePagination"]
 layout_mode = 2
-custom_minimum_size = Vector2(56, 0)
+custom_minimum_size = Vector2(56, 26)
 focus_mode = 0
 theme_override_colors/font_color = Color(0.67, 0.74, 0.82, 1)
 theme_override_colors/font_hover_color = Color(0.92, 0.96, 1, 1)
@@ -2930,7 +2947,7 @@ text = "上一页"
 
 [node name="Newer" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsolePagination"]
 layout_mode = 2
-custom_minimum_size = Vector2(56, 0)
+custom_minimum_size = Vector2(56, 26)
 focus_mode = 0
 theme_override_colors/font_color = Color(0.67, 0.74, 0.82, 1)
 theme_override_colors/font_hover_color = Color(0.92, 0.96, 1, 1)
@@ -2949,7 +2966,7 @@ mouse_filter = 2
 
 [node name="Latest" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsolePagination"]
 layout_mode = 2
-custom_minimum_size = Vector2(72, 0)
+custom_minimum_size = Vector2(72, 26)
 focus_mode = 0
 theme_override_colors/font_color = Color(0.67, 0.74, 0.82, 1)
 theme_override_colors/font_hover_color = Color(0.92, 0.96, 1, 1)

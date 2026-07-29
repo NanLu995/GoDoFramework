@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -14,9 +15,11 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
     internal const long DefaultMaxFileBytes = 2 * 1024 * 1024;
     internal const int DefaultArchiveCount = 4;
     internal const int DefaultQueueCapacity = 2048;
+    internal const int FlushBatchLineCount = 64;
 
     internal const string FileNamePrefix = "godo_framework";
     internal const string CurrentFileName = FileNamePrefix + ".log";
+    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(1);
 
     private readonly string _logDirectory;
     private readonly long _maxFileBytes;
@@ -28,6 +31,8 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
     private int _failureConsumed;
     private int _droppedLineCount;
     private int _unreportedDroppedLineCount;
+    private int _ready;
+    private long _currentFileBytes;
     private string? _failureDetail;
 
     internal RollingFileLogWriter(
@@ -61,6 +66,16 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
 
     internal int DroppedLineCount => Volatile.Read(ref _droppedLineCount);
     internal bool HasFailed => Volatile.Read(ref _failed) != 0;
+
+    internal FileLogDebugSnapshot GetDebugSnapshot() =>
+        new(
+            Volatile.Read(ref _disposed) == 0,
+            Volatile.Read(ref _ready) != 0,
+            Volatile.Read(ref _failed) != 0,
+            Path.Combine(_logDirectory, CurrentFileName),
+            Interlocked.Read(ref _currentFileBytes),
+            Volatile.Read(ref _droppedLineCount),
+            _failureDetail);
 
     internal bool TryConsumeFailure(out string message)
     {
@@ -149,9 +164,31 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
             string currentPath = Path.Combine(_logDirectory, CurrentFileName);
             OpenWriter(currentPath, FileMode.Append, out stream, out writer);
             long currentBytes = stream.Length;
+            Interlocked.Exchange(ref _currentFileBytes, currentBytes);
+            Volatile.Write(ref _ready, 1);
+            int linesSinceFlush = 0;
+            long lastFlushTimestamp = Stopwatch.GetTimestamp();
 
-            foreach (string line in _pendingLines.GetConsumingEnumerable())
+            while (!_pendingLines.IsCompleted)
             {
+                bool receivedLine = _pendingLines.TryTake(
+                    out string? line,
+                    millisecondsTimeout: 250);
+                if (!receivedLine)
+                {
+                    if (linesSinceFlush > 0)
+                    {
+                        writer.Flush();
+                        currentBytes = stream.Length;
+                        Interlocked.Exchange(ref _currentFileBytes, currentBytes);
+                        linesSinceFlush = 0;
+                        lastFlushTimestamp = Stopwatch.GetTimestamp();
+                    }
+                    continue;
+                }
+                if (line is null)
+                    continue;
+
                 int byteCount = Encoding.UTF8.GetByteCount(line) + Environment.NewLine.Length;
                 if (currentBytes > 0 && currentBytes + byteCount > _maxFileBytes)
                 {
@@ -163,13 +200,29 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
                     RotateFiles(currentPath);
                     OpenWriter(currentPath, FileMode.Create, out stream, out writer);
                     currentBytes = 0;
+                    linesSinceFlush = 0;
+                    lastFlushTimestamp = Stopwatch.GetTimestamp();
+                    Interlocked.Exchange(ref _currentFileBytes, 0);
                 }
 
                 writer.WriteLine(line);
                 currentBytes += byteCount;
+                linesSinceFlush++;
+
+                long now = Stopwatch.GetTimestamp();
+                if (linesSinceFlush >= FlushBatchLineCount ||
+                    Stopwatch.GetElapsedTime(lastFlushTimestamp, now) >= FlushInterval)
+                {
+                    writer.Flush();
+                    currentBytes = stream.Length;
+                    Interlocked.Exchange(ref _currentFileBytes, currentBytes);
+                    linesSinceFlush = 0;
+                    lastFlushTimestamp = now;
+                }
             }
 
             writer.Flush();
+            Interlocked.Exchange(ref _currentFileBytes, stream.Length);
         }
         catch (Exception exception)
         {
@@ -244,4 +297,17 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
         LogLevel.Info => "INFO",
         _ => "UNKNOWN",
     };
+}
+
+internal readonly record struct FileLogDebugSnapshot(
+    bool IsEnabled,
+    bool IsReady,
+    bool HasFailed,
+    string Path,
+    long CurrentFileBytes,
+    int DroppedLineCount,
+    string? FailureDetail)
+{
+    internal static FileLogDebugSnapshot Disabled { get; } =
+        new(false, false, false, string.Empty, 0, 0, null);
 }

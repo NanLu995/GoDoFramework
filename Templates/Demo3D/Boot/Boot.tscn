@@ -10,3 +10,4 @@ script = ExtResource("1_boot")
 [node name="GuideInputBackendInstaller" type="Node" parent="." unique_id=1521601699]
 script = ExtResource("2_installer")
 Profile = ExtResource("3_profile")
+PersistenceSlot = "godo-input-bindings"

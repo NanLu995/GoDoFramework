@@ -41,6 +41,7 @@ public sealed partial class DebuggerOverlayRegression : Node
             Button warningFilter = consoleFilters.GetNode<Button>("Warning");
             Button errorFilter = consoleFilters.GetNode<Button>("Error");
             Label pageStatus = consolePagination.GetNode<Label>("Status");
+            Button fileLink = consolePagination.GetNode<Button>("FileLink");
             Button olderPage = consolePagination.GetNode<Button>("Older");
             Button newerPage = consolePagination.GetNode<Button>("Newer");
             Button latestPage = consolePagination.GetNode<Button>("Latest");
@@ -905,6 +906,8 @@ public sealed partial class DebuggerOverlayRegression : Node
             search.EmitSignal(LineEdit.SignalName.TextChanged, search.Text);
             Assert(debuggerLabel.Text.Length == 0 &&
                 pageStatus.Text == "日志 0" &&
+                fileLink.Text.StartsWith("godo_framework.log (", StringComparison.Ordinal) &&
+                fileLink.TooltipText.Contains("godo_framework.log", StringComparison.Ordinal) &&
                 warningFilter.Text == "Warning (0)" &&
                 errorFilter.Text == "Error (0)",
                 "控制台空筛选结果状态或 ErrorHub 初始计数错误");
@@ -912,6 +915,7 @@ public sealed partial class DebuggerOverlayRegression : Node
             search.EmitSignal(LineEdit.SignalName.TextChanged, search.Text);
 
             ErrorHub.Warn("Debugger warning filter", "DebuggerRegression");
+            LogHub.Info("Debugger chronological bridge", "DebuggerRegression");
             ErrorHub.Report(
                 ErrorLevel.Error,
                 "Debugger error filter",
@@ -924,9 +928,36 @@ public sealed partial class DebuggerOverlayRegression : Node
                 !toggle.Text.Contains('E') &&
                 toggle.GetThemeColor("font_color") == new Color(1f, 0.42f, 0.38f) &&
                 toggle.GetThemeColor("font_outline_color") == new Color(1f, 0.42f, 0.38f) &&
-                debuggerLabel.Text.Contains("Debugger warning filter", StringComparison.Ordinal) &&
-                debuggerLabel.Text.Contains("Debugger error filter", StringComparison.Ordinal),
+                debuggerLabel.BbcodeEnabled &&
+                debuggerLabel.Text.Contains("[color=#e4b85a]", StringComparison.Ordinal) &&
+                debuggerLabel.Text.Contains("[color=#ff7770]", StringComparison.Ordinal) &&
+                debuggerLabel.GetParsedText().Contains(
+                    "Debugger warning filter",
+                    StringComparison.Ordinal) &&
+                debuggerLabel.GetParsedText().Contains(
+                    "Debugger error filter",
+                    StringComparison.Ordinal),
                 "ErrorHub Warning/Error 摘要或 FPS 紧凑文本错误");
+            string chronologicalConsole = debuggerLabel.GetParsedText();
+            Assert(
+                !chronologicalConsole.Contains("最近警告 / 错误", StringComparison.Ordinal) &&
+                chronologicalConsole.IndexOf(
+                    "Debugger warning filter",
+                    StringComparison.Ordinal) <
+                chronologicalConsole.IndexOf(
+                    "Debugger chronological bridge",
+                    StringComparison.Ordinal) &&
+                chronologicalConsole.IndexOf(
+                    "Debugger chronological bridge",
+                    StringComparison.Ordinal) <
+                chronologicalConsole.IndexOf(
+                    "Debugger error filter",
+                    StringComparison.Ordinal),
+                "控制台没有按时间混排普通日志与 Warning/Error");
+            Assert(
+                fileLink.CustomMinimumSize.Y == olderPage.CustomMinimumSize.Y &&
+                fileLink.CustomMinimumSize.Y == newerPage.CustomMinimumSize.Y,
+                "控制台文件按钮与翻页按钮高度没有对齐");
             warningFilter.EmitSignal(BaseButton.SignalName.Pressed);
             Assert(warningFilter.ButtonPressed && !allFilter.ButtonPressed &&
                 debuggerLabel.Text.Contains("Debugger warning filter", StringComparison.Ordinal) &&
@@ -1037,9 +1068,10 @@ public sealed partial class DebuggerOverlayRegression : Node
                 debuggerLabel.Text.Contains("Debugger stress sample 999", StringComparison.Ordinal) &&
                 !debuggerLabel.Text.Contains("Debugger stress sample 0", StringComparison.Ordinal),
                 "控制台高日志量最新页或有界历史显示错误");
-            Assert(pageStatus.Text.Contains("901–1000", StringComparison.Ordinal) &&
+            Assert(pageStatus.Text.StartsWith("日志 10", StringComparison.Ordinal) &&
+                pageStatus.Text.EndsWith("11/11", StringComparison.Ordinal) &&
                 !olderPage.Disabled && newerPage.Disabled && latestPage.Disabled,
-                "控制台最新分页状态错误");
+                "控制台混排 Warning/Error 后的最新分页状态错误");
 
             search.Text = "Debugger stress sample 0";
             search.EmitSignal(LineEdit.SignalName.TextChanged, search.Text);

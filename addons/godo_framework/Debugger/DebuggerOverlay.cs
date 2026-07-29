@@ -16,8 +16,9 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private const double RefreshIntervalSeconds = 0.25;
     private const double ConsoleBottomThreshold = 1d;
     private const int MaxStoredWarnings = 16;
-    private const int MaxDisplayedWarnings = 12;
     private const int ConsoleLogsPerPage = 100;
+    private const string ConsoleWarningColor = "#e4b85a";
+    private const string ConsoleErrorColor = "#ff7770";
     private const ulong SceneNodeCountRefreshIntervalMilliseconds = 1000;
     private const int MaxDisplayedInputActions = 32;
     private const int MaxDisplayedResourceOperations = 32;
@@ -84,7 +85,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private const float VisibleHeaderHeight = 36f;
 
     private readonly Queue<DebuggerErrorEntry> _recentWarnings = new(MaxStoredWarnings);
+    private readonly DebuggerErrorEntry[] _consoleErrorSnapshot =
+        new DebuggerErrorEntry[MaxStoredWarnings];
     private readonly StringBuilder _textBuilder = new(1024);
+    private readonly StringBuilder _consoleMarkupBuilder = new(1024);
     private readonly List<DebuggerPageGroup> _pageGroups = new();
     private readonly Dictionary<TreeItem, DebuggerPage> _pagesByTreeItem = new();
     private readonly double[] _performanceProcessSamples = new double[PerformanceSampleCapacity];
@@ -247,6 +251,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private Button? _newerConsolePageButton;
     private Button? _latestConsolePageButton;
     private Label? _consolePageStatus;
+    private Button? _consoleFileLink;
     private Control? _resizeRow;
     private Control? _resizeGrip;
     private DebuggerPage? _selectedPage;
@@ -260,6 +265,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private Vector2 _panelPositionStart;
     private Vector2 _panelSizeStart;
     private string _consoleSearchQuery = string.Empty;
+    private string _consoleFilePath = string.Empty;
     private string _inputActionsSearchQuery = string.Empty;
     private int _inputContextsSignature = int.MinValue;
     private int _inputActionsSignature = int.MinValue;
@@ -350,6 +356,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     [Export] public NodePath LatestConsolePageButtonPath { get; set; } = null!;
     /// <summary>控制台分页状态标签节点路径。</summary>
     [Export] public NodePath ConsolePageStatusPath { get; set; } = null!;
+    /// <summary>控制台当前日志文件链接节点路径。</summary>
+    [Export] public NodePath ConsoleFileLinkPath { get; set; } = null!;
     /// <summary>窗口缩放操作行节点路径。</summary>
     [Export] public NodePath ResizeRowPath { get; set; } = null!;
     /// <summary>窗口右下角缩放手柄节点路径。</summary>
@@ -396,6 +404,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _newerConsolePageButton = GetNodeOrNull<Button>(NewerConsolePageButtonPath);
         _latestConsolePageButton = GetNodeOrNull<Button>(LatestConsolePageButtonPath);
         _consolePageStatus = GetNodeOrNull<Label>(ConsolePageStatusPath);
+        _consoleFileLink = GetNodeOrNull<Button>(ConsoleFileLinkPath);
         _resizeRow = GetNodeOrNull<Control>(ResizeRowPath);
         _resizeGrip = GetNodeOrNull<Control>(ResizeGripPath);
 
@@ -431,6 +440,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             !IsInstanceValid(_newerConsolePageButton) ||
             !IsInstanceValid(_latestConsolePageButton) ||
             !IsInstanceValid(_consolePageStatus) ||
+            !IsInstanceValid(_consoleFileLink) ||
             !IsInstanceValid(_resizeRow) ||
             !IsInstanceValid(_resizeGrip))
         {
@@ -483,6 +493,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _olderConsolePageButton.Pressed += OnOlderConsolePagePressed;
         _newerConsolePageButton.Pressed += OnNewerConsolePagePressed;
         _latestConsolePageButton.Pressed += OnLatestConsolePagePressed;
+        _consoleFileLink.Pressed += OnConsoleFileLinkPressed;
         _consoleScrollBar.ValueChanged += OnConsoleScrollValueChanged;
         _header.GuiInput += OnHeaderGuiInput;
         _resizeGrip.GuiInput += OnResizeGripGuiInput;
@@ -563,6 +574,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             _newerConsolePageButton.Pressed -= OnNewerConsolePagePressed;
         if (IsInstanceValid(_latestConsolePageButton))
             _latestConsolePageButton.Pressed -= OnLatestConsolePagePressed;
+        if (IsInstanceValid(_consoleFileLink))
+            _consoleFileLink.Pressed -= OnConsoleFileLinkPressed;
         if (IsInstanceValid(_consoleScrollBar))
             _consoleScrollBar.ValueChanged -= OnConsoleScrollValueChanged;
         if (IsInstanceValid(_header))
@@ -712,6 +725,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _newerConsolePageButton = null;
         _latestConsolePageButton = null;
         _consolePageStatus = null;
+        _consoleFileLink = null;
+        _consoleFilePath = string.Empty;
         _resizeRow = null;
         _resizeGrip = null;
         _selectedPage = null;
@@ -925,8 +940,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             ShowPageReadFailure(exception);
         }
         string text = _textBuilder.ToString().ReplaceLineEndings("\n");
-        if (!string.Equals(_debuggerLabel.Text, text, StringComparison.Ordinal))
-            _debuggerLabel.Text = text;
+        string displayedText = isConsole ? BuildConsoleMarkup(text) : text;
+        _debuggerLabel.BbcodeEnabled = isConsole;
+        if (!string.Equals(_debuggerLabel.Text, displayedText, StringComparison.Ordinal))
+            _debuggerLabel.Text = displayedText;
 
         if (isConsole && pageReadSucceeded)
         {
@@ -2121,7 +2138,22 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         if (!IsInstanceValid(_debuggerLabel))
             return;
 
-        DisplayServer.ClipboardSet(_debuggerLabel.Text);
+        DisplayServer.ClipboardSet(_debuggerLabel.GetParsedText());
+    }
+
+    private void OnConsoleFileLinkPressed()
+    {
+        if (string.IsNullOrWhiteSpace(_consoleFilePath))
+            return;
+
+        Error error = OS.ShellShowInFileManager(_consoleFilePath);
+        if (error != Error.Ok)
+        {
+            ErrorHub.Warn(
+                "无法在文件管理器中定位日志文件",
+                nameof(DebuggerOverlay),
+                $"path={_consoleFilePath}; error={error}");
+        }
     }
 
     private void RefreshOverviewDashboard()
@@ -3615,9 +3647,13 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     {
         ConsoleRenderCount++;
         LogEntry[] logs = LogHub.GetDebugSnapshot();
+        int errorCount = 0;
+        foreach (DebuggerErrorEntry error in _recentWarnings)
+            _consoleErrorSnapshot[errorCount++] = error;
+        FileLogDebugSnapshot fileLog = LogHub.GetFileLogDebugSnapshot();
         UpdateConsoleFilterLabels(logs);
-        AppendLogs(logs);
-        AppendWarnings();
+        AppendConsoleEntries(logs, _consoleErrorSnapshot, errorCount);
+        UpdateConsoleFileLogStatus(fileLog);
     }
 
     private void UpdateConsoleFilterLabels(LogEntry[] logs)
@@ -3796,34 +3832,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
                 StringComparison.OrdinalIgnoreCase) ?? false);
     }
 
-    private void AppendWarnings()
-    {
-        int matchingCount = 0;
-        foreach (DebuggerErrorEntry entry in _recentWarnings)
-        {
-            if (MatchesConsoleLevel(entry) && MatchesConsoleSearch(entry))
-                matchingCount++;
-        }
-        if (matchingCount == 0)
-            return;
-
-        AppendSection("【最近警告 / 错误】");
-        int skipCount = Math.Max(0, matchingCount - MaxDisplayedWarnings);
-        int index = 0;
-        foreach (DebuggerErrorEntry error in _recentWarnings)
-        {
-            if (!MatchesConsoleLevel(error) || !MatchesConsoleSearch(error))
-                continue;
-            if (index++ < skipCount)
-                continue;
-
-            _textBuilder.Append(error.Timestamp.ToString("HH:mm:ss"))
-                .Append(' ').Append('[').Append(error.Level).Append("] ")
-                .Append(error.Module).Append(": ").AppendLine(error.Message);
-        }
-    }
-
-    private void AppendLogs(LogEntry[] logs)
+    private void AppendConsoleEntries(
+        LogEntry[] logs,
+        DebuggerErrorEntry[] errors,
+        int errorCount)
     {
         int matchingCount = 0;
         for (int index = 0; index < logs.Length; index++)
@@ -3832,6 +3844,13 @@ public sealed partial class DebuggerOverlay : CanvasLayer
                 MatchesConsoleSearch(logs[index]))
                 matchingCount++;
         }
+        for (int index = 0; index < errorCount; index++)
+        {
+            if (MatchesConsoleLevel(errors[index]) &&
+                MatchesConsoleSearch(errors[index]))
+                matchingCount++;
+        }
+
         int pageCount = Math.Max(1, (matchingCount + ConsoleLogsPerPage - 1) / ConsoleLogsPerPage);
         _consolePageOffset = Math.Clamp(_consolePageOffset, 0, pageCount - 1);
         int pageEnd = Math.Max(0, matchingCount - _consolePageOffset * ConsoleLogsPerPage);
@@ -3841,42 +3860,118 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             return;
 
         int matchingIndex = 0;
-        for (int i = 0; i < logs.Length; i++)
+        int logIndex = 0;
+        int errorIndex = 0;
+        while (logIndex < logs.Length || errorIndex < errorCount)
         {
-            LogEntry log = logs[i];
-            if (!MatchesConsoleLevel(log) ||
-                !MatchesConsoleSearch(log))
-                continue;
-            if (matchingIndex < pageStart)
+            bool useLog = errorIndex >= errorCount ||
+                (logIndex < logs.Length &&
+                 logs[logIndex].TimestampUtc <= errors[errorIndex].TimestampUtc);
+            if (useLog)
             {
+                LogEntry log = logs[logIndex++];
+                if (!MatchesConsoleLevel(log) || !MatchesConsoleSearch(log))
+                    continue;
+                if (matchingIndex >= pageStart && matchingIndex < pageEnd)
+                    AppendConsoleLog(log);
                 matchingIndex++;
-                continue;
-            }
-            if (matchingIndex >= pageEnd)
-                break;
-            matchingIndex++;
-
-            DateTime lastTimestamp = log.TimestampUtc.ToLocalTime();
-            if (log.RepeatCount > 1)
-            {
-                _textBuilder.Append(log.FirstTimestampUtc.ToLocalTime().ToString("HH:mm:ss"))
-                    .Append('–').Append(lastTimestamp.ToString("HH:mm:ss"));
             }
             else
             {
-                _textBuilder.Append(lastTimestamp.ToString("HH:mm:ss"));
+                DebuggerErrorEntry error = errors[errorIndex++];
+                if (!MatchesConsoleLevel(error) || !MatchesConsoleSearch(error))
+                    continue;
+                if (matchingIndex >= pageStart && matchingIndex < pageEnd)
+                    AppendConsoleError(error);
+                matchingIndex++;
             }
 
-            _textBuilder.Append(' ').Append('[').Append(log.Level).Append("] ")
-                .Append(log.Module).Append(": ");
+            if (matchingIndex >= pageEnd)
+                break;
+        }
+    }
 
-            if (!string.IsNullOrWhiteSpace(log.Context))
-                _textBuilder.Append('(').Append(log.Context).Append(") ");
+    private void AppendConsoleLog(LogEntry log)
+    {
+        DateTime lastTimestamp = log.TimestampUtc.ToLocalTime();
+        if (log.RepeatCount > 1)
+        {
+            _textBuilder.Append(log.FirstTimestampUtc.ToLocalTime().ToString("HH:mm:ss"))
+                .Append('–').Append(lastTimestamp.ToString("HH:mm:ss"));
+        }
+        else
+        {
+            _textBuilder.Append(lastTimestamp.ToString("HH:mm:ss"));
+        }
 
-            _textBuilder.Append(log.Message);
-            if (log.RepeatCount > 1)
-                _textBuilder.Append(" ×").Append(log.RepeatCount);
-            _textBuilder.AppendLine();
+        _textBuilder.Append(' ').Append('[').Append(log.Level).Append("] ")
+            .Append(log.Module).Append(": ");
+
+        if (!string.IsNullOrWhiteSpace(log.Context))
+            _textBuilder.Append('(').Append(log.Context).Append(") ");
+
+        _textBuilder.Append(log.Message);
+        if (log.RepeatCount > 1)
+            _textBuilder.Append(" ×").Append(log.RepeatCount);
+        _textBuilder.AppendLine();
+    }
+
+    private void AppendConsoleError(DebuggerErrorEntry error)
+    {
+        _textBuilder.Append(error.TimestampUtc.ToLocalTime().ToString("HH:mm:ss"))
+            .Append(' ').Append('[').Append(error.Level).Append("] ")
+            .Append(error.Module).Append(": ").AppendLine(error.Message);
+    }
+
+    private string BuildConsoleMarkup(string text)
+    {
+        _consoleMarkupBuilder.Clear();
+        int lineStart = 0;
+        while (lineStart < text.Length)
+        {
+            int newline = text.IndexOf('\n', lineStart);
+            int lineEnd = newline >= 0 ? newline : text.Length;
+            ReadOnlySpan<char> line = text.AsSpan(lineStart, lineEnd - lineStart);
+            string? color = GetConsoleLineColor(line);
+            if (color != null)
+                _consoleMarkupBuilder.Append("[color=").Append(color).Append(']');
+
+            AppendEscapedBbcode(_consoleMarkupBuilder, line);
+            if (color != null)
+                _consoleMarkupBuilder.Append("[/color]");
+            if (newline < 0)
+                break;
+
+            _consoleMarkupBuilder.Append('\n');
+            lineStart = newline + 1;
+        }
+
+        return _consoleMarkupBuilder.ToString();
+    }
+
+    private static string? GetConsoleLineColor(ReadOnlySpan<char> line)
+    {
+        if (line.Length <= 9 || line[8] != ' ')
+            return null;
+
+        ReadOnlySpan<char> level = line[9..];
+        if (level.StartsWith("[Warning]"))
+            return ConsoleWarningColor;
+        if (level.StartsWith("[Error]") || level.StartsWith("[Fatal]"))
+            return ConsoleErrorColor;
+        return null;
+    }
+
+    private static void AppendEscapedBbcode(
+        StringBuilder builder,
+        ReadOnlySpan<char> text)
+    {
+        for (int index = 0; index < text.Length; index++)
+        {
+            if (text[index] == '[')
+                builder.Append("[lb]");
+            else
+                builder.Append(text[index]);
         }
     }
 
@@ -3898,7 +3993,37 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _consolePageStatus.Text = matchingCount == 0
             ? "日志 0"
             : $"日志 {matchingCount} · {pageStart + 1}–{pageEnd} · " +
-              $"{pageCount - _consolePageOffset}/{pageCount}";
+               $"{pageCount - _consolePageOffset}/{pageCount}";
+    }
+
+    private void UpdateConsoleFileLogStatus(FileLogDebugSnapshot snapshot)
+    {
+        if (!IsInstanceValid(_consoleFileLink))
+            return;
+
+        if (!snapshot.IsEnabled)
+        {
+            _consoleFilePath = string.Empty;
+            _consoleFileLink.Text = "文件日志未启用";
+            _consoleFileLink.TooltipText = string.Empty;
+            _consoleFileLink.Disabled = true;
+            return;
+        }
+
+        _consoleFilePath = snapshot.Path;
+        string status = snapshot.HasFailed
+            ? "已停用"
+            : snapshot.IsReady ? "正常" : "启动中";
+        string fileName = System.IO.Path.GetFileName(snapshot.Path);
+        _consoleFileLink.Text = $"{fileName} ({status})";
+        _consoleFileLink.Disabled = !snapshot.IsReady;
+        _consoleFileLink.TooltipText =
+            $"{snapshot.Path}\n" +
+            $"状态：{status} · 已刷新：{FormatBytes(snapshot.CurrentFileBytes)} · " +
+            $"丢弃：{snapshot.DroppedLineCount.ToString(CultureInfo.InvariantCulture)}" +
+            (snapshot.HasFailed
+                ? $"\n原因：{snapshot.FailureDetail ?? "未知写入错误"}"
+                : "\n点击在文件管理器中定位");
     }
 
     private void UpdateLatestConsoleButtonState()
@@ -4015,14 +4140,18 @@ public sealed partial class DebuggerOverlay : CanvasLayer
 
     private readonly struct DebuggerErrorEntry
     {
-        public DateTime Timestamp { get; }
+        public DateTime TimestampUtc { get; }
         public ErrorLevel Level { get; }
         public string Module { get; }
         public string Message { get; }
 
-        public DebuggerErrorEntry(DateTime timestamp, ErrorLevel level, string module, string message)
+        public DebuggerErrorEntry(
+            DateTime timestampUtc,
+            ErrorLevel level,
+            string module,
+            string message)
         {
-            Timestamp = timestamp;
+            TimestampUtc = timestampUtc;
             Level = level;
             Module = module;
             Message = message;

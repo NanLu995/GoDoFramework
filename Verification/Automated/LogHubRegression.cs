@@ -23,6 +23,7 @@ public sealed partial class LogHubRegression : Node
             Run("空参数拒绝", VerifyInvalidArguments);
             Run("控制台输出", VerifyConsoleOutput);
             Run("滚动文件与退出刷新", VerifyRollingFileAndShutdownFlush);
+            Run("文件日志运行中刷新", VerifyPeriodicFileFlush);
             Run("文件日志队列满", VerifyFileQueueCapacity);
             Run("文件日志目录不可写", VerifyUnavailableLogDirectory);
 #if DEBUG
@@ -80,39 +81,87 @@ public sealed partial class LogHubRegression : Node
         string directory = CreateArtifactPath("rolling");
         try
         {
-            using (var writer = new RollingFileLogWriter(
+            var writer = new RollingFileLogWriter(
                 directory,
                 maxFileBytes: 256,
                 archiveCount: 2,
-                queueCapacity: 64))
+                queueCapacity: 64);
+            for (int i = 0; i < 16; i++)
             {
-                for (int i = 0; i < 16; i++)
-                {
-                    writer.Write(
-                        DateTime.UtcNow,
-                        LogLevel.Info,
-                        $"entry={i}; payload=abcdefghijklmnopqrstuvwxyz",
-                        "LogHubRegression",
-                        context: null);
-                }
+                writer.Write(
+                    DateTime.UtcNow,
+                    LogLevel.Info,
+                    $"entry={i}; payload=abcdefghijklmnopqrstuvwxyz",
+                    "LogHubRegression",
+                    context: null);
             }
 
             string currentPath = Path.Combine(directory, RollingFileLogWriter.CurrentFileName);
             string firstArchivePath =
                 Path.Combine(directory, $"{RollingFileLogWriter.FileNamePrefix}.1.log");
-            Assert(File.Exists(currentPath), "退出刷新后没有生成当前日志文件");
+            writer.Write(
+                DateTime.UtcNow,
+                LogLevel.Info,
+                "shutdown-entry",
+                "LogHubRegression",
+                context: null);
+            writer.Dispose();
+            Assert(
+                File.ReadAllText(currentPath).Contains(
+                    "shutdown-entry",
+                    StringComparison.Ordinal),
+                "退出刷新没有写出队列中的最后一条日志");
             Assert(File.Exists(firstArchivePath), "达到容量后没有生成滚动日志文件");
             Assert(
                 !File.Exists(Path.Combine(
                     directory,
                     $"{RollingFileLogWriter.FileNamePrefix}.3.log")),
                 "保留数量超过配置上限");
-            Assert(
-                File.ReadAllText(currentPath).Contains("entry=15", StringComparison.Ordinal),
-                "退出刷新没有保留最后一条日志");
         }
         finally
         {
+            DeleteArtifactPath(directory);
+        }
+    }
+
+    private static void VerifyPeriodicFileFlush()
+    {
+        string directory = CreateArtifactPath("periodic-flush");
+        RollingFileLogWriter? writer = null;
+        try
+        {
+            writer = new RollingFileLogWriter(
+                directory,
+                maxFileBytes: 4096,
+                archiveCount: 1,
+                queueCapacity: 4);
+            writer.Write(
+                DateTime.UtcNow,
+                LogLevel.Info,
+                "periodic-entry",
+                "LogHubRegression",
+                context: null);
+
+            string currentPath = Path.Combine(directory, RollingFileLogWriter.CurrentFileName);
+            Assert(
+                SpinWait.SpinUntil(
+                    () => writer.GetDebugSnapshot().CurrentFileBytes > 0,
+                    TimeSpan.FromSeconds(2)),
+                "运行中定期刷新没有写出日志");
+            FileLogDebugSnapshot snapshot = writer.GetDebugSnapshot();
+            Assert(snapshot.IsReady && !snapshot.HasFailed, "文件日志正常状态快照错误");
+            Assert(snapshot.CurrentFileBytes > 0, "文件日志状态没有更新当前文件大小");
+            writer.Dispose();
+            writer = null;
+            Assert(
+                File.ReadAllText(currentPath).Contains(
+                    "periodic-entry",
+                    StringComparison.Ordinal),
+                "运行中刷新后的文件缺少日志内容");
+        }
+        finally
+        {
+            writer?.Dispose();
             DeleteArtifactPath(directory);
         }
     }
@@ -131,6 +180,10 @@ public sealed partial class LogHubRegression : Node
         writer.Write(DateTime.UtcNow, LogLevel.Info, "third", "LogHubRegression", null);
 
         AssertEqual(1, writer.DroppedLineCount, "队列满时没有准确统计丢弃数量");
+        AssertEqual(
+            1,
+            writer.GetDebugSnapshot().DroppedLineCount,
+            "文件日志状态没有包含累计丢弃数量");
         Assert(
             writer.TryConsumeDroppedLineCount(out int droppedCount) && droppedCount == 1,
             "队列满摘要没有返回本轮丢弃数量");
@@ -161,6 +214,8 @@ public sealed partial class LogHubRegression : Node
                 writer.TryConsumeFailure(out string message) &&
                 message.Contains("已停用", StringComparison.Ordinal),
                 "目录不可用时没有提供一次性降级信息");
+            FileLogDebugSnapshot snapshot = writer.GetDebugSnapshot();
+            Assert(snapshot.HasFailed && !snapshot.IsReady, "文件写入失败状态快照错误");
             Assert(!writer.TryConsumeFailure(out _), "文件写入失败被重复上报");
         }
         finally

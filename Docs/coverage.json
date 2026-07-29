@@ -39,7 +39,7 @@
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:7415b717a756ef2218722e0c2504c02e7e7b0fb77614d32e08fd10b3a33cd603"
+      "reviewed_contract_hash": "sha256:9f525bd0afdab79a9301808758ad93a7a64c3d20eb5546f4dd117b431e0ab4ed"
     },
     "services": {
       "contract": "addons/godo_framework/Core/Services/USAGE.md",
@@ -57,7 +57,7 @@
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:40e826e6ed2a7d322ffeb6ce6f3727de68f25f3b00dd02071d6c14294972c57e"
+      "reviewed_contract_hash": "sha256:c43d008f78287f8a40d1c72c64bc4923441815bdcb81c8cfd760e14672c578d6"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
