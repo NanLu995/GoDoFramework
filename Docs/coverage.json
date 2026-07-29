@@ -97,7 +97,7 @@
       "manual_pages": [
         "guides/camera/index.md"
       ],
-      "reviewed_contract_hash": "sha256:de3aff43e5195b496bef5e3068a68cd7690c7a185fff897ea3c4d3931ad6c795"
+      "reviewed_contract_hash": "sha256:b70bddbab2691321a440f79fe589b68a8f823e4468eeceda94b624cdcb524cbc"
     },
     "config": {
       "contract": "addons/godo_framework/Runtime/Config/USAGE.md",

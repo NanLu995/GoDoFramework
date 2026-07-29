@@ -28,11 +28,17 @@ public sealed partial class CameraServiceRegression : Node
             Run("停用失败回滚目标镜头", VerifyDeactivationFailureRollback);
             Run("同场景重复 ID 拒绝", VerifySameSceneDuplicateRejection);
             Run("跨场景相同 ID 选择新注册实例", VerifyCrossSceneReplacement);
+            Run("跨场景同 ID 切换不写入历史", VerifyCrossSceneActiveReplacement);
             Run("失效历史会被跳过", VerifyInvalidHistoryIsSkipped);
+            Run("活动 Rig 失效后清理状态", VerifyInvalidActiveRigIsPruned);
+            Run("注销活动 Rig 后回退同 ID 实例", VerifyActiveUnregisterFallsBackToOlderRegistration);
+            Run("CameraRig 随节点生命周期注册注销", VerifyCameraRigNodeLifecycle);
+            Run("关闭服务清空状态", VerifyShutdownClearsState);
+            Run("默认镜头 ID 拒绝", VerifyDefaultCameraIdRejection);
             Run("未知镜头失败", VerifyUnknownCameraFailure);
 
             _service.Shutdown();
-            GD.Print($"[CameraServiceRegression] PASS ({_passed}/10)");
+            GD.Print($"[CameraServiceRegression] PASS ({_passed}/16)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -123,11 +129,13 @@ public sealed partial class CameraServiceRegression : Node
         _service.Register(fixture.Intro, fixture.SceneRoot);
         _service.ActivatePrimary(fixture.Gameplay.CameraId);
 
-        AssertThrows<CameraOperationException>(
+        CameraOperationException exception = AssertThrows<CameraOperationException>(
             () => _service.ActivatePrimary(fixture.Intro.CameraId),
             "当前镜头停用失败没有抛出 CameraOperationException");
 
         Assert(_service.ActivePrimary == fixture.Gameplay.CameraId, "停用失败后当前镜头发生变化");
+        Assert(exception.CameraId == fixture.Gameplay.CameraId, "停用失败没有保留原镜头 ID");
+        Assert(exception.InnerException?.Message == "Deactivate failure", "停用失败没有保留原始异常");
         Assert(fixture.Intro.ActivateCount == 1, "切换前没有尝试激活目标镜头");
         Assert(fixture.Intro.DeactivateCount == 1, "停用失败后没有尝试回滚目标镜头");
     }
@@ -166,6 +174,21 @@ public sealed partial class CameraServiceRegression : Node
         Assert(oldFixture.Rig.ActivateCount == 1, "新 Rig 注销后旧 Rig 不可解析");
     }
 
+    private void VerifyCrossSceneActiveReplacement()
+    {
+        using var oldFixture = new RigFixture("gameplay", "OldScene");
+        using var newFixture = new RigFixture("gameplay", "NewScene");
+        _service.Register(oldFixture.Rig, oldFixture.SceneRoot);
+        _service.ActivatePrimary(oldFixture.Rig.CameraId);
+        _service.Register(newFixture.Rig, newFixture.SceneRoot);
+
+        _service.ActivatePrimary(newFixture.Rig.CameraId);
+
+        Assert(oldFixture.Rig.DeactivateCount == 1, "同 ID 新 Rig 激活后旧 Rig 未停用");
+        Assert(newFixture.Rig.ActivateCount == 1, "同 ID 新 Rig 未激活");
+        Assert(!_service.RestorePreviousPrimary(), "同 ID 实例替换不应写入恢复历史");
+    }
+
     private void VerifyInvalidHistoryIsSkipped()
     {
         using var fixture = new MultiRigFixture();
@@ -178,6 +201,86 @@ public sealed partial class CameraServiceRegression : Node
 
         Assert(!_service.RestorePreviousPrimary(), "失效历史不应恢复成功");
         Assert(_service.ActivePrimary == fixture.Intro.CameraId, "跳过失效历史时当前镜头发生变化");
+    }
+
+    private void VerifyInvalidActiveRigIsPruned()
+    {
+        using var fixture = new RigFixture("gameplay", "SceneA");
+        _service.Register(fixture.Rig, fixture.SceneRoot);
+        _service.ActivatePrimary(fixture.Rig.CameraId);
+
+        fixture.Rig.Dispose();
+
+        Assert(_service.ActivePrimary is null, "活动 Rig 失效后 ActivePrimary 应为空");
+        Assert(!_service.RestorePreviousPrimary(), "活动 Rig 失效后不应出现可恢复历史");
+        AssertThrows<CameraOperationException>(
+            () => _service.ActivatePrimary(fixture.Rig.CameraId),
+            "活动 Rig 失效后仍可被重新激活");
+    }
+
+    private void VerifyActiveUnregisterFallsBackToOlderRegistration()
+    {
+        using var oldFixture = new RigFixture("gameplay", "OldScene");
+        using var newFixture = new RigFixture("gameplay", "NewScene");
+        _service.Register(oldFixture.Rig, oldFixture.SceneRoot);
+        _service.Register(newFixture.Rig, newFixture.SceneRoot);
+        _service.ActivatePrimary(newFixture.Rig.CameraId);
+
+        _service.Unregister(newFixture.Rig);
+
+        Assert(_service.ActivePrimary is null, "注销活动 Rig 后 ActivePrimary 应为空");
+        _service.ActivatePrimary(oldFixture.Rig.CameraId);
+        Assert(oldFixture.Rig.ActivateCount == 1, "注销新 Rig 后旧的同 ID Rig 不可激活");
+    }
+
+    private void VerifyCameraRigNodeLifecycle()
+    {
+        var scope = new Node { Name = "LifecycleScene" };
+        var rig = new LifecycleCameraRig { RigId = "lifecycle" };
+        try
+        {
+            AddChild(scope);
+            scope.AddChild(rig);
+
+            CameraId id = CameraId.Create("lifecycle");
+            _service.ActivatePrimary(id);
+            Assert(rig.ActivateCount == 1, "CameraRig 进入树后没有自动注册");
+
+            scope.RemoveChild(rig);
+            Assert(_service.ActivePrimary is null, "CameraRig 退出树后没有注销活动实例");
+            AssertThrows<CameraOperationException>(
+                () => _service.ActivatePrimary(id),
+                "CameraRig 退出树后仍可被激活");
+        }
+        finally
+        {
+            rig.Free();
+            scope.Free();
+        }
+    }
+
+    private void VerifyShutdownClearsState()
+    {
+        using var fixture = new MultiRigFixture();
+        _service.Register(fixture.Gameplay, fixture.SceneRoot);
+        _service.Register(fixture.Intro, fixture.SceneRoot);
+        _service.ActivatePrimary(fixture.Gameplay.CameraId);
+        _service.ActivatePrimary(fixture.Intro.CameraId);
+
+        _service.Shutdown();
+
+        Assert(_service.ActivePrimary is null, "关闭服务后 ActivePrimary 未清空");
+        Assert(!_service.RestorePreviousPrimary(), "关闭服务后恢复历史未清空");
+        AssertThrows<CameraOperationException>(
+            () => _service.ActivatePrimary(fixture.Gameplay.CameraId),
+            "关闭服务后注册表未清空");
+    }
+
+    private void VerifyDefaultCameraIdRejection()
+    {
+        AssertThrows<ArgumentException>(
+            () => _service.ActivatePrimary(default),
+            "默认 CameraId 没有被拒绝");
     }
 
     private void VerifyUnknownCameraFailure()
@@ -195,16 +298,16 @@ public sealed partial class CameraServiceRegression : Node
             throw new InvalidOperationException(message);
     }
 
-    private static void AssertThrows<TException>(Action action, string message)
+    private static TException AssertThrows<TException>(Action action, string message)
         where TException : Exception
     {
         try
         {
             action();
         }
-        catch (TException)
+        catch (TException exception)
         {
-            return;
+            return exception;
         }
 
         throw new InvalidOperationException(message);
@@ -282,5 +385,14 @@ public sealed partial class CameraServiceRegression : Node
             _disposed = true;
             _lifetimeOwner.Free();
         }
+    }
+
+    private sealed partial class LifecycleCameraRig : CameraRig
+    {
+        public int ActivateCount { get; private set; }
+
+        protected override void ActivateRig() => ActivateCount++;
+
+        protected override void DeactivateRig() { }
     }
 }
