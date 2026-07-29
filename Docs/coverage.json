@@ -186,7 +186,7 @@
         "getting-started/switch-procedures.md",
         "guides/resources-and-scenes/index.md"
       ],
-      "reviewed_contract_hash": "sha256:d2f108cf2adf5ec9e512245a6debdee58c72fedd8d390541d550f26329a85aa7"
+      "reviewed_contract_hash": "sha256:9eb8d70e5b86ce56742249ca73a425b6c6c785e1f40def00fb01f68846c8833e"
     },
     "scheduler": {
       "contract": "addons/godo_framework/Runtime/Scheduler/USAGE.md",

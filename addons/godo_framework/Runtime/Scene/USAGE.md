@@ -33,14 +33,15 @@ if (scenes.IsChanging)
     loadingBar.Value = scenes.Progress * 100.0;
 ```
 
-`Progress` 范围为 0–1。首版提供轮询属性，不提供独立进度信号；UI 可在自身 Process 中读取，但不要在每帧重复调用 `ChangeAsync`。
+`Progress` 范围为 0–1。首版提供轮询属性，不提供独立进度信号；UI 可在自身 Process 中读取，但不要在每帧重复调用 `ChangeAsync`。成功后进度保持 1，加载、实例化、挂载失败或生命周期取消后复位为 0。
 
 ## 切换语义
 
 - 同一时间只允许一个切换请求；第二个请求抛出 `InvalidOperationException`。
 - PackedScene 完整加载并成功实例化后，才加入 SceneTree 并设为 CurrentScene。
 - 提交成功后旧场景 QueueFree，在帧末释放；不要在 await 返回后继续访问旧场景。
-- SceneService 离树或重新入树会取消尚未提交的切换，并以带 `OperationCanceledException` 内层异常的 `SceneChangeException` 结束等待。
+- SceneService 离树或重新入树会立即结束尚未提交的切换等待，并以直接包含 `OperationCanceledException` 的 `SceneChangeException` 失败。
+- SceneService 的等待取消不会取消 ResourceHub 可能被其他调用方共享的底层加载；该加载仍可在后台完成并由 ResourceHub 清理。
 - SceneService 必须作为 CurrentScene 之外的长期节点存在；当前由 GoDoRuntime Autoload 持有。
 
 ## 生命周期与线程
@@ -49,6 +50,10 @@ if (scenes.IsChanging)
 - 必须启用 `GoDoRuntime.tscn` Autoload，使 ResourceHub、Services 和 SceneService 按顺序初始化。
 - 不要在业务场景中再创建第二个 SceneService，也不要重复初始化框架。
 - SceneService 的失败异常由业务流程边界捕获并补充上下文，模块内部不重复 ErrorHub.Report。
+
+## 自动回归验证
+
+`Verification/Automated/SceneServiceRegression.tscn` 验证资源失败保留旧场景、并发拒绝、成功提交、离树立即取消、重新入树恢复、挂载期取消和取消后再次切换。当前共 5/5 组验证；测试目标场景只位于 `Verification/Automated/`，不进入框架发布包。
 
 ## 常见误用
 

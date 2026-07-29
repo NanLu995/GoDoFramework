@@ -138,11 +138,13 @@ public override void _Process(double delta)
 
 同一时间只允许一项场景切换；第二次 `ChangeAsync` 抛出 `InvalidOperationException`。由 Procedure 集中协调，禁用重复点击，不要用 fire-and-forget 丢失异常。
 
+成功后 `Progress` 保持 1；加载、实例化、挂载失败或生命周期取消后复位为 0。
+
 ## 7. 失败、取消与关闭
 
 - 资源缺失、类型错误或加载失败：`ResourceLoadException`。
 - 场景加载、实例化或挂载失败：`SceneChangeException`，其中保存目标 Key。
-- SceneService 离树或框架关闭：未提交切换以包含 `OperationCanceledException` 的 SceneChangeException 结束。
+- SceneService 离树或框架关闭：未提交切换立即以直接包含 `OperationCanceledException` 的 SceneChangeException 结束；ResourceHub 的共享底层加载可能继续完成。
 - ResourceHub 关闭：未完成操作的等待方收到 `OperationCanceledException`；Godot 底层加载可能继续结束。
 
 模块不会先上报再抛出。由 Procedure 或启动边界补充业务上下文并记录一次。
