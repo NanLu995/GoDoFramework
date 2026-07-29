@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/procedure-recovery/index.md
-translation_source_hash: sha256:43226b922b6284570e8132d562c550d7a1180caf04ea3ab90bc359cc59281ab1
+translation_source_hash: sha256:571e2027e940a1fdd1947e8c23cb9416131202ffe11d4029e045349536cb4a06
 ---
 
 # Organize Procedure Changes, Cleanup, and Failure Recovery
@@ -62,6 +62,8 @@ Change exits the old flow, clears `Current`, then enters the new one:
 
 - Old Exit fails: the new flow is not entered and `Current` remains the old flow.
 - New Enter fails: the old flow already exited and `Current` is null.
+
+An unprocessed `RequestChange` created inside a failing boundary is discarded. It cannot run unexpectedly after a later recovery succeeds.
 
 The framework therefore cannot automatically return to the old flow after entry failure. Choose an explicit recovery target:
 
@@ -148,6 +150,8 @@ public Task ExitAsync(ProcedureContext context)
 ```
 
 Handle expected `OperationCanceledException` separately instead of reporting content corruption. Exit is not called on this instance while Enter is still awaiting, so any background-style game operation started during Enter still needs an explicit owner and observed exceptions.
+
+If GoDoRuntime shuts down while a flow change is awaiting, the change ends with `ProcedureChangeException` whose `InnerException` is `OperationCanceledException`. The old asynchronous operation cannot write `Current` again after shutdown.
 
 ## 7. Keep flows small and diagnosable
 

@@ -152,7 +152,7 @@
         "guides/input/index.md",
         "guides/procedure-recovery/index.md"
       ],
-      "reviewed_contract_hash": "sha256:e08a978de41501c0be456809f06d909402b30af88f87d9f5215ef105193040f8"
+      "reviewed_contract_hash": "sha256:c8e7084f9bac16aa789081af2299d1d96b3fd6c2bd94d0848be046a15041b5c0"
     },
     "resources": {
       "contract": "addons/godo_framework/Runtime/Resources/USAGE.md",
