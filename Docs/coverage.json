@@ -88,7 +88,7 @@
         "guides/ui-and-audio/index.md",
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:e2b1c1b286f227c60f2fbd6b374f2e33351cb98d491d2113fa96105375906944"
+      "reviewed_contract_hash": "sha256:4789d9719c7c269309d767f75edb3ad0a4d3e897794d2f7fa5515ccd39f9e630"
     },
     "camera": {
       "contract": "addons/godo_framework/Runtime/Camera/USAGE.md",

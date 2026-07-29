@@ -26,8 +26,8 @@ audio.ResumeBgm();
 - 资源必须是 `AudioStream`，加载或播放准备失败抛出 `AudioPlaybackException`。
 - 同一资源重复请求默认不重播；`restart: true` 才从头播放。
 - 加载期间 `IsBgmLoading` 为 true，第二个 BGM 请求抛出 `InvalidOperationException`。
-- `PauseBgm`/`ResumeBgm` 只影响当前流；`StopBgm` 停止播放、释放流引用并清空 `CurrentBgm`。
-- 加载期间调用 Stop 会使等待方收到 `OperationCanceledException`。
+- `PauseBgm`/`ResumeBgm` 只影响当前流；`StopBgm` 停止播放、释放流引用、清空 `CurrentBgm`，并立即允许发起新请求。
+- 加载期间调用 Stop 会释放逻辑加载状态；旧等待方在 ResourceHub 的共享底层加载完成后收到 `OperationCanceledException`，且不会覆盖后续请求状态。
 
 ## SFX 语义
 
@@ -35,7 +35,7 @@ audio.ResumeBgm();
 - 加载请求会预占并发名额，防止多个请求同时完成后突破上限。
 - 达到 `MaxSfxVoices` 时返回 false，不抢占已有声音。
 - 自然播放结束通过 `Finished` 自动归还 NodePool。
-- `StopAllSfx` 主动归还全部 Voice，并取消尚未完成的 SFX 加载。
+- `StopAllSfx` 主动归还全部 Voice、立即释放待加载请求预占的逻辑容量，并让旧等待方在底层加载完成后以 `OperationCanceledException` 结束。
 - 循环 AudioStream 不会自然触发 Finished，必须由调用方 StopAll 或让服务退出。
 
 ## Audio Bus 与音量
@@ -65,8 +65,8 @@ float bgmVolume = audio.GetVolume(AudioGroup.Bgm);
 
 - SFX 使用 NodePool，空闲 Voice 保持在场景树外，不在每次播放时 Instantiate/QueueFree。
 - Debug 构建可在 Debugger 的 `运行时 / Audio` 页面只读查看 BGM 状态与资源键、SFX 活跃数/容量和三组 Bus 线性音量；该页面直接读取现有接口，不维护音频历史或新增 AudioService 快照分配。
-- 100 次缓存音效播放/停止 Debug 验证为 2 ms、当前线程累计分配 44688 bytes、活动 Voice 0。
-- 已验证 Bus 重复初始化、音量、失败语义、BGM 并发拒绝、加载取消、自然回收、32 路上限、StopAll 和服务离树清理。
+- `Verification/Automated/AudioServiceRegression.tscn` 提供 8/8 组可重复验证，覆盖 Bus 音量、失败语义、BGM 播放与 Stop 后重启、SFX 容量、StopAll、自然回收、服务离树和 100 路缓存突发。
+- 2026-07-29 Windows Godot 4.7 Mono Headless Debug 的本次 100 路缓存突发测量约为 8.9 ms、当前线程累计分配 88376 bytes，停止后活动 Voice 为 0；Runner 每次执行都会打印当前环境结果。
 - 分配数据包含 Task、测试代码和 Godot 包装层开销，不等同于泄漏结论。
 
 ## 不负责的能力

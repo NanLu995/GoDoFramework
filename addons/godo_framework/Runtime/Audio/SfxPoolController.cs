@@ -56,12 +56,20 @@ internal sealed class SfxPoolController : IDisposable
         try
         {
             ResourceLoadOperation<AudioStream> operation = ResourceHub.LoadAsync<AudioStream>(key);
-            AudioStream stream = await operation.Completion;
-            MainThreadGuard.VerifyAccess();
+            AudioStream stream;
+            try
+            {
+                stream = await operation.Completion;
+            }
+            catch (Exception) when (requestVersion != _requestVersion)
+            {
+                throw new OperationCanceledException("音效加载完成前已停止全部音效。");
+            }
 
             if (requestVersion != _requestVersion)
                 throw new OperationCanceledException("音效加载完成前已停止全部音效。");
 
+            MainThreadGuard.VerifyAccess();
             ThrowIfDisposed();
 
             if (_activeVoices.Count >= _maxVoices)
@@ -95,7 +103,8 @@ internal sealed class SfxPoolController : IDisposable
         }
         finally
         {
-            _pendingLoads--;
+            if (requestVersion == _requestVersion)
+                _pendingLoads--;
         }
     }
 
@@ -104,6 +113,7 @@ internal sealed class SfxPoolController : IDisposable
         MainThreadGuard.VerifyAccess();
         ThrowIfDisposed();
         _requestVersion++;
+        _pendingLoads = 0;
 
         if (_activeVoices.Count == 0)
             return;
