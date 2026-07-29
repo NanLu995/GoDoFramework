@@ -47,12 +47,13 @@ Release 默认不输出 LogHub；ErrorHub 仍按自身最低等级策略输出 W
 
 ## 滚动文件日志
 
-- GoDoRuntime 自动写入 `user://logs/godo_framework.log`，达到 2 MiB 后滚动为 `godo_framework.1.log`，最多保留 4 个历史文件。
+- GoDoRuntime 优先写入 `user://logs/godo_framework.log`；该文件已被另一个进程占用时，自动回退到 `godo_framework.<进程号>.log`，不会停用文件日志。回退文件使用同一进程号命名自己的滚动历史。
+- 单个文件达到 2 MiB 后滚动，最多保留 4 个历史文件；主文件使用 `godo_framework.1.log` 等名称，进程专属文件使用 `godo_framework.<进程号>.1.log` 等名称。
 - Debug 构建记录 LogHub 的 Debug/Info 和 ErrorHub 的 Warning/Error/Fatal；Release 只记录 ErrorHub。
 - 主线程只向最大 2048 条的有界队列非阻塞入队，实际目录创建、写入和轮转由单一后台线程完成。
 - 后台线程在空闲后约 0.25 秒刷新；持续刷屏时最迟约 1 秒或累计 64 条刷新一次，使运行中的日志文件保持可读，同时避免每条日志都触发刷新。
 - 队列满时丢弃并在主线程汇总 Warning；文件目录不可创建或磁盘写入失败时，本次运行停用文件日志并只提示一次。
-- 退出时最多等待后台线程 2 秒刷新。日志文件允许其他工具只读打开，不允许并发写入。
+- 退出时最多等待后台线程 2 秒刷新。单个日志文件只允许一个写入者，其他工具可以只读打开。
 - 当前只完成 Windows 基线验证；其他平台需要确认 `user://` 全局路径、应用沙盒和退出刷新行为。
 
 ## 自动回归验证

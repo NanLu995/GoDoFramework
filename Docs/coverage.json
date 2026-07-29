@@ -35,11 +35,11 @@
     "log-hub": {
       "contract": "addons/godo_framework/Core/LogHub/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖 Debug/Info 选择、模块与上下文、主线程约束、Release 移除行为、滚动文件与失败降级及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
+      "reason": "功能指南已覆盖 Debug/Info 选择、模块与上下文、主线程约束、Release 移除行为、滚动文件、多实例文件回退、失败降级及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:9f525bd0afdab79a9301808758ad93a7a64c3d20eb5546f4dd117b431e0ab4ed"
+      "reviewed_contract_hash": "sha256:1f6b0dfaf10ac8fc8ad2b8a0fa1f13c1192fbf3accaa98e962093925323b08f3"
     },
     "services": {
       "contract": "addons/godo_framework/Core/Services/USAGE.md",

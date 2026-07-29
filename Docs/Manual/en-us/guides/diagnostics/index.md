@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:2777f1dfa7c68f34dc2b40ccceca6c6c650e66509fb6f4b745d2b2c31c861dcc
+translation_source_hash: sha256:0cea09685d86c398394e15c063dd852a5057ffec9a0f1997b9f92e4d3d5d5832
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
@@ -187,7 +187,7 @@ Console pages retain only limited recent data. LogHub uses a 1,000-entry ring an
 
 ## Inspect rolling logs across sessions
 
-GoDoRuntime automatically writes logs to `user://logs/godo_framework.log`. A file rolls after reaching 2 MiB, and up to four archives named `godo_framework.1.log` through `godo_framework.4.log` are retained. Debug builds record Debug, Info, Warning, Error, and Fatal entries. Release builds record only the Warning, Error, and Fatal entries that remain in the compiled application.
+GoDoRuntime writes to `user://logs/godo_framework.log` when possible. If another running instance already holds that file, the new instance automatically uses `godo_framework.<process-id>.log`, and the Debugger file button points to the actual file. A file rolls after reaching 2 MiB and retains up to four archives; process-specific archives keep the same process ID. Debug builds record Debug, Info, Warning, Error, and Fatal entries. Release builds record only the Warning, Error, and Fatal entries that remain in the compiled application.
 
 Disk writes run through a bounded background queue and do not block error dispatch. The worker flushes about 0.25 seconds after becoming idle; under continuous traffic it flushes after about one second or 64 entries, whichever comes first. A full queue drops entries and emits a summary warning. If the directory cannot be created or the disk cannot be written, file logging is disabled for the current run and the console reports the failure once. Other tools may open the active log file for reading while the game runs. The current baseline is validated on Windows; mobile sandbox paths and shutdown flushing still require device testing.
 

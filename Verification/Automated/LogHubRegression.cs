@@ -24,6 +24,7 @@ public sealed partial class LogHubRegression : Node
             Run("控制台输出", VerifyConsoleOutput);
             Run("滚动文件与退出刷新", VerifyRollingFileAndShutdownFlush);
             Run("文件日志运行中刷新", VerifyPeriodicFileFlush);
+            Run("多实例日志文件回退", VerifyOccupiedLogFileFallback);
             Run("文件日志队列满", VerifyFileQueueCapacity);
             Run("文件日志目录不可写", VerifyUnavailableLogDirectory);
 #if DEBUG
@@ -190,6 +191,73 @@ public sealed partial class LogHubRegression : Node
         Assert(
             !writer.TryConsumeDroppedLineCount(out _),
             "已消费的队列满摘要被重复返回");
+    }
+
+    private static void VerifyOccupiedLogFileFallback()
+    {
+        string directory = CreateArtifactPath("occupied");
+        RollingFileLogWriter? writer = null;
+        try
+        {
+            Directory.CreateDirectory(directory);
+            string primaryPath =
+                Path.Combine(directory, RollingFileLogWriter.CurrentFileName);
+            using var primaryLock = new FileStream(
+                primaryPath,
+                FileMode.OpenOrCreate,
+                System.IO.FileAccess.ReadWrite,
+                FileShare.Read);
+
+            writer = new RollingFileLogWriter(
+                directory,
+                maxFileBytes: 256,
+                archiveCount: 1,
+                queueCapacity: 4);
+            writer.Write(
+                DateTime.UtcNow,
+                LogLevel.Info,
+                new string('x', 300),
+                "LogHubRegression",
+                context: null);
+            writer.Write(
+                DateTime.UtcNow,
+                LogLevel.Info,
+                "multi-instance-entry",
+                "LogHubRegression",
+                context: null);
+
+            Assert(
+                SpinWait.SpinUntil(
+                    () => writer.GetDebugSnapshot().IsReady || writer.HasFailed,
+                    TimeSpan.FromSeconds(2)),
+                "主日志被占用时文件线程没有完成路径选择");
+            FileLogDebugSnapshot snapshot = writer.GetDebugSnapshot();
+            string expectedPath = Path.Combine(
+                directory,
+                $"{RollingFileLogWriter.FileNamePrefix}.{System.Environment.ProcessId}.log");
+            string expectedArchivePath = Path.Combine(
+                directory,
+                $"{RollingFileLogWriter.FileNamePrefix}.{System.Environment.ProcessId}.1.log");
+            Assert(snapshot.IsReady && !snapshot.HasFailed, "主日志被占用时没有启用回退文件");
+            AssertEqual(expectedPath, snapshot.Path, "回退日志文件名未包含当前进程号");
+
+            writer.Dispose();
+            writer = null;
+            Assert(
+                File.Exists(expectedArchivePath),
+                $"回退日志轮转文件未保留当前进程号；当前文件大小：" +
+                $"{new FileInfo(expectedPath).Length} B");
+            Assert(
+                File.ReadAllText(expectedPath).Contains(
+                    "multi-instance-entry",
+                    StringComparison.Ordinal),
+                "回退日志文件缺少已写入内容");
+        }
+        finally
+        {
+            writer?.Dispose();
+            DeleteArtifactPath(directory);
+        }
     }
 
     private static void VerifyUnavailableLogDirectory()

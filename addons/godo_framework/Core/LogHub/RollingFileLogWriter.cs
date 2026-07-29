@@ -33,6 +33,7 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
     private int _unreportedDroppedLineCount;
     private int _ready;
     private long _currentFileBytes;
+    private string _currentFilePath;
     private string? _failureDetail;
 
     internal RollingFileLogWriter(
@@ -50,6 +51,7 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
         _logDirectory = logDirectory;
         _maxFileBytes = maxFileBytes;
         _archiveCount = archiveCount;
+        _currentFilePath = Path.Combine(_logDirectory, CurrentFileName);
         _pendingLines = new BlockingCollection<string>(
             new ConcurrentQueue<string>(),
             queueCapacity);
@@ -72,7 +74,7 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
             Volatile.Read(ref _disposed) == 0,
             Volatile.Read(ref _ready) != 0,
             Volatile.Read(ref _failed) != 0,
-            Path.Combine(_logDirectory, CurrentFileName),
+            Volatile.Read(ref _currentFilePath),
             Interlocked.Read(ref _currentFileBytes),
             Volatile.Read(ref _droppedLineCount),
             _failureDetail);
@@ -161,8 +163,25 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
         try
         {
             Directory.CreateDirectory(_logDirectory);
-            string currentPath = Path.Combine(_logDirectory, CurrentFileName);
-            OpenWriter(currentPath, FileMode.Append, out stream, out writer);
+            string currentPath = _currentFilePath;
+            try
+            {
+                OpenWriter(currentPath, FileMode.Append, out stream, out writer);
+            }
+            catch (IOException)
+            {
+                writer?.Dispose();
+                stream?.Dispose();
+                writer = null;
+                stream = null;
+                string fallbackFileNamePrefix =
+                    $"{FileNamePrefix}.{Environment.ProcessId}";
+                currentPath = Path.Combine(
+                    _logDirectory,
+                    $"{fallbackFileNamePrefix}.log");
+                OpenWriter(currentPath, FileMode.Append, out stream, out writer);
+                Volatile.Write(ref _currentFilePath, currentPath);
+            }
             long currentBytes = stream.Length;
             Interlocked.Exchange(ref _currentFileBytes, currentBytes);
             Volatile.Write(ref _ready, 1);
@@ -256,23 +275,25 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
             return;
         }
 
-        string oldestPath = ArchivePath(_archiveCount);
+        string oldestPath = ArchivePath(currentPath, _archiveCount);
         if (File.Exists(oldestPath))
             File.Delete(oldestPath);
 
         for (int index = _archiveCount - 1; index >= 1; index--)
         {
-            string sourcePath = ArchivePath(index);
+            string sourcePath = ArchivePath(currentPath, index);
             if (File.Exists(sourcePath))
-                File.Move(sourcePath, ArchivePath(index + 1));
+                File.Move(sourcePath, ArchivePath(currentPath, index + 1));
         }
 
         if (File.Exists(currentPath))
-            File.Move(currentPath, ArchivePath(1));
+            File.Move(currentPath, ArchivePath(currentPath, 1));
     }
 
-    private string ArchivePath(int index) =>
-        Path.Combine(_logDirectory, $"{FileNamePrefix}.{index}.log");
+    private static string ArchivePath(string currentPath, int index) =>
+        Path.Combine(
+            Path.GetDirectoryName(currentPath) ?? string.Empty,
+            $"{Path.GetFileNameWithoutExtension(currentPath)}.{index}.log");
 
     private static string FormatLine(
         DateTime timestampUtc,

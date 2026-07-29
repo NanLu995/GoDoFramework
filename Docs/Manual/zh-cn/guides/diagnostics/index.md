@@ -182,7 +182,7 @@ Procedure 页面显示当前流程、进入或退出阶段和待处理请求，�
 
 ## 查看跨会话滚动日志
 
-GoDoRuntime 会自动把日志写到 `user://logs/godo_framework.log`。单个文件达到 2 MiB 后滚动，最多保留 `godo_framework.1.log` 到 `godo_framework.4.log` 四个历史文件。Debug 构建记录 Debug、Info、Warning、Error 和 Fatal；Release 只记录仍然存在的 Warning、Error 和 Fatal。
+GoDoRuntime 会优先把日志写到 `user://logs/godo_framework.log`。如果该文件已被另一个运行实例占用，新实例会自动改写到 `godo_framework.<进程号>.log`，Debugger 中的文件按钮也会指向这个实际文件。单个文件达到 2 MiB 后滚动，最多保留四个历史文件；进程专属日志的历史文件会保留相同进程号。Debug 构建记录 Debug、Info、Warning、Error 和 Fatal；Release 只记录仍然存在的 Warning、Error 和 Fatal。
 
 磁盘写入在有界后台队列中完成，不阻塞错误分发。空闲后约 0.25 秒刷新；持续产生日志时，最迟约 1 秒或累计 64 条刷新一次。队列满时会丢弃并汇总提示；目录不可创建或磁盘不可写时，本次运行会停用文件日志并在控制台提示一次。其他工具可以在游戏运行时只读打开日志文件。当前完成的是 Windows 基线，移动端应用沙盒和退出刷新仍需真机验证。
 
