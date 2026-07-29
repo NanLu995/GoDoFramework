@@ -14,6 +14,15 @@ public static class ResourceHub
 {
     private static readonly Dictionary<ResourceKey, IResourceOperation> _operations = new();
     private static readonly List<IResourceOperation> _updateBuffer = new(8);
+#if DEBUG
+    private const int DebugHistoryCapacity = 32;
+    private static readonly Queue<ResourceDebugHistoryEntry> _debugHistory = new(DebugHistoryCapacity);
+    private static int _debugSynchronousRequestCount;
+    private static int _debugAsynchronousRequestCount;
+    private static int _debugMergedRequestCount;
+    private static int _debugSucceededRequestCount;
+    private static int _debugFailedRequestCount;
+#endif
     private static bool _initialized;
 
     /// <summary>当前正在进行的唯一加载操作数量。</summary>
@@ -38,6 +47,11 @@ public static class ResourceHub
     /// <summary>同步加载并验证资源类型。</summary>
     public static T Load<T>(ResourceKey key) where T : Resource
     {
+#if DEBUG
+        _debugSynchronousRequestCount++;
+        try
+        {
+#endif
         VerifyReady();
         ValidateKey(key);
         EnsureExists<T>(key);
@@ -50,12 +64,29 @@ public static class ResourceHub
 
         Resource? resource = ResourceLoader.Load(key.Value);
         if (resource is T typedResource)
+        {
+#if DEBUG
+            RecordDebugHistory(key, typeof(T), ResourceDebugLoadMode.Synchronous,
+                ResourceLoadStatus.Completed, 1);
+            _debugSucceededRequestCount++;
+#endif
             return typedResource;
+        }
 
         throw new ResourceLoadException(
             key,
             typeof(T),
             $"资源类型不匹配或加载失败。请求 {typeof(T).Name}，实际 {resource?.GetType().Name ?? "null"}，资源: {key.Value}");
+#if DEBUG
+        }
+        catch
+        {
+            RecordDebugHistory(key, typeof(T), ResourceDebugLoadMode.Synchronous,
+                ResourceLoadStatus.Failed, 1);
+            _debugFailedRequestCount++;
+            throw;
+        }
+#endif
     }
 
     /// <summary>
@@ -63,6 +94,11 @@ public static class ResourceHub
     /// </summary>
     public static ResourceLoadOperation<T> LoadAsync<T>(ResourceKey key) where T : Resource
     {
+#if DEBUG
+        _debugAsynchronousRequestCount++;
+        try
+        {
+#endif
         VerifyReady();
         ValidateKey(key);
         EnsureExists<T>(key);
@@ -77,6 +113,10 @@ public static class ResourceHub
                     $"同一资源正在按 {existingOperation.ResourceType.Name} 加载，不能同时请求 {typeof(T).Name}: {key.Value}");
             }
 
+#if DEBUG
+            existingOperation.IncrementDebugMergedRequestCount();
+            _debugMergedRequestCount++;
+#endif
             return (ResourceLoadOperation<T>)existingOperation.PublicOperation;
         }
 
@@ -98,6 +138,16 @@ public static class ResourceHub
         var operation = new ResourceOperation<T>(new ResourceLoadOperation<T>(key));
         _operations.Add(key, operation);
         return operation.Operation;
+#if DEBUG
+        }
+        catch
+        {
+            RecordDebugHistory(key, typeof(T), ResourceDebugLoadMode.Asynchronous,
+                ResourceLoadStatus.Failed, 1);
+            _debugFailedRequestCount++;
+            throw;
+        }
+#endif
     }
 
     internal static void Update()
@@ -117,7 +167,12 @@ public static class ResourceHub
             operation.Poll();
 
             if (operation.IsFinished)
+            {
+#if DEBUG
+                RecordDebugOperationCompletion(operation);
+#endif
                 _operations.Remove(operation.Key);
+            }
         }
 
         _updateBuffer.Clear();
@@ -138,7 +193,12 @@ public static class ResourceHub
 
         var exception = new OperationCanceledException("GoDoRuntime 关闭，资源加载操作已停止等待。底层 Godot 加载可能仍会完成。");
         for (int i = 0; i < _updateBuffer.Count; i++)
+        {
             _updateBuffer[i].Fail(exception);
+#if DEBUG
+            RecordDebugOperationCompletion(_updateBuffer[i]);
+#endif
+        }
 
         _updateBuffer.Clear();
     }
@@ -175,6 +235,12 @@ public static class ResourceHub
         bool IsFinished { get; }
         void Poll();
         void Fail(Exception exception);
+#if DEBUG
+        ResourceLoadStatus DebugStatus { get; }
+        float DebugProgress { get; }
+        int DebugMergedRequestCount { get; }
+        void IncrementDebugMergedRequestCount();
+#endif
     }
 
     private sealed class ResourceOperation<T> : IResourceOperation where T : Resource
@@ -193,5 +259,68 @@ public static class ResourceHub
         public void Poll() => Operation.Poll();
 
         public void Fail(Exception exception) => Operation.Fail(exception);
+#if DEBUG
+        public ResourceLoadStatus DebugStatus => Operation.Status;
+        public float DebugProgress => Operation.Progress;
+        public int DebugMergedRequestCount { get; private set; } = 1;
+
+        public void IncrementDebugMergedRequestCount()
+        {
+            DebugMergedRequestCount++;
+        }
+#endif
     }
+
+#if DEBUG
+    internal static ResourceDebugSnapshot GetDebugSnapshot()
+    {
+        VerifyReady();
+
+        var activeOperations = new ResourceDebugActiveEntry[_operations.Count];
+        int index = 0;
+        foreach (IResourceOperation operation in _operations.Values)
+        {
+            activeOperations[index++] = new ResourceDebugActiveEntry(
+                operation.Key,
+                operation.ResourceType,
+                operation.DebugStatus,
+                operation.DebugProgress,
+                operation.DebugMergedRequestCount);
+        }
+
+        return new ResourceDebugSnapshot(
+            activeOperations,
+            _debugHistory.ToArray(),
+            _debugSynchronousRequestCount,
+            _debugAsynchronousRequestCount,
+            _debugMergedRequestCount,
+            _debugSucceededRequestCount,
+            _debugFailedRequestCount);
+    }
+
+    private static void RecordDebugOperationCompletion(IResourceOperation operation)
+    {
+        ResourceLoadStatus status = operation.DebugStatus;
+        RecordDebugHistory(operation.Key, operation.ResourceType,
+            ResourceDebugLoadMode.Asynchronous, status, operation.DebugMergedRequestCount);
+        if (status == ResourceLoadStatus.Completed)
+            _debugSucceededRequestCount += operation.DebugMergedRequestCount;
+        else
+            _debugFailedRequestCount += operation.DebugMergedRequestCount;
+    }
+
+    private static void RecordDebugHistory(
+        ResourceKey key,
+        Type resourceType,
+        ResourceDebugLoadMode mode,
+        ResourceLoadStatus status,
+        int mergedRequestCount)
+    {
+        if (_debugHistory.Count >= DebugHistoryCapacity)
+            _debugHistory.Dequeue();
+
+        _debugHistory.Enqueue(new ResourceDebugHistoryEntry(
+            key, resourceType, mode, status, mergedRequestCount));
+    }
+#endif
 }

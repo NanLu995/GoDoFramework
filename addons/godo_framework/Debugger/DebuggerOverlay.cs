@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text;
 using Godot;
 
@@ -17,7 +18,60 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private const int MaxStoredWarnings = 16;
     private const int MaxDisplayedWarnings = 12;
     private const int ConsoleLogsPerPage = 100;
+    private const ulong SceneNodeCountRefreshIntervalMilliseconds = 1000;
     private const int MaxDisplayedInputActions = 32;
+    private const int MaxDisplayedResourceOperations = 32;
+    private const int MaxDisplayedResourceHistory = 8;
+    private const int MaxDisplayedDataTableDataSets = 32;
+    private const int MaxDisplayedDataTableTables = 64;
+    private const int MaxDisplayedDataTableHistory = 8;
+    private const int MaxDisplayedUiEntries = 64;
+    private const int PerformanceSampleCapacity = 120;
+    private const int PerformanceMetricCount = 25;
+    private const int PerformanceMetricEngineMemory = 0;
+    private const int PerformanceMetricEngineMemoryPeak = 1;
+    private const int PerformanceMetricManagedMemory = 2;
+    private const int PerformanceMetricMessageBufferPeak = 3;
+    private const int PerformanceMetricVideoMemory = 4;
+    private const int PerformanceMetricTextureMemory = 5;
+    private const int PerformanceMetricBufferMemory = 6;
+    private const int PerformanceMetricObjects = 7;
+    private const int PerformanceMetricResources = 8;
+    private const int PerformanceMetricNodes = 9;
+    private const int PerformanceMetricOrphans = 10;
+    private const int PerformanceMetricRenderObjects = 11;
+    private const int PerformanceMetricPrimitives = 12;
+    private const int PerformanceMetricDrawCalls = 13;
+    private const int PerformanceMetricPhysics2DActive = 14;
+    private const int PerformanceMetricPhysics2DPairs = 15;
+    private const int PerformanceMetricPhysics2DIslands = 16;
+    private const int PerformanceMetricPhysics3DActive = 17;
+    private const int PerformanceMetricPhysics3DPairs = 18;
+    private const int PerformanceMetricPhysics3DIslands = 19;
+    private const int PerformanceMetricPipelineCanvas = 20;
+    private const int PerformanceMetricPipelineMesh = 21;
+    private const int PerformanceMetricPipelineSurface = 22;
+    private const int PerformanceMetricPipelineDraw = 23;
+    private const int PerformanceMetricPipelineSpecialization = 24;
+    private const int SystemMetricCount = 18;
+    private const int SystemMetricGodotVersion = 0;
+    private const int SystemMetricDotNetRuntime = 1;
+    private const int SystemMetricBuild = 2;
+    private const int SystemMetricProcessId = 3;
+    private const int SystemMetricProcessArchitecture = 4;
+    private const int SystemMetricPlatform = 5;
+    private const int SystemMetricOsVersion = 6;
+    private const int SystemMetricLocale = 7;
+    private const int SystemMetricDisplayServer = 8;
+    private const int SystemMetricWindowMode = 9;
+    private const int SystemMetricWindowSize = 10;
+    private const int SystemMetricScreenSize = 11;
+    private const int SystemMetricVsync = 12;
+    private const int SystemMetricRenderingMethod = 13;
+    private const int SystemMetricRenderingDriver = 14;
+    private const int SystemMetricAdapter = 15;
+    private const int SystemMetricAdapterVendor = 16;
+    private const int SystemMetricAdapterType = 17;
     private const float MinimumInputContextHeight = 100f;
     private const float MaximumInputContextHeight = 164f;
     private const float InputContextRowHeight = 22f;
@@ -33,6 +87,14 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private readonly StringBuilder _textBuilder = new(1024);
     private readonly List<DebuggerPageGroup> _pageGroups = new();
     private readonly Dictionary<TreeItem, DebuggerPage> _pagesByTreeItem = new();
+    private readonly double[] _performanceProcessSamples = new double[PerformanceSampleCapacity];
+    private readonly double[] _performancePhysicsSamples = new double[PerformanceSampleCapacity];
+    private readonly double[] _performanceEngineMemorySamples = new double[PerformanceSampleCapacity];
+    private readonly double[] _performanceManagedMemorySamples = new double[PerformanceSampleCapacity];
+    private readonly Vector2[] _performancePrimaryGraphPoints =
+        new Vector2[PerformanceSampleCapacity];
+    private readonly Vector2[] _performanceSecondaryGraphPoints =
+        new Vector2[PerformanceSampleCapacity];
     private PanelContainer? _panel;
     private Control? _header;
     private Button? _toggleButton;
@@ -57,6 +119,27 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private Label? _overviewInputDetail;
     private Label? _overviewSchedulerValue;
     private Label? _overviewSchedulerDetail;
+    private Control? _systemDashboard;
+    private Label? _systemPlatformValue;
+    private Label? _systemPlatformDetail;
+    private Label? _systemBuildValue;
+    private Label? _systemBuildDetail;
+    private Label? _systemRendererValue;
+    private Label? _systemRendererDetail;
+    private Label? _systemUptimeValue;
+    private Tree? _systemDetailsTree;
+    private readonly TreeItem?[] _systemMetricRows = new TreeItem?[SystemMetricCount];
+    private Control? _performanceDashboard;
+    private Label? _performanceFpsValue;
+    private Label? _performanceProcessValue;
+    private Label? _performancePhysicsValue;
+    private Label? _performanceMemoryValue;
+    private Label? _performanceManagedMemoryValue;
+    private Control? _performanceFrameGraph;
+    private Control? _performanceMemoryGraph;
+    private Tree? _performanceMetricsTree;
+    private readonly TreeItem?[] _performanceMetricRows =
+        new TreeItem?[PerformanceMetricCount];
     private Control? _inputDashboard;
     private Label? _inputBackendValue;
     private Label? _inputBackendDetail;
@@ -94,6 +177,45 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private Label? _audioMasterVolumeValue;
     private Label? _audioBgmVolumeValue;
     private Label? _audioSfxVolumeValue;
+    private Control? _sceneDashboard;
+    private Label? _sceneCurrentValue;
+    private Label? _sceneCurrentDetail;
+    private Label? _sceneNodeCountValue;
+    private Label? _sceneStateValue;
+    private Label? _sceneProgressValue;
+    private Tree? _sceneDetailsTree;
+    private Control? _resourcesDashboard;
+    private Label? _resourcesActiveValue;
+    private Label? _resourcesRequestsValue;
+    private Label? _resourcesMergedValue;
+    private Label? _resourcesResultValue;
+    private Label? _resourcesActiveStatus;
+    private Tree? _resourcesActiveTree;
+    private Label? _resourcesHistoryStatus;
+    private Tree? _resourcesHistoryTree;
+    private Control? _dataTableDashboard;
+    private Label? _dataTableLoadedValue;
+    private Label? _dataTableTablesValue;
+    private Label? _dataTableLoadingValue;
+    private Label? _dataTableFailedValue;
+    private Label? _dataTableDataSetStatus;
+    private Tree? _dataTableDataSetTree;
+    private Label? _dataTableHistoryStatus;
+    private Tree? _dataTableHistoryTree;
+    private Control? _uiDashboard;
+    private Label? _uiSceneValue;
+    private Label? _uiViewValue;
+    private Label? _uiModalValue;
+    private Label? _uiCurrentValue;
+    private Label? _uiCurrentDetail;
+    private Label? _uiStackStatus;
+    private Tree? _uiStackTree;
+    private Control? _procedureDashboard;
+    private Label? _procedureCurrentValue;
+    private Label? _procedureStateValue;
+    private Label? _procedurePendingValue;
+    private Label? _procedureResultValue;
+    private Tree? _procedureDetailsTree;
     private Control? _servicesDashboard;
     private LineEdit? _servicesSearch;
     private Label? _servicesContractsValue;
@@ -128,7 +250,11 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private Control? _resizeRow;
     private Control? _resizeGrip;
     private DebuggerPage? _selectedPage;
+    private float _minimumFpsButtonWidth;
     private double _refreshElapsed;
+    private ulong _sceneNodeCountRefreshTicks;
+    private ulong _sceneNodeCountRootInstanceId;
+    private int _sceneNodeCount;
     private Vector2 _expandedSize = new(DefaultExpandedWidth, DefaultExpandedHeight);
     private Vector2 _pointerStart;
     private Vector2 _panelPositionStart;
@@ -141,6 +267,9 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private int _servicesSnapshotSignature = int.MinValue;
     private string _eventsSearchQuery = string.Empty;
     private int _eventsSnapshotSignature = int.MinValue;
+    private int _dataTableSnapshotVersion = int.MinValue;
+    private int _performanceSampleCount;
+    private int _performanceSampleWriteIndex;
     private ConsoleLevelFilter _consoleLevelFilter = ConsoleLevelFilter.All;
     private int _consoleErrorVersion;
     private int _lastConsoleErrorVersion = -1;
@@ -177,12 +306,26 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     [Export] public NodePath NavigationTreePath { get; set; } = null!;
     /// <summary>概览仪表盘根节点路径。</summary>
     [Export] public NodePath OverviewDashboardPath { get; set; } = null!;
+    /// <summary>系统环境仪表盘根节点路径。</summary>
+    [Export] public NodePath SystemDashboardPath { get; set; } = null!;
+    /// <summary>性能仪表盘根节点路径。</summary>
+    [Export] public NodePath PerformanceDashboardPath { get; set; } = null!;
     /// <summary>Input 仪表盘根节点路径。</summary>
     [Export] public NodePath InputDashboardPath { get; set; } = null!;
     /// <summary>Scheduler 仪表盘根节点路径。</summary>
     [Export] public NodePath SchedulerDashboardPath { get; set; } = null!;
     /// <summary>Audio 仪表盘根节点路径。</summary>
     [Export] public NodePath AudioDashboardPath { get; set; } = null!;
+    /// <summary>Scene 仪表盘根节点路径。</summary>
+    [Export] public NodePath SceneDashboardPath { get; set; } = null!;
+    /// <summary>Resources 仪表盘根节点路径。</summary>
+    [Export] public NodePath ResourcesDashboardPath { get; set; } = null!;
+    /// <summary>DataTable 仪表盘根节点路径。</summary>
+    [Export] public NodePath DataTableDashboardPath { get; set; } = null!;
+    /// <summary>UI 仪表盘根节点路径。</summary>
+    [Export] public NodePath UiDashboardPath { get; set; } = null!;
+    /// <summary>Procedure 仪表盘根节点路径。</summary>
+    [Export] public NodePath ProcedureDashboardPath { get; set; } = null!;
     /// <summary>Services 检查器根节点路径。</summary>
     [Export] public NodePath ServicesDashboardPath { get; set; } = null!;
     /// <summary>Events 检查器根节点路径。</summary>
@@ -229,11 +372,18 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _titleLabel = GetNodeOrNull<Label>(TitleLabelPath);
         _navigationTree = GetNodeOrNull<Tree>(NavigationTreePath);
         _overviewDashboard = GetNodeOrNull<Control>(OverviewDashboardPath);
+        _systemDashboard = GetNodeOrNull<Control>(SystemDashboardPath);
+        _performanceDashboard = GetNodeOrNull<Control>(PerformanceDashboardPath);
         _inputDashboard = GetNodeOrNull<Control>(InputDashboardPath);
         _servicesDashboard = GetNodeOrNull<Control>(ServicesDashboardPath);
         _eventsDashboard = GetNodeOrNull<Control>(EventsDashboardPath);
         _schedulerDashboard = GetNodeOrNull<Control>(SchedulerDashboardPath);
         _audioDashboard = GetNodeOrNull<Control>(AudioDashboardPath);
+        _sceneDashboard = GetNodeOrNull<Control>(SceneDashboardPath);
+        _resourcesDashboard = GetNodeOrNull<Control>(ResourcesDashboardPath);
+        _dataTableDashboard = GetNodeOrNull<Control>(DataTableDashboardPath);
+        _uiDashboard = GetNodeOrNull<Control>(UiDashboardPath);
+        _procedureDashboard = GetNodeOrNull<Control>(ProcedureDashboardPath);
         _debuggerLabel = GetNodeOrNull<RichTextLabel>(DebuggerLabelPath);
         _consoleScrollBar = _debuggerLabel?.GetVScrollBar();
         _consoleToolbar = GetNodeOrNull<Control>(ConsoleToolbarPath);
@@ -257,11 +407,18 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             !IsInstanceValid(_titleLabel) ||
             !IsInstanceValid(_navigationTree) ||
             !IsInstanceValid(_overviewDashboard) ||
+            !IsInstanceValid(_systemDashboard) ||
+            !IsInstanceValid(_performanceDashboard) ||
             !IsInstanceValid(_inputDashboard) ||
             !IsInstanceValid(_servicesDashboard) ||
             !IsInstanceValid(_eventsDashboard) ||
             !IsInstanceValid(_schedulerDashboard) ||
             !IsInstanceValid(_audioDashboard) ||
+            !IsInstanceValid(_sceneDashboard) ||
+            !IsInstanceValid(_resourcesDashboard) ||
+            !IsInstanceValid(_dataTableDashboard) ||
+            !IsInstanceValid(_uiDashboard) ||
+            !IsInstanceValid(_procedureDashboard) ||
             !IsInstanceValid(_debuggerLabel) ||
             !IsInstanceValid(_consoleScrollBar) ||
             !IsInstanceValid(_consoleToolbar) ||
@@ -280,10 +437,21 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             throw new InvalidOperationException("DebuggerOverlay 场景缺少必要的导出节点引用。");
         }
 
+        _minimumFpsButtonWidth = _toggleButton.GetCombinedMinimumSize().X;
+        _toggleButton.CustomMinimumSize = new Vector2(
+            _minimumFpsButtonWidth,
+            _toggleButton.CustomMinimumSize.Y);
         CacheOverviewNodes();
+        CacheSystemNodes();
+        CachePerformanceNodes();
         CacheInputNodes();
         CacheSchedulerNodes();
         CacheAudioNodes();
+        CacheSceneNodes();
+        CacheResourcesNodes();
+        CacheDataTableNodes();
+        CacheUiNodes();
+        CacheProcedureNodes();
         CacheServicesNodes();
         CacheEventsNodes();
         CacheConsoleFilterNodes();
@@ -301,6 +469,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _eventsSearch!.TextChanged += OnEventsSearchChanged;
         _eventsSearch.TextSubmitted += OnEventsSearchSubmitted;
         _eventsTree!.ItemSelected += OnEventItemSelected;
+        _performanceFrameGraph!.Draw += OnPerformanceFrameGraphDraw;
+        _performanceMemoryGraph!.Draw += OnPerformanceMemoryGraphDraw;
         _consoleSearch.TextChanged += OnConsoleSearchChanged;
         _consoleSearch.TextSubmitted += OnConsoleSearchSubmitted;
         _allConsoleFilterButton!.Pressed += OnAllConsoleFilterPressed;
@@ -317,8 +487,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _header.GuiInput += OnHeaderGuiInput;
         _resizeGrip.GuiInput += OnResizeGripGuiInput;
         ResetLayout();
-        ApplyExpandedState();
         RefreshHealthStatus();
+        ApplyExpandedState();
     }
 
     /// <inheritdoc />
@@ -364,6 +534,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         }
         if (IsInstanceValid(_eventsTree))
             _eventsTree.ItemSelected -= OnEventItemSelected;
+        if (IsInstanceValid(_performanceFrameGraph))
+            _performanceFrameGraph.Draw -= OnPerformanceFrameGraphDraw;
+        if (IsInstanceValid(_performanceMemoryGraph))
+            _performanceMemoryGraph.Draw -= OnPerformanceMemoryGraphDraw;
         if (IsInstanceValid(_consoleSearch))
         {
             _consoleSearch.TextChanged -= OnConsoleSearchChanged;
@@ -420,6 +594,26 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _overviewInputDetail = null;
         _overviewSchedulerValue = null;
         _overviewSchedulerDetail = null;
+        _systemDashboard = null;
+        _systemPlatformValue = null;
+        _systemPlatformDetail = null;
+        _systemBuildValue = null;
+        _systemBuildDetail = null;
+        _systemRendererValue = null;
+        _systemRendererDetail = null;
+        _systemUptimeValue = null;
+        _systemDetailsTree = null;
+        Array.Clear(_systemMetricRows);
+        _performanceDashboard = null;
+        _performanceFpsValue = null;
+        _performanceProcessValue = null;
+        _performancePhysicsValue = null;
+        _performanceMemoryValue = null;
+        _performanceManagedMemoryValue = null;
+        _performanceFrameGraph = null;
+        _performanceMemoryGraph = null;
+        _performanceMetricsTree = null;
+        Array.Clear(_performanceMetricRows);
         _inputDashboard = null;
         _inputBackendValue = null;
         _inputBackendDetail = null;
@@ -457,6 +651,36 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _audioMasterVolumeValue = null;
         _audioBgmVolumeValue = null;
         _audioSfxVolumeValue = null;
+        _sceneDashboard = null;
+        _sceneCurrentValue = null;
+        _sceneCurrentDetail = null;
+        _sceneNodeCountValue = null;
+        _sceneStateValue = null;
+        _sceneProgressValue = null;
+        _sceneDetailsTree = null;
+        _resourcesDashboard = null;
+        _resourcesActiveValue = null;
+        _resourcesRequestsValue = null;
+        _resourcesMergedValue = null;
+        _resourcesResultValue = null;
+        _resourcesActiveStatus = null;
+        _resourcesActiveTree = null;
+        _resourcesHistoryStatus = null;
+        _resourcesHistoryTree = null;
+        _uiDashboard = null;
+        _uiSceneValue = null;
+        _uiViewValue = null;
+        _uiModalValue = null;
+        _uiCurrentValue = null;
+        _uiCurrentDetail = null;
+        _uiStackStatus = null;
+        _uiStackTree = null;
+        _procedureDashboard = null;
+        _procedureCurrentValue = null;
+        _procedureStateValue = null;
+        _procedurePendingValue = null;
+        _procedureResultValue = null;
+        _procedureDetailsTree = null;
         _servicesDashboard = null;
         _servicesSearch = null;
         _servicesContractsValue = null;
@@ -526,9 +750,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _consolePagination.Visible = _expanded && _selectedPage?.IsConsole == true;
         _resizeRow.Visible = _expanded;
         _resizeGrip.Visible = _expanded;
-        _toggleButton.SizeFlagsHorizontal = _expanded
-            ? Control.SizeFlags.ShrinkBegin
-            : Control.SizeFlags.ExpandFill;
+        _toggleButton.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
         ApplyPanelSize();
     }
 
@@ -539,7 +761,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
 
         if (!_expanded)
         {
-            _panel.Size = new Vector2(176f, 48f);
+            _panel.Size = _panel.GetCombinedMinimumSize();
             ClampPanelPosition();
             return;
         }
@@ -666,14 +888,13 @@ public sealed partial class DebuggerOverlay : CanvasLayer
                 warningCount++;
         }
 
-        _toggleButton.Text = _expanded
-            ? $"FPS {Mathf.RoundToInt(Engine.GetFramesPerSecond())} | W {warningCount} | E {errorCount}"
-            : $"FPS {Mathf.RoundToInt(Engine.GetFramesPerSecond())} | W{warningCount} E{errorCount}";
+        _toggleButton.Text = $"FPS: {Mathf.RoundToInt(Engine.GetFramesPerSecond())}";
 
         Color statusColor = errorCount > 0
             ? new Color(1f, 0.42f, 0.38f)
             : warningCount > 0 ? new Color(1f, 0.76f, 0.28f) : new Color(0.88f, 0.94f, 1f);
         _toggleButton.AddThemeColorOverride("font_color", statusColor);
+        _toggleButton.AddThemeColorOverride("font_outline_color", statusColor);
     }
 
     private void RefreshDebugger(bool force = false)
@@ -690,19 +911,44 @@ public sealed partial class DebuggerOverlay : CanvasLayer
                 return;
         }
 
+        bool pageReadSucceeded = false;
         _textBuilder.Clear();
-        _selectedPage?.Render();
+        try
+        {
+            _selectedPage?.Render();
+            if (_selectedPage is not null)
+                ApplyPageContentVisibility(_selectedPage, showReadFailure: false);
+            pageReadSucceeded = true;
+        }
+        catch (Exception exception)
+        {
+            ShowPageReadFailure(exception);
+        }
         string text = _textBuilder.ToString().ReplaceLineEndings("\n");
         if (!string.Equals(_debuggerLabel.Text, text, StringComparison.Ordinal))
             _debuggerLabel.Text = text;
 
-        if (isConsole)
+        if (isConsole && pageReadSucceeded)
         {
             _lastConsoleLogVersion = LogHub.DebugHistoryVersion;
             _lastConsoleErrorVersion = _consoleErrorVersion;
             if (_consolePageOffset == 0 && _consoleFollowLatest)
                 ScrollConsoleToBottom();
         }
+    }
+
+    private void ShowPageReadFailure(Exception exception)
+    {
+        if (_selectedPage is null)
+            return;
+
+        ApplyPageContentVisibility(_selectedPage, showReadFailure: true);
+        _textBuilder.Clear();
+        _textBuilder.Append("页面读取失败：")
+            .AppendLine(_selectedPage.Title)
+            .Append(exception.GetType().Name)
+            .Append(": ")
+            .Append(exception.Message);
     }
 
     private void ScrollConsoleToBottom()
@@ -822,6 +1068,334 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             : throw new InvalidOperationException($"DebuggerOverview 场景缺少节点：{path}");
     }
 
+    private void CacheSystemNodes()
+    {
+        _systemPlatformValue = GetSystemNode<Label>("Summary/PlatformCard/Content/Value");
+        _systemPlatformDetail = GetSystemNode<Label>("Summary/PlatformCard/Content/Detail");
+        _systemBuildValue = GetSystemNode<Label>("Summary/BuildCard/Content/Value");
+        _systemBuildDetail = GetSystemNode<Label>("Summary/BuildCard/Content/Detail");
+        _systemRendererValue = GetSystemNode<Label>("Summary/RendererCard/Content/Value");
+        _systemRendererDetail = GetSystemNode<Label>("Summary/RendererCard/Content/Detail");
+        _systemUptimeValue = GetSystemNode<Label>("Summary/UptimeCard/Content/Value");
+        _systemDetailsTree = GetSystemNode<Tree>("Details");
+
+        _systemDetailsTree.SetColumnTitle(0, "分类");
+        _systemDetailsTree.SetColumnTitle(1, "项目");
+        _systemDetailsTree.SetColumnTitle(2, "值");
+        _systemDetailsTree.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
+        _systemDetailsTree.SetColumnTitleAlignment(1, HorizontalAlignment.Left);
+        _systemDetailsTree.SetColumnTitleAlignment(2, HorizontalAlignment.Left);
+        _systemDetailsTree.SetColumnExpand(0, false);
+        _systemDetailsTree.SetColumnExpand(1, false);
+        _systemDetailsTree.SetColumnExpand(2, true);
+        _systemDetailsTree.SetColumnCustomMinimumWidth(0, 72);
+        _systemDetailsTree.SetColumnCustomMinimumWidth(1, 132);
+        BuildSystemRows();
+        InitializeSystemStaticValues();
+    }
+
+    private void BuildSystemRows()
+    {
+        _systemDetailsTree!.Clear();
+        TreeItem root = _systemDetailsTree.CreateItem();
+        TreeItem runtime = CreateSystemGroup(root, "运行时");
+        _systemMetricRows[SystemMetricGodotVersion] = CreateSystemRow(runtime, "Godot");
+        _systemMetricRows[SystemMetricDotNetRuntime] = CreateSystemRow(runtime, ".NET");
+        _systemMetricRows[SystemMetricBuild] = CreateSystemRow(runtime, "构建");
+        _systemMetricRows[SystemMetricProcessId] = CreateSystemRow(runtime, "Process ID");
+        _systemMetricRows[SystemMetricProcessArchitecture] = CreateSystemRow(runtime, "进程架构");
+
+        TreeItem platform = CreateSystemGroup(root, "平台");
+        _systemMetricRows[SystemMetricPlatform] = CreateSystemRow(platform, "操作系统");
+        _systemMetricRows[SystemMetricOsVersion] = CreateSystemRow(platform, "系统版本");
+        _systemMetricRows[SystemMetricLocale] = CreateSystemRow(platform, "Locale");
+
+        TreeItem window = CreateSystemGroup(root, "窗口");
+        _systemMetricRows[SystemMetricDisplayServer] = CreateSystemRow(window, "Display Server");
+        _systemMetricRows[SystemMetricWindowMode] = CreateSystemRow(window, "窗口模式");
+        _systemMetricRows[SystemMetricWindowSize] = CreateSystemRow(window, "窗口尺寸");
+        _systemMetricRows[SystemMetricScreenSize] = CreateSystemRow(window, "屏幕尺寸");
+        _systemMetricRows[SystemMetricVsync] = CreateSystemRow(window, "VSync");
+
+        TreeItem rendering = CreateSystemGroup(root, "渲染");
+        _systemMetricRows[SystemMetricRenderingMethod] = CreateSystemRow(rendering, "Method");
+        _systemMetricRows[SystemMetricRenderingDriver] = CreateSystemRow(rendering, "Driver");
+        _systemMetricRows[SystemMetricAdapter] = CreateSystemRow(rendering, "显卡");
+        _systemMetricRows[SystemMetricAdapterVendor] = CreateSystemRow(rendering, "厂商");
+        _systemMetricRows[SystemMetricAdapterType] = CreateSystemRow(rendering, "类型");
+    }
+
+    private void InitializeSystemStaticValues()
+    {
+        string platform = ReadSystemValue(OS.GetName);
+        string osVersion = ReadSystemValue(OS.GetVersion);
+        string godotVersion = ReadSystemValue(
+            () => Engine.GetVersionInfo()["string"].AsString());
+        string dotNetRuntime = ReadSystemValue(() => RuntimeInformation.FrameworkDescription);
+        string processArchitecture = ReadSystemValue(
+            () => RuntimeInformation.ProcessArchitecture.ToString());
+        string processId = ReadSystemValue(
+            () => OS.GetProcessId().ToString(CultureInfo.InvariantCulture));
+        string displayServer = ReadSystemValue(DisplayServer.GetName);
+        string renderingMethod = ReadSystemValue(
+            () => FormatRenderingMethod(RenderingServer.GetCurrentRenderingMethod()));
+        string renderingDriver = ReadSystemValue(
+            () => FormatRenderingDriver(RenderingServer.GetCurrentRenderingDriverName()));
+        string adapter = ReadSystemValue(RenderingServer.GetVideoAdapterName);
+        string adapterVendor = ReadSystemValue(RenderingServer.GetVideoAdapterVendor);
+        string adapterType = ReadSystemValue(
+            () => FormatVideoAdapterType(RenderingServer.GetVideoAdapterType()));
+
+        _systemPlatformValue!.Text = platform;
+        _systemPlatformValue.TooltipText = platform;
+        _systemPlatformDetail!.Text = osVersion;
+        _systemPlatformDetail.TooltipText = osVersion;
+        _systemBuildValue!.Text = "Debug";
+        _systemBuildDetail!.Text = $"Godot {godotVersion} / .NET";
+        _systemBuildDetail.TooltipText = $"{godotVersion} / {dotNetRuntime}";
+        _systemRendererValue!.Text = renderingMethod;
+        _systemRendererValue.TooltipText = renderingMethod;
+        _systemRendererDetail!.Text = renderingDriver;
+        _systemRendererDetail.TooltipText = renderingDriver;
+
+        SetSystemValue(SystemMetricGodotVersion, godotVersion);
+        SetSystemValue(SystemMetricDotNetRuntime, dotNetRuntime);
+        SetSystemValue(SystemMetricBuild, "Debug");
+        SetSystemValue(SystemMetricProcessId, processId);
+        SetSystemValue(SystemMetricProcessArchitecture, processArchitecture);
+        SetSystemValue(SystemMetricPlatform, platform);
+        SetSystemValue(SystemMetricOsVersion, osVersion);
+        SetSystemValue(SystemMetricDisplayServer, displayServer);
+        SetSystemValue(SystemMetricRenderingMethod, renderingMethod);
+        SetSystemValue(SystemMetricRenderingDriver, renderingDriver);
+        SetSystemValue(SystemMetricAdapter, adapter);
+        SetSystemValue(SystemMetricAdapterVendor, adapterVendor);
+        SetSystemValue(SystemMetricAdapterType, adapterType);
+    }
+
+    private static string FormatRenderingMethod(string method)
+    {
+        return method switch
+        {
+            "forward_plus" => "Forward+",
+            "mobile" => "Mobile",
+            "gl_compatibility" => "Compatibility",
+            _ => method,
+        };
+    }
+
+    private static string FormatRenderingDriver(string driver)
+    {
+        return driver switch
+        {
+            "vulkan" => "Vulkan",
+            "d3d12" => "Direct3D 12",
+            "metal" => "Metal",
+            "opengl3" => "OpenGL 3",
+            "opengl3_es" => "OpenGL ES 3",
+            "opengl3_angle" => "OpenGL 3 (ANGLE)",
+            _ => driver,
+        };
+    }
+
+    private static string FormatVideoAdapterType(RenderingDevice.DeviceType type)
+    {
+        return type switch
+        {
+            RenderingDevice.DeviceType.IntegratedGpu => "集成显卡",
+            RenderingDevice.DeviceType.DiscreteGpu => "独立显卡",
+            RenderingDevice.DeviceType.VirtualGpu => "虚拟显卡",
+            RenderingDevice.DeviceType.Cpu => "软件渲染",
+            RenderingDevice.DeviceType.Other => "其他 / 未知",
+            _ => type.ToString(),
+        };
+    }
+
+    private static TreeItem CreateSystemGroup(TreeItem root, string title)
+    {
+        TreeItem group = root.CreateChild();
+        group.SetText(0, title);
+        group.SetSelectable(0, false);
+        group.Collapsed = false;
+        return group;
+    }
+
+    private static TreeItem CreateSystemRow(TreeItem group, string property)
+    {
+        TreeItem row = group.CreateChild();
+        row.SetText(1, property);
+        row.SetText(2, "不可用");
+        row.SetTextAlignment(1, HorizontalAlignment.Left);
+        row.SetTextAlignment(2, HorizontalAlignment.Left);
+        return row;
+    }
+
+    private void SetSystemValue(int index, string value)
+    {
+        TreeItem? row = _systemMetricRows[index];
+        if (row is null)
+            return;
+
+        string displayValue = string.IsNullOrWhiteSpace(value) ? "不可用" : value;
+        row.SetText(2, displayValue);
+        row.SetTooltipText(2, displayValue);
+    }
+
+    private T GetSystemNode<T>(string path) where T : Node
+    {
+        T? node = _systemDashboard!.GetNodeOrNull<T>(path);
+        return IsInstanceValid(node)
+            ? node
+            : throw new InvalidOperationException($"DebuggerSystem 场景缺少节点：{path}");
+    }
+
+    private static string ReadSystemValue(Func<string> read)
+    {
+        try
+        {
+            string value = read();
+            return string.IsNullOrWhiteSpace(value) ? "不可用" : value;
+        }
+        catch
+        {
+            return "不可用";
+        }
+    }
+
+    private void CachePerformanceNodes()
+    {
+        _performanceFpsValue =
+            GetPerformanceNode<Label>("Content/Summary/FpsCard/Content/Value");
+        _performanceProcessValue =
+            GetPerformanceNode<Label>("Content/Summary/ProcessCard/Content/Value");
+        _performancePhysicsValue =
+            GetPerformanceNode<Label>("Content/Summary/PhysicsCard/Content/Value");
+        _performanceMemoryValue =
+            GetPerformanceNode<Label>("Content/Summary/MemoryCard/Content/Value");
+        _performanceManagedMemoryValue =
+            GetPerformanceNode<Label>("Content/Summary/ManagedMemoryCard/Content/Value");
+        _performanceFrameGraph =
+            GetPerformanceNode<Control>("Content/Trends/FramePanel/Content/Graph");
+        _performanceMemoryGraph =
+            GetPerformanceNode<Control>("Content/Trends/MemoryPanel/Content/Graph");
+        _performanceMetricsTree = GetPerformanceNode<Tree>("Content/Metrics");
+
+        _performanceMetricsTree.SetColumnTitle(0, "分类");
+        _performanceMetricsTree.SetColumnTitle(1, "指标");
+        _performanceMetricsTree.SetColumnTitle(2, "数值");
+        _performanceMetricsTree.SetColumnTitle(3, "说明");
+        _performanceMetricsTree.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
+        _performanceMetricsTree.SetColumnTitleAlignment(1, HorizontalAlignment.Left);
+        _performanceMetricsTree.SetColumnTitleAlignment(2, HorizontalAlignment.Right);
+        _performanceMetricsTree.SetColumnTitleAlignment(3, HorizontalAlignment.Left);
+        _performanceMetricsTree.SetColumnExpand(0, false);
+        _performanceMetricsTree.SetColumnExpand(1, true);
+        _performanceMetricsTree.SetColumnExpand(2, false);
+        _performanceMetricsTree.SetColumnExpand(3, true);
+        _performanceMetricsTree.SetColumnCustomMinimumWidth(0, 62);
+        _performanceMetricsTree.SetColumnCustomMinimumWidth(2, 108);
+        BuildPerformanceMetricRows();
+    }
+
+    private void BuildPerformanceMetricRows()
+    {
+        _performanceMetricsTree!.Clear();
+        TreeItem root = _performanceMetricsTree.CreateItem();
+        TreeItem memory = CreatePerformanceMetricGroup(root, "内存");
+        _performanceMetricRows[PerformanceMetricEngineMemory] =
+            CreatePerformanceMetricRow(memory, "引擎当前", "字节");
+        _performanceMetricRows[PerformanceMetricEngineMemoryPeak] =
+            CreatePerformanceMetricRow(memory, "引擎历史峰值", "Debug");
+        _performanceMetricRows[PerformanceMetricManagedMemory] =
+            CreatePerformanceMetricRow(memory, ".NET 托管堆", "不触发 GC");
+        _performanceMetricRows[PerformanceMetricMessageBufferPeak] =
+            CreatePerformanceMetricRow(memory, "消息缓冲峰值", "Deferred");
+        _performanceMetricRows[PerformanceMetricVideoMemory] =
+            CreatePerformanceMetricRow(memory, "显存总量", "纹理 + Buffer");
+        _performanceMetricRows[PerformanceMetricTextureMemory] =
+            CreatePerformanceMetricRow(memory, "纹理显存", "当前");
+        _performanceMetricRows[PerformanceMetricBufferMemory] =
+            CreatePerformanceMetricRow(memory, "Buffer 显存", "当前");
+
+        TreeItem objects = CreatePerformanceMetricGroup(root, "对象");
+        _performanceMetricRows[PerformanceMetricObjects] =
+            CreatePerformanceMetricRow(objects, "Object", "包含 Node");
+        _performanceMetricRows[PerformanceMetricResources] =
+            CreatePerformanceMetricRow(objects, "Resource", "当前实例");
+        _performanceMetricRows[PerformanceMetricNodes] =
+            CreatePerformanceMetricRow(objects, "Node", "场景树");
+        _performanceMetricRows[PerformanceMetricOrphans] =
+            CreatePerformanceMetricRow(objects, "Orphan Node", "非零需检查");
+
+        TreeItem rendering = CreatePerformanceMetricGroup(root, "渲染");
+        _performanceMetricRows[PerformanceMetricRenderObjects] =
+            CreatePerformanceMetricRow(rendering, "可见对象", "上一渲染帧");
+        _performanceMetricRows[PerformanceMetricPrimitives] =
+            CreatePerformanceMetricRow(rendering, "Primitive", "含额外 Pass");
+        _performanceMetricRows[PerformanceMetricDrawCalls] =
+            CreatePerformanceMetricRow(rendering, "Draw Call", "上一渲染帧");
+
+        TreeItem physics2D = CreatePerformanceMetricGroup(root, "物理 2D");
+        _performanceMetricRows[PerformanceMetricPhysics2DActive] =
+            CreatePerformanceMetricRow(physics2D, "活动对象", "RigidBody2D");
+        _performanceMetricRows[PerformanceMetricPhysics2DPairs] =
+            CreatePerformanceMetricRow(physics2D, "碰撞对", "当前");
+        _performanceMetricRows[PerformanceMetricPhysics2DIslands] =
+            CreatePerformanceMetricRow(physics2D, "Island", "当前");
+
+        TreeItem physics3D = CreatePerformanceMetricGroup(root, "物理 3D");
+        _performanceMetricRows[PerformanceMetricPhysics3DActive] =
+            CreatePerformanceMetricRow(physics3D, "活动对象", "RigidBody / Vehicle");
+        _performanceMetricRows[PerformanceMetricPhysics3DPairs] =
+            CreatePerformanceMetricRow(physics3D, "碰撞对", "当前");
+        _performanceMetricRows[PerformanceMetricPhysics3DIslands] =
+            CreatePerformanceMetricRow(physics3D, "Island", "当前");
+
+        TreeItem pipelines = CreatePerformanceMetricGroup(root, "Pipeline");
+        _performanceMetricRows[PerformanceMetricPipelineCanvas] =
+            CreatePerformanceMetricRow(pipelines, "Canvas", "累计，只增不减");
+        _performanceMetricRows[PerformanceMetricPipelineMesh] =
+            CreatePerformanceMetricRow(pipelines, "Mesh", "加载阶段");
+        _performanceMetricRows[PerformanceMetricPipelineSurface] =
+            CreatePerformanceMetricRow(pipelines, "Surface", "可能产生卡顿");
+        _performanceMetricRows[PerformanceMetricPipelineDraw] =
+            CreatePerformanceMetricRow(pipelines, "Draw", "运行中卡顿风险");
+        _performanceMetricRows[PerformanceMetricPipelineSpecialization] =
+            CreatePerformanceMetricRow(pipelines, "Specialization", "后台优化");
+    }
+
+    private static TreeItem CreatePerformanceMetricGroup(TreeItem root, string title)
+    {
+        TreeItem group = root.CreateChild();
+        group.SetText(0, title);
+        group.SetSelectable(0, false);
+        group.Collapsed = false;
+        return group;
+    }
+
+    private static TreeItem CreatePerformanceMetricRow(
+        TreeItem group,
+        string metric,
+        string note)
+    {
+        TreeItem row = group.CreateChild();
+        row.SetText(1, metric);
+        row.SetText(2, "0");
+        row.SetText(3, note);
+        row.SetTextAlignment(1, HorizontalAlignment.Left);
+        row.SetTextAlignment(2, HorizontalAlignment.Right);
+        row.SetTextAlignment(3, HorizontalAlignment.Left);
+        return row;
+    }
+
+    private T GetPerformanceNode<T>(string path) where T : Node
+    {
+        T? node = _performanceDashboard!.GetNodeOrNull<T>(path);
+        return IsInstanceValid(node)
+            ? node
+            : throw new InvalidOperationException($"DebuggerPerformance 场景缺少节点：{path}");
+    }
+
     private void CacheInputNodes()
     {
         _inputBackendValue = GetInputNode<Label>("StatusGrid/BackendCard/Content/Value");
@@ -928,6 +1502,193 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             : throw new InvalidOperationException($"DebuggerAudio 场景缺少节点：{path}");
     }
 
+    private void CacheSceneNodes()
+    {
+        _sceneCurrentValue = GetSceneNode<Label>("Summary/CurrentCard/Content/Value");
+        _sceneCurrentDetail = GetSceneNode<Label>("Summary/CurrentCard/Content/Detail");
+        _sceneNodeCountValue = GetSceneNode<Label>("Summary/NodesCard/Content/Value");
+        _sceneStateValue = GetSceneNode<Label>("Summary/StateCard/Content/Value");
+        _sceneProgressValue = GetSceneNode<Label>("Summary/ProgressCard/Content/Value");
+        _sceneDetailsTree = GetSceneNode<Tree>("Details");
+        _sceneDetailsTree.SetColumnTitle(0, "项目");
+        _sceneDetailsTree.SetColumnTitle(1, "值");
+        _sceneDetailsTree.SetColumnExpand(0, false);
+        _sceneDetailsTree.SetColumnExpand(1, true);
+        _sceneDetailsTree.SetColumnCustomMinimumWidth(0, 92);
+    }
+
+    private T GetSceneNode<T>(string path) where T : Node
+    {
+        T? node = _sceneDashboard!.GetNodeOrNull<T>(path);
+        return IsInstanceValid(node)
+            ? node
+            : throw new InvalidOperationException($"DebuggerScene 场景缺少节点：{path}");
+    }
+
+    private void CacheResourcesNodes()
+    {
+        _resourcesActiveValue = GetResourcesNode<Label>("Summary/ActiveCard/Content/Value");
+        _resourcesRequestsValue = GetResourcesNode<Label>("Summary/RequestsCard/Content/Value");
+        _resourcesMergedValue = GetResourcesNode<Label>("Summary/MergedCard/Content/Value");
+        _resourcesResultValue = GetResourcesNode<Label>("Summary/ResultCard/Content/Value");
+        _resourcesActiveStatus = GetResourcesNode<Label>("ActiveStatus");
+        _resourcesActiveTree = GetResourcesNode<Tree>("ActiveList");
+        _resourcesHistoryStatus = GetResourcesNode<Label>("HistoryStatus");
+        _resourcesHistoryTree = GetResourcesNode<Tree>("HistoryList");
+
+        ConfigureResourceTree(_resourcesActiveTree, "资源 Key");
+        _resourcesActiveTree.SetColumnTitle(0, "资源 Key");
+        _resourcesActiveTree.SetColumnTitle(1, "类型");
+        _resourcesActiveTree.SetColumnTitle(2, "状态");
+        _resourcesActiveTree.SetColumnTitle(3, "进度");
+        _resourcesActiveTree.SetColumnTitle(4, "请求");
+
+        ConfigureResourceTree(_resourcesHistoryTree, "资源 Key");
+        _resourcesHistoryTree.SetColumnTitle(0, "资源 Key");
+        _resourcesHistoryTree.SetColumnTitle(1, "类型");
+        _resourcesHistoryTree.SetColumnTitle(2, "方式");
+        _resourcesHistoryTree.SetColumnTitle(3, "状态");
+        _resourcesHistoryTree.SetColumnTitle(4, "请求");
+    }
+
+    private static void ConfigureResourceTree(Tree tree, string firstColumnTitle)
+    {
+        tree.SetColumnTitle(0, firstColumnTitle);
+        tree.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
+        tree.SetColumnExpand(0, true);
+        for (int column = 1; column < 5; column++)
+        {
+            tree.SetColumnTitleAlignment(column, HorizontalAlignment.Center);
+            tree.SetColumnExpand(column, false);
+        }
+        tree.SetColumnCustomMinimumWidth(1, 74);
+        tree.SetColumnCustomMinimumWidth(2, 64);
+        tree.SetColumnCustomMinimumWidth(3, 64);
+        tree.SetColumnCustomMinimumWidth(4, 54);
+    }
+
+    private T GetResourcesNode<T>(string path) where T : Node
+    {
+        T? node = _resourcesDashboard!.GetNodeOrNull<T>(path);
+        return IsInstanceValid(node)
+            ? node
+            : throw new InvalidOperationException($"DebuggerResources 场景缺少节点：{path}");
+    }
+
+    private void CacheDataTableNodes()
+    {
+        _dataTableLoadedValue =
+            GetDataTableNode<Label>("Summary/LoadedCard/Content/Value");
+        _dataTableTablesValue =
+            GetDataTableNode<Label>("Summary/TablesCard/Content/Value");
+        _dataTableLoadingValue =
+            GetDataTableNode<Label>("Summary/LoadingCard/Content/Value");
+        _dataTableFailedValue =
+            GetDataTableNode<Label>("Summary/FailedCard/Content/Value");
+        _dataTableDataSetStatus = GetDataTableNode<Label>("DataSetStatus");
+        _dataTableDataSetTree = GetDataTableNode<Tree>("DataSetList");
+        _dataTableHistoryStatus = GetDataTableNode<Label>("HistoryStatus");
+        _dataTableHistoryTree = GetDataTableNode<Tree>("HistoryList");
+
+        _dataTableDataSetTree.SetColumnTitle(0, "数据集 / 表");
+        _dataTableDataSetTree.SetColumnTitle(1, "状态 / 类型");
+        _dataTableDataSetTree.SetColumnTitle(2, "表数");
+        _dataTableDataSetTree.SetColumnTitle(3, "进度");
+        _dataTableDataSetTree.SetColumnTitle(4, "目录 / 详情");
+        ConfigureDataTableTree(_dataTableDataSetTree, 5);
+        _dataTableDataSetTree.SetColumnCustomMinimumWidth(1, 82);
+        _dataTableDataSetTree.SetColumnCustomMinimumWidth(2, 54);
+        _dataTableDataSetTree.SetColumnCustomMinimumWidth(3, 58);
+
+        _dataTableHistoryTree.SetColumnTitle(0, "数据集");
+        _dataTableHistoryTree.SetColumnTitle(1, "结果");
+        _dataTableHistoryTree.SetColumnTitle(2, "表数");
+        _dataTableHistoryTree.SetColumnTitle(3, "详情");
+        ConfigureDataTableTree(_dataTableHistoryTree, 4);
+        _dataTableHistoryTree.SetColumnCustomMinimumWidth(1, 72);
+        _dataTableHistoryTree.SetColumnCustomMinimumWidth(2, 54);
+    }
+
+    private static void ConfigureDataTableTree(Tree tree, int columnCount)
+    {
+        tree.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
+        tree.SetColumnExpand(0, true);
+        for (int column = 1; column < columnCount - 1; column++)
+        {
+            tree.SetColumnTitleAlignment(column, HorizontalAlignment.Center);
+            tree.SetColumnExpand(column, false);
+        }
+        tree.SetColumnTitleAlignment(columnCount - 1, HorizontalAlignment.Left);
+        tree.SetColumnExpand(columnCount - 1, true);
+    }
+
+    private T GetDataTableNode<T>(string path) where T : Node
+    {
+        T? node = _dataTableDashboard!.GetNodeOrNull<T>(path);
+        return IsInstanceValid(node)
+            ? node
+            : throw new InvalidOperationException($"DebuggerDataTable 场景缺少节点：{path}");
+    }
+
+    private void CacheUiNodes()
+    {
+        _uiSceneValue = GetUiNode<Label>("Summary/SceneCard/Content/Value");
+        _uiViewValue = GetUiNode<Label>("Summary/ViewCard/Content/Value");
+        _uiModalValue = GetUiNode<Label>("Summary/ModalCard/Content/Value");
+        _uiCurrentValue = GetUiNode<Label>("Summary/CurrentCard/Content/Value");
+        _uiCurrentDetail = GetUiNode<Label>("Summary/CurrentCard/Content/Detail");
+        _uiStackStatus = GetUiNode<Label>("StackStatus");
+        _uiStackTree = GetUiNode<Tree>("StackList");
+        _uiStackTree.SetColumnTitle(0, "层");
+        _uiStackTree.SetColumnTitle(1, "顺序");
+        _uiStackTree.SetColumnTitle(2, "节点");
+        _uiStackTree.SetColumnTitle(3, "资源 Key");
+        _uiStackTree.SetColumnTitle(4, "状态");
+        _uiStackTree.SetColumnTitleAlignment(0, HorizontalAlignment.Center);
+        _uiStackTree.SetColumnTitleAlignment(1, HorizontalAlignment.Center);
+        _uiStackTree.SetColumnTitleAlignment(2, HorizontalAlignment.Left);
+        _uiStackTree.SetColumnTitleAlignment(3, HorizontalAlignment.Left);
+        _uiStackTree.SetColumnTitleAlignment(4, HorizontalAlignment.Center);
+        _uiStackTree.SetColumnExpand(0, false);
+        _uiStackTree.SetColumnExpand(1, false);
+        _uiStackTree.SetColumnExpand(2, true);
+        _uiStackTree.SetColumnExpand(3, true);
+        _uiStackTree.SetColumnExpand(4, false);
+        _uiStackTree.SetColumnCustomMinimumWidth(0, 58);
+        _uiStackTree.SetColumnCustomMinimumWidth(1, 54);
+        _uiStackTree.SetColumnCustomMinimumWidth(4, 64);
+    }
+
+    private T GetUiNode<T>(string path) where T : Node
+    {
+        T? node = _uiDashboard!.GetNodeOrNull<T>(path);
+        return IsInstanceValid(node)
+            ? node
+            : throw new InvalidOperationException($"DebuggerUI 场景缺少节点：{path}");
+    }
+
+    private void CacheProcedureNodes()
+    {
+        _procedureCurrentValue = GetProcedureNode<Label>("Summary/CurrentCard/Content/Value");
+        _procedureStateValue = GetProcedureNode<Label>("Summary/StateCard/Content/Value");
+        _procedurePendingValue = GetProcedureNode<Label>("Summary/PendingCard/Content/Value");
+        _procedureResultValue = GetProcedureNode<Label>("Summary/ResultCard/Content/Value");
+        _procedureDetailsTree = GetProcedureNode<Tree>("Details");
+        _procedureDetailsTree.SetColumnTitle(0, "项目");
+        _procedureDetailsTree.SetColumnTitle(1, "值");
+        _procedureDetailsTree.SetColumnExpand(0, false);
+        _procedureDetailsTree.SetColumnExpand(1, true);
+        _procedureDetailsTree.SetColumnCustomMinimumWidth(0, 92);
+    }
+
+    private T GetProcedureNode<T>(string path) where T : Node
+    {
+        T? node = _procedureDashboard!.GetNodeOrNull<T>(path);
+        return IsInstanceValid(node)
+            ? node
+            : throw new InvalidOperationException($"DebuggerProcedure 场景缺少节点：{path}");
+    }
+
     private void CacheServicesNodes()
     {
         _servicesSearch = GetServicesNode<LineEdit>("Search");
@@ -1008,12 +1769,19 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private void RegisterPages()
     {
         RegisterPage("Overview", "概览", "概览", RefreshOverviewDashboard);
+        RegisterPage("System", "系统", "系统", RefreshSystemDashboard);
+        RegisterPage("Performance", "性能", "性能", RefreshPerformanceDashboard);
+        RegisterPage("Console", "控制台", "控制台", AppendConsole);
         RegisterPage("Runtime/Input", "运行时", "Input", RefreshInputDashboard);
         RegisterPage("Runtime/Scheduler", "运行时", "Scheduler", RefreshSchedulerDashboard);
         RegisterPage("Runtime/Audio", "运行时", "Audio", RefreshAudioDashboard);
+        RegisterPage("Runtime/Scene", "运行时", "Scene", RefreshScenePage);
+        RegisterPage("Runtime/Resources", "运行时", "Resources", RefreshResourcesPage);
+        RegisterPage("Runtime/DataTable", "运行时", "DataTable", RefreshDataTablePage);
+        RegisterPage("Runtime/UI", "运行时", "UI", RefreshUiPage);
+        RegisterPage("Runtime/Procedure", "运行时", "Procedure", RefreshProcedurePage);
         RegisterPage("Framework/Services", "框架", "Services", RefreshServicesDashboard);
         RegisterPage("Framework/Events", "框架", "Events", RefreshEventsDashboard);
-        RegisterPage("Console", "控制台", "控制台", AppendConsole);
     }
 
     private void RegisterPage(string path, string groupTitle, string title, Action render)
@@ -1099,34 +1867,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _selectedPage = page;
         if (IsInstanceValid(_titleLabel))
             _titleLabel.Text = page.Title;
-        if (IsInstanceValid(_consoleToolbar))
-            _consoleToolbar.Visible = _expanded && page.IsConsole;
-        if (IsInstanceValid(_consoleFilters))
-            _consoleFilters.Visible = _expanded && page.IsConsole;
-        if (IsInstanceValid(_consolePagination))
-            _consolePagination.Visible = _expanded && page.IsConsole;
-        if (IsInstanceValid(_overviewDashboard))
-            _overviewDashboard.Visible = page.IsOverview;
-        if (IsInstanceValid(_inputDashboard))
-            _inputDashboard.Visible = page.IsInput;
-        if (IsInstanceValid(_schedulerDashboard))
-            _schedulerDashboard.Visible = page.IsScheduler;
-        if (IsInstanceValid(_audioDashboard))
-            _audioDashboard.Visible = page.IsAudio;
-        if (IsInstanceValid(_servicesDashboard))
-            _servicesDashboard.Visible = page.IsServices;
-        if (IsInstanceValid(_eventsDashboard))
-            _eventsDashboard.Visible = page.IsEvents;
-        if (IsInstanceValid(_debuggerLabel))
-        {
-            _debuggerLabel.Visible =
-                !page.IsOverview &&
-                !page.IsInput &&
-                !page.IsScheduler &&
-                !page.IsAudio &&
-                !page.IsServices &&
-                !page.IsEvents;
-        }
+        ApplyPageContentVisibility(page, showReadFailure: false);
         if (!page.IsInput && IsInstanceValid(_inputActionsSearch))
             _inputActionsSearch.ReleaseFocus();
         if (!page.IsServices && IsInstanceValid(_servicesSearch))
@@ -1136,6 +1877,60 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         if (!page.IsConsole && IsInstanceValid(_consoleSearch))
             _consoleSearch.ReleaseFocus();
         RefreshDebugger(forceRefresh);
+    }
+
+    private void ApplyPageContentVisibility(DebuggerPage page, bool showReadFailure)
+    {
+        if (IsInstanceValid(_consoleToolbar))
+            _consoleToolbar.Visible = _expanded && page.IsConsole && !showReadFailure;
+        if (IsInstanceValid(_consoleFilters))
+            _consoleFilters.Visible = _expanded && page.IsConsole && !showReadFailure;
+        if (IsInstanceValid(_consolePagination))
+            _consolePagination.Visible = _expanded && page.IsConsole && !showReadFailure;
+        if (IsInstanceValid(_overviewDashboard))
+            _overviewDashboard.Visible = page.IsOverview && !showReadFailure;
+        if (IsInstanceValid(_systemDashboard))
+            _systemDashboard.Visible = page.IsSystem && !showReadFailure;
+        if (IsInstanceValid(_performanceDashboard))
+            _performanceDashboard.Visible = page.IsPerformance && !showReadFailure;
+        if (IsInstanceValid(_inputDashboard))
+            _inputDashboard.Visible = page.IsInput && !showReadFailure;
+        if (IsInstanceValid(_schedulerDashboard))
+            _schedulerDashboard.Visible = page.IsScheduler && !showReadFailure;
+        if (IsInstanceValid(_audioDashboard))
+            _audioDashboard.Visible = page.IsAudio && !showReadFailure;
+        if (IsInstanceValid(_sceneDashboard))
+            _sceneDashboard.Visible = page.IsScene && !showReadFailure;
+        if (IsInstanceValid(_resourcesDashboard))
+            _resourcesDashboard.Visible = page.IsResources && !showReadFailure;
+        if (IsInstanceValid(_dataTableDashboard))
+            _dataTableDashboard.Visible = page.IsDataTable && !showReadFailure;
+        if (IsInstanceValid(_uiDashboard))
+            _uiDashboard.Visible = page.IsUi && !showReadFailure;
+        if (IsInstanceValid(_procedureDashboard))
+            _procedureDashboard.Visible = page.IsProcedure && !showReadFailure;
+        if (IsInstanceValid(_servicesDashboard))
+            _servicesDashboard.Visible = page.IsServices && !showReadFailure;
+        if (IsInstanceValid(_eventsDashboard))
+            _eventsDashboard.Visible = page.IsEvents && !showReadFailure;
+        if (IsInstanceValid(_debuggerLabel))
+        {
+            _debuggerLabel.Visible =
+                showReadFailure ||
+                !page.IsOverview &&
+                !page.IsSystem &&
+                !page.IsPerformance &&
+                !page.IsInput &&
+                !page.IsScheduler &&
+                !page.IsAudio &&
+                !page.IsScene &&
+                !page.IsResources &&
+                !page.IsDataTable &&
+                !page.IsUi &&
+                !page.IsProcedure &&
+                !page.IsServices &&
+                !page.IsEvents;
+        }
     }
 
     private void OnInputActionsSearchChanged(string text)
@@ -1402,23 +2197,34 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         }
         else
         {
-            _overviewAudioValue.Text = "不可用";
+            _overviewAudioValue.Text = "未注册";
             _overviewAudioDetail.Text = "AudioService";
         }
 
-        if (Services.TryGet<IInputService>(out IInputService? input) && input is not null)
+        if (!Services.TryGet<IInputService>(out IInputService? input) || input is null)
         {
-            _overviewInputValue.Text = input.ActiveDevice.ToString();
+            _overviewInputValue.Text = "未注册";
+            _overviewInputDetail.Text = "InputService";
+        }
+        else if (input is InputService inputService)
+        {
+            InputDebugSnapshot snapshot = inputService.GetDebugSnapshot();
+            _overviewInputValue.Text = snapshot.ActiveDevice.ToString();
             _overviewInputDetail.Text = "当前活动设备";
         }
         else
         {
-            _overviewInputValue.Text = "不可用";
-            _overviewInputDetail.Text = "InputService";
+            _overviewInputValue.Text = "不支持";
+            _overviewInputDetail.Text = "无 Debug 快照";
         }
 
-        if (Services.TryGet<ISchedulerService>(out ISchedulerService? scheduler) &&
-            scheduler is SchedulerService schedulerService)
+        if (!Services.TryGet<ISchedulerService>(out ISchedulerService? scheduler) ||
+            scheduler is null)
+        {
+            _overviewSchedulerValue.Text = "未注册";
+            _overviewSchedulerDetail.Text = "SchedulerService";
+        }
+        else if (scheduler is SchedulerService schedulerService)
         {
             SchedulerDebugSnapshot snapshot = schedulerService.GetDebugSnapshot();
             _overviewSchedulerValue.Text = snapshot.ActiveCount.ToString(CultureInfo.InvariantCulture);
@@ -1426,9 +2232,1031 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         }
         else
         {
-            _overviewSchedulerValue.Text = "不可用";
-            _overviewSchedulerDetail.Text = "SchedulerService";
+            _overviewSchedulerValue.Text = "不支持";
+            _overviewSchedulerDetail.Text = "无 Debug 快照";
         }
+    }
+
+    private void RefreshPerformanceDashboard()
+    {
+        if (!IsInstanceValid(_performanceFpsValue) ||
+            !IsInstanceValid(_performanceProcessValue) ||
+            !IsInstanceValid(_performancePhysicsValue) ||
+            !IsInstanceValid(_performanceMemoryValue) ||
+            !IsInstanceValid(_performanceManagedMemoryValue) ||
+            !IsInstanceValid(_performanceFrameGraph) ||
+            !IsInstanceValid(_performanceMemoryGraph) ||
+            !IsInstanceValid(_performanceMetricsTree))
+            return;
+
+        double processSeconds = ReadPerformanceMonitor(Performance.Monitor.TimeProcess);
+        double physicsSeconds = ReadPerformanceMonitor(Performance.Monitor.TimePhysicsProcess);
+        double engineMemory = ReadPerformanceMonitor(Performance.Monitor.MemoryStatic);
+        double managedMemory = GC.GetTotalMemory(forceFullCollection: false);
+        double processMilliseconds = processSeconds * 1000d;
+        double physicsMilliseconds = physicsSeconds * 1000d;
+
+        _performanceFpsValue.Text =
+            Mathf.RoundToInt(Engine.GetFramesPerSecond()).ToString(CultureInfo.InvariantCulture);
+        _performanceProcessValue.Text = FormatMilliseconds(processMilliseconds);
+        _performancePhysicsValue.Text = FormatMilliseconds(physicsMilliseconds);
+        _performanceMemoryValue.Text = FormatBytes(engineMemory);
+        _performanceManagedMemoryValue.Text = FormatBytes(managedMemory);
+
+        AddPerformanceSample(
+            processMilliseconds,
+            physicsMilliseconds,
+            engineMemory,
+            managedMemory);
+        UpdatePerformanceMetrics(engineMemory, managedMemory);
+        _performanceFrameGraph.QueueRedraw();
+        _performanceMemoryGraph.QueueRedraw();
+    }
+
+    private void RefreshSystemDashboard()
+    {
+        if (!IsInstanceValid(_systemUptimeValue) ||
+            !IsInstanceValid(_systemDetailsTree))
+            return;
+
+        _systemUptimeValue.Text = FormatUptime(Time.GetTicksMsec());
+        SetSystemValue(SystemMetricLocale, ReadCurrentLocale());
+        SetSystemValue(SystemMetricWindowMode, ReadWindowMode());
+        SetSystemValue(SystemMetricWindowSize, ReadWindowSize());
+        SetSystemValue(SystemMetricScreenSize, ReadScreenSize());
+        SetSystemValue(SystemMetricVsync, ReadVsyncMode());
+    }
+
+    private static string ReadCurrentLocale()
+    {
+        try
+        {
+            string locale = TranslationServer.GetLocale();
+            return string.IsNullOrWhiteSpace(locale) ? "不可用" : locale;
+        }
+        catch
+        {
+            return "不可用";
+        }
+    }
+
+    private static string ReadWindowMode()
+    {
+        try
+        {
+            return DisplayServer.WindowGetMode((int)DisplayServer.MainWindowId) switch
+            {
+                DisplayServer.WindowMode.Windowed => "窗口",
+                DisplayServer.WindowMode.Minimized => "最小化",
+                DisplayServer.WindowMode.Maximized => "最大化",
+                DisplayServer.WindowMode.Fullscreen => "全屏",
+                DisplayServer.WindowMode.ExclusiveFullscreen => "独占全屏",
+                _ => "不可用",
+            };
+        }
+        catch
+        {
+            return "不可用";
+        }
+    }
+
+    private static string ReadWindowSize()
+    {
+        try
+        {
+            return FormatSize(DisplayServer.WindowGetSize((int)DisplayServer.MainWindowId));
+        }
+        catch
+        {
+            return "不可用";
+        }
+    }
+
+    private static string ReadScreenSize()
+    {
+        try
+        {
+            return FormatSize(DisplayServer.ScreenGetSize((int)DisplayServer.ScreenOfMainWindow));
+        }
+        catch
+        {
+            return "不可用";
+        }
+    }
+
+    private static string ReadVsyncMode()
+    {
+        try
+        {
+            return DisplayServer.WindowGetVsyncMode((int)DisplayServer.MainWindowId) switch
+            {
+                DisplayServer.VSyncMode.Disabled => "关闭",
+                DisplayServer.VSyncMode.Enabled => "开启",
+                DisplayServer.VSyncMode.Adaptive => "自适应",
+                DisplayServer.VSyncMode.Mailbox => "Mailbox",
+                _ => "不可用",
+            };
+        }
+        catch
+        {
+            return "不可用";
+        }
+    }
+
+    private static string FormatSize(Vector2I size)
+    {
+        return size.X > 0 && size.Y > 0
+            ? $"{size.X.ToString(CultureInfo.InvariantCulture)} × " +
+              size.Y.ToString(CultureInfo.InvariantCulture)
+            : "不可用";
+    }
+
+    private static string FormatUptime(ulong milliseconds)
+    {
+        ulong totalSeconds = milliseconds / 1000UL;
+        ulong days = totalSeconds / 86400UL;
+        ulong hours = totalSeconds / 3600UL % 24UL;
+        ulong minutes = totalSeconds / 60UL % 60UL;
+        ulong seconds = totalSeconds % 60UL;
+        return days > 0UL
+            ? $"{days.ToString(CultureInfo.InvariantCulture)}d " +
+              $"{hours:00}:{minutes:00}:{seconds:00}"
+            : $"{hours:00}:{minutes:00}:{seconds:00}";
+    }
+
+    private void UpdatePerformanceMetrics(double engineMemory, double managedMemory)
+    {
+        SetPerformanceMetricValue(PerformanceMetricEngineMemory, FormatBytes(engineMemory));
+        SetPerformanceMetricValue(
+            PerformanceMetricEngineMemoryPeak,
+            FormatBytes(ReadPerformanceMonitor(Performance.Monitor.MemoryStaticMax)));
+        SetPerformanceMetricValue(PerformanceMetricManagedMemory, FormatBytes(managedMemory));
+        SetPerformanceMetricValue(
+            PerformanceMetricMessageBufferPeak,
+            FormatBytes(ReadPerformanceMonitor(Performance.Monitor.MemoryMessageBufferMax)));
+        SetPerformanceMetricValue(
+            PerformanceMetricVideoMemory,
+            FormatBytes(ReadPerformanceMonitor(Performance.Monitor.RenderVideoMemUsed)));
+        SetPerformanceMetricValue(
+            PerformanceMetricTextureMemory,
+            FormatBytes(ReadPerformanceMonitor(Performance.Monitor.RenderTextureMemUsed)));
+        SetPerformanceMetricValue(
+            PerformanceMetricBufferMemory,
+            FormatBytes(ReadPerformanceMonitor(Performance.Monitor.RenderBufferMemUsed)));
+
+        SetPerformanceMetricCount(
+            PerformanceMetricObjects,
+            Performance.Monitor.ObjectCount);
+        SetPerformanceMetricCount(
+            PerformanceMetricResources,
+            Performance.Monitor.ObjectResourceCount);
+        SetPerformanceMetricCount(
+            PerformanceMetricNodes,
+            Performance.Monitor.ObjectNodeCount);
+        double orphanCount = ReadPerformanceMonitor(Performance.Monitor.ObjectOrphanNodeCount);
+        SetPerformanceMetricValue(
+            PerformanceMetricOrphans,
+            FormatCount(orphanCount),
+            orphanCount > 0d ? new Color(1f, 0.72f, 0.28f) : null);
+
+        SetPerformanceMetricCount(
+            PerformanceMetricRenderObjects,
+            Performance.Monitor.RenderTotalObjectsInFrame);
+        SetPerformanceMetricCount(
+            PerformanceMetricPrimitives,
+            Performance.Monitor.RenderTotalPrimitivesInFrame);
+        SetPerformanceMetricCount(
+            PerformanceMetricDrawCalls,
+            Performance.Monitor.RenderTotalDrawCallsInFrame);
+
+        SetPerformanceMetricCount(
+            PerformanceMetricPhysics2DActive,
+            Performance.Monitor.Physics2DActiveObjects);
+        SetPerformanceMetricCount(
+            PerformanceMetricPhysics2DPairs,
+            Performance.Monitor.Physics2DCollisionPairs);
+        SetPerformanceMetricCount(
+            PerformanceMetricPhysics2DIslands,
+            Performance.Monitor.Physics2DIslandCount);
+        SetPerformanceMetricCount(
+            PerformanceMetricPhysics3DActive,
+            Performance.Monitor.Physics3DActiveObjects);
+        SetPerformanceMetricCount(
+            PerformanceMetricPhysics3DPairs,
+            Performance.Monitor.Physics3DCollisionPairs);
+        SetPerformanceMetricCount(
+            PerformanceMetricPhysics3DIslands,
+            Performance.Monitor.Physics3DIslandCount);
+
+        SetPerformanceMetricCount(
+            PerformanceMetricPipelineCanvas,
+            Performance.Monitor.PipelineCompilationsCanvas);
+        SetPerformanceMetricCount(
+            PerformanceMetricPipelineMesh,
+            Performance.Monitor.PipelineCompilationsMesh);
+        SetPerformanceMetricCount(
+            PerformanceMetricPipelineSurface,
+            Performance.Monitor.PipelineCompilationsSurface);
+        double drawPipelineCount =
+            ReadPerformanceMonitor(Performance.Monitor.PipelineCompilationsDraw);
+        SetPerformanceMetricValue(
+            PerformanceMetricPipelineDraw,
+            FormatCount(drawPipelineCount),
+            drawPipelineCount > 0d ? new Color(1f, 0.72f, 0.28f) : null);
+        SetPerformanceMetricCount(
+            PerformanceMetricPipelineSpecialization,
+            Performance.Monitor.PipelineCompilationsSpecialization);
+    }
+
+    private void SetPerformanceMetricCount(int index, Performance.Monitor monitor)
+    {
+        SetPerformanceMetricValue(index, FormatCount(ReadPerformanceMonitor(monitor)));
+    }
+
+    private void SetPerformanceMetricValue(int index, string value, Color? color = null)
+    {
+        TreeItem? row = _performanceMetricRows[index];
+        if (row is null)
+            return;
+
+        row.SetText(2, value);
+        if (color.HasValue)
+            row.SetCustomColor(2, color.Value);
+        else
+            row.ClearCustomColor(2);
+    }
+
+    private void AddPerformanceSample(
+        double processMilliseconds,
+        double physicsMilliseconds,
+        double engineMemory,
+        double managedMemory)
+    {
+        int index = _performanceSampleWriteIndex;
+        _performanceProcessSamples[index] = processMilliseconds;
+        _performancePhysicsSamples[index] = physicsMilliseconds;
+        _performanceEngineMemorySamples[index] = engineMemory;
+        _performanceManagedMemorySamples[index] = managedMemory;
+        _performanceSampleWriteIndex = (index + 1) % PerformanceSampleCapacity;
+        if (_performanceSampleCount < PerformanceSampleCapacity)
+            _performanceSampleCount++;
+    }
+
+    private void OnPerformanceFrameGraphDraw()
+    {
+        DrawPerformanceGraph(
+            _performanceFrameGraph,
+            _performanceProcessSamples,
+            _performancePhysicsSamples,
+            minimumMaximum: 16.667d,
+            new Color(0.31f, 0.68f, 1f),
+            new Color(0.65f, 0.49f, 1f),
+            formatAsBytes: false);
+    }
+
+    private void OnPerformanceMemoryGraphDraw()
+    {
+        DrawPerformanceGraph(
+            _performanceMemoryGraph,
+            _performanceEngineMemorySamples,
+            _performanceManagedMemorySamples,
+            minimumMaximum: 1024d * 1024d,
+            new Color(0.24f, 0.82f, 0.65f),
+            new Color(1f, 0.68f, 0.28f),
+            formatAsBytes: true);
+    }
+
+    private void DrawPerformanceGraph(
+        Control? graph,
+        double[] primarySamples,
+        double[] secondarySamples,
+        double minimumMaximum,
+        Color primaryColor,
+        Color secondaryColor,
+        bool formatAsBytes)
+    {
+        if (!IsInstanceValid(graph))
+            return;
+
+        Vector2 size = graph.Size;
+        const float verticalPadding = 4f;
+        const float axisLabelWidth = 44f;
+        const float latestValueWidth = 44f;
+        float plotLeft = axisLabelWidth;
+        float plotRight = Mathf.Max(plotLeft + 1f, size.X - latestValueWidth);
+        float width = plotRight - plotLeft;
+        float height = Mathf.Max(1f, size.Y - verticalPadding * 2f);
+        Color gridColor = new(0.22f, 0.28f, 0.35f, 0.45f);
+        for (int line = 0; line < 3; line++)
+        {
+            float y = verticalPadding + height * line / 2f;
+            graph.DrawLine(
+                new Vector2(plotLeft, y),
+                new Vector2(plotRight, y),
+                gridColor);
+        }
+
+        if (_performanceSampleCount == 0)
+            return;
+
+        double maximum = minimumMaximum;
+        int startIndex = _performanceSampleCount < PerformanceSampleCapacity
+            ? 0
+            : _performanceSampleWriteIndex;
+        for (int pointIndex = 0; pointIndex < _performanceSampleCount; pointIndex++)
+        {
+            int sampleIndex = (startIndex + pointIndex) % PerformanceSampleCapacity;
+            maximum = Math.Max(maximum, primarySamples[sampleIndex]);
+            maximum = Math.Max(maximum, secondarySamples[sampleIndex]);
+        }
+
+        float denominator = Math.Max(1, _performanceSampleCount - 1);
+        for (int pointIndex = 0; pointIndex < _performanceSampleCount; pointIndex++)
+        {
+            int sampleIndex = (startIndex + pointIndex) % PerformanceSampleCapacity;
+            float x = plotLeft + width * pointIndex / denominator;
+            _performancePrimaryGraphPoints[pointIndex] = new Vector2(
+                x,
+                verticalPadding + height * (1f - (float)(primarySamples[sampleIndex] / maximum)));
+            _performanceSecondaryGraphPoints[pointIndex] = new Vector2(
+                x,
+                verticalPadding + height * (1f - (float)(secondarySamples[sampleIndex] / maximum)));
+        }
+
+        if (_performanceSampleCount >= 2)
+        {
+            graph.DrawPolyline(
+                _performancePrimaryGraphPoints.AsSpan(0, _performanceSampleCount),
+                primaryColor,
+                1.5f,
+                antialiased: true);
+            graph.DrawPolyline(
+                _performanceSecondaryGraphPoints.AsSpan(0, _performanceSampleCount),
+                secondaryColor,
+                1.5f,
+                antialiased: true);
+        }
+
+        DrawPerformanceGraphLabels(
+            graph,
+            maximum,
+            primarySamples[(_performanceSampleWriteIndex - 1 + PerformanceSampleCapacity) %
+                PerformanceSampleCapacity],
+            secondarySamples[(_performanceSampleWriteIndex - 1 + PerformanceSampleCapacity) %
+                PerformanceSampleCapacity],
+            _performancePrimaryGraphPoints[_performanceSampleCount - 1].Y,
+            _performanceSecondaryGraphPoints[_performanceSampleCount - 1].Y,
+            plotLeft,
+            plotRight,
+            height,
+            primaryColor,
+            secondaryColor,
+            formatAsBytes);
+    }
+
+    private static void DrawPerformanceGraphLabels(
+        Control graph,
+        double maximum,
+        double primaryLatest,
+        double secondaryLatest,
+        float primaryY,
+        float secondaryY,
+        float plotLeft,
+        float plotRight,
+        float plotHeight,
+        Color primaryColor,
+        Color secondaryColor,
+        bool formatAsBytes)
+    {
+        Font font = graph.GetThemeDefaultFont();
+        int fontSize = Math.Clamp(graph.GetThemeDefaultFontSize(), 8, 9);
+        Color axisColor = new(0.4f, 0.47f, 0.56f);
+        float topBaseline = fontSize;
+        float middleBaseline = 4f + plotHeight / 2f + fontSize * 0.35f;
+        float bottomBaseline = graph.Size.Y - 2f;
+        DrawPerformanceGraphText(
+            graph,
+            font,
+            new Vector2(0f, topBaseline),
+            FormatPerformanceGraphValue(maximum, formatAsBytes),
+            plotLeft - 6f,
+            HorizontalAlignment.Right,
+            fontSize,
+            axisColor);
+        DrawPerformanceGraphText(
+            graph,
+            font,
+            new Vector2(0f, middleBaseline),
+            FormatPerformanceGraphValue(maximum / 2d, formatAsBytes),
+            plotLeft - 6f,
+            HorizontalAlignment.Right,
+            fontSize,
+            axisColor);
+        DrawPerformanceGraphText(
+            graph,
+            font,
+            new Vector2(0f, bottomBaseline),
+            FormatPerformanceGraphValue(0d, formatAsBytes),
+            plotLeft - 6f,
+            HorizontalAlignment.Right,
+            fontSize,
+            axisColor);
+
+        float primaryBaseline = Mathf.Clamp(
+            primaryY + fontSize * 0.35f,
+            topBaseline,
+            bottomBaseline);
+        float secondaryBaseline = Mathf.Clamp(
+            secondaryY + fontSize * 0.35f,
+            topBaseline,
+            bottomBaseline);
+        float minimumSeparation = fontSize + 2f;
+        if (Mathf.Abs(primaryBaseline - secondaryBaseline) < minimumSeparation)
+        {
+            float middle = (primaryBaseline + secondaryBaseline) / 2f;
+            primaryBaseline = Mathf.Clamp(
+                middle - minimumSeparation / 2f,
+                topBaseline,
+                bottomBaseline - minimumSeparation);
+            secondaryBaseline = primaryBaseline + minimumSeparation;
+        }
+
+        float latestX = plotRight + 3f;
+        float latestWidth = Mathf.Max(1f, graph.Size.X - latestX);
+        graph.DrawLine(
+            new Vector2(plotRight, primaryY),
+            new Vector2(latestX - 1f, primaryBaseline - fontSize * 0.35f),
+            primaryColor);
+        graph.DrawLine(
+            new Vector2(plotRight, secondaryY),
+            new Vector2(latestX - 1f, secondaryBaseline - fontSize * 0.35f),
+            secondaryColor);
+        DrawPerformanceGraphText(
+            graph,
+            font,
+            new Vector2(latestX, primaryBaseline),
+            FormatPerformanceGraphValue(primaryLatest, formatAsBytes),
+            latestWidth,
+            HorizontalAlignment.Right,
+            fontSize,
+            primaryColor);
+        DrawPerformanceGraphText(
+            graph,
+            font,
+            new Vector2(latestX, secondaryBaseline),
+            FormatPerformanceGraphValue(secondaryLatest, formatAsBytes),
+            latestWidth,
+            HorizontalAlignment.Right,
+            fontSize,
+            secondaryColor);
+    }
+
+    private static void DrawPerformanceGraphText(
+        Control graph,
+        Font font,
+        Vector2 position,
+        string text,
+        float width,
+        HorizontalAlignment alignment,
+        int fontSize,
+        Color color)
+    {
+        graph.DrawString(font, position, text, alignment, width, fontSize, color);
+    }
+
+    private static string FormatPerformanceGraphValue(double value, bool formatAsBytes)
+    {
+        return formatAsBytes
+            ? FormatBytes(value)
+            : FormatMilliseconds(value);
+    }
+
+    private static double ReadPerformanceMonitor(Performance.Monitor monitor)
+    {
+        return Math.Max(0d, Performance.GetMonitor(monitor));
+    }
+
+    private static string FormatMilliseconds(double milliseconds)
+    {
+        return $"{milliseconds.ToString("0.00", CultureInfo.InvariantCulture)} ms";
+    }
+
+    private static string FormatCount(double value)
+    {
+        return Math.Round(Math.Max(0d, value))
+            .ToString("N0", CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatBytes(double bytes)
+    {
+        double value = Math.Max(0d, bytes);
+        string unit = "B";
+        if (value >= 1024d)
+        {
+            value /= 1024d;
+            unit = "KiB";
+        }
+        if (value >= 1024d)
+        {
+            value /= 1024d;
+            unit = "MiB";
+        }
+        if (value >= 1024d)
+        {
+            value /= 1024d;
+            unit = "GiB";
+        }
+
+        string format = value >= 100d ? "0" : value >= 10d ? "0.0" : "0.00";
+        return $"{value.ToString(format, CultureInfo.InvariantCulture)} {unit}";
+    }
+
+    private void RefreshScenePage()
+    {
+        if (!IsInstanceValid(_sceneCurrentValue) ||
+            !IsInstanceValid(_sceneCurrentDetail) ||
+            !IsInstanceValid(_sceneNodeCountValue) ||
+            !IsInstanceValid(_sceneStateValue) ||
+            !IsInstanceValid(_sceneProgressValue) ||
+            !IsInstanceValid(_sceneDetailsTree))
+            return;
+
+        Node? currentScene = GetTree().CurrentScene;
+        if (IsInstanceValid(currentScene))
+        {
+            string scenePath = string.IsNullOrEmpty(currentScene.SceneFilePath)
+                ? "<运行时节点>"
+                : currentScene.SceneFilePath;
+            _sceneCurrentValue.Text = currentScene.Name;
+            _sceneCurrentValue.TooltipText = currentScene.Name;
+            _sceneCurrentDetail.Text = scenePath;
+            _sceneCurrentDetail.TooltipText = scenePath;
+            _sceneNodeCountValue.Text =
+                GetSceneNodeCount(currentScene).ToString(CultureInfo.InvariantCulture);
+        }
+        else
+        {
+            _sceneCurrentValue.Text = "未设置";
+            _sceneCurrentValue.TooltipText = string.Empty;
+            _sceneCurrentDetail.Text = "SceneTree.CurrentScene";
+            _sceneCurrentDetail.TooltipText = string.Empty;
+            _sceneNodeCountValue.Text = "—";
+        }
+
+        _sceneDetailsTree.Clear();
+        TreeItem root = _sceneDetailsTree.CreateItem();
+        if (!Services.TryGet<ISceneService>(out ISceneService? scene) || scene is null)
+        {
+            _sceneStateValue.Text = "未注册";
+            _sceneProgressValue.Text = "—";
+            AddSceneDetail(root, "服务", "SceneService 未注册");
+            return;
+        }
+
+        _sceneStateValue.Text = scene.IsChanging ? "切换中" : "空闲";
+        _sceneProgressValue.Text =
+            $"{Mathf.RoundToInt(scene.Progress * 100f).ToString(CultureInfo.InvariantCulture)}%";
+        if (scene is not SceneService sceneService)
+        {
+            AddSceneDetail(root, "诊断", "当前实现不支持 Debug 快照");
+            return;
+        }
+
+        SceneDebugSnapshot snapshot = sceneService.GetDebugSnapshot();
+        AddSceneDetail(root, "正在加载", snapshot.CurrentChangeKey?.Value ?? "—");
+        AddSceneDetail(root, "最近切换", snapshot.LastChangeKey?.Value ?? "—");
+        AddSceneDetail(root, "最近结果", snapshot.LastChangeKey.HasValue
+            ? snapshot.LastChangeSucceeded ? "成功" : "失败"
+            : "—");
+    }
+
+    private void AddSceneDetail(TreeItem root, string name, string value)
+    {
+        TreeItem item = _sceneDetailsTree!.CreateItem(root);
+        item.SetText(0, name);
+        item.SetText(1, value);
+        item.SetTooltipText(1, value);
+    }
+
+    private int GetSceneNodeCount(Node currentScene)
+    {
+        ulong instanceId = currentScene.GetInstanceId();
+        ulong now = Time.GetTicksMsec();
+        if (_sceneNodeCountRootInstanceId == instanceId &&
+            now - _sceneNodeCountRefreshTicks < SceneNodeCountRefreshIntervalMilliseconds)
+        {
+            return _sceneNodeCount;
+        }
+
+        _sceneNodeCountRootInstanceId = instanceId;
+        _sceneNodeCountRefreshTicks = now;
+        _sceneNodeCount = CountSceneNodes(currentScene);
+        return _sceneNodeCount;
+    }
+
+    private static int CountSceneNodes(Node node)
+    {
+        int count = 1;
+        int childCount = node.GetChildCount();
+        for (int index = 0; index < childCount; index++)
+            count += CountSceneNodes(node.GetChild(index));
+
+        return count;
+    }
+
+    private void RefreshResourcesPage()
+    {
+        if (!IsInstanceValid(_resourcesActiveValue) ||
+            !IsInstanceValid(_resourcesRequestsValue) ||
+            !IsInstanceValid(_resourcesMergedValue) ||
+            !IsInstanceValid(_resourcesResultValue) ||
+            !IsInstanceValid(_resourcesActiveStatus) ||
+            !IsInstanceValid(_resourcesActiveTree) ||
+            !IsInstanceValid(_resourcesHistoryStatus) ||
+            !IsInstanceValid(_resourcesHistoryTree))
+            return;
+
+        ResourceDebugSnapshot snapshot = ResourceHub.GetDebugSnapshot();
+        _resourcesActiveValue.Text =
+            snapshot.ActiveOperations.Length.ToString(CultureInfo.InvariantCulture);
+        _resourcesRequestsValue.Text =
+            $"{snapshot.SynchronousRequestCount.ToString(CultureInfo.InvariantCulture)} / " +
+            snapshot.AsynchronousRequestCount.ToString(CultureInfo.InvariantCulture);
+        _resourcesMergedValue.Text =
+            snapshot.MergedRequestCount.ToString(CultureInfo.InvariantCulture);
+        _resourcesResultValue.Text =
+            $"{snapshot.SucceededRequestCount.ToString(CultureInfo.InvariantCulture)} / " +
+            snapshot.FailedRequestCount.ToString(CultureInfo.InvariantCulture);
+
+        Array.Sort(snapshot.ActiveOperations, CompareResourceOperations);
+        int displayedOperationCount =
+            Math.Min(snapshot.ActiveOperations.Length, MaxDisplayedResourceOperations);
+        _resourcesActiveStatus.Text = snapshot.ActiveOperations.Length <= MaxDisplayedResourceOperations
+            ? $"当前请求 {snapshot.ActiveOperations.Length}"
+            : $"当前请求 {snapshot.ActiveOperations.Length}，显示前 {displayedOperationCount}";
+        _resourcesActiveTree.Clear();
+        TreeItem activeRoot = _resourcesActiveTree.CreateItem();
+        for (int index = 0; index < displayedOperationCount; index++)
+        {
+            ResourceDebugActiveEntry entry = snapshot.ActiveOperations[index];
+            TreeItem item = _resourcesActiveTree.CreateItem(activeRoot);
+            item.SetText(0, entry.Key.Value);
+            item.SetText(1, entry.ResourceType.Name);
+            item.SetText(2, entry.Status.ToString());
+            item.SetText(3,
+                $"{Mathf.RoundToInt(entry.Progress * 100f).ToString(CultureInfo.InvariantCulture)}%");
+            item.SetText(4, entry.MergedRequestCount.ToString(CultureInfo.InvariantCulture));
+            item.SetTooltipText(0, entry.Key.Value);
+            for (int column = 1; column < 5; column++)
+                item.SetTextAlignment(column, HorizontalAlignment.Center);
+        }
+
+        int displayedHistoryCount = Math.Min(snapshot.History.Length, MaxDisplayedResourceHistory);
+        _resourcesHistoryStatus.Text =
+            $"最近请求 {displayedHistoryCount} / 保留 {snapshot.History.Length}";
+        _resourcesHistoryTree.Clear();
+        TreeItem historyRoot = _resourcesHistoryTree.CreateItem();
+        int firstHistoryIndex = Math.Max(0, snapshot.History.Length - displayedHistoryCount);
+        for (int index = snapshot.History.Length - 1; index >= firstHistoryIndex; index--)
+        {
+            ResourceDebugHistoryEntry entry = snapshot.History[index];
+            TreeItem item = _resourcesHistoryTree.CreateItem(historyRoot);
+            item.SetText(0, entry.Key.Value);
+            item.SetText(1, entry.ResourceType.Name);
+            item.SetText(2, entry.Mode == ResourceDebugLoadMode.Synchronous ? "同步" : "异步");
+            item.SetText(3, entry.Status.ToString());
+            item.SetText(4, entry.MergedRequestCount.ToString(CultureInfo.InvariantCulture));
+            item.SetTooltipText(0, entry.Key.Value);
+            for (int column = 1; column < 5; column++)
+                item.SetTextAlignment(column, HorizontalAlignment.Center);
+        }
+    }
+
+    private static int CompareResourceOperations(
+        ResourceDebugActiveEntry left,
+        ResourceDebugActiveEntry right) =>
+        string.CompareOrdinal(left.Key.Value, right.Key.Value);
+
+    private void RefreshDataTablePage()
+    {
+        if (!IsInstanceValid(_dataTableLoadedValue) ||
+            !IsInstanceValid(_dataTableTablesValue) ||
+            !IsInstanceValid(_dataTableLoadingValue) ||
+            !IsInstanceValid(_dataTableFailedValue) ||
+            !IsInstanceValid(_dataTableDataSetStatus) ||
+            !IsInstanceValid(_dataTableDataSetTree) ||
+            !IsInstanceValid(_dataTableHistoryStatus) ||
+            !IsInstanceValid(_dataTableHistoryTree))
+            return;
+
+        if (!Services.TryGet<IDataTableService>(out IDataTableService? service) || service is null)
+        {
+            SetDataTableUnavailable("未注册", "DataTableService 未注册");
+            return;
+        }
+        if (service is not DataTableService dataTableService)
+        {
+            SetDataTableUnavailable("不支持", "当前实现不支持 Debug 快照");
+            return;
+        }
+
+        int snapshotVersion = dataTableService.DebugVersion;
+        if (_dataTableSnapshotVersion == snapshotVersion)
+            return;
+
+        DataTableDebugSnapshot snapshot = dataTableService.GetDebugSnapshot();
+        _dataTableLoadedValue.Text =
+            snapshot.LoadedDataSetCount.ToString(CultureInfo.InvariantCulture);
+        _dataTableTablesValue.Text =
+            snapshot.CachedTableCount.ToString(CultureInfo.InvariantCulture);
+        _dataTableLoadingValue.Text =
+            snapshot.LoadingDataSetCount.ToString(CultureInfo.InvariantCulture);
+        _dataTableFailedValue.Text =
+            snapshot.FailedLoadCount.ToString(CultureInfo.InvariantCulture);
+
+        int displayedDataSetCount =
+            Math.Min(snapshot.DataSets.Length, MaxDisplayedDataTableDataSets);
+        _dataTableDataSetStatus.Text =
+            snapshot.DataSets.Length <= MaxDisplayedDataTableDataSets
+                ? $"当前数据集 {snapshot.DataSets.Length}"
+                : $"当前数据集 {snapshot.DataSets.Length}，显示前 {displayedDataSetCount}";
+        _dataTableDataSetTree.Clear();
+        TreeItem dataSetRoot = _dataTableDataSetTree.CreateItem();
+        int remainingDisplayedTables = MaxDisplayedDataTableTables;
+        for (int index = 0; index < displayedDataSetCount; index++)
+        {
+            DataTableDebugDataSetEntry entry = snapshot.DataSets[index];
+            TreeItem dataSetItem = _dataTableDataSetTree.CreateItem(dataSetRoot);
+            dataSetItem.SetText(0, entry.DataSetId);
+            dataSetItem.SetText(1, GetDataTableStateText(entry.State));
+            dataSetItem.SetText(
+                2,
+                $"{entry.LoadedTableCount.ToString(CultureInfo.InvariantCulture)} / " +
+                entry.TotalTableCount.ToString(CultureInfo.InvariantCulture));
+            dataSetItem.SetText(3, FormatDataTableProgress(entry));
+            string dataSetDetail =
+                entry.State == DataTableDebugState.Loading && entry.LastTableId is not null
+                    ? $"{entry.RuntimeDirectory} · 最近 {entry.LastTableId}"
+                    : entry.RuntimeDirectory;
+            dataSetItem.SetText(4, dataSetDetail);
+            dataSetItem.SetCustomColor(1, GetDataTableStateColor(entry.State));
+            dataSetItem.SetTooltipText(0, entry.DataSetId);
+            dataSetItem.SetTooltipText(4, entry.RuntimeDirectory);
+            for (int column = 1; column < 4; column++)
+                dataSetItem.SetTextAlignment(column, HorizontalAlignment.Center);
+
+            int displayedTableCount = Math.Min(entry.Tables.Length, remainingDisplayedTables);
+            for (int tableIndex = 0; tableIndex < displayedTableCount; tableIndex++)
+            {
+                DataTableDebugTableEntry table = entry.Tables[tableIndex];
+                TreeItem tableItem = _dataTableDataSetTree.CreateItem(dataSetItem);
+                tableItem.SetText(0, table.TableId);
+                tableItem.SetText(1, table.TableType.Name);
+                tableItem.SetText(2, "1");
+                tableItem.SetText(3, "—");
+                tableItem.SetText(4, "已缓存");
+                tableItem.SetTooltipText(0, table.TableId);
+                tableItem.SetTooltipText(1, table.TableType.FullName ?? table.TableType.Name);
+                for (int column = 1; column < 4; column++)
+                    tableItem.SetTextAlignment(column, HorizontalAlignment.Center);
+            }
+            remainingDisplayedTables -= displayedTableCount;
+            if (displayedTableCount < entry.Tables.Length)
+            {
+                TreeItem omittedItem = _dataTableDataSetTree.CreateItem(dataSetItem);
+                omittedItem.SetText(
+                    0,
+                    $"…还有 {(entry.Tables.Length - displayedTableCount).ToString(CultureInfo.InvariantCulture)} 张表");
+                omittedItem.SetSelectable(0, false);
+            }
+        }
+
+        int displayedHistoryCount =
+            Math.Min(snapshot.History.Length, MaxDisplayedDataTableHistory);
+        _dataTableHistoryStatus.Text =
+            $"最近结果 {displayedHistoryCount} / 保留 {snapshot.History.Length}";
+        _dataTableHistoryTree.Clear();
+        TreeItem historyRoot = _dataTableHistoryTree.CreateItem();
+        int firstHistoryIndex = Math.Max(0, snapshot.History.Length - displayedHistoryCount);
+        for (int index = snapshot.History.Length - 1; index >= firstHistoryIndex; index--)
+        {
+            DataTableDebugHistoryEntry entry = snapshot.History[index];
+            TreeItem item = _dataTableHistoryTree.CreateItem(historyRoot);
+            item.SetText(0, entry.DataSetId);
+            item.SetText(1, GetDataTableStateText(entry.State));
+            item.SetText(2, entry.TableCount.ToString(CultureInfo.InvariantCulture));
+            item.SetText(3, entry.Detail);
+            item.SetCustomColor(1, GetDataTableStateColor(entry.State));
+            item.SetTooltipText(0, entry.DataSetId);
+            item.SetTooltipText(3, entry.Detail);
+            item.SetTextAlignment(1, HorizontalAlignment.Center);
+            item.SetTextAlignment(2, HorizontalAlignment.Center);
+        }
+        _dataTableSnapshotVersion = snapshotVersion;
+    }
+
+    private void SetDataTableUnavailable(string state, string detail)
+    {
+        _dataTableLoadedValue!.Text = state;
+        _dataTableTablesValue!.Text = "—";
+        _dataTableLoadingValue!.Text = "—";
+        _dataTableFailedValue!.Text = "—";
+        _dataTableDataSetStatus!.Text = detail;
+        _dataTableHistoryStatus!.Text = "最近结果 0 / 保留 0";
+        _dataTableDataSetTree!.Clear();
+        _dataTableHistoryTree!.Clear();
+        _dataTableSnapshotVersion = int.MinValue;
+    }
+
+    private static string FormatDataTableProgress(DataTableDebugDataSetEntry entry)
+    {
+        if (entry.State == DataTableDebugState.Loaded)
+            return "100%";
+        if (entry.TotalTableCount <= 0)
+            return "0%";
+        int percentage = Mathf.RoundToInt(
+            (float)entry.LoadedTableCount / entry.TotalTableCount * 100f);
+        return $"{percentage.ToString(CultureInfo.InvariantCulture)}%";
+    }
+
+    private static string GetDataTableStateText(DataTableDebugState state) => state switch
+    {
+        DataTableDebugState.Loading => "加载中",
+        DataTableDebugState.Loaded => "已加载",
+        DataTableDebugState.Failed => "失败",
+        DataTableDebugState.Canceled => "已取消",
+        DataTableDebugState.Unloaded => "已卸载",
+        _ => state.ToString(),
+    };
+
+    private static Color GetDataTableStateColor(DataTableDebugState state) => state switch
+    {
+        DataTableDebugState.Loading => new Color(0.95f, 0.75f, 0.32f),
+        DataTableDebugState.Loaded => new Color(0.49f, 0.76f, 1f),
+        DataTableDebugState.Failed => new Color(1f, 0.38f, 0.38f),
+        DataTableDebugState.Canceled => new Color(0.72f, 0.66f, 0.52f),
+        DataTableDebugState.Unloaded => new Color(0.5f, 0.57f, 0.66f),
+        _ => new Color(0.72f, 0.78f, 0.85f),
+    };
+
+    private void RefreshUiPage()
+    {
+        if (!IsInstanceValid(_uiSceneValue) ||
+            !IsInstanceValid(_uiViewValue) ||
+            !IsInstanceValid(_uiModalValue) ||
+            !IsInstanceValid(_uiCurrentValue) ||
+            !IsInstanceValid(_uiCurrentDetail) ||
+            !IsInstanceValid(_uiStackStatus) ||
+            !IsInstanceValid(_uiStackTree))
+            return;
+
+        if (!Services.TryGet<IUiService>(out IUiService? service) || service is null)
+        {
+            SetUiUnavailable("未注册", "UiService 未注册");
+            return;
+        }
+        if (service is not UiService uiService)
+        {
+            SetUiUnavailable("不支持", "当前实现不支持 Debug 快照");
+            return;
+        }
+
+        UiDebugSnapshot snapshot = uiService.GetDebugSnapshot();
+        int sceneCount = 0;
+        int viewCount = 0;
+        int modalCount = 0;
+        int invalidCount = 0;
+        UiDebugEntry? current = null;
+        for (int index = 0; index < snapshot.Entries.Length; index++)
+        {
+            UiDebugEntry entry = snapshot.Entries[index];
+            switch (entry.Layer)
+            {
+                case UiLayer.Scene:
+                    sceneCount++;
+                    break;
+                case UiLayer.View:
+                    viewCount++;
+                    current = entry;
+                    break;
+                case UiLayer.Modal:
+                    modalCount++;
+                    current = entry;
+                    break;
+            }
+
+            if (!entry.IsValid)
+                invalidCount++;
+        }
+
+        _uiSceneValue.Text = sceneCount.ToString(CultureInfo.InvariantCulture);
+        _uiViewValue.Text = viewCount.ToString(CultureInfo.InvariantCulture);
+        _uiModalValue.Text = modalCount.ToString(CultureInfo.InvariantCulture);
+        _uiCurrentValue.Text = current?.NodeName ?? "空闲";
+        _uiCurrentDetail.Text = current?.Key.Value ?? "无 View / Modal";
+        _uiCurrentValue.TooltipText = current?.NodeName ?? string.Empty;
+        _uiCurrentDetail.TooltipText = current?.Key.Value ?? string.Empty;
+        int displayedEntryCount = Math.Min(snapshot.Entries.Length, MaxDisplayedUiEntries);
+        string displayDetail = snapshot.Entries.Length <= MaxDisplayedUiEntries
+            ? string.Empty
+            : $" · 显示顶部 {displayedEntryCount}";
+        _uiStackStatus.Text = invalidCount == 0
+            ? $"受管理界面 {snapshot.Entries.Length}{displayDetail}"
+            : $"受管理界面 {snapshot.Entries.Length} · 异常 {invalidCount}{displayDetail}";
+
+        _uiStackTree.Clear();
+        TreeItem root = _uiStackTree.CreateItem();
+        int firstDisplayedIndex = Math.Max(0, snapshot.Entries.Length - displayedEntryCount);
+        for (int index = snapshot.Entries.Length - 1; index >= firstDisplayedIndex; index--)
+        {
+            UiDebugEntry entry = snapshot.Entries[index];
+            TreeItem item = _uiStackTree.CreateItem(root);
+            item.SetText(0, entry.Layer.ToString());
+            item.SetText(1, GetUiOrderText(entry));
+            item.SetText(2, entry.NodeName);
+            item.SetText(3, entry.Key.Value);
+            item.SetText(4, !entry.IsValid ? "已失效" : entry.IsVisible ? "显示" : "隐藏");
+            item.SetTooltipText(2, entry.NodeName);
+            item.SetTooltipText(3, entry.Key.Value);
+            item.SetTextAlignment(0, HorizontalAlignment.Center);
+            item.SetTextAlignment(1, HorizontalAlignment.Center);
+            item.SetTextAlignment(4, HorizontalAlignment.Center);
+            if (!entry.IsValid)
+                item.SetCustomColor(4, new Color(1f, 0.38f, 0.38f));
+        }
+    }
+
+    private void SetUiUnavailable(string state, string detail)
+    {
+        _uiSceneValue!.Text = state;
+        _uiViewValue!.Text = "—";
+        _uiModalValue!.Text = "—";
+        _uiCurrentValue!.Text = "—";
+        _uiCurrentDetail!.Text = detail;
+        _uiStackStatus!.Text = detail;
+        _uiStackTree!.Clear();
+    }
+
+    private static string GetUiOrderText(UiDebugEntry entry) =>
+        entry.Layer == UiLayer.Scene
+            ? (entry.Index + 1).ToString(CultureInfo.InvariantCulture)
+            : $"#{(entry.Index + 1).ToString(CultureInfo.InvariantCulture)}";
+
+    private void RefreshProcedurePage()
+    {
+        if (!IsInstanceValid(_procedureCurrentValue) ||
+            !IsInstanceValid(_procedureStateValue) ||
+            !IsInstanceValid(_procedurePendingValue) ||
+            !IsInstanceValid(_procedureResultValue) ||
+            !IsInstanceValid(_procedureDetailsTree))
+            return;
+
+        if (!Services.TryGet<IProcedureService>(out IProcedureService? service) || service is null)
+        {
+            SetProcedureUnavailable("未注册", "ProcedureService 未注册");
+            return;
+        }
+        if (service is not ProcedureService procedureService)
+        {
+            SetProcedureUnavailable("不支持", "当前实现不支持 Debug 快照");
+            return;
+        }
+
+        ProcedureDebugSnapshot snapshot = procedureService.GetDebugSnapshot();
+        _procedureCurrentValue.Text = snapshot.CurrentName ?? "空闲";
+        _procedureStateValue.Text = snapshot.Phase switch
+        {
+            ProcedureDebugPhase.Exiting => "退出中",
+            ProcedureDebugPhase.Entering => "进入中",
+            _ => service.IsChanging ? "切换中" : "空闲",
+        };
+        _procedurePendingValue.Text = snapshot.PendingName ?? "无";
+        _procedureResultValue.Text = snapshot.LastFailure is null ? "无" : "有";
+        _procedureDetailsTree.Clear();
+        TreeItem root = _procedureDetailsTree.CreateItem();
+        AddProcedureDetail(root, "上一个流程", snapshot.PreviousName ?? "—");
+        AddProcedureDetail(root, "切换目标", snapshot.TargetName ?? "—");
+        AddProcedureDetail(root, "最近成功", snapshot.LastSucceededName ?? "—");
+        AddProcedureDetail(root, "最近失败", snapshot.LastFailure ?? "—");
+    }
+
+    private void SetProcedureUnavailable(string state, string detail)
+    {
+        _procedureCurrentValue!.Text = state;
+        _procedureStateValue!.Text = "—";
+        _procedurePendingValue!.Text = "—";
+        _procedureResultValue!.Text = "—";
+        _procedureDetailsTree!.Clear();
+        TreeItem root = _procedureDetailsTree.CreateItem();
+        AddProcedureDetail(root, "诊断", detail);
+    }
+
+    private void AddProcedureDetail(TreeItem root, string name, string value)
+    {
+        TreeItem item = _procedureDetailsTree!.CreateItem(root);
+        item.SetText(0, name);
+        item.SetText(1, value);
+        item.SetTooltipText(1, value);
     }
 
     private void RefreshInputDashboard()
@@ -1447,20 +3275,15 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             return;
         }
 
-        if (!Services.TryGet<IInputService>(out IInputService? input) || input is not InputService inputService)
+        if (!Services.TryGet<IInputService>(out IInputService? input) || input is null)
         {
-            _inputBackendValue.Text = "不可用";
-            _inputBackendDetail.Text = "InputService";
-            _inputDeviceValue.Text = "Unknown";
-            _inputFrameValue.Text = "—";
-            _inputFrameDetail.Text = "无采样";
-            _inputActionsValue.Text = "0";
-            _inputCapabilities.Text = "能力：无";
-            _inputActionsMatchStatus.Text = "InputService 不可用";
-            _inputContextsTree.Clear();
-            _inputActionsTree.Clear();
-            _inputContextsSignature = int.MinValue;
-            _inputActionsSignature = int.MinValue;
+            SetInputUnavailable("未注册", "InputService 未注册");
+            return;
+        }
+
+        if (input is not InputService inputService)
+        {
+            SetInputUnavailable("不支持", "当前实现不支持 Debug 快照");
             return;
         }
 
@@ -1477,6 +3300,24 @@ public sealed partial class DebuggerOverlay : CanvasLayer
 
         RefreshInputContexts(snapshot.Contexts);
         RefreshInputActions(snapshot.Actions);
+    }
+
+    private void SetInputUnavailable(string state, string detail)
+    {
+        _inputBackendValue!.Text = state;
+        _inputBackendValue.TooltipText = string.Empty;
+        _inputBackendDetail!.Text = detail;
+        _inputDeviceValue!.Text = "Unknown";
+        _inputFrameValue!.Text = "—";
+        _inputFrameDetail!.Text = "无采样";
+        _inputActionsValue!.Text = "0";
+        _inputCapabilities!.Text = "能力：无";
+        _inputCapabilities.TooltipText = string.Empty;
+        _inputActionsMatchStatus!.Text = detail;
+        _inputContextsTree!.Clear();
+        _inputActionsTree!.Clear();
+        _inputContextsSignature = int.MinValue;
+        _inputActionsSignature = int.MinValue;
     }
 
     private void RefreshInputContexts(InputDebugContextEntry[] contexts)
@@ -1636,9 +3477,15 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             return;
 
         if (!Services.TryGet<ISchedulerService>(out ISchedulerService? scheduler) ||
-            scheduler is not SchedulerService schedulerService)
+            scheduler is null)
         {
-            _schedulerActiveValue.Text = "不可用";
+            SetSchedulerUnavailable("未注册");
+            return;
+        }
+
+        if (scheduler is not SchedulerService schedulerService)
+        {
+            SetSchedulerUnavailable("不支持 Debug 快照");
             return;
         }
 
@@ -1676,6 +3523,26 @@ public sealed partial class DebuggerOverlay : CanvasLayer
                 : new Color(0.86f, 0.91f, 0.97f));
     }
 
+    private void SetSchedulerUnavailable(string state)
+    {
+        _schedulerActiveValue!.Text = state;
+        _schedulerPausedValue!.Text = "—";
+        _schedulerRepeatingValue!.Text = "—";
+        _schedulerNextValue!.Text = "—";
+        _schedulerProcessGameValue!.Text = "—";
+        _schedulerProcessUnscaledValue!.Text = "—";
+        _schedulerProcessRealValue!.Text = "—";
+        _schedulerProcessDispatchValue!.Text = "—";
+        _schedulerPhysicsGameValue!.Text = "—";
+        _schedulerPhysicsUnscaledValue!.Text = "—";
+        _schedulerPhysicsRealValue!.Text = "—";
+        _schedulerPhysicsDispatchValue!.Text = "—";
+        _schedulerCanceledValue!.Text = "—";
+        _schedulerOwnerCanceledValue!.Text = "—";
+        _schedulerFailedValue!.Text = "—";
+        _schedulerFailedValue.RemoveThemeColorOverride("font_color");
+    }
+
     private void RefreshAudioDashboard()
     {
         if (!IsInstanceValid(_audioBgmStateValue) ||
@@ -1690,7 +3557,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
 
         if (!Services.TryGet<IAudioService>(out IAudioService? audio) || audio is null)
         {
-            _audioBgmStateValue.Text = "不可用";
+            _audioBgmStateValue.Text = "未注册";
             _audioBgmStateDetail.Text = "AudioService 未注册";
             _audioBgmResourceValue.Text = "—";
             _audioBgmResourceValue.TooltipText = string.Empty;
@@ -1729,8 +3596,11 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private void SetAudioVolumeUnavailable()
     {
         _audioMasterVolumeValue!.Text = "—";
+        _audioMasterVolumeValue.TooltipText = string.Empty;
         _audioBgmVolumeValue!.Text = "—";
+        _audioBgmVolumeValue.TooltipText = string.Empty;
         _audioSfxVolumeValue!.Text = "—";
+        _audioSfxVolumeValue.TooltipText = string.Empty;
     }
 
     private static void SetAudioVolume(Label label, float volume)
@@ -2110,9 +3980,16 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         public string Title { get; }
         public Action Render { get; }
         public bool IsOverview => string.Equals(Path, "Overview", StringComparison.Ordinal);
+        public bool IsSystem => string.Equals(Path, "System", StringComparison.Ordinal);
+        public bool IsPerformance => string.Equals(Path, "Performance", StringComparison.Ordinal);
         public bool IsInput => string.Equals(Path, "Runtime/Input", StringComparison.Ordinal);
         public bool IsScheduler => string.Equals(Path, "Runtime/Scheduler", StringComparison.Ordinal);
         public bool IsAudio => string.Equals(Path, "Runtime/Audio", StringComparison.Ordinal);
+        public bool IsScene => string.Equals(Path, "Runtime/Scene", StringComparison.Ordinal);
+        public bool IsResources => string.Equals(Path, "Runtime/Resources", StringComparison.Ordinal);
+        public bool IsDataTable => string.Equals(Path, "Runtime/DataTable", StringComparison.Ordinal);
+        public bool IsUi => string.Equals(Path, "Runtime/UI", StringComparison.Ordinal);
+        public bool IsProcedure => string.Equals(Path, "Runtime/Procedure", StringComparison.Ordinal);
         public bool IsServices => string.Equals(Path, "Framework/Services", StringComparison.Ordinal);
         public bool IsEvents => string.Equals(Path, "Framework/Events", StringComparison.Ordinal);
         public bool IsConsole => string.Equals(Path, "Console", StringComparison.Ordinal);

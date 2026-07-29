@@ -22,6 +22,16 @@ public sealed partial class DataTableService : Node, IDataTableService
         new(StringComparer.Ordinal);
     private readonly HashSet<string> _loadingDataSets = new(StringComparer.Ordinal);
     private readonly CancellationTokenSource _shutdownCancellation = new();
+#if DEBUG
+    private const int DebugHistoryCapacity = 16;
+    private const int DebugDetailLengthLimit = 512;
+    private readonly Dictionary<string, DebugLoadingState> _debugLoadingDataSets =
+        new(StringComparer.Ordinal);
+    private readonly Queue<DataTableDebugHistoryEntry> _debugHistory =
+        new(DebugHistoryCapacity);
+    private int _debugFailedLoadCount;
+    private int _debugVersion;
+#endif
 
     /// <inheritdoc />
     public async Task LoadAsync(
@@ -40,6 +50,14 @@ public sealed partial class DataTableService : Node, IDataTableService
         {
             if (!StringComparer.Ordinal.Equals(loaded.RuntimeDirectory, normalizedDirectory))
             {
+#if DEBUG
+                RecordDebugHistory(
+                    definition.Id,
+                    DataTableDebugState.Failed,
+                    loaded.Tables.Count,
+                    $"数据集已经从其他目录加载：{loaded.RuntimeDirectory}");
+                _debugFailedLoadCount++;
+#endif
                 throw new DataTableLoadException(
                     definition.Id,
                     $"数据集已经从其他目录加载：{loaded.RuntimeDirectory}");
@@ -47,7 +65,23 @@ public sealed partial class DataTableService : Node, IDataTableService
             return;
         }
         if (!_loadingDataSets.Add(definition.Id))
+        {
+#if DEBUG
+            RecordDebugHistory(
+                definition.Id,
+                DataTableDebugState.Failed,
+                0,
+                "数据集正在加载，不能重复发起请求。");
+            _debugFailedLoadCount++;
+#endif
             throw new DataTableLoadException(definition.Id, "数据集正在加载，不能重复发起请求。");
+        }
+#if DEBUG
+        _debugLoadingDataSets.Add(
+            definition.Id,
+            new DebugLoadingState(normalizedDirectory));
+        IncrementDebugVersion();
+#endif
 
         using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
@@ -60,6 +94,9 @@ public sealed partial class DataTableService : Node, IDataTableService
             Dictionary<string, DataTableDefinition> definitions = IndexDefinitions(definition);
             var stagedTables = new Dictionary<string, object>(StringComparer.Ordinal);
             int total = manifest.Tables.Count;
+#if DEBUG
+            UpdateDebugLoading(definition.Id, 0, total, null);
+#endif
             progress?.Invoke(new DataTableLoadProgress(definition.Id, 0, total, null));
 
             for (int index = 0; index < total; index++)
@@ -94,6 +131,13 @@ public sealed partial class DataTableService : Node, IDataTableService
                         exception);
                 }
                 stagedTables.Add(manifestTable.Id, table);
+#if DEBUG
+                UpdateDebugLoading(
+                    definition.Id,
+                    index + 1,
+                    total,
+                    manifestTable.Id);
+#endif
                 progress?.Invoke(new DataTableLoadProgress(
                     definition.Id,
                     index + 1,
@@ -111,25 +155,61 @@ public sealed partial class DataTableService : Node, IDataTableService
             _loadedDataSets.Add(
                 definition.Id,
                 new LoadedDataSet(normalizedDirectory, stagedTables));
+#if DEBUG
+            RecordDebugHistory(
+                definition.Id,
+                DataTableDebugState.Loaded,
+                stagedTables.Count,
+                $"已发布 {stagedTables.Count} 张表");
+#endif
         }
         catch (OperationCanceledException)
         {
+#if DEBUG
+            RecordDebugLoadingResult(
+                definition.Id,
+                DataTableDebugState.Canceled,
+                "加载已取消");
+#endif
             throw;
         }
+#if DEBUG
+        catch (DataTableLoadException exception)
+#else
         catch (DataTableLoadException)
+#endif
         {
+#if DEBUG
+            RecordDebugLoadingResult(
+                definition.Id,
+                DataTableDebugState.Failed,
+                exception.Message);
+            _debugFailedLoadCount++;
+#endif
             throw;
         }
         catch (Exception exception)
         {
-            throw new DataTableLoadException(
+            var wrapped = new DataTableLoadException(
                 definition.Id,
                 $"加载 DataTable 数据集失败：{definition.Id}",
                 exception);
+#if DEBUG
+            RecordDebugLoadingResult(
+                definition.Id,
+                DataTableDebugState.Failed,
+                wrapped.Message);
+            _debugFailedLoadCount++;
+#endif
+            throw wrapped;
         }
         finally
         {
             _loadingDataSets.Remove(definition.Id);
+#if DEBUG
+            if (_debugLoadingDataSets.Remove(definition.Id))
+                IncrementDebugVersion();
+#endif
         }
     }
 
@@ -167,7 +247,16 @@ public sealed partial class DataTableService : Node, IDataTableService
         ArgumentException.ThrowIfNullOrWhiteSpace(dataSetId);
         if (_loadingDataSets.Contains(dataSetId))
             throw new InvalidOperationException($"DataTable 数据集正在加载，不能卸载：{dataSetId}");
-        return _loadedDataSets.Remove(dataSetId);
+        if (!_loadedDataSets.Remove(dataSetId, out LoadedDataSet? removed))
+            return false;
+#if DEBUG
+        RecordDebugHistory(
+            dataSetId,
+            DataTableDebugState.Unloaded,
+            removed.Tables.Count,
+            $"已释放 {removed.Tables.Count} 张表的 Service 引用");
+#endif
+        return true;
     }
 
     internal void Shutdown()
@@ -271,6 +360,134 @@ public sealed partial class DataTableService : Node, IDataTableService
         internal string RuntimeDirectory { get; }
         internal Dictionary<string, object> Tables { get; }
     }
+
+#if DEBUG
+    internal int DebugVersion => _debugVersion;
+
+    internal DataTableDebugSnapshot GetDebugSnapshot()
+    {
+        MainThreadGuard.VerifyAccess();
+        var dataSets = new DataTableDebugDataSetEntry[
+            _loadedDataSets.Count + _debugLoadingDataSets.Count];
+        int dataSetIndex = 0;
+        int cachedTableCount = 0;
+        foreach ((string dataSetId, LoadedDataSet loaded) in _loadedDataSets)
+        {
+            var tables = new DataTableDebugTableEntry[loaded.Tables.Count];
+            int tableIndex = 0;
+            foreach ((string tableId, object table) in loaded.Tables)
+                tables[tableIndex++] = new DataTableDebugTableEntry(tableId, table.GetType());
+            Array.Sort(
+                tables,
+                static (left, right) =>
+                    StringComparer.Ordinal.Compare(left.TableId, right.TableId));
+            cachedTableCount += tables.Length;
+            dataSets[dataSetIndex++] = new DataTableDebugDataSetEntry(
+                dataSetId,
+                loaded.RuntimeDirectory,
+                DataTableDebugState.Loaded,
+                tables.Length,
+                tables.Length,
+                null,
+                tables);
+        }
+
+        foreach ((string dataSetId, DebugLoadingState loading) in _debugLoadingDataSets)
+        {
+            dataSets[dataSetIndex++] = new DataTableDebugDataSetEntry(
+                dataSetId,
+                loading.RuntimeDirectory,
+                DataTableDebugState.Loading,
+                loading.LoadedTableCount,
+                loading.TotalTableCount,
+                loading.LastTableId,
+                Array.Empty<DataTableDebugTableEntry>());
+        }
+        Array.Sort(
+            dataSets,
+            static (left, right) =>
+                StringComparer.Ordinal.Compare(left.DataSetId, right.DataSetId));
+
+        return new DataTableDebugSnapshot(
+            dataSets,
+            _debugHistory.ToArray(),
+            _loadedDataSets.Count,
+            _debugLoadingDataSets.Count,
+            cachedTableCount,
+            _debugFailedLoadCount);
+    }
+
+    private void UpdateDebugLoading(
+        string dataSetId,
+        int loadedTableCount,
+        int totalTableCount,
+        string? lastTableId)
+    {
+        if (!_debugLoadingDataSets.TryGetValue(dataSetId, out DebugLoadingState? loading))
+            return;
+        loading.LoadedTableCount = loadedTableCount;
+        loading.TotalTableCount = totalTableCount;
+        loading.LastTableId = lastTableId;
+        IncrementDebugVersion();
+    }
+
+    private void RecordDebugLoadingResult(
+        string dataSetId,
+        DataTableDebugState state,
+        string detail)
+    {
+        int tableCount = _debugLoadingDataSets.TryGetValue(
+            dataSetId,
+            out DebugLoadingState? loading)
+            ? loading.LoadedTableCount
+            : 0;
+        RecordDebugHistory(dataSetId, state, tableCount, detail);
+    }
+
+    private void RecordDebugHistory(
+        string dataSetId,
+        DataTableDebugState state,
+        int tableCount,
+        string detail)
+    {
+        if (_debugHistory.Count >= DebugHistoryCapacity)
+            _debugHistory.Dequeue();
+        _debugHistory.Enqueue(new DataTableDebugHistoryEntry(
+            dataSetId,
+            state,
+            tableCount,
+            LimitDebugDetail(detail)));
+        IncrementDebugVersion();
+    }
+
+    private static string LimitDebugDetail(string detail)
+    {
+        return detail.Length <= DebugDetailLengthLimit
+            ? detail
+            : string.Concat(detail.AsSpan(0, DebugDetailLengthLimit), "…");
+    }
+
+    private void IncrementDebugVersion()
+    {
+        unchecked
+        {
+            _debugVersion++;
+        }
+    }
+
+    private sealed class DebugLoadingState
+    {
+        internal DebugLoadingState(string runtimeDirectory)
+        {
+            RuntimeDirectory = runtimeDirectory;
+        }
+
+        internal string RuntimeDirectory { get; }
+        internal int LoadedTableCount { get; set; }
+        internal int TotalTableCount { get; set; }
+        internal string? LastTableId { get; set; }
+    }
+#endif
 
     private sealed class Manifest
     {

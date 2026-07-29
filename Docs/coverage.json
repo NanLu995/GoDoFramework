@@ -53,11 +53,11 @@
     "debugger": {
       "contract": "addons/godo_framework/Debugger/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖自动加载、折叠与展开、卡片式概览、结构化 Input、Scheduler、Audio、Services 与 Events 检查器、树状导航、布局操作、控制台交互、刷新和历史容量及 Release 边界；仍等待各页面的深度排障示例。",
+      "reason": "功能指南已覆盖自动加载、折叠与展开、卡片式概览、System 环境、Performance 低频趋势与分组指标、结构化 Input、Scheduler、Audio、Scene、Resources、DataTable、UI、Services 与 Events 检查器、树状导航、布局操作、控制台交互、刷新和历史容量及 Release 边界；仍等待各页面的深度排障示例。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:c652f97cf2dd16a514ac424c0e537e353f452ca49232695905eb7643f01c722d"
+      "reviewed_contract_hash": "sha256:40e826e6ed2a7d322ffeb6ce6f3727de68f25f3b00dd02071d6c14294972c57e"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
@@ -152,7 +152,7 @@
         "guides/input/index.md",
         "guides/procedure-recovery/index.md"
       ],
-      "reviewed_contract_hash": "sha256:4650601a06d07a7d58f259d76c530dfe97eca609145fb45afe9425ddd9dfdee8"
+      "reviewed_contract_hash": "sha256:e08a978de41501c0be456809f06d909402b30af88f87d9f5215ef105193040f8"
     },
     "resources": {
       "contract": "addons/godo_framework/Runtime/Resources/USAGE.md",
@@ -195,7 +195,7 @@
       "manual_pages": [
         "guides/scheduler/index.md"
       ],
-      "reviewed_contract_hash": "sha256:1b49da147680e90125b5305cff7d4770bdc14e2364277581dfcc17f040129019"
+      "reviewed_contract_hash": "sha256:23ac5b2d8fea8960866d4dd820cc5ed1b9d01c2d00f1c4ffb3c0dfafbb1e5fef"
     },
     "settings": {
       "contract": "addons/godo_framework/Runtime/Settings/USAGE.md",
@@ -216,18 +216,19 @@
         "getting-started/first-ui.md",
         "getting-started/switch-procedures.md",
         "getting-started/localize-game-text.md",
-        "guides/ui-and-audio/index.md"
+        "guides/ui-and-audio/index.md",
+        "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:7ce921ec398e71a4e94a7f14fe01ec1f295a9122198f7a862540a1c5bd48e33c"
+      "reviewed_contract_hash": "sha256:27b4c19b6a21aa525ba99d614bbe61431ba8e25d63fb02b127fc31c17493d66e"
     },
     "data-table-runtime": {
       "contract": "addons/godo_framework/Runtime/DataTable/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖业务显式加载、生成门面、表级进度、事务发布、重复加载、取消、失败、卸载、Client/Server 子集及更新边界；移动端、AOT 和完整 ExportRelease 仍待正式验收。",
+      "reason": "功能指南已覆盖业务显式加载、生成门面、表级进度、事务发布、重复加载、取消、失败、卸载、Client/Server 子集、更新边界及 Debugger 只读诊断；移动端、AOT 和完整 ExportRelease 仍待正式验收。",
       "manual_pages": [
         "guides/data-tables/index.md"
       ],
-      "reviewed_contract_hash": "sha256:b4d44ad75bc383ad7bc1887cfe62a9b8ed25832f31b106003b098c7330c671e9"
+      "reviewed_contract_hash": "sha256:cfac6d16b84f0fadbdc07c81ede2202bb0a58aa0eab54e3fe24bf7e1fc9588c8"
     },
     "data-table": {
       "contract": "addons/godo_framework/Tools/DataTable/USAGE.md",
@@ -236,7 +237,7 @@
       "manual_pages": [
         "guides/data-tables/index.md"
       ],
-      "reviewed_contract_hash": "sha256:8c97aa12ce517409390fcfe73256d7ff3757fdd5a303b5cdfea96283aa08b352"
+      "reviewed_contract_hash": "sha256:3c9990139af887e4c2e60d4cdf2901408567ffdf608ac47a695b8d28827f1349"
     }
   }
 }

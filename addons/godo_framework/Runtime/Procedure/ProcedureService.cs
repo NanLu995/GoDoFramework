@@ -14,6 +14,13 @@ public sealed class ProcedureService : IProcedureService
     private readonly ProcedureContext _context;
     private IProcedure? _requestedProcedure;
     private bool _isProcessingRequest;
+#if DEBUG
+    private string? _debugPreviousName;
+    private string? _debugTargetName;
+    private ProcedureDebugPhase _debugPhase;
+    private string? _debugLastSucceededName;
+    private string? _debugLastFailure;
+#endif
 
     /// <summary>创建顶层流程服务。</summary>
     public ProcedureService()
@@ -34,7 +41,12 @@ public sealed class ProcedureService : IProcedureService
         ArgumentNullException.ThrowIfNull(next);
 
         if (IsChanging)
+        {
+#if DEBUG
+            _debugLastFailure = $"拒绝 {GetDebugName(next)}：已有流程切换正在执行";
+#endif
             throw new ProcedureChangeException(next.Name, "已有流程切换正在执行，不能重复发起请求。");
+        }
 
         await ChangeSequenceAsync(next);
     }
@@ -50,6 +62,13 @@ public sealed class ProcedureService : IProcedureService
         _requestedProcedure = null;
         IsChanging = false;
         _isProcessingRequest = false;
+#if DEBUG
+        _debugPreviousName = null;
+        _debugTargetName = null;
+        _debugPhase = ProcedureDebugPhase.Idle;
+        _debugLastSucceededName = null;
+        _debugLastFailure = null;
+#endif
     }
 
     private void RequestChange(IProcedure next)
@@ -106,13 +125,89 @@ public sealed class ProcedureService : IProcedureService
     private async Task ChangeSingleAsync(IProcedure next)
     {
         IProcedure? previous = Current;
+#if DEBUG
+        _debugPreviousName = GetDebugName(previous);
+        _debugTargetName = GetDebugName(next);
+        _debugPhase = previous is null ? ProcedureDebugPhase.Entering : ProcedureDebugPhase.Exiting;
+#endif
         if (previous != null)
-            await ExitAsync(previous);
+        {
+            try
+            {
+                await ExitAsync(previous);
+            }
+            catch (Exception exception)
+            {
+#if DEBUG
+                RecordDebugFailure("退出", previous, exception);
+#else
+                _ = exception;
+#endif
+                throw;
+            }
+        }
 
         Current = null;
-        await EnterAsync(next);
+#if DEBUG
+        _debugPhase = ProcedureDebugPhase.Entering;
+#endif
+        try
+        {
+            await EnterAsync(next);
+        }
+        catch (Exception exception)
+        {
+#if DEBUG
+            RecordDebugFailure("进入", next, exception);
+#else
+            _ = exception;
+#endif
+            throw;
+        }
         Current = next;
+#if DEBUG
+        _debugPhase = ProcedureDebugPhase.Idle;
+        _debugLastSucceededName = GetDebugName(next);
+#endif
     }
+
+#if DEBUG
+    internal ProcedureDebugSnapshot GetDebugSnapshot()
+    {
+        MainThreadGuard.VerifyAccess();
+        return new ProcedureDebugSnapshot(
+            GetDebugName(Current),
+            _debugPreviousName,
+            _debugTargetName,
+            GetDebugName(_requestedProcedure),
+            _debugPhase,
+            _debugLastSucceededName,
+            _debugLastFailure);
+    }
+
+    private void RecordDebugFailure(string operation, IProcedure procedure, Exception exception)
+    {
+        _debugPhase = ProcedureDebugPhase.Idle;
+        string detail = exception.Message;
+        if (detail.Length > 256)
+            detail = detail[..256];
+        _debugLastFailure = $"{operation} {GetDebugName(procedure)}：{detail}";
+    }
+
+    private static string? GetDebugName(IProcedure? procedure)
+    {
+        if (procedure is null)
+            return null;
+        try
+        {
+            return procedure.Name;
+        }
+        catch
+        {
+            return "<Name 读取失败>";
+        }
+    }
+#endif
 
     private async Task ExitAsync(IProcedure procedure)
     {

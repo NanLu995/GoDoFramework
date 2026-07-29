@@ -14,6 +14,11 @@ public sealed partial class SceneService : Node, ISceneService
 {
     private ResourceLoadOperation<PackedScene>? _loadOperation;
     private int _lifecycleVersion;
+#if DEBUG
+    private ResourceKey? _currentChangeKey;
+    private ResourceKey? _lastChangeKey;
+    private bool _lastChangeSucceeded;
+#endif
 
     /// <summary>当前是否正在切换场景。</summary>
     public bool IsChanging { get; private set; }
@@ -62,6 +67,9 @@ public sealed partial class SceneService : Node, ISceneService
 
         IsChanging = true;
         Progress = 0f;
+#if DEBUG
+        _currentChangeKey = key;
+#endif
         int lifecycleVersion = _lifecycleVersion;
 
         try
@@ -77,10 +85,26 @@ public sealed partial class SceneService : Node, ISceneService
             ReplaceCurrentScene(newScene, key, lifecycleVersion);
             EventChannel.Emit<FrameworkMainSceneChangedEvent>();
             Progress = 1f;
+#if DEBUG
+            _lastChangeKey = key;
+            _lastChangeSucceeded = true;
+#endif
             return newScene;
         }
-        catch (Exception exception) when (exception is not SceneChangeException)
+        catch (SceneChangeException)
         {
+#if DEBUG
+            _lastChangeKey = key;
+            _lastChangeSucceeded = false;
+#endif
+            throw;
+        }
+        catch (Exception exception)
+        {
+#if DEBUG
+            _lastChangeKey = key;
+            _lastChangeSucceeded = false;
+#endif
             throw new SceneChangeException(
                 key,
                 $"场景切换失败，旧场景保持不变: {key.Value}",
@@ -93,8 +117,22 @@ public sealed partial class SceneService : Node, ISceneService
 
             _loadOperation = null;
             IsChanging = false;
+#if DEBUG
+            _currentChangeKey = null;
+#endif
         }
     }
+
+#if DEBUG
+    internal SceneDebugSnapshot GetDebugSnapshot()
+    {
+        MainThreadGuard.VerifyAccess();
+        return new SceneDebugSnapshot(
+            _currentChangeKey,
+            _lastChangeKey,
+            _lastChangeSucceeded);
+    }
+#endif
 
     private static Node InstantiateScene(PackedScene packedScene, ResourceKey key)
     {

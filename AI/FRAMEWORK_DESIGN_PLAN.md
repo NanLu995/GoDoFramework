@@ -71,7 +71,7 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 | Config | 稳定基线 | Resource 强类型校验与唯一键表；大量外部表格数据由独立 DataTable 工具链处理，不把 CSV 解析与二进制索引塞入 ConfigHub |
 | DataTable | 首版完成 | 离线校验/生成/导出门禁与显式运行时 Service 已接通；Windows 完整 ExportRelease 和 10 万行峰值内存已验证，真实业务长期体验与移动端/AOT 后置 |
 | UI | 稳定基线 | 管理屏幕空间 Control 的 Scene、View、Modal 层与返回栈；不承担主场景和游戏流程 |
-| Debugger | 稳定基线 | 紧凑健康入口、树状诊断导航、可拖动缩放面板、Input/Scheduler 快照与可搜索控制台；Release 不创建节点 |
+| Debugger | 稳定基线 | 紧凑健康入口、树状诊断导航、System/Performance 与运行时模块快照、可拖动缩放面板和可搜索控制台；Release 不创建节点 |
 | EditorPlugin | 首版完成 | 单一 GoDo 插件入口；显式安装与检查 GoDoRuntime Autoload，并通过版本化清单发现 GUIDE Input、Phantom Camera 等可选编辑器扩展；扩展失败隔离、项目修改需确认，不进入运行时依赖 |
 | Procedure | 首版完成 | 顶层游戏流程状态机；只提供流程切换机制，不内置具体业务流程，不先抽象通用 StateMachine |
 
@@ -81,7 +81,7 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 
 ### Debugger
 
-> **状态更新**：Debugger 已完成显示与交互优化，采用紧凑健康入口、树状只读页面和可拖动缩放面板；Input、Scheduler、Services、Events 与可搜索控制台已接入。以下设计初衷作为历史决策记录保留。
+> **状态更新**：Debugger 已完成显示与交互优化，采用紧凑健康入口、树状只读页面和可拖动缩放面板；System、Performance、Input、Scheduler、Audio、Scene、Resources、DataTable、UI、Procedure、Services、Events 与可搜索控制台已接入。以下设计初衷作为历史决策记录保留。
 
 借鉴 Game Framework 的可扩展 Debugger 思路，但只考虑编辑器或 Debug 构建中的只读诊断页：展示事件监听、资源请求、池占用、场景和长期服务状态。诊断优先复用已有公开状态，不接管模块逻辑，也不成为运行时反向依赖。
 

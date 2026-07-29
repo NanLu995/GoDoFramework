@@ -33,8 +33,11 @@ public sealed partial class ResourceHubRegression : Node
             Run("同步类型不匹配", VerifySynchronousTypeMismatch);
             await RunAsync("异步合并、冲突与完成", VerifyAsyncLoading);
             await RunAsync("完成后可创建新操作", VerifyOperationCleanup);
+#if DEBUG
+            Run("Debug 资源诊断快照", VerifyDebugDiagnostics);
+#endif
 
-            GD.Print($"[ResourceHubRegression] PASS ({_passed}/5)");
+            GD.Print($"[ResourceHubRegression] PASS ({_passed}/{_passed})");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -101,6 +104,12 @@ public sealed partial class ResourceHubRegression : Node
                 ResourceHub.LoadAsync<ConfigTestResource>(ValidKey);
             Assert(ReferenceEquals(first, second), "相同异步请求没有合并为同一操作");
             AssertEqual(1, ResourceHub.ActiveOperationCount, "合并后活动操作数量错误");
+#if DEBUG
+            ResourceDebugSnapshot activeSnapshot = ResourceHub.GetDebugSnapshot();
+            AssertEqual(1, activeSnapshot.ActiveOperations.Length, "活动请求快照数量错误");
+            AssertEqual(2, activeSnapshot.ActiveOperations[0].MergedRequestCount,
+                "同键合并请求数没有写入快照");
+#endif
 
             AssertThrows<ResourceLoadException>(
                 static () => ResourceHub.LoadAsync<PackedScene>(ValidKey),
@@ -134,6 +143,49 @@ public sealed partial class ResourceHubRegression : Node
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         AssertEqual(0, ResourceHub.ActiveOperationCount, "后续操作完成后没有清理");
     }
+
+#if DEBUG
+    private static void VerifyDebugDiagnostics()
+    {
+        ResourceDebugSnapshot snapshot = ResourceHub.GetDebugSnapshot();
+        AssertEqual(0, snapshot.ActiveOperations.Length, "完成后诊断快照仍保留活动请求");
+        Assert(snapshot.SynchronousRequestCount >= 4 &&
+            snapshot.AsynchronousRequestCount >= 4 &&
+            snapshot.MergedRequestCount >= 1 &&
+            snapshot.SucceededRequestCount >= 4 &&
+            snapshot.FailedRequestCount >= 4 &&
+            snapshot.History.Length > 0 &&
+            snapshot.History.Length <= 32,
+            "资源诊断统计或固定容量历史错误");
+        Assert(Array.Exists(snapshot.History, entry =>
+                entry.Mode == ResourceDebugLoadMode.Synchronous &&
+                entry.Status == ResourceLoadStatus.Completed) &&
+            Array.Exists(snapshot.History, entry =>
+                entry.Mode == ResourceDebugLoadMode.Asynchronous &&
+                entry.MergedRequestCount >= 2),
+            "资源诊断历史没有保留同步成功或异步合并条目");
+
+        for (int index = 0; index < 33; index++)
+        {
+            ResourceKey missingKey = ResourceKey.Create(
+                $"res://Verification/Automated/Fixtures/ResourceHubMissing{index}.tres");
+            AssertThrows<ResourceLoadException>(
+                () => ResourceHub.Load<Resource>(missingKey),
+                $"第 {index} 个容量测试资源没有失败");
+        }
+
+        snapshot = ResourceHub.GetDebugSnapshot();
+        AssertEqual(32, snapshot.History.Length, "资源诊断历史没有限制为 32 条");
+        AssertEqual(
+            "res://Verification/Automated/Fixtures/ResourceHubMissing1.tres",
+            snapshot.History[0].Key.Value,
+            "资源诊断历史没有淘汰最早记录");
+        AssertEqual(
+            "res://Verification/Automated/Fixtures/ResourceHubMissing32.tres",
+            snapshot.History[^1].Key.Value,
+            "资源诊断历史顺序或最新记录错误");
+    }
+#endif
 
     private static void Assert(bool condition, string message)
     {
