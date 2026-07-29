@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/node-pool/index.md
-translation_source_hash: sha256:f02c817a5da180431a1b5b36d5763b775369607643e3f03738748c7c44406b5a
+translation_source_hash: sha256:e367a7e605f914a2dd36cfa655558f7f7319496aa755003a870bdf831556e9e6
 ---
 
 # Reuse High-Frequency Objects with NodePool
@@ -93,7 +93,7 @@ projectile.GlobalPosition = muzzle.GlobalPosition;
 projectile.Launch(direction * speed);
 ```
 
-`Acquire()` adds the Node to its parent before calling `OnAcquire()`, so that callback may safely access tree and parent-related state. The parent must be a valid Godot Node.
+`Acquire()` adds the Node to its parent before calling `OnAcquire()`, so that callback may safely access tree and parent-related state. The parent must be a valid Godot Node that is not queued for deletion.
 
 Keep generic reset work in `OnAcquire()` and pass this launch's parameters through an explicit method. The Pool should not understand gameplay concepts such as speed, damage, or faction.
 
@@ -160,14 +160,14 @@ public override void _ExitTree()
 }
 ```
 
-`Dispose()` frees idle Nodes and attempts `OnRelease()` before forcibly freeing every active Node. Active Nodes produce a Warning, usually indicating an ownership or shutdown-order issue. Repeated Dispose is safe; Acquire, Release, or Clear after disposal throws `ObjectDisposedException`.
+`Dispose()` closes the Pool before freeing idle Nodes and attempting `OnRelease()` on every active Node. Therefore, `OnRelease()` cannot acquire another Node while the Pool is shutting down. Active Nodes produce a Warning, usually indicating an ownership or shutdown-order issue. Repeated Dispose is safe; Acquire, Release, or Clear after disposal throws `ObjectDisposedException`.
 
 ## Clean failure behavior
 
 - `OnAcquire()` throws: the Node is removed from active ownership and freed, then `InvalidOperationException` is thrown.
 - `OnRelease()` throws: the Node still leaves the scene tree and is freed instead of entering the idle cache, then `InvalidOperationException` is thrown.
 - An active Node was externally freed or queued: Release returns `false` and reports a Warning.
-- Every Pool operation must run on the Godot main thread where the Pool was created.
+- Pool construction, prewarming, and every operation must run on the Godot main thread.
 
 Lifecycle callbacks should be fast, understandable, and unlikely to fail. Do not save game progress, call a network service, or perform long blocking work in `OnRelease()`.
 

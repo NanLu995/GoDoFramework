@@ -136,7 +136,7 @@
       "manual_pages": [
         "guides/node-pool/index.md"
       ],
-      "reviewed_contract_hash": "sha256:790e256f7d7f21a2f99a0255d23b2c1bbe87d3eded175eccc21247b2e1a820b7"
+      "reviewed_contract_hash": "sha256:eef4244e7c395376c6de84a342e8891e55dd4387035f1e88010aeab10ae5f4be"
     },
     "procedure": {
       "contract": "addons/godo_framework/Runtime/Procedure/USAGE.md",
