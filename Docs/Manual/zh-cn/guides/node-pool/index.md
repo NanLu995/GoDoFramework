@@ -88,7 +88,7 @@ projectile.GlobalPosition = muzzle.GlobalPosition;
 projectile.Launch(direction * speed);
 ```
 
-`Acquire()` 先把节点加入给定父节点，再调用 `OnAcquire()`，因此回调中可以安全访问树和父级相关状态。父节点必须是仍然有效的 Godot Node。
+`Acquire()` 先把节点加入给定父节点，再调用 `OnAcquire()`，因此回调中可以安全访问树和父级相关状态。父节点必须是仍然有效、且未进入删除队列的 Godot Node。
 
 把通用复位放进 `OnAcquire()`，把本次发射的参数通过明确方法设置。不要让 Pool 知道速度、伤害或阵营等玩法概念。
 
@@ -155,14 +155,14 @@ public override void _ExitTree()
 }
 ```
 
-`Dispose()` 会释放空闲节点，并对仍活动的节点尽力调用 `OnRelease()` 后强制释放。存在活动节点时会产生 Warning，通常说明所有权边界或退出顺序值得检查。重复 Dispose 安全；关闭后再 Acquire、Release 或 Clear 会抛出 `ObjectDisposedException`。
+`Dispose()` 会先关闭 Pool，再释放空闲节点，并对仍活动的节点尽力调用 `OnRelease()` 后强制释放。因此 `OnRelease()` 不能在关闭过程中重新租借节点。存在活动节点时会产生 Warning，通常说明所有权边界或退出顺序值得检查。重复 Dispose 安全；关闭后再 Acquire、Release 或 Clear 会抛出 `ObjectDisposedException`。
 
 ## 失败时如何保证干净状态
 
 - `OnAcquire()` 抛出异常：该节点从活动集合移除并被释放，然后抛出 `InvalidOperationException`。
 - `OnRelease()` 抛出异常：节点仍会移出场景树并释放，不会把脏节点放回空闲区，然后抛出 `InvalidOperationException`。
 - 外部已经释放或 QueueFree 活动节点：Release 返回 `false` 并报告 Warning。
-- 所有 Pool 操作只能在创建它的 Godot 主线程执行。
+- Pool 的构造、预热及所有操作只能在 Godot 主线程执行。
 
 生命周期回调应快速、可重复理解且避免失败。不要在 `OnRelease()` 保存游戏进度、联网或执行可能长时间阻塞的工作。
 

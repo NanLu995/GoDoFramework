@@ -83,18 +83,30 @@ public static class Services
     }
 
 #if DEBUG
-    /// <summary>返回当前已注册服务接口类型的 Debug 快照。</summary>
-    internal static Type[] GetDebugSnapshot()
+    /// <summary>返回当前已注册服务接口及其实现类型的 Debug 快照。</summary>
+    internal static ServiceDebugEntry[] GetDebugSnapshot()
     {
         MainThreadGuard.VerifyAccess();
 
-        var snapshot = new Type[_registrations.Count];
-        _registrations.Keys.CopyTo(snapshot, 0);
-        Array.Sort(snapshot, CompareServiceTypes);
+        var snapshot = new ServiceDebugEntry[_registrations.Count];
+        int index = 0;
+        foreach (KeyValuePair<Type, object> registration in _registrations)
+        {
+            snapshot[index] = new ServiceDebugEntry(
+                registration.Key,
+                registration.Value.GetType());
+            index++;
+        }
+
+        Array.Sort(snapshot, CompareServiceEntries);
         return snapshot;
     }
 
-    private static int CompareServiceTypes(Type left, Type right) =>
-        string.CompareOrdinal(left.FullName, right.FullName);
+    private static int CompareServiceEntries(ServiceDebugEntry left, ServiceDebugEntry right) =>
+        string.CompareOrdinal(left.ServiceType.FullName, right.ServiceType.FullName);
+
+    internal readonly record struct ServiceDebugEntry(
+        Type ServiceType,
+        Type ImplementationType);
 #endif
 }

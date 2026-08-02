@@ -61,12 +61,21 @@ Service 不调用 `ErrorHub` 后再抛出，异常只由决定重试、降级或
 
 `Unload` 只释放 Service 对表的引用；业务仍持有表实例时，该实例会继续存活。`GoDoRuntime` 退出时取消未完成加载并清空全部缓存。
 
+## Debugger 诊断
+
+Debug 构建中的框架内置 `DataTableService` 向只读 Debugger 提供 internal 快照，用于显示当前加载进度、已发布数据集、缓存表类型和最近加载结果。该能力不增加 public API，非框架内置的 `IDataTableService` 实现会显示“不支持 Debug 快照”。
+
+- 当前加载记录表级进度、最近完成的表和运行时目录。
+- 已发布记录数据集、目录、表 ID 与实际缓存类型。
+- 最近结果固定保留 16 条，覆盖成功、取消、失败和卸载；失败详情最多保留 512 个字符，不持有原始 Exception。
+- Release 构建不维护快照、失败计数或结果历史，也不会产生对应分配。
+
 ## 性能与内存
 
 - 数据表只在显式加载时分配，不存在每帧更新。
 - `GetTable` 和生成门面属性执行数据集/表字典查询；热点逻辑可以缓存返回的 Table 引用。
 - `TryGet(id)` 使用生成的主键索引，正常查询不扫描整表。
-- 当前读取器会把单个 `.gdtb` 读入内存，再构造字符串池、行数组和主键索引；压缩表解压时还会产生临时 payload。
+- 当前读取器顺序读取文件头和一份存储 payload，再构造字符串池、行数组和主键索引；压缩表仍会产生完整解压 payload，但不会重复复制压缩 payload。
 - 单文件读取上限为 2 GiB，未压缩 payload 上限为 512 MiB。超大表分块和字节级进度尚未实现。
 
 ## Client / Server 与更新边界
@@ -81,4 +90,4 @@ Service 不调用 `ErrorHub` 后再抛出，异常只由决定重试、降级或
 - `Verification/Experimental/DataTable/DataTablePrototypeBenchmark.tscn`：绝对路径、`res://`、PCK、Zstd、损坏文件拒绝和查询性能。
 - `Verification/Experimental/DataTable/verify_prototype.py`：生成确定性、校验、单表生成、过期检查和 Manifest 契约。
 
-当前状态为首版验证中；Windows Godot 运行时已验证，移动端、AOT 和完整 ExportRelease 仍需正式验收。
+当前状态为首版完成；Windows Godot 运行时、独立完整 ExportRelease 可执行文件和 10 万行峰值内存已验证。真实业务长期体验与移动端/AOT 随目标项目继续验证，不阻塞 Windows 首版。

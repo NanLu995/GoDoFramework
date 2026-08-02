@@ -99,7 +99,7 @@ finally
 
 进度范围为 0–1，并在 Godot 主线程触发。使用具名方法并在 `finally` 解绑；不要 `.Wait()`、`.Result` 或自行轮询 Godot threaded API。
 
-同一个 Key 和类型的并发异步请求共享同一个操作。异步期间对同一路径同步加载，或按另一种类型加载，会明确失败。完成后操作从活动表移除，后续加载继续使用 Godot 自身缓存。
+同一个 Key 和类型的并发异步请求共享同一个操作。异步期间对同一路径同步加载，或按另一种类型加载，会明确失败。操作会先从活动表移除，再恢复 `await` 后面的代码；因此完成后立即加载同一资源会得到新操作，并继续使用 Godot 自身缓存。
 
 ## 5. 切换主内容场景
 
@@ -138,11 +138,13 @@ public override void _Process(double delta)
 
 同一时间只允许一项场景切换；第二次 `ChangeAsync` 抛出 `InvalidOperationException`。由 Procedure 集中协调，禁用重复点击，不要用 fire-and-forget 丢失异常。
 
+成功后 `Progress` 保持 1；加载、实例化、挂载失败或生命周期取消后复位为 0。
+
 ## 7. 失败、取消与关闭
 
 - 资源缺失、类型错误或加载失败：`ResourceLoadException`。
 - 场景加载、实例化或挂载失败：`SceneChangeException`，其中保存目标 Key。
-- SceneService 离树或框架关闭：未提交切换以包含 `OperationCanceledException` 的 SceneChangeException 结束。
+- SceneService 离树或框架关闭：未提交切换立即以直接包含 `OperationCanceledException` 的 SceneChangeException 结束；ResourceHub 的共享底层加载可能继续完成。
 - ResourceHub 关闭：未完成操作的等待方收到 `OperationCanceledException`；Godot 底层加载可能继续结束。
 
 模块不会先上报再抛出。由 Procedure 或启动边界补充业务上下文并记录一次。

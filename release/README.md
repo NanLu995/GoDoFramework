@@ -10,11 +10,13 @@ python release/release.py
 
 输出目录为 `release/dist/`，不会纳入 Git。
 
-脚本默认读取 `addons/godo_framework/plugin.cfg` 的版本号。显式传入版本时必须与插件版本一致：
+脚本默认读取 `addons/godo_framework/plugin.cfg` 的框架版本、最低 Godot 版本和最高已验证 Godot 版本。三个值都必须使用 `major.minor.patch`；Godot 最低版本不得高于已验证版本，也不得跨 major。显式传入框架版本时必须与插件版本一致：
 
 ```powershell
 python release/release.py --version 0.1.0
 ```
+
+打包成功后会打印本次框架版本和 Godot 已验证范围。高于已验证版本的同 major Godot 不会被声明为已验证，使用方应升级框架或执行完整项目回归。
 
 ## 发布 GitHub Release
 

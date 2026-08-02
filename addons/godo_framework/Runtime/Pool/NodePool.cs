@@ -36,8 +36,10 @@ public sealed class NodePool<T> : IDisposable where T : Node
     /// <param name="scene">根节点必须兼容 <typeparamref name="T"/> 的场景资源。</param>
     /// <param name="initialSize">创建时提前实例化的空闲节点数量。</param>
     /// <param name="idleCapacity">空闲区最多容纳的节点数量；超出后释放，不限制活动节点数量。</param>
+    /// <exception cref="InvalidOperationException">不在 Godot 主线程调用。</exception>
     public NodePool(PackedScene scene, int initialSize = 0, int idleCapacity = 32)
     {
+        MainThreadGuard.VerifyAccess();
         _scene = scene ?? throw new ArgumentNullException(nameof(scene));
 
         if (initialSize < 0)
@@ -67,6 +69,9 @@ public sealed class NodePool<T> : IDisposable where T : Node
     /// </summary>
     /// <param name="parent">新节点进入场景树时使用的父节点。</param>
     /// <returns>已加入 <paramref name="parent"/> 的可用节点。</returns>
+    /// <exception cref="ArgumentException">父节点已经失效或进入删除队列。</exception>
+    /// <exception cref="InvalidOperationException">不在 Godot 主线程调用，或节点激活失败。</exception>
+    /// <exception cref="ObjectDisposedException">Pool 已关闭。</exception>
     public T Acquire(Node parent)
     {
         VerifyThreadAccess();
@@ -74,8 +79,8 @@ public sealed class NodePool<T> : IDisposable where T : Node
 
         if (parent == null)
             throw new ArgumentNullException(nameof(parent));
-        if (!GodotObject.IsInstanceValid(parent))
-            throw new ArgumentException("目标父节点已经被释放。", nameof(parent));
+        if (!GodotObject.IsInstanceValid(parent) || parent.IsQueuedForDeletion())
+            throw new ArgumentException("目标父节点已经失效或进入删除队列。", nameof(parent));
 
         T node = TakeIdleOrCreate();
         try
@@ -200,16 +205,18 @@ public sealed class NodePool<T> : IDisposable where T : Node
     }
 
     /// <summary>
-    /// 释放空闲区并关闭本池。仍处于活动状态的节点会执行一次尽力清理，
+    /// 先关闭本池并释放空闲区。仍处于活动状态的节点会执行一次尽力清理，
     /// 随后从场景树移除并释放。
     /// </summary>
+    /// <exception cref="InvalidOperationException">首次关闭不在 Godot 主线程调用。</exception>
     public void Dispose()
     {
         if (_disposed)
             return;
 
         VerifyThreadAccess();
-        Clear();
+        _disposed = true;
+        FreeIdleNodes();
 
         if (_activeNodes.Count > 0)
         {
@@ -225,8 +232,6 @@ public sealed class NodePool<T> : IDisposable where T : Node
             for (int i = 0; i < activeNodes.Length; i++)
                 ForceFreeActiveNode(activeNodes[i]);
         }
-
-        _disposed = true;
     }
 
     private T TakeIdleOrCreate()

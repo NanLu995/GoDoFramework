@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Godot;
 using GoDo;
 
@@ -23,9 +24,14 @@ public sealed partial class ErrorHubRegression : Node
             Run("Reporter 引用去重与移除", VerifyReporterLifecycle);
             Run("OnError 监听者异常隔离", VerifyListenerIsolation);
             Run("Reporter 异常隔离", VerifyReporterIsolation);
+            Run("递归上报降级", VerifyRecursiveReportingFallback);
             Run("Fatal 只上报不退出", VerifyFatalDoesNotQuit);
-
-            GD.Print($"[ErrorHubRegression] PASS ({_passed}/6)");
+#if DEBUG
+            Run("后台队列满汇总", VerifyBackgroundQueueOverflow);
+            GD.Print($"[ErrorHubRegression] PASS ({_passed}/8)");
+#else
+            GD.Print($"[ErrorHubRegression] PASS ({_passed}/7)");
+#endif
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -171,6 +177,71 @@ public sealed partial class ErrorHubRegression : Node
             ErrorHub.OnError -= OnError;
         }
     }
+
+    private static void VerifyRecursiveReportingFallback()
+    {
+        int calls = 0;
+        void Recursive(ErrorReport _)
+        {
+            calls++;
+            ErrorHub.Warn("nested report", "ErrorHubRegression");
+        }
+
+        ErrorHub.OnError += Recursive;
+        try
+        {
+            ErrorHub.Warn("outer report", "ErrorHubRegression");
+            AssertEqual(1, calls, "递归上报再次进入了监听链");
+        }
+        finally
+        {
+            ErrorHub.OnError -= Recursive;
+        }
+    }
+
+#if DEBUG
+    private static void VerifyBackgroundQueueOverflow()
+    {
+        ErrorReport? overflowSummary = null;
+        void OnError(ErrorReport report)
+        {
+            if (string.Equals(report.Module, "ErrorHub", StringComparison.Ordinal) &&
+                report.Message.Contains("后台错误队列已满", StringComparison.Ordinal))
+            {
+                overflowSummary = report;
+            }
+        }
+
+        ErrorHub.OnError += OnError;
+        ErrorHub.SuppressGodotOutputForTesting = true;
+        try
+        {
+            int submittedCount = ErrorHub.MaxPendingReports + 3;
+            var thread = new Thread(() =>
+            {
+                for (int i = 0; i < submittedCount; i++)
+                    ErrorHub.Warn($"background={i}", "ErrorHubQueueRegression");
+            });
+            thread.Start();
+            Assert(thread.Join(TimeSpan.FromSeconds(2)), "后台队列写入线程未及时结束");
+
+            ErrorHub.FlushPending();
+            if (overflowSummary is not ErrorReport summary)
+                throw new InvalidOperationException("队列满后没有生成主线程汇总报告");
+            Assert(
+                summary.Message.Contains("丢弃 3 条", StringComparison.Ordinal),
+                "队列满汇总的丢弃数量不准确");
+
+            while (ErrorHub.PendingReportCount > 0)
+                ErrorHub.FlushPending();
+        }
+        finally
+        {
+            ErrorHub.SuppressGodotOutputForTesting = false;
+            ErrorHub.OnError -= OnError;
+        }
+    }
+#endif
 
     private static void Assert(bool condition, string message)
     {

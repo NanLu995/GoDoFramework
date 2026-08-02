@@ -49,7 +49,7 @@ settings.Save();
 ## 验证结果与待办
 
 - Debug 与 Release 编译通过；新增代码无编译警告。
-- `LocalizationRegression` 覆盖默认/可用语言、PO 翻译、上下文、复数、相近 Locale 匹配、Settings 状态与内存 Codec 往返、事件去重、非法 Locale、伪本地化诊断和无翻译资源回退。
+- `LocalizationRegression` 8/8 覆盖默认/可用语言、PO 翻译、上下文、复数、相近 Locale 匹配、Settings 状态与内存 Codec 往返、事件去重、非法 Locale、空翻译键、伪本地化诊断和无翻译资源回退。
 - Services 与 Debugger 既有 Headless 回归通过。
 - 核心包已在无翻译资源、无 GUIDE、无 Phantom Camera 的临时干净项目中通过编译与 9/9 服务运行验证。
 - 统一 `all` 套件通过：17/17 核心工作区检查、GUIDE 1/1、Phantom Camera 1/1、Demo3D 2/2。

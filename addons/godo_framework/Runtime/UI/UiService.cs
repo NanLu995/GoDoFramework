@@ -15,6 +15,9 @@ public sealed partial class UiService : Node, IUiService
     private readonly List<Control> _sceneViews = new();
     private readonly List<Control> _views = new();
     private readonly List<ModalEntry> _modals = new();
+#if DEBUG
+    private readonly Dictionary<Control, ResourceKey> _debugKeys = new();
+#endif
     private UiRoot? _root;
 
     internal void Initialize(UiRoot root)
@@ -36,6 +39,9 @@ public sealed partial class UiService : Node, IUiService
         _sceneViews.Clear();
         _views.Clear();
         _modals.Clear();
+#if DEBUG
+        _debugKeys.Clear();
+#endif
         _root = null;
     }
 
@@ -63,6 +69,9 @@ public sealed partial class UiService : Node, IUiService
         if (sceneIndex >= 0)
         {
             _sceneViews.RemoveAt(sceneIndex);
+#if DEBUG
+            _debugKeys.Remove(view);
+#endif
             view.QueueFree();
             return;
         }
@@ -74,6 +83,9 @@ public sealed partial class UiService : Node, IUiService
                 throw new InvalidOperationException("只能关闭当前最上层的 UI。请先关闭顶部模态。");
 
             _modals.RemoveAt(_modals.Count - 1);
+#if DEBUG
+            _debugKeys.Remove(view);
+#endif
             top.Host.QueueFree();
             return;
         }
@@ -82,6 +94,9 @@ public sealed partial class UiService : Node, IUiService
             throw new InvalidOperationException("目标 UI 不受服务管理，或不是当前最上层 View。");
 
         _views.RemoveAt(_views.Count - 1);
+#if DEBUG
+        _debugKeys.Remove(view);
+#endif
         view.QueueFree();
         if (_views.Count > 0)
             _views[^1].Show();
@@ -113,6 +128,9 @@ public sealed partial class UiService : Node, IUiService
         Control view = InstantiateView(key);
         AddToRoot(view, _root!.SceneRoot, key, UiLayer.Scene);
         _sceneViews.Add(view);
+#if DEBUG
+        _debugKeys[view] = key;
+#endif
         return view;
     }
 
@@ -123,6 +141,9 @@ public sealed partial class UiService : Node, IUiService
         if (_views.Count > 0)
             _views[^1].Hide();
         _views.Add(view);
+#if DEBUG
+        _debugKeys[view] = key;
+#endif
         return view;
     }
 
@@ -148,6 +169,9 @@ public sealed partial class UiService : Node, IUiService
         }
 
         _modals.Add(new ModalEntry(view, host));
+#if DEBUG
+        _debugKeys[view] = key;
+#endif
         return view;
     }
 
@@ -192,11 +216,44 @@ public sealed partial class UiService : Node, IUiService
     {
         for (int i = 0; i < _sceneViews.Count; i++)
         {
+#if DEBUG
+            _debugKeys.Remove(_sceneViews[i]);
+#endif
             if (IsInstanceValid(_sceneViews[i]))
                 _sceneViews[i].QueueFree();
         }
         _sceneViews.Clear();
     }
+
+#if DEBUG
+    internal UiDebugSnapshot GetDebugSnapshot()
+    {
+        MainThreadGuard.VerifyAccess();
+        var entries = new UiDebugEntry[_sceneViews.Count + _views.Count + _modals.Count];
+        int entryIndex = 0;
+        for (int index = 0; index < _sceneViews.Count; index++)
+            entries[entryIndex++] = CreateDebugEntry(_sceneViews[index], UiLayer.Scene, index);
+        for (int index = 0; index < _views.Count; index++)
+            entries[entryIndex++] = CreateDebugEntry(_views[index], UiLayer.View, index);
+        for (int index = 0; index < _modals.Count; index++)
+            entries[entryIndex++] = CreateDebugEntry(_modals[index].View, UiLayer.Modal, index);
+
+        return new UiDebugSnapshot(entries);
+    }
+
+    private UiDebugEntry CreateDebugEntry(Control view, UiLayer layer, int index)
+    {
+        bool isValid = IsInstanceValid(view);
+        _debugKeys.TryGetValue(view, out ResourceKey key);
+        return new UiDebugEntry(
+            layer,
+            index,
+            key,
+            isValid ? view.Name.ToString() : "<已释放>",
+            isValid && view.Visible,
+            isValid);
+    }
+#endif
 
     private void VerifyReady()
     {

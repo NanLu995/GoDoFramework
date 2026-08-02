@@ -58,6 +58,8 @@ Godot 退出时 GoDoRuntime 不会调用当前业务 Procedure 的 `ExitAsync`�
 - 旧流程 Exit 失败：不进入新流程，`Current` 仍是旧流程。
 - 新流程 Enter 失败：旧流程已经退出，`Current` 为 null。
 
+失败边界内通过 `RequestChange` 产生但尚未执行的请求会被丢弃，不会在恢复流程成功后突然执行。
+
 因此新流程进入失败后不能假设框架会自动回到旧流程。调用边界应选择明确恢复目标：
 
 ```csharp
@@ -143,6 +145,8 @@ public Task ExitAsync(ProcedureContext context)
 ```
 
 对预期取消单独处理 `OperationCanceledException`，不要当作资源损坏上报。进入尚未返回时不会同时调用该实例的 Exit，因此 Enter 内启动的后台式业务工作也必须有清晰所有者和异常观察方式。
+
+GoDoRuntime 关闭时，尚未完成的流程切换会以 `ProcedureChangeException` 结束，其 `InnerException` 为 `OperationCanceledException`；旧异步操作不会在关闭后重新写回 `Current`。
 
 ## 7. 设计可诊断的小流程
 

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Godot;
 using GoDo;
@@ -24,10 +25,11 @@ public sealed partial class SchedulerRuntimeRegression : Node
             await RunAsync("Process 与 Physics 真实阶段派发", () => VerifyRuntimePhasesAsync(service));
             await RunAsync("TimeScale 只影响 GameTime", () => VerifyRuntimeTimeScaleAsync(service));
             await RunAsync("场景树暂停只推进 RealTime", () => VerifyRuntimePauseAsync(service));
+            await RunAsync("持续低 FPS 不补发重复任务", () => VerifySustainedLowFpsAsync(service));
             await RunAsync("Owner 退出取消运行时任务", () => VerifyRuntimeOwnerAsync(service));
             await RunAsync("SchedulerService 退出取消等待", VerifyServiceExitAsync);
 
-            GD.Print($"[SchedulerRuntimeRegression] PASS ({_passed}/6)");
+            GD.Print($"[SchedulerRuntimeRegression] PASS ({_passed}/7)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -137,6 +139,44 @@ public sealed partial class SchedulerRuntimeRegression : Node
         finally
         {
             GetTree().Paused = previousPaused;
+        }
+    }
+
+    private async Task VerifySustainedLowFpsAsync(ISchedulerService service)
+    {
+        int previousMaxFps = Engine.MaxFps;
+        int callbackCount = 0;
+        ScheduleHandle handle = default;
+
+        try
+        {
+            Engine.MaxFps = 10;
+            handle = service.ScheduleRepeating(
+                0.02d,
+                () => callbackCount++,
+                ScheduleOptions.RealTime);
+
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            int previousCallbackCount = callbackCount;
+            var stopwatch = Stopwatch.StartNew();
+
+            for (int frame = 0; frame < 8; frame++)
+            {
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                int callbacksThisFrame = callbackCount - previousCallbackCount;
+                Assert(callbacksThisFrame <= 1, "持续低 FPS 时重复任务在单帧补发多次");
+                previousCallbackCount = callbackCount;
+            }
+
+            stopwatch.Stop();
+            Assert(stopwatch.Elapsed.TotalSeconds >= 0.5d, "低 FPS 验证没有形成足够长的真实低帧区间");
+            Assert(callbackCount >= 4, "持续低 FPS 时重复任务没有保持逐帧推进");
+        }
+        finally
+        {
+            if (handle.IsValid)
+                service.Cancel(handle);
+            Engine.MaxFps = previousMaxFps;
         }
     }
 

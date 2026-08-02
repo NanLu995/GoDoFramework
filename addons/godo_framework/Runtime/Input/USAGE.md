@@ -192,9 +192,9 @@ InputFrame 表示最近完成的渲染帧采样。需要驱动物理的控制器
 
 ## Debug 诊断
 
-Debug 构建中的 `InputService` 提供 internal 只读快照，包含后端类型、活动设备、能力、首次采样状态、Frame 序号、完整 Context 栈及有效性，以及固定顺序的 Action 当前值和边沿状态。类型和入口都位于 `#if DEBUG`，不扩大 `IInputService` public API，Release 不包含。
+Debug 构建中的 `InputService` 提供 internal 只读快照，包含后端类型、活动设备、能力、首次采样状态、采样序号、完整 Context 栈及有效性，以及固定顺序的 Action 当前值和边沿状态。采样序号在每次成功 `Update()` 后递增，采样失败时保持不变，安装新后端或关闭服务后归零。类型和入口都位于 `#if DEBUG`，不扩大 `IInputService` public API，Release 不包含。
 
-GoDo Debugger 的 `运行时 / Input` 页面每 0.25 秒按需读取当前快照，最多显示前 32 个 Action。折叠或查看其他页面时不创建快照；快照只用于观察，不可修改 Context、Action 或绑定。
+GoDo Debugger 的 `运行时 / Input` 页面每 0.25 秒按需读取当前快照，以状态卡、Context 表和 Action 表显示。Action 可按名称或值类型搜索，搜索扫描完整快照但最多排版前 32 个匹配项；Frame 状态独立更新，Context 或 Action 显示内容未变化时不重建对应表格。折叠或查看其他页面时不创建快照；快照只用于观察，不可修改 Context、Action 或绑定。
 
 ## 验证
 

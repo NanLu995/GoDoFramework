@@ -37,6 +37,7 @@ public sealed partial class GoDoRuntime : Node
     private DataTableService? _dataTableService;
     private SettingsService? _settingsService;
     private ProcedureService? _procedureService;
+    private RollingFileLogWriter? _fileLogWriter;
 #if DEBUG
     private DebuggerOverlay? _debuggerOverlay;
 #endif
@@ -81,7 +82,10 @@ public sealed partial class GoDoRuntime : Node
         _instance = this;
         MainThreadGuard.Initialize();
         ResourceHub.Initialize();
-        LogHub.Initialize();
+        _fileLogWriter = new RollingFileLogWriter(
+            ProjectSettings.GlobalizePath("user://logs"));
+        ErrorHub.AddReporter(_fileLogWriter);
+        LogHub.Initialize(_fileLogWriter);
         _localizationService = new LocalizationService();
     }
 
@@ -91,6 +95,36 @@ public sealed partial class GoDoRuntime : Node
         if (_instance != this || _subscribed)
             return;
 
+        try
+        {
+            InitializeServices();
+        }
+        catch (Exception exception)
+        {
+            try
+            {
+                ErrorHub.Fatal(
+                    exception,
+                    module: "Runtime",
+                    context: "GoDoRuntime 初始化失败，已清理半初始化状态");
+            }
+            finally
+            {
+                SetProcess(false);
+                try
+                {
+                    ShutdownFramework();
+                }
+                finally
+                {
+                    QueueFree();
+                }
+            }
+        }
+    }
+
+    private void InitializeServices()
+    {
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
         _subscribed = true;
 
@@ -157,10 +191,24 @@ public sealed partial class GoDoRuntime : Node
         if (_inputService?.IsReady == true)
             _inputService.Update();
         ErrorHub.FlushPending();
+        if (_fileLogWriter?.TryConsumeFailure(out string failureMessage) == true)
+            ErrorHub.Warn(failureMessage, "LogFile");
+        if (_fileLogWriter?.TryConsumeDroppedLineCount(out int droppedLineCount) == true)
+        {
+            ErrorHub.Warn(
+                $"文件日志队列已满，丢弃 {droppedLineCount} 条日志。",
+                "LogFile",
+                context: $"QueueCapacity={RollingFileLogWriter.DefaultQueueCapacity}");
+        }
     }
 
     /// <inheritdoc />
     public override void _ExitTree()
+    {
+        ShutdownFramework();
+    }
+
+    private void ShutdownFramework()
     {
         if (_subscribed)
         {
@@ -214,6 +262,7 @@ public sealed partial class GoDoRuntime : Node
             ResourceHub.Shutdown();
             LogHub.Shutdown();
             ErrorHub.Shutdown();
+            _fileLogWriter = null;
             _instance = null;
             _schedulerService = null;
             _sceneService = null;

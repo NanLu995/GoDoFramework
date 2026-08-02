@@ -53,24 +53,24 @@ bool released = pool.Release(projectile);
 - `OnAcquire` 失败会回滚并释放该节点，再抛出 `InvalidOperationException`。
 - `OnRelease` 失败仍会移除并释放节点，再抛出 `InvalidOperationException`，不会把脏节点放回池。
 - `Clear()` 只释放空闲节点，不影响活动节点。
-- `Dispose()` 清理空闲节点，并对仍活动节点执行尽力 OnRelease 后强制释放；重复 Dispose 安全。
+- `Dispose()` 会先关闭 Pool，再清理空闲节点，并对仍活动节点执行尽力 OnRelease 后强制释放；回调不能在关闭过程中重新 Acquire，重复 Dispose 安全。
 
 ## 线程与性能
 
-- 所有操作只能在创建池的 Godot 主线程调用。
+- 构造、预热及所有操作只能在 Godot 主线程调用。
 - 预热会立即实例化节点，避免首轮峰值，但会增加启动时间和常驻对象数量。
 - Release 后节点离开场景树，依赖 `_ExitTree()` 的逻辑会执行；复用时也会再次 `_EnterTree()`。
 - Pool 不支持多线程、纯 C# 对象、自动字段重置或复杂淘汰策略。
 
 ## 自动回归验证
 
-`Verification/Automated/NodePoolRegression.tscn` 使用最小 PackedScene 和 IPoolable 测试节点，验证预热、Acquire/Release 与实例复用、空闲容量、重复和外部节点拒绝、Clear 以及 Dispose 强制清理活动节点。
+`Verification/Automated/NodePoolRegression.tscn` 使用最小 PackedScene 和 IPoolable 测试节点，验证预热、Acquire/Release 与实例复用、空闲容量、重复和外部节点拒绝、Clear、Dispose 强制清理，以及跨线程、回调异常和关闭重入等失败路径。
 
 ```powershell
 & $env:GODOT_PATH --headless --path . Verification/Automated/NodePoolRegression.tscn
 ```
 
-当前 runner 已通过 `dotnet build` 编译，并在项目声明的 Godot Mono Headless 版本中完成 6/6 项验证；成功退出码为 0，失败退出码为 1。测试节点只存在于 `Verification/Automated/`，不进入框架发布包。
+当前 runner 已通过 `dotnet build` 编译，并在项目声明的 Godot Mono Headless 版本中完成 12/12 项验证；成功退出码为 0，失败退出码为 1。测试节点只存在于 `Verification/Automated/`，不进入框架发布包。
 
 ## 常见误用
 

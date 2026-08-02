@@ -22,7 +22,9 @@ public interface IAudioService
     /// <summary>允许同时播放的最大音效数量。</summary>
     int MaxSfxVoices { get; }
 
-    /// <summary>异步加载并播放背景音乐。</summary>
+    /// <summary>
+    /// 异步加载并播放背景音乐。Stop 后旧请求以取消结束，且不会覆盖后续请求状态。
+    /// </summary>
     /// <param name="key">AudioStream 资源键。</param>
     /// <param name="restart">同一资源正在播放时是否从头重新播放。</param>
     Task PlayBgmAsync(ResourceKey key, bool restart = false);
@@ -33,15 +35,16 @@ public interface IAudioService
     /// <summary>恢复背景音乐。</summary>
     void ResumeBgm();
 
-    /// <summary>停止背景音乐并释放当前资源引用。</summary>
+    /// <summary>停止背景音乐、释放当前资源引用，并立即允许发起新的加载请求。</summary>
     void StopBgm();
 
     /// <summary>
     /// 异步加载并播放一次音效。达到并发上限时返回 false，不抢占正在播放的音效。
+    /// StopAll 后旧请求以取消结束，且不再占用新请求的逻辑容量。
     /// </summary>
     Task<bool> PlaySfxAsync(ResourceKey key);
 
-    /// <summary>停止并回收全部活动音效。</summary>
+    /// <summary>停止并回收全部活动音效，同时释放待加载请求预占的逻辑容量。</summary>
     void StopAllSfx();
 
     /// <summary>获取指定分组的线性音量，范围为 0 到 1。</summary>

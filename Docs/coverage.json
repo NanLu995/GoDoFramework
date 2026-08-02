@@ -10,7 +10,7 @@
         "getting-started/install-upgrade-uninstall.md",
         "guides/resources-and-scenes/index.md"
       ],
-      "reviewed_contract_hash": "sha256:e84eb485b055e324e555f859e610aacc376e571abe5c6c90ff44eca13be811d6"
+      "reviewed_contract_hash": "sha256:6b8c07dec802cc39045204debcc2d2dd13db8ea5a6411605c02d75f5a4c886a4"
     },
     "error-hub": {
       "contract": "addons/godo_framework/Core/ErrorHub/USAGE.md",
@@ -19,7 +19,7 @@
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:f7761c3aba4088354e3052d96839eb91ce72e24228e0253d020d96d606d10cb2"
+      "reviewed_contract_hash": "sha256:dacef3dc9ff68619ae9b0f072ad3e30b3dce55deed317523fd0209c37e35eabd"
     },
     "event-channel": {
       "contract": "addons/godo_framework/Core/EventChannel/USAGE.md",
@@ -35,11 +35,11 @@
     "log-hub": {
       "contract": "addons/godo_framework/Core/LogHub/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖 Debug/Info 选择、模块与上下文、主线程约束、Release 移除行为及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
+      "reason": "功能指南已覆盖 Debug/Info 选择、模块与上下文、主线程约束、Release 移除行为、滚动文件、多实例文件回退、失败降级及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:884da1ca2ca0a33419328dee47f34fefcf5b326053247cd673beb97e7c7fbb4f"
+      "reviewed_contract_hash": "sha256:1f6b0dfaf10ac8fc8ad2b8a0fa1f13c1192fbf3accaa98e962093925323b08f3"
     },
     "services": {
       "contract": "addons/godo_framework/Core/Services/USAGE.md",
@@ -53,11 +53,11 @@
     "debugger": {
       "contract": "addons/godo_framework/Debugger/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖自动加载、折叠与展开、内置页面、刷新和历史容量及 Release 边界；仍等待各页面的深度排障示例。",
+      "reason": "功能指南已覆盖自动加载、折叠与展开、卡片式概览、System 环境、Performance 低频趋势与分组指标、结构化 Input、Scheduler、Audio、Scene、Resources、DataTable、UI、Services 与 Events 检查器、树状导航、布局操作、控制台交互、刷新和历史容量及 Release 边界；仍等待各页面的深度排障示例。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:b6e8d771ca7e4e17aa35759d7fab24362afd4906281065192f035aafdb78c166"
+      "reviewed_contract_hash": "sha256:c43d008f78287f8a40d1c72c64bc4923441815bdcb81c8cfd760e14672c578d6"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
@@ -81,13 +81,14 @@
     "audio": {
       "contract": "addons/godo_framework/Runtime/Audio/USAGE.md",
       "status": "documented",
-      "reason": "教程和功能指南已覆盖流程 BGM、暂停恢复、加载取消、按钮 SFX、并发容量、循环音效边界、分组音量、设置持久化和非关键失败；仍等待淡入淡出、混音与空间音频未来能力。",
+      "reason": "教程和功能指南已覆盖流程 BGM、暂停恢复、加载取消、按钮 SFX、并发容量、循环音效边界、分组音量、设置持久化、非关键失败和 Debugger 只读诊断；仍等待淡入淡出、混音与空间音频未来能力。",
       "manual_pages": [
         "getting-started/add-audio.md",
         "getting-started/save-progress-and-settings.md",
-        "guides/ui-and-audio/index.md"
+        "guides/ui-and-audio/index.md",
+        "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:c3dbdae9fa7da25b3bd9c8e448133958193521945c7a48ad9990333019a8bf8a"
+      "reviewed_contract_hash": "sha256:4789d9719c7c269309d767f75edb3ad0a4d3e897794d2f7fa5515ccd39f9e630"
     },
     "camera": {
       "contract": "addons/godo_framework/Runtime/Camera/USAGE.md",
@@ -96,7 +97,7 @@
       "manual_pages": [
         "guides/camera/index.md"
       ],
-      "reviewed_contract_hash": "sha256:de3aff43e5195b496bef5e3068a68cd7690c7a185fff897ea3c4d3931ad6c795"
+      "reviewed_contract_hash": "sha256:b70bddbab2691321a440f79fe589b68a8f823e4468eeceda94b624cdcb524cbc"
     },
     "config": {
       "contract": "addons/godo_framework/Runtime/Config/USAGE.md",
@@ -110,12 +111,13 @@
     "input": {
       "contract": "addons/godo_framework/Runtime/Input/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖语义 Action、Frame、Context、帧边界、设备提示、运行时重绑定、持久化、能力检测和失败原子性。",
+      "reason": "功能指南已覆盖语义 Action、Frame、Context、帧边界、设备提示、运行时重绑定、持久化、能力检测、失败原子性和 Debugger 只读诊断。",
       "manual_pages": [
         "guides/input/index.md",
-        "guides/input-rebinding/index.md"
+        "guides/input-rebinding/index.md",
+        "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:0efcd691c9f78f10d954be44b7e09fa9fd5ba41e9973eeed787a4ba98a33c7c3"
+      "reviewed_contract_hash": "sha256:2420b72db73319b32656e5194dbe7037e354135c3cccae569a7ca28309cf1fa1"
     },
     "localization": {
       "contract": "addons/godo_framework/Runtime/Localization/USAGE.md",
@@ -125,7 +127,7 @@
         "getting-started/localize-game-text.md",
         "guides/save-settings-localization/index.md"
       ],
-      "reviewed_contract_hash": "sha256:9866aa4631e99a83fd5b4283ff017b6587510421f9048f8e9b9f9f334f44f675"
+      "reviewed_contract_hash": "sha256:8525f7e941c24d19754c5c4a0a008ad0f45867cf746a4ae77af214ab705cf752"
     },
     "pool": {
       "contract": "addons/godo_framework/Runtime/Pool/USAGE.md",
@@ -134,7 +136,7 @@
       "manual_pages": [
         "guides/node-pool/index.md"
       ],
-      "reviewed_contract_hash": "sha256:790e256f7d7f21a2f99a0255d23b2c1bbe87d3eded175eccc21247b2e1a820b7"
+      "reviewed_contract_hash": "sha256:eef4244e7c395376c6de84a342e8891e55dd4387035f1e88010aeab10ae5f4be"
     },
     "procedure": {
       "contract": "addons/godo_framework/Runtime/Procedure/USAGE.md",
@@ -150,12 +152,12 @@
         "guides/input/index.md",
         "guides/procedure-recovery/index.md"
       ],
-      "reviewed_contract_hash": "sha256:4650601a06d07a7d58f259d76c530dfe97eca609145fb45afe9425ddd9dfdee8"
+      "reviewed_contract_hash": "sha256:c8e7084f9bac16aa789081af2299d1d96b3fd6c2bd94d0848be046a15041b5c0"
     },
     "resources": {
       "contract": "addons/godo_framework/Runtime/Resources/USAGE.md",
       "status": "documented",
-      "reason": "教程和功能指南已覆盖 ResourceKey 路径/UID、资源清单编辑与合并、同步和异步加载、进度、并发冲突、Godot 缓存及关闭行为；仍等待远程内容与高级缓存未来扩展。",
+      "reason": "教程和功能指南已覆盖 ResourceKey 路径/UID、资源清单编辑与合并、同步和异步加载、进度、并发冲突、完成发布顺序、Godot 缓存及关闭行为；仍等待远程内容与高级缓存未来扩展。",
       "manual_pages": [
         "getting-started/first-scene.md",
         "getting-started/first-ui.md",
@@ -163,7 +165,7 @@
         "getting-started/add-audio.md",
         "guides/resources-and-scenes/index.md"
       ],
-      "reviewed_contract_hash": "sha256:227f31467ee4efc8630d0164e961cd9c526e2182aecd18e8d211e7eba931c046"
+      "reviewed_contract_hash": "sha256:a6521e5fdb423be4004eb6c5042a316849f8c47b0d46e14fa7086b7d8fa3c395"
     },
     "save": {
       "contract": "addons/godo_framework/Runtime/Save/USAGE.md",
@@ -173,7 +175,7 @@
         "getting-started/save-progress-and-settings.md",
         "guides/save-settings-localization/index.md"
       ],
-      "reviewed_contract_hash": "sha256:218433ec687a765092d80fdf894726d293b583f3c93bb2f2806e74dc69cb1b9a"
+      "reviewed_contract_hash": "sha256:00cc6c1384ac098950d62615eaf349946176a0273fc75cde149cd5c75cff6bc7"
     },
     "scene": {
       "contract": "addons/godo_framework/Runtime/Scene/USAGE.md",
@@ -184,7 +186,7 @@
         "getting-started/switch-procedures.md",
         "guides/resources-and-scenes/index.md"
       ],
-      "reviewed_contract_hash": "sha256:d2f108cf2adf5ec9e512245a6debdee58c72fedd8d390541d550f26329a85aa7"
+      "reviewed_contract_hash": "sha256:9eb8d70e5b86ce56742249ca73a425b6c6c785e1f40def00fb01f68846c8833e"
     },
     "scheduler": {
       "contract": "addons/godo_framework/Runtime/Scheduler/USAGE.md",
@@ -193,7 +195,7 @@
       "manual_pages": [
         "guides/scheduler/index.md"
       ],
-      "reviewed_contract_hash": "sha256:1b49da147680e90125b5305cff7d4770bdc14e2364277581dfcc17f040129019"
+      "reviewed_contract_hash": "sha256:23ac5b2d8fea8960866d4dd820cc5ed1b9d01c2d00f1c4ffb3c0dfafbb1e5fef"
     },
     "settings": {
       "contract": "addons/godo_framework/Runtime/Settings/USAGE.md",
@@ -204,7 +206,7 @@
         "getting-started/localize-game-text.md",
         "guides/save-settings-localization/index.md"
       ],
-      "reviewed_contract_hash": "sha256:ab5e6a37398919b19b7bb25783ca37f25ce398c1cada0e543379235c6b0f9706"
+      "reviewed_contract_hash": "sha256:dbbcd7b74a2201f169b7d755914f0e176951150c92b1d77ce7b36239d885793d"
     },
     "ui": {
       "contract": "addons/godo_framework/Runtime/UI/USAGE.md",
@@ -214,18 +216,19 @@
         "getting-started/first-ui.md",
         "getting-started/switch-procedures.md",
         "getting-started/localize-game-text.md",
-        "guides/ui-and-audio/index.md"
+        "guides/ui-and-audio/index.md",
+        "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:7ce921ec398e71a4e94a7f14fe01ec1f295a9122198f7a862540a1c5bd48e33c"
+      "reviewed_contract_hash": "sha256:27b4c19b6a21aa525ba99d614bbe61431ba8e25d63fb02b127fc31c17493d66e"
     },
     "data-table-runtime": {
       "contract": "addons/godo_framework/Runtime/DataTable/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖业务显式加载、生成门面、表级进度、事务发布、重复加载、取消、失败、卸载、Client/Server 子集及更新边界；移动端、AOT 和完整 ExportRelease 仍待正式验收。",
+      "reason": "功能指南已覆盖业务显式加载、生成门面、表级进度、事务发布、重复加载、取消、失败、卸载、Client/Server 子集、更新边界及 Debugger 只读诊断；移动端、AOT 和完整 ExportRelease 仍待正式验收。",
       "manual_pages": [
         "guides/data-tables/index.md"
       ],
-      "reviewed_contract_hash": "sha256:b4d44ad75bc383ad7bc1887cfe62a9b8ed25832f31b106003b098c7330c671e9"
+      "reviewed_contract_hash": "sha256:cfac6d16b84f0fadbdc07c81ede2202bb0a58aa0eab54e3fe24bf7e1fc9588c8"
     },
     "data-table": {
       "contract": "addons/godo_framework/Tools/DataTable/USAGE.md",
@@ -234,7 +237,7 @@
       "manual_pages": [
         "guides/data-tables/index.md"
       ],
-      "reviewed_contract_hash": "sha256:8c97aa12ce517409390fcfe73256d7ff3757fdd5a303b5cdfea96283aa08b352"
+      "reviewed_contract_hash": "sha256:3c9990139af887e4c2e60d4cdf2901408567ffdf608ac47a695b8d28827f1349"
     }
   }
 }

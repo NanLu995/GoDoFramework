@@ -110,6 +110,8 @@ catch (AudioPlaybackException exception)
 
 同一时间只允许一个 BGM 加载请求。流程切换应串行协调，不要让多个页面同时争抢音乐。需要安静状态时显式 `StopBgm()`。
 
+`StopBgm()` 会立即释放逻辑加载状态，因此可以马上发起新的 BGM 请求。旧等待方会在 ResourceHub 的共享底层加载完成后收到 `OperationCanceledException`，不会覆盖新请求状态。
+
 `PauseBgm()` 和 `ResumeBgm()` 只影响当前 BGM，不会暂停 SFX 或 SceneTree。暂停菜单是否暂停音乐由游戏设计决定。
 
 ## 6. 正确处理短音效容量
@@ -131,6 +133,8 @@ catch (AudioPlaybackException exception)
 ```
 
 `false` 表示并发 Voice 已满，是正常容量分支，不是资源损坏。默认预热 8 路、最大 32 路；加载中的请求也会预占名额，防止同时完成后突破上限。
+
+`StopAllSfx()` 会立即归还活动 Voice 并释放待加载请求预占的逻辑容量。旧等待方会在共享底层加载完成后以 `OperationCanceledException` 结束，不会减少新一代请求的容量计数。
 
 自然播放结束的非循环音效会自动归还池。循环 AudioStream 不会触发 Finished，当前 public API 没有单路 SFX Handle；必须用 `StopAllSfx()` 统一停止，或对需要独立控制的循环/空间声音直接使用业务层 `AudioStreamPlayer`、`AudioStreamPlayer2D/3D`。
 

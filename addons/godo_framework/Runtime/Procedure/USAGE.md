@@ -130,13 +130,17 @@ Procedure 模块本身不直接依赖 Scene、UI、Audio、Save 等具体服务�
 - 旧流程 `ExitAsync` 失败：抛出 `ProcedureChangeException`，不进入新流程，`Current` 保持旧流程。
 - 新流程 `EnterAsync` 失败：抛出 `ProcedureChangeException`，`Current` 为 `null`。
 - `EnterAsync` 或 `ExitAsync` 内部异常会作为 `ProcedureChangeException.InnerException` 保留。
+- 当前切换失败时，流程边界内产生但尚未执行的 `RequestChange` 会被丢弃，不会泄漏到下一次恢复切换。
 - `RequestChange` 只保留最近一次请求；如果请求执行失败，会通过 ErrorHub 报告。
+- GoDoRuntime 关闭期间尚未完成的切换以 `ProcedureChangeException` 结束，内部异常为 `OperationCanceledException`，且不会重新写回 `Current`。
+- `Name` 读取失败或返回空白时，异常和 Debug 诊断使用流程类型名作为回退。
 
 Procedure 不会静默吞掉异常，也不会自动回滚旧流程。需要复杂恢复策略时，应由业务层明确处理。
 
 ## 生命周期与线程
 
 - 所有公共 API 必须在 GoDoRuntime 记录的 Godot 主线程调用。
+- 泛型 `ChangeAsync<TProcedure>` 和 `RequestChange<TProcedure>` 会先验证主线程，再执行目标流程构造函数。
 - `IProcedureService` 由 GoDoRuntime 创建并注册到 Services。
 - 推荐由当前 Procedure 决定下一步流程；UI 和场景脚本只通知当前 Procedure 玩家意图。
 - GoDoRuntime 退出时会清空当前 Procedure 引用，但不会调用业务 Procedure 的 `ExitAsync`。项目退出阶段如需保存或清理业务状态，应由业务层主动完成。
@@ -145,6 +149,8 @@ Procedure 不会静默吞掉异常，也不会自动回滚旧流程。需要复�
 ## 性能
 
 Procedure 切换不是高频路径。首版优先保证生命周期清楚和失败可见，不为每帧零分配做额外复杂化。不要在 `_Process` 中频繁调用 `ChangeAsync`。
+
+Debug 构建会保留上一个流程、当前目标、待处理请求、最近成功和最近一次失败的简短诊断。失败信息最多保存 256 个字符，不持有原始 Exception；只读 Debugger 仅在 Procedure 页面被选中时读取。Release 构建不包含这些诊断状态。
 
 ## 常见误用
 
@@ -173,6 +179,10 @@ Verification/Automated/ProcedureRegression.tscn
 - `ProcedureContext` 获取已注册服务。
 - `EnterAsync` 内部通过 `RequestChange` 请求后续流程。
 - 当前流程方法通过 `RequestChange` 请求切换。
+- 进入或退出失败后清理待处理请求。
+- Shutdown 取消尚未完成的异步切换。
+- 泛型入口在线程验证前不创建流程。
+- `Name` 读取失败时保留原始生命周期异常。
 
 手动验证建议：
 

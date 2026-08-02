@@ -6,7 +6,7 @@ const AUTOLOAD_SETTING := "autoload/GoDoRuntime"
 const RUNTIME_SCENE_PATH := "res://addons/godo_framework/Core/GoDoRuntime.tscn"
 const RUNTIME_SCRIPT_PATH := "res://addons/godo_framework/Core/GoDoRuntime.cs"
 const FRAMEWORK_PATH := "res://addons/godo_framework"
-const MIN_GODOT_VERSION := Vector3i(4, 7, 1)
+const PLUGIN_CONFIG_PATH := "res://addons/godo_framework/plugin.cfg"
 const NORMAL_COLOR := Color("#8BD49C")
 const PENDING_COLOR := Color("#AEB6C2")
 const WARNING_COLOR := Color("#FFD166")
@@ -196,6 +196,10 @@ func _check_health() -> Dictionary:
 		"csharp_ready": false,
 		"runtime_scene_valid": false,
 		"version_supported": false,
+		"version_tested": false,
+		"framework_version": "",
+		"min_godot_version": "",
+		"tested_godot_version": "",
 		"autoload_missing": false,
 		"autoload_healthy": false,
 		"has_name_conflict": false,
@@ -211,28 +215,80 @@ func _check_health() -> Dictionary:
 
 func _check_version(report: Dictionary) -> void:
 	var version := Engine.get_version_info()
-	var major: int = version.major
-	var minor: int = version.minor
-	var patch: int = version.patch
-	report.version_supported = (
-		major == MIN_GODOT_VERSION.x
-		and (
-			minor > MIN_GODOT_VERSION.y
-			or (minor == MIN_GODOT_VERSION.y and patch >= MIN_GODOT_VERSION.z)
-		)
-	)
-	var required_version := "%d.%d.%d" % [
-		MIN_GODOT_VERSION.x,
-		MIN_GODOT_VERSION.y,
-		MIN_GODOT_VERSION.z,
-	]
+	var current_version := Vector3i(version.major, version.minor, version.patch)
+	var config := ConfigFile.new()
+	var load_error := config.load(PLUGIN_CONFIG_PATH)
+	if load_error != OK:
+		_add_item(report, HealthLevel.ERROR, "GoDoFramework 版本", "无法读取 plugin.cfg：%s" % error_string(load_error))
+		_add_item(report, HealthLevel.ERROR, "Godot 兼容性", "缺少可用的兼容性声明")
+		return
+
+	report.framework_version = str(config.get_value("plugin", "version", "")).strip_edges()
+	report.min_godot_version = str(config.get_value("plugin", "min_godot_version", "")).strip_edges()
+	report.tested_godot_version = str(config.get_value("plugin", "tested_godot_version", "")).strip_edges()
+	if report.framework_version.is_empty():
+		_add_item(report, HealthLevel.ERROR, "GoDoFramework 版本", "plugin.cfg 未声明版本")
+		_add_item(report, HealthLevel.ERROR, "Godot 兼容性", "缺少可用的兼容性声明")
+		return
+	_add_item(report, HealthLevel.NORMAL, "GoDoFramework 版本", report.framework_version)
+
+	var minimum_version := _parse_version(report.min_godot_version)
+	var tested_version := _parse_version(report.tested_godot_version)
+	if (
+		minimum_version.x < 0
+		or tested_version.x < 0
+		or minimum_version.x != tested_version.x
+		or _compare_versions(minimum_version, tested_version) > 0
+	):
+		_add_item(report, HealthLevel.ERROR, "Godot 兼容性", "plugin.cfg 中的最低版本或已验证版本无效")
+		return
+
+	var compatibility := _evaluate_version(current_version, minimum_version, tested_version)
+	report.version_supported = compatibility.supported
+	report.version_tested = compatibility.tested
+	var current_text := _format_version(current_version)
 	_add_item(
 		report,
-		HealthLevel.NORMAL if report.version_supported else HealthLevel.ERROR,
-		"Godot 版本",
-		"%d.%d.%d" % [major, minor, patch] if report.version_supported
-		else "当前为 %d.%d.%d，需要 Godot %s 或更高的 4.x 版本" % [major, minor, patch, required_version]
+		HealthLevel.NORMAL if report.version_tested else (HealthLevel.WARNING if report.version_supported else HealthLevel.ERROR),
+		"Godot 兼容性",
+		"当前 %s，已验证范围 %s～%s" % [current_text, report.min_godot_version, report.tested_godot_version]
+		if report.version_tested
+		else ("当前 %s，高于已验证版本 %s；可以继续使用，但应升级框架或完成项目回归" % [current_text, report.tested_godot_version]
+		if report.version_supported
+		else "当前 %s，不兼容；需要 %s～%s 所在的 Godot %d.x" % [current_text, report.min_godot_version, report.tested_godot_version, minimum_version.x])
 	)
+
+
+func _parse_version(value: String) -> Vector3i:
+	var parts := value.split(".")
+	if parts.size() != 3:
+		return Vector3i(-1, -1, -1)
+	for part in parts:
+		if not part.is_valid_int() or int(part) < 0:
+			return Vector3i(-1, -1, -1)
+	return Vector3i(int(parts[0]), int(parts[1]), int(parts[2]))
+
+
+func _compare_versions(left: Vector3i, right: Vector3i) -> int:
+	if left.x != right.x:
+		return -1 if left.x < right.x else 1
+	if left.y != right.y:
+		return -1 if left.y < right.y else 1
+	if left.z != right.z:
+		return -1 if left.z < right.z else 1
+	return 0
+
+
+func _evaluate_version(current: Vector3i, minimum: Vector3i, tested: Vector3i) -> Dictionary:
+	var supported := current.x == minimum.x and _compare_versions(current, minimum) >= 0
+	return {
+		"supported": supported,
+		"tested": supported and current.x == tested.x and _compare_versions(current, tested) <= 0,
+	}
+
+
+func _format_version(version: Vector3i) -> String:
+	return "%d.%d.%d" % [version.x, version.y, version.z]
 
 
 func _check_csharp_environment(report: Dictionary) -> void:
@@ -382,12 +438,7 @@ func _render_report(report: Dictionary) -> void:
 
 func _framework_status(report: Dictionary) -> Dictionary:
 	if not report.version_supported:
-		var required_version := "%d.%d.%d" % [
-			MIN_GODOT_VERSION.x,
-			MIN_GODOT_VERSION.y,
-			MIN_GODOT_VERSION.z,
-		]
-		return {"name": "Godot 版本不兼容", "level": HealthLevel.ERROR, "advice": "请使用 Godot %s 或更高的 4.x 版本。" % required_version}
+		return {"name": "Godot 版本不兼容", "level": HealthLevel.ERROR, "advice": "请使用兼容范围内的 Godot，或升级 GoDoFramework。"}
 	if not report.runtime_scene_valid:
 		return {"name": "框架资源缺失", "level": HealthLevel.ERROR, "advice": "请重新复制完整的框架文件。"}
 	if not report.csharp_ready:
@@ -398,6 +449,8 @@ func _framework_status(report: Dictionary) -> Dictionary:
 		return {"name": "Autoload 名称冲突", "level": HealthLevel.ERROR, "advice": "请先处理已有的 GoDoRuntime Autoload。"}
 	if report.has_duplicate:
 		return {"name": "框架被重复注册", "level": HealthLevel.ERROR, "advice": "请手动处理指向同一 Runtime 场景的其他 Autoload。"}
+	if not report.version_tested:
+		return {"name": "Godot 版本尚未验证", "level": HealthLevel.WARNING, "advice": "当前版本不会阻止使用；请升级 GoDoFramework，或完成项目自动测试和关键场景回归。"}
 	if report.autoload_healthy:
 		return {"name": "已正确安装", "level": HealthLevel.NORMAL, "advice": "框架已经可以使用，无需重复安装。"}
 	return {"name": "可以安装", "level": HealthLevel.NORMAL, "advice": "检查已通过，可以安装 Runtime。"}

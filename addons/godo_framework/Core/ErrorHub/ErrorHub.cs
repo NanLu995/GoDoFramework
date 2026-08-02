@@ -30,8 +30,8 @@ namespace GoDo;
 /// </summary>
 public static class ErrorHub
 {
-    private const int MaxPendingReports = 1024;
-    private const int MaxReportsPerFlush = 256;
+    internal const int MaxPendingReports = 1024;
+    internal const int MaxReportsPerFlush = 256;
 
     // ── 内部状态 ──────────────────────────────────────────────────────────────
 
@@ -40,6 +40,17 @@ public static class ErrorHub
     private static readonly ConcurrentQueue<ErrorReport> _pendingReports = new();
     private static int _pendingReportCount;
     private static int _droppedReportCount;
+#if DEBUG
+    private static bool _suppressGodotOutputForTesting;
+
+    internal static bool SuppressGodotOutputForTesting
+    {
+        get => _suppressGodotOutputForTesting;
+        set => _suppressGodotOutputForTesting = value;
+    }
+#endif
+
+    internal static int PendingReportCount => Volatile.Read(ref _pendingReportCount);
 
     // 错误处理链自身再次报错时必须走降级输出，不能递归进入 Reporter/OnError。
     [ThreadStatic]
@@ -384,6 +395,11 @@ public static class ErrorHub
 
     private static void GodotLog(in ErrorReport report)
     {
+#if DEBUG
+        if (_suppressGodotOutputForTesting)
+            return;
+#endif
+
         string formatted = FormatForConsole(in report);
 
         switch (report.Level)

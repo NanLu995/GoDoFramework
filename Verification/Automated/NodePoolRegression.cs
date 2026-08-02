@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Godot;
 using GoDo;
 
@@ -30,8 +31,14 @@ public sealed partial class NodePoolRegression : Node
             Run("拒绝重复与外部节点", VerifyInvalidRelease);
             Run("Clear 不影响活动节点", VerifyClear);
             Run("Dispose 强制清理活动节点", VerifyDispose);
+            Run("构造拒绝非主线程", VerifyConstructorThreadGuard);
+            Run("拒绝等待删除的父节点", VerifyQueuedParent);
+            Run("Acquire 回调异常清理", VerifyAcquireCallbackFailure);
+            Run("Release 回调异常清理", VerifyReleaseCallbackFailure);
+            Run("外部 QueueFree 清理", VerifyExternalQueueFree);
+            Run("Dispose 拒绝回调重入", VerifyDisposeReentrancy);
 
-            GD.Print($"[NodePoolRegression] PASS ({_passed}/6)");
+            GD.Print($"[NodePoolRegression] PASS ({_passed}/12)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -140,6 +147,106 @@ public sealed partial class NodePoolRegression : Node
         AssertThrows<ObjectDisposedException>(
             () => pool.Acquire(this),
             "Dispose 后 Acquire 没有抛出 ObjectDisposedException");
+    }
+
+    private void VerifyConstructorThreadGuard()
+    {
+        NodePool<PoolRegressionNode>? createdPool = null;
+        Exception? exception = Task.Run(() =>
+        {
+            try
+            {
+                createdPool = new NodePool<PoolRegressionNode>(TestNodeScene);
+                return null;
+            }
+            catch (Exception caught)
+            {
+                return caught;
+            }
+        }).GetAwaiter().GetResult();
+
+        createdPool?.Dispose();
+        Assert(
+            exception is InvalidOperationException,
+            "非主线程构造 NodePool 没有抛出 InvalidOperationException");
+    }
+
+    private void VerifyQueuedParent()
+    {
+        using var pool = new NodePool<PoolRegressionNode>(TestNodeScene);
+        var parent = new Node();
+        AddChild(parent);
+        parent.QueueFree();
+
+        AssertThrows<ArgumentException>(
+            () => pool.Acquire(parent),
+            "Acquire 接受了等待删除的父节点");
+        AssertEqual(0, pool.ActiveCount, "拒绝父节点后仍有活动节点");
+    }
+
+    private void VerifyAcquireCallbackFailure()
+    {
+        using var pool = new NodePool<PoolRegressionNode>(TestNodeScene, idleCapacity: 1);
+        PoolRegressionNode node = pool.Acquire(this);
+        pool.Release(node);
+        node.ThrowOnAcquire = true;
+
+        AssertThrows<InvalidOperationException>(
+            () => pool.Acquire(this),
+            "OnAcquire 异常没有转换为 InvalidOperationException");
+        AssertEqual(0, pool.ActiveCount, "OnAcquire 异常后仍有活动节点");
+        AssertEqual(0, pool.IdleCount, "OnAcquire 异常节点进入了空闲区");
+        Assert(node.IsQueuedForDeletion(), "OnAcquire 异常节点没有释放");
+    }
+
+    private void VerifyReleaseCallbackFailure()
+    {
+        using var pool = new NodePool<PoolRegressionNode>(TestNodeScene, idleCapacity: 1);
+        PoolRegressionNode node = pool.Acquire(this);
+        node.ThrowOnRelease = true;
+
+        AssertThrows<InvalidOperationException>(
+            () => pool.Release(node),
+            "OnRelease 异常没有转换为 InvalidOperationException");
+        AssertEqual(0, pool.ActiveCount, "OnRelease 异常后仍有活动节点");
+        AssertEqual(0, pool.IdleCount, "OnRelease 异常节点进入了空闲区");
+        Assert(node.GetParent() is null, "OnRelease 异常节点仍有父节点");
+        Assert(node.IsQueuedForDeletion(), "OnRelease 异常节点没有释放");
+    }
+
+    private void VerifyExternalQueueFree()
+    {
+        using var pool = new NodePool<PoolRegressionNode>(TestNodeScene);
+        PoolRegressionNode node = pool.Acquire(this);
+        node.QueueFree();
+
+        Assert(!pool.Release(node), "外部 QueueFree 节点 Release 返回 true");
+        AssertEqual(0, pool.ActiveCount, "外部 QueueFree 后仍有活动节点");
+        AssertEqual(0, pool.IdleCount, "外部 QueueFree 节点进入了空闲区");
+    }
+
+    private void VerifyDisposeReentrancy()
+    {
+        var pool = new NodePool<PoolRegressionNode>(TestNodeScene);
+        PoolRegressionNode active = pool.Acquire(this);
+        bool acquireRejected = false;
+        active.ReleaseAction = () =>
+        {
+            try
+            {
+                pool.Acquire(this);
+            }
+            catch (ObjectDisposedException)
+            {
+                acquireRejected = true;
+            }
+        };
+
+        pool.Dispose();
+
+        Assert(acquireRejected, "Dispose 的 OnRelease 回调仍能重新 Acquire");
+        AssertEqual(0, pool.ActiveCount, "Dispose 回调重入后残留活动节点");
+        AssertEqual(0, pool.IdleCount, "Dispose 回调重入后残留空闲节点");
     }
 
     private static void Assert(bool condition, string message)

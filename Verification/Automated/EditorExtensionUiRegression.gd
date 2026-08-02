@@ -2,6 +2,7 @@
 extends SceneTree
 
 const MENU_BUTTON_NAME := "GoDoFrameworkToolbarMenu"
+const SETUP_CONTROLLER_SCRIPT := preload("res://addons/godo_framework/Editor/godo_runtime_setup_controller.gd")
 
 
 func _initialize() -> void:
@@ -18,6 +19,8 @@ func _run() -> void:
 
 	var menu := menu_button.get_popup()
 	if not _verify_menu_layout(menu):
+		return
+	if not await _open_and_verify_setup(menu):
 		return
 	if not await _open_and_verify_datatable(menu):
 		return
@@ -40,7 +43,7 @@ func _run() -> void:
 	):
 		return
 
-	print("[EditorExtensionUiRegression] PASS (4/4)")
+	print("[EditorExtensionUiRegression] PASS (5/5)")
 	quit(0)
 
 
@@ -113,6 +116,40 @@ func _open_and_verify(
 	return true
 
 
+func _open_and_verify_setup(menu: PopupMenu) -> bool:
+	var controller = SETUP_CONTROLLER_SCRIPT.new()
+	var minimum := Vector3i(4, 7, 1)
+	var tested := Vector3i(4, 7, 1)
+	if controller._evaluate_version(Vector3i(4, 7, 0), minimum, tested).supported:
+		_fail("低于最低版本的 Godot 未被拒绝。")
+		return false
+	var newer: Dictionary = controller._evaluate_version(Vector3i(4, 7, 2), minimum, tested)
+	if not newer.supported or newer.tested:
+		_fail("高于已验证版本的同 major Godot 未进入兼容但未验证状态。")
+		return false
+
+	var menu_id := _find_menu_id(menu, "配置 (Setup)...")
+	if menu_id < 0:
+		_fail("未找到 Setup 菜单项。")
+		return false
+	menu.id_pressed.emit(menu_id)
+	await process_frame
+	var dialog := _find_window(root, "GoDo Framework")
+	if dialog == null:
+		_fail("未找到 GoDo Framework 配置窗口。")
+		return false
+	var report := dialog.find_child("ReportLabel", true, false) as RichTextLabel
+	if (
+		report == null
+		or not report.get_parsed_text().contains("GoDoFramework 版本")
+		or not report.get_parsed_text().contains("Godot 兼容性")
+	):
+		_fail("Setup 未显示框架版本和 Godot 兼容性：%s" % ("<missing>" if report == null else report.get_parsed_text()))
+		return false
+	dialog.hide()
+	return true
+
+
 func _open_and_verify_datatable(menu: PopupMenu) -> bool:
 	var menu_id := _find_menu_id(menu, "数据表配置 (DataTable Configuration)...")
 	if menu_id < 0:
@@ -131,9 +168,11 @@ func _open_and_verify_datatable(menu: PopupMenu) -> bool:
 		return false
 	var generate_button := dialog.find_child("DataTableGenerateSelectedButton", true, false) as Button
 	var generate_all_button := dialog.find_child("DataTableGenerateButton", true, false) as Button
+	var export_spacer := dialog.find_child("DataTableExportSpacer", true, false) as Control
 	if (
 		generate_button == null
 		or generate_all_button == null
+		or export_spacer == null
 		or generate_button.get_parent() != selector.get_parent()
 		or generate_all_button.get_parent() != selector.get_parent()
 	):
@@ -141,6 +180,29 @@ func _open_and_verify_datatable(menu: PopupMenu) -> bool:
 		return false
 	if generate_button.text != "导出当前表..." or generate_all_button.text != "导出全部表...":
 		_fail("数据表导出按钮文本不准确。")
+		return false
+	if selector.size.x > 390.0 or generate_button.position.x - (selector.position.x + selector.size.x) > 12.0:
+		_fail("数据表选择器过宽，或“导出当前表”未紧贴选择器。")
+		return false
+	if (
+		export_spacer.size_flags_horizontal != Control.SIZE_EXPAND_FILL
+		or export_spacer.position.x <= generate_button.position.x
+		or generate_all_button.get_theme_color("font_color") != Color("#8BD49C")
+	):
+		_fail("“导出全部表”未保持靠右或缺少主操作提示色。")
+		return false
+	var normal_style := generate_all_button.get_theme_stylebox("normal") as StyleBoxFlat
+	var hover_style := generate_all_button.get_theme_stylebox("hover") as StyleBoxFlat
+	var pressed_style := generate_all_button.get_theme_stylebox("pressed") as StyleBoxFlat
+	if (
+		normal_style == null
+		or hover_style == null
+		or pressed_style == null
+		or normal_style.border_width_left != 1
+		or hover_style.bg_color.a <= normal_style.bg_color.a
+		or pressed_style.bg_color.a <= hover_style.bg_color.a
+	):
+		_fail("“导出全部表”缺少描边、悬停或按下状态样式。")
 		return false
 	var python_input := dialog.find_child("DataTablePythonInput", true, false) as LineEdit
 	if python_input == null or python_input.placeholder_text != "可留空，将自动检测 python3 / python":

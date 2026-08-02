@@ -28,8 +28,12 @@ public sealed partial class ProcedureRegression : Node
             await RunAsync("Enter 内请求后续流程", VerifyEnterRequestedChangeAsync);
             await RunAsync("当前流程方法请求切换", VerifyCurrentProcedureRequestedChangeAsync);
             await RunAsync("Context 泛型请求无参流程", VerifyGenericRequestAsync);
+            await RunAsync("失败后清理待处理请求", VerifyFailedChangeClearsRequestedProcedureAsync);
+            await RunAsync("Shutdown 取消进行中的切换", VerifyShutdownCancelsInFlightChangeAsync);
+            await RunAsync("泛型入口先验证主线程", VerifyGenericEntryPointsValidateThreadFirstAsync);
+            await RunAsync("Name 读取失败不遮盖生命周期异常", VerifyFailingNameDoesNotMaskLifecycleFailureAsync);
 
-            GD.Print($"[ProcedureRegression] PASS ({_passed}/11)");
+            GD.Print($"[ProcedureRegression] PASS ({_passed}/15)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -198,6 +202,88 @@ public sealed partial class ProcedureRegression : Node
         Assert(procedure.EnterCount == 1, "Context 泛型请求没有调用 EnterAsync");
     }
 
+    private static async Task VerifyFailedChangeClearsRequestedProcedureAsync()
+    {
+        var enterService = new ProcedureService();
+        var staleAfterEnter = new RecordingProcedure("StaleAfterEnter");
+        var failingEnter = new RequestThenFailEnterProcedure("BrokenEnter", staleAfterEnter);
+
+        await AssertThrowsAsync<ProcedureChangeException>(
+            () => enterService.ChangeAsync(failingEnter),
+            "Enter 失败没有抛出 ProcedureChangeException");
+
+        var enterRecovery = new RecordingProcedure("EnterRecovery");
+        await enterService.ChangeAsync(enterRecovery);
+        Assert(ReferenceEquals(enterRecovery, enterService.Current), "Enter 失败残留请求覆盖了恢复流程");
+        Assert(staleAfterEnter.EnterCount == 0, "Enter 失败后仍执行了残留请求");
+
+        var exitService = new ProcedureService();
+        var staleAfterExit = new RecordingProcedure("StaleAfterExit");
+        var failingExit = new RequestThenFailExitProcedure("BrokenExit", staleAfterExit);
+        await exitService.ChangeAsync(failingExit);
+
+        await AssertThrowsAsync<ProcedureChangeException>(
+            () => exitService.ChangeAsync(new RecordingProcedure("Rejected")),
+            "Exit 失败没有抛出 ProcedureChangeException");
+
+        failingExit.FailExit = false;
+        var exitRecovery = new RecordingProcedure("ExitRecovery");
+        await exitService.ChangeAsync(exitRecovery);
+        Assert(ReferenceEquals(exitRecovery, exitService.Current), "Exit 失败残留请求覆盖了恢复流程");
+        Assert(staleAfterExit.EnterCount == 0, "Exit 失败后仍执行了残留请求");
+    }
+
+    private static async Task VerifyShutdownCancelsInFlightChangeAsync()
+    {
+        var service = new ProcedureService();
+        var blocker = new BlockingProcedure("Blocker");
+        Task changeTask = service.ChangeAsync(blocker);
+        await blocker.EnterStarted.Task;
+
+        service.Shutdown();
+        blocker.ReleaseEnter();
+
+        ProcedureChangeException exception = await AssertThrowsAsync<ProcedureChangeException>(
+            () => changeTask,
+            "Shutdown 后进行中的切换没有失败");
+        Assert(exception.InnerException is OperationCanceledException, "Shutdown 失败未保留取消原因");
+        Assert(service.Current is null, "Shutdown 后旧切换重新写回了 Current");
+        Assert(!service.IsChanging, "Shutdown 后 IsChanging 未复位");
+    }
+
+    private static async Task VerifyGenericEntryPointsValidateThreadFirstAsync()
+    {
+        var service = new ProcedureService();
+        ConstructorTrackingProcedure.Reset();
+
+        await AssertThrowsAsync<InvalidOperationException>(
+            () => Task.Run(() => service.ChangeAsync<ConstructorTrackingProcedure>()),
+            "泛型 ChangeAsync 在非主线程没有失败");
+        Assert(ConstructorTrackingProcedure.ConstructorCount == 0, "泛型 ChangeAsync 在线程校验前创建了流程");
+
+        var contextProcedure = new ContextCapturingProcedure();
+        await service.ChangeAsync(contextProcedure);
+        ConstructorTrackingProcedure.Reset();
+
+        await AssertThrowsAsync<InvalidOperationException>(
+            () => Task.Run(() => contextProcedure.Context.RequestChange<ConstructorTrackingProcedure>()),
+            "泛型 RequestChange 在非主线程没有失败");
+        Assert(ConstructorTrackingProcedure.ConstructorCount == 0, "泛型 RequestChange 在线程校验前创建了流程");
+    }
+
+    private static async Task VerifyFailingNameDoesNotMaskLifecycleFailureAsync()
+    {
+        var service = new ProcedureService();
+        var procedure = new FailingNameProcedure();
+
+        ProcedureChangeException exception = await AssertThrowsAsync<ProcedureChangeException>(
+            () => service.ChangeAsync(procedure),
+            "Name 读取失败遮盖了 ProcedureChangeException");
+
+        Assert(exception.InnerException?.Message == "Enter failure", "Name 读取失败遮盖了原始 Enter 异常");
+        Assert(exception.ProcedureName == nameof(FailingNameProcedure), "Name 读取失败没有使用类型名回退");
+    }
+
     private static void Assert(bool condition, string message)
     {
         if (!condition)
@@ -214,6 +300,21 @@ public sealed partial class ProcedureRegression : Node
         catch (TException)
         {
             return;
+        }
+
+        throw new InvalidOperationException(message);
+    }
+
+    private static async Task<TException> AssertThrowsAsync<TException>(Func<Task> action, string message)
+        where TException : Exception
+    {
+        try
+        {
+            await action();
+        }
+        catch (TException exception)
+        {
+            return exception;
         }
 
         throw new InvalidOperationException(message);
@@ -368,6 +469,85 @@ public sealed partial class ProcedureRegression : Node
 
         public override Task EnterAsync(ProcedureContext context) =>
             throw new InvalidOperationException("Enter failure");
+    }
+
+    private sealed class RequestThenFailEnterProcedure : RecordingProcedure
+    {
+        private readonly IProcedure _requested;
+
+        public RequestThenFailEnterProcedure(string name, IProcedure requested) : base(name)
+        {
+            _requested = requested;
+        }
+
+        public override Task EnterAsync(ProcedureContext context)
+        {
+            context.RequestChange(_requested);
+            throw new InvalidOperationException("Enter failure");
+        }
+    }
+
+    private sealed class RequestThenFailExitProcedure : RecordingProcedure
+    {
+        private readonly IProcedure _requested;
+
+        public bool FailExit { get; set; } = true;
+
+        public RequestThenFailExitProcedure(string name, IProcedure requested) : base(name)
+        {
+            _requested = requested;
+        }
+
+        public override Task ExitAsync(ProcedureContext context)
+        {
+            if (!FailExit)
+                return base.ExitAsync(context);
+
+            context.RequestChange(_requested);
+            throw new InvalidOperationException("Exit failure");
+        }
+    }
+
+    private sealed class ContextCapturingProcedure : IProcedure
+    {
+        public string Name => "ContextCapturing";
+        public ProcedureContext Context { get; private set; } = null!;
+
+        public Task EnterAsync(ProcedureContext context)
+        {
+            Context = context;
+            return Task.CompletedTask;
+        }
+
+        public Task ExitAsync(ProcedureContext context) => Task.CompletedTask;
+    }
+
+    private sealed class ConstructorTrackingProcedure : IProcedure
+    {
+        public static int ConstructorCount { get; private set; }
+
+        public ConstructorTrackingProcedure()
+        {
+            ConstructorCount++;
+        }
+
+        public string Name => "ConstructorTracking";
+
+        public static void Reset() => ConstructorCount = 0;
+
+        public Task EnterAsync(ProcedureContext context) => Task.CompletedTask;
+
+        public Task ExitAsync(ProcedureContext context) => Task.CompletedTask;
+    }
+
+    private sealed class FailingNameProcedure : IProcedure
+    {
+        public string Name => throw new InvalidOperationException("Name failure");
+
+        public Task EnterAsync(ProcedureContext context) =>
+            throw new InvalidOperationException("Enter failure");
+
+        public Task ExitAsync(ProcedureContext context) => Task.CompletedTask;
     }
 
     private sealed class ContextProcedure : RecordingProcedure

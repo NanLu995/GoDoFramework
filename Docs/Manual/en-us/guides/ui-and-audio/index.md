@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/ui-and-audio/index.md
-translation_source_hash: sha256:0cdaaa524e27ee0182f2ad0d58ed0560139bac46f7f2336af5529b1cfd583fe7
+translation_source_hash: sha256:4962a42bb4f2388431e31e5534b57f1c24445d6585ce97009c924b995e6d91c6
 ---
 
 # Organize Complex UI and Long-Lived Audio
@@ -115,6 +115,8 @@ Requesting the same Resource does not restart it by default; pass `restart: true
 
 Only one BGM load may run at a time. Serialize flow changes instead of letting several pages compete for music. Call `StopBgm()` explicitly for a silent state.
 
+`StopBgm()` releases the logical loading state immediately, so a replacement BGM request may start at once. The old waiter receives `OperationCanceledException` after ResourceHub's shared underlying load finishes and cannot overwrite the replacement state.
+
 `PauseBgm()` and `ResumeBgm()` affect only current BGM, not SFX or SceneTree. The game design decides whether a pause menu pauses music.
 
 ## 6. Treat short-SFX capacity correctly
@@ -136,6 +138,8 @@ catch (AudioPlaybackException exception)
 ```
 
 `false` means Voice capacity is full, a normal capacity branch rather than corrupt content. Defaults are eight prewarmed and 32 maximum Voices. Loading requests reserve capacity so simultaneous completions cannot exceed the limit.
+
+`StopAllSfx()` immediately returns active Voices and releases logical capacity reserved by pending requests. Old waiters end with `OperationCanceledException` after the shared underlying load finishes and cannot decrement capacity owned by the new request generation.
 
 A non-looping sound returns to the pool after natural completion. A looping AudioStream never emits Finished, and the current public API has no per-SFX Handle. Use `StopAllSfx()` for global cleanup, or a game-owned `AudioStreamPlayer` / `AudioStreamPlayer2D/3D` for a loop or spatial sound requiring independent control.
 

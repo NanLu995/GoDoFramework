@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/troubleshooting/index.md
-translation_source_hash: sha256:9c7ef5880c9fbdda8ef4679cd8e979744753670538ac3c1dd48b65bbf4a1d08d
+translation_source_hash: sha256:862f14d0aafe55eb9664e5623dd08434d8bbce47bb6543efa52b61ba9436b763
 ---
 
 # Troubleshooting
@@ -23,6 +23,8 @@ This page is organized by runtime symptom. Find the closest match and confirm ca
 ## `Services.Get<T>()` says the service is not registered
 
 Common causes are a missing Runtime installation, a call before Runtime initialization, a duplicate framework instance in a game scene, or an interface that is not registered.
+
+If the log first reports `[Runtime] [FATAL]` and “GoDoRuntime initialization failed,” the Runtime scene is missing a required child, an exported NodePath is stale, or a long-lived service could not initialize. The framework immediately clears registrations and frees the failed instance instead of keeping a partially initialized Runtime. Restore the complete framework Runtime scene before running again.
 
 Confirm the single Autoload, then query from scene `_Ready()` or a Procedure. Do not change required service access to `TryGet` merely to hide the fault. See [Services and Events](../guides/services-and-events/index.md).
 

@@ -1,30 +1,218 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://addons/godo_framework/Debugger/DebuggerOverlay.cs" id="1_debugger"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.055, 0.065, 0.08, 0.82)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.42, 0.55, 0.72, 0.9)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-shadow_color = Color(0, 0, 0, 0.42)
-shadow_size = 4
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.027, 0.035, 0.047, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.16, 0.21, 0.29, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.62)
+shadow_size = 12
+anti_aliasing = true
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_status"]
+content_margin_left = 11.0
+content_margin_top = 5.0
+content_margin_right = 11.0
+content_margin_bottom = 5.0
+bg_color = Color(0.075, 0.098, 0.132, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.18, 0.25, 0.34, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_status_hover"]
+content_margin_left = 11.0
+content_margin_top = 5.0
+content_margin_right = 11.0
+content_margin_bottom = 5.0
+bg_color = Color(0.105, 0.145, 0.2, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.25, 0.42, 0.62, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_flat"]
 bg_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tool_button"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+bg_color = Color(0.067, 0.082, 0.108, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.15, 0.19, 0.25, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tool_button_hover"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+bg_color = Color(0.105, 0.135, 0.18, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.25, 0.42, 0.62, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tool_button_pressed"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+bg_color = Color(0.11, 0.29, 0.5, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.58, 0.88, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_navigation"]
+content_margin_left = 5.0
+content_margin_top = 6.0
+content_margin_right = 5.0
+content_margin_bottom = 6.0
+bg_color = Color(0.021, 0.028, 0.039, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.105, 0.135, 0.18, 1)
 corner_radius_top_left = 7
 corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
-bg_color = Color(0.25, 0.38, 0.55, 0.32)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_navigation_selected"]
+expand_margin_left = 8.0
+expand_margin_right = 1.0
+bg_color = Color(0.075, 0.225, 0.39, 1)
+border_width_left = 4
+border_color = Color(0.31, 0.64, 0.95, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_navigation_hover"]
+bg_color = Color(0.07, 0.09, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_content"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.038, 0.049, 0.065, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.105, 0.135, 0.18, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_search"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.021, 0.028, 0.039, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.15, 0.19, 0.25, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_search_focus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.31, 0.64, 0.95, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_status_card"]
+content_margin_left = 12.0
+content_margin_top = 7.0
+content_margin_right = 12.0
+content_margin_bottom = 7.0
+bg_color = Color(0.048, 0.064, 0.086, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.13, 0.17, 0.23, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_metric_card"]
+content_margin_left = 12.0
+content_margin_top = 7.0
+content_margin_right = 12.0
+content_margin_bottom = 7.0
+bg_color = Color(0.034, 0.044, 0.059, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.105, 0.135, 0.18, 1)
 corner_radius_top_left = 7
 corner_radius_top_right = 7
 corner_radius_bottom_right = 7
@@ -34,88 +222,2793 @@ corner_radius_bottom_left = 7
 layer = 128
 script = ExtResource("1_debugger")
 PanelPath = NodePath("Panel")
+HeaderPath = NodePath("Panel/Margin/VBox/Header")
 ToggleButtonPath = NodePath("Panel/Margin/VBox/Header/FpsButton")
-ContentPath = NodePath("Panel/Margin/VBox/Content")
-DebuggerLabelPath = NodePath("Panel/Margin/VBox/Content/DebuggerLabel")
+ResetLayoutButtonPath = NodePath("Panel/Margin/VBox/Header/ResetLayoutButton")
+BodyPath = NodePath("Panel/Margin/VBox/Body")
+DebuggerLabelPath = NodePath("Panel/Margin/VBox/Body/Page/Content")
 TitleLabelPath = NodePath("Panel/Margin/VBox/Header/TitleLabel")
-CategoryTabsPath = NodePath("Panel/Margin/VBox/CategoryTabs")
-PageTabsPath = NodePath("Panel/Margin/VBox/PageTabs")
+NavigationTreePath = NodePath("Panel/Margin/VBox/Body/Navigation")
+OverviewDashboardPath = NodePath("Panel/Margin/VBox/Body/Page/OverviewDashboard")
+SystemDashboardPath = NodePath("Panel/Margin/VBox/Body/Page/SystemDashboard")
+PerformanceDashboardPath = NodePath("Panel/Margin/VBox/Body/Page/PerformanceDashboard")
+InputDashboardPath = NodePath("Panel/Margin/VBox/Body/Page/InputDashboard")
+SchedulerDashboardPath = NodePath("Panel/Margin/VBox/Body/Page/SchedulerDashboard")
+AudioDashboardPath = NodePath("Panel/Margin/VBox/Body/Page/AudioDashboard")
+SceneDashboardPath = NodePath("Panel/Margin/VBox/Body/Page/SceneDashboard")
+ResourcesDashboardPath = NodePath("Panel/Margin/VBox/Body/Page/ResourcesDashboard")
+DataTableDashboardPath = NodePath("Panel/Margin/VBox/Body/Page/DataTableDashboard")
+UiDashboardPath = NodePath("Panel/Margin/VBox/Body/Page/UiDashboard")
+ProcedureDashboardPath = NodePath("Panel/Margin/VBox/Body/Page/ProcedureDashboard")
+ServicesDashboardPath = NodePath("Panel/Margin/VBox/Body/Page/ServicesDashboard")
+EventsDashboardPath = NodePath("Panel/Margin/VBox/Body/Page/EventsDashboard")
+ConsoleToolbarPath = NodePath("Panel/Margin/VBox/Body/Page/ConsoleToolbar")
+ConsoleFiltersPath = NodePath("Panel/Margin/VBox/Body/Page/ConsoleFilters")
+ConsolePaginationPath = NodePath("Panel/Margin/VBox/Body/Page/ConsolePagination")
+ConsoleSearchPath = NodePath("Panel/Margin/VBox/Body/Page/ConsoleToolbar/Search")
+PauseConsoleButtonPath = NodePath("Panel/Margin/VBox/Body/Page/ConsoleToolbar/Pause")
+CopyConsoleButtonPath = NodePath("Panel/Margin/VBox/Body/Page/ConsoleToolbar/Copy")
+OlderConsolePageButtonPath = NodePath("Panel/Margin/VBox/Body/Page/ConsolePagination/Older")
+NewerConsolePageButtonPath = NodePath("Panel/Margin/VBox/Body/Page/ConsolePagination/Newer")
+LatestConsolePageButtonPath = NodePath("Panel/Margin/VBox/Body/Page/ConsolePagination/Latest")
+ConsolePageStatusPath = NodePath("Panel/Margin/VBox/Body/Page/ConsolePagination/Status")
+ConsoleFileLinkPath = NodePath("Panel/Margin/VBox/Body/Page/ConsolePagination/FileLink")
+ResizeRowPath = NodePath("Panel/Margin/VBox/ResizeRow")
+ResizeGripPath = NodePath("Panel/Margin/VBox/ResizeRow/ResizeGrip")
 
 [node name="Panel" type="PanelContainer" parent="."]
 offset_left = 12.0
 offset_top = 12.0
-offset_right = 128.0
-offset_bottom = 52.0
+offset_right = 188.0
+offset_bottom = 60.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="Margin" type="MarginContainer" parent="Panel"]
-theme_override_constants/margin_left = 4
-theme_override_constants/margin_top = 4
-theme_override_constants/margin_right = 4
-theme_override_constants/margin_bottom = 4
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
 
 [node name="VBox" type="VBoxContainer" parent="Panel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="Header" type="HBoxContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 32)
+custom_minimum_size = Vector2(0, 36)
+theme_override_constants/separation = 8
 alignment = 1
 
 [node name="FpsButton" type="Button" parent="Panel/Margin/VBox/Header"]
 layout_mode = 2
-size_flags_horizontal = 3
 size_flags_vertical = 3
 focus_mode = 0
-theme_override_colors/font_color = Color(0.88, 0.94, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_color = Color(0.82, 0.89, 0.97, 1)
+theme_override_colors/font_hover_color = Color(0.94, 0.97, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_constants/outline_size = 1
 theme_override_font_sizes/font_size = 16
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
-text = "FPS: 0"
+theme_override_styles/normal = SubResource("StyleBoxFlat_status")
+theme_override_styles/hover = SubResource("StyleBoxFlat_status_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_status_hover")
+text = "FPS: 60"
 
 [node name="TitleLabel" type="Label" parent="Panel/Margin/VBox/Header"]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.68, 0.78, 0.9, 1)
-theme_override_font_sizes/font_size = 14
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.9, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 15
 text = "GoDo Debugger"
-horizontal_alignment = 2
+horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="CategoryTabs" type="TabBar" parent="Panel/Margin/VBox"]
+[node name="ResetLayoutButton" type="Button" parent="Panel/Margin/VBox/Header"]
 visible = false
 layout_mode = 2
-custom_minimum_size = Vector2(0, 30)
+custom_minimum_size = Vector2(60, 0)
 focus_mode = 0
-theme_override_colors/font_selected_color = Color(0.92, 0.97, 1, 1)
-theme_override_colors/font_unselected_color = Color(0.58, 0.66, 0.76, 1)
-theme_override_font_sizes/font_size = 14
-scrolling_enabled = true
+theme_override_colors/font_color = Color(0.62, 0.7, 0.8, 1)
+theme_override_colors/font_hover_color = Color(0.88, 0.93, 0.98, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = SubResource("StyleBoxFlat_flat")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+text = "重置"
 
-[node name="PageTabs" type="TabBar" parent="Panel/Margin/VBox"]
+[node name="Body" type="HSplitContainer" parent="Panel/Margin/VBox"]
 visible = false
 layout_mode = 2
-custom_minimum_size = Vector2(0, 28)
+size_flags_vertical = 3
+split_offset = 164
+theme_override_constants/separation = 10
+
+[node name="Navigation" type="Tree" parent="Panel/Margin/VBox/Body"]
+custom_minimum_size = Vector2(168, 0)
+layout_mode = 2
 focus_mode = 0
-theme_override_colors/font_selected_color = Color(0.86, 0.94, 1, 1)
-theme_override_colors/font_unselected_color = Color(0.52, 0.6, 0.7, 1)
+theme_override_colors/font_color = Color(0.56, 0.63, 0.72, 1)
+theme_override_colors/font_hovered_color = Color(0.84, 0.9, 0.97, 1)
+theme_override_colors/font_hovered_selected_color = Color(0.96, 0.98, 1, 1)
+theme_override_colors/font_selected_color = Color(0.96, 0.98, 1, 1)
+theme_override_colors/guide_color = Color(0.16, 0.2, 0.27, 0.7)
+theme_override_colors/relationship_line_color = Color(0.16, 0.2, 0.27, 0.7)
+theme_override_constants/draw_guides = 0
+theme_override_constants/v_separation = 6
 theme_override_font_sizes/font_size = 13
-scrolling_enabled = true
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+theme_override_styles/hovered_selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered_selected_focus = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/panel = SubResource("StyleBoxFlat_navigation")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/selected_focus = SubResource("StyleBoxFlat_navigation_selected")
+hide_root = true
+allow_search = false
 
-[node name="Content" type="ScrollContainer" parent="Panel/Margin/VBox"]
+[node name="Page" type="VBoxContainer" parent="Panel/Margin/VBox/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="OverviewDashboard" type="ScrollContainer" parent="Panel/Margin/VBox/Body/Page"]
 layout_mode = 2
 size_flags_vertical = 3
 focus_mode = 0
 horizontal_scroll_mode = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_flat")
 
-[node name="DebuggerLabel" type="Label" parent="Panel/Margin/VBox/Content"]
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/line_spacing = 1
-theme_override_font_sizes/font_size = 14
+theme_override_constants/separation = 6
+
+[node name="StatusHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.48, 0.58, 1)
+theme_override_font_sizes/font_size = 10
+text = "Runtime status"
+
+[node name="StatusGrid" type="GridContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 7
+theme_override_constants/v_separation = 7
+columns = 3
+
+[node name="FpsCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/FpsCard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/FpsCard/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "FPS"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/FpsCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 21
+text = "0"
+vertical_alignment = 1
+
+[node name="WarningCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/WarningCard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/WarningCard/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "Warning"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/WarningCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.65, 0.73, 1)
+theme_override_font_sizes/font_size = 21
+text = "0"
+vertical_alignment = 1
+
+[node name="ErrorCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/ErrorCard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/ErrorCard/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "Error"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/ErrorCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.65, 0.73, 1)
+theme_override_font_sizes/font_size = 21
+text = "0"
+vertical_alignment = 1
+
+[node name="FrameworkHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.48, 0.58, 1)
+theme_override_font_sizes/font_size = 10
+text = "Framework"
+
+[node name="MetricGrid" type="GridContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 7
+theme_override_constants/v_separation = 7
+columns = 4
+
+[node name="ServicesCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/ServicesCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/ServicesCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.53, 0.63, 1)
+theme_override_font_sizes/font_size = 10
+text = "Services"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/ServicesCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 19
+text = "0"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/ServicesCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "已注册服务"
+
+[node name="EventsCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/EventsCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/EventsCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.53, 0.63, 1)
+theme_override_font_sizes/font_size = 10
+text = "Event types"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/EventsCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 19
+text = "0"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/EventsCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "0 个监听器"
+
+[node name="ResourcesCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/ResourcesCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/ResourcesCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.53, 0.63, 1)
+theme_override_font_sizes/font_size = 10
+text = "Resource loads"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/ResourcesCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 19
+text = "0"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/ResourcesCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "主线程正常"
+
+[node name="SceneCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/SceneCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/SceneCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.53, 0.63, 1)
+theme_override_font_sizes/font_size = 10
+text = "Scene"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/SceneCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 19
+text = "空闲"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/MetricGrid/SceneCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "进度 0%"
+
+[node name="ActivityHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.48, 0.58, 1)
+theme_override_font_sizes/font_size = 10
+text = "Activity"
+
+[node name="ActivityGrid" type="GridContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 7
+theme_override_constants/v_separation = 7
+columns = 3
+
+[node name="AudioCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid/AudioCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid/AudioCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.53, 0.63, 1)
+theme_override_font_sizes/font_size = 10
+text = "Audio"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid/AudioCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 16
+text = "已停止"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid/AudioCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "SFX 0/0"
+
+[node name="InputCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid/InputCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid/InputCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.53, 0.63, 1)
+theme_override_font_sizes/font_size = 10
+text = "Input"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid/InputCard/Content"]
+layout_mode = 2
+text_overrun_behavior = 3
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 16
+text = "不可用"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid/InputCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "当前活动设备"
+
+[node name="SchedulerCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid/SchedulerCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid/SchedulerCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.53, 0.63, 1)
+theme_override_font_sizes/font_size = 10
+text = "Scheduler"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid/SchedulerCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 16
+text = "0"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/ActivityGrid/SchedulerCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "0 个暂停"
+
+[node name="SystemDashboard" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_constants/separation = 6
+
+[node name="Summary" type="GridContainer" parent="Panel/Margin/VBox/Body/Page/SystemDashboard"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 4
+
+[node name="PlatformCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/PlatformCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/PlatformCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "平台"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/PlatformCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+text_overrun_behavior = 3
+theme_override_colors/font_color = Color(0.49, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "Unknown"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/PlatformCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+text_overrun_behavior = 3
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "操作系统"
+
+[node name="BuildCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/BuildCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/BuildCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "构建"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/BuildCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 18
+text = "Debug"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/BuildCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+text_overrun_behavior = 3
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "Godot / .NET"
+
+[node name="RendererCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/RendererCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/RendererCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "渲染"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/RendererCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+text_overrun_behavior = 3
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 18
+text = "Unknown"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/RendererCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+text_overrun_behavior = 3
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "Method / Driver"
+
+[node name="UptimeCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/UptimeCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/UptimeCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "运行时间"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/UptimeCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 18
+text = "00:00:00"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/SystemDashboard/Summary/UptimeCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "引擎启动后"
+
+[node name="DetailsHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/SystemDashboard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "系统环境"
+
+[node name="Details" type="Tree" parent="Panel/Margin/VBox/Body/Page/SystemDashboard"]
+custom_minimum_size = Vector2(0, 220)
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_constants/h_separation = 12
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 3
+column_titles_visible = true
+hide_root = true
+
+[node name="PerformanceDashboard" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="Summary" type="GridContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 5
+
+[node name="FpsCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/FpsCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/FpsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "FPS"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/FpsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.49, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/FpsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "每秒更新"
+
+[node name="ProcessCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/ProcessCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/ProcessCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "Process"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/ProcessCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 18
+text = "0.00 ms"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/ProcessCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "每帧 CPU"
+
+[node name="PhysicsCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/PhysicsCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/PhysicsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "Physics"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/PhysicsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 18
+text = "0.00 ms"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/PhysicsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "物理帧 CPU"
+
+[node name="MemoryCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/MemoryCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/MemoryCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "引擎内存"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/MemoryCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 18
+text = "0 MiB"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/MemoryCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "Godot"
+
+[node name="ManagedMemoryCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/ManagedMemoryCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/ManagedMemoryCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = ".NET 内存"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/ManagedMemoryCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 18
+text = "0 MiB"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Summary/ManagedMemoryCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "托管堆"
+
+[node name="TrendHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "最近 30 秒趋势 · 0.25 秒采样"
+
+[node name="Trends" type="GridContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 2
+
+[node name="FramePanel" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/FramePanel"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Legend" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/FramePanel/Content"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="ProcessLabel" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/FramePanel/Content/Legend"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "Process"
+
+[node name="ProcessColor" type="ColorRect" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/FramePanel/Content/Legend"]
+custom_minimum_size = Vector2(12, 6)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+color = Color(0.31, 0.68, 1, 1)
+
+[node name="Separator" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/FramePanel/Content/Legend"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "/"
+
+[node name="PhysicsLabel" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/FramePanel/Content/Legend"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "Physics"
+
+[node name="PhysicsColor" type="ColorRect" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/FramePanel/Content/Legend"]
+custom_minimum_size = Vector2(12, 6)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+color = Color(0.65, 0.49, 1, 1)
+
+[node name="Graph" type="Control" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/FramePanel/Content"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+mouse_filter = 2
+clip_contents = true
+
+[node name="MemoryPanel" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/MemoryPanel"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Legend" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/MemoryPanel/Content"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="EngineLabel" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/MemoryPanel/Content/Legend"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "Godot 引擎内存"
+
+[node name="EngineColor" type="ColorRect" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/MemoryPanel/Content/Legend"]
+custom_minimum_size = Vector2(12, 6)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+color = Color(0.24, 0.82, 0.65, 1)
+
+[node name="Separator" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/MemoryPanel/Content/Legend"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "/"
+
+[node name="ManagedLabel" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/MemoryPanel/Content/Legend"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = ".NET 托管堆"
+
+[node name="ManagedColor" type="ColorRect" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/MemoryPanel/Content/Legend"]
+custom_minimum_size = Vector2(12, 6)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+color = Color(1, 0.68, 0.28, 1)
+
+[node name="Graph" type="Control" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content/Trends/MemoryPanel/Content"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+mouse_filter = 2
+clip_contents = true
+
+[node name="MetricHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "引擎监控"
+
+[node name="Metrics" type="Tree" parent="Panel/Margin/VBox/Body/Page/PerformanceDashboard/Content"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_constants/h_separation = 12
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 4
+column_titles_visible = true
+hide_root = true
+
+[node name="InputDashboard" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 7
+
+[node name="StatusGrid" type="GridContainer" parent="Panel/Margin/VBox/Body/Page/InputDashboard"]
+layout_mode = 2
+theme_override_constants/h_separation = 7
+theme_override_constants/v_separation = 7
+columns = 4
+
+[node name="BackendCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/BackendCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/BackendCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 9
+text = "后端"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/BackendCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.49, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "未安装"
+text_overrun_behavior = 3
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/BackendCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 9
+text = "无输入后端"
+
+[node name="DeviceCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/DeviceCard"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/DeviceCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 9
+text = "活动设备"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/DeviceCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 15
+text = "Unknown"
+text_overrun_behavior = 3
+
+[node name="FrameCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/FrameCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/FrameCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 9
+text = "采样序号"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/FrameCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 15
+text = "0"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/FrameCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 9
+text = "等待首次采样"
+
+[node name="ActionsCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/ActionsCard"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/ActionsCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 9
+text = "Actions"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard/StatusGrid/ActionsCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 15
+text = "0"
+
+[node name="Capabilities" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "能力：None"
+text_overrun_behavior = 3
+
+[node name="ContextHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "Context 栈"
+
+[node name="ContextList" type="Tree" parent="Panel/Margin/VBox/Body/Page/InputDashboard"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_colors/font_hovered_color = Color(0.9, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_constants/v_separation = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+columns = 3
+column_titles_visible = true
+hide_root = true
+select_mode = 1
+
+[node name="ActionHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "Action 状态"
+
+[node name="ActionSearch" type="LineEdit" parent="Panel/Margin/VBox/Body/Page/InputDashboard"]
+layout_mode = 2
+focus_mode = 1
+theme_override_colors/caret_color = Color(0.55, 0.76, 0.98, 1)
+theme_override_colors/clear_button_color = Color(0.48, 0.56, 0.65, 1)
+theme_override_colors/font_color = Color(0.78, 0.84, 0.91, 1)
+theme_override_colors/font_placeholder_color = Color(0.42, 0.5, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = SubResource("StyleBoxFlat_search")
+theme_override_styles/focus = SubResource("StyleBoxFlat_search_focus")
+placeholder_text = "搜索 Action 名称或类型"
+clear_button_enabled = true
+
+[node name="ActionMatchStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "全部 0 个 Action"
+
+[node name="ActionList" type="Tree" parent="Panel/Margin/VBox/Body/Page/InputDashboard"]
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_colors/font_hovered_color = Color(0.9, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_constants/v_separation = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+columns = 4
+column_titles_visible = true
+hide_root = true
+select_mode = 1
+
+[node name="SchedulerDashboard" type="ScrollContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+horizontal_scroll_mode = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_flat")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 7
+
+[node name="StatusHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.48, 0.58, 1)
+theme_override_font_sizes/font_size = 10
+text = "Task status"
+
+[node name="StatusGrid" type="GridContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 7
+theme_override_constants/v_separation = 7
+columns = 4
+
+[node name="ActiveCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid/ActiveCard"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid/ActiveCard/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "Active"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid/ActiveCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+vertical_alignment = 1
+
+[node name="PausedCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid/PausedCard"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid/PausedCard/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "Paused"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid/PausedCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+vertical_alignment = 1
+
+[node name="RepeatingCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid/RepeatingCard"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid/RepeatingCard/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "Repeat"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid/RepeatingCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+vertical_alignment = 1
+
+[node name="NextCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid/NextCard"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid/NextCard/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "Next"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/StatusGrid/NextCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 15
+text = "无"
+vertical_alignment = 1
+
+[node name="PhaseHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.48, 0.58, 1)
+theme_override_font_sizes/font_size = 10
+text = "Phase distribution"
+
+[node name="PhaseGrid" type="GridContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 7
+theme_override_constants/v_separation = 7
+columns = 2
+
+[node name="ProcessCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid"]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "Process"
+
+[node name="Clocks" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Game" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content/Clocks"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content/Clocks/Game"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 9
+text = "Game"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content/Clocks/Game"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 17
+text = "0"
+
+[node name="Unscaled" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content/Clocks"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content/Clocks/Unscaled"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 9
+text = "Unscaled"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content/Clocks/Unscaled"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 17
+text = "0"
+
+[node name="Real" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content/Clocks"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content/Clocks/Real"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 9
+text = "Real"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content/Clocks/Real"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 17
+text = "0"
+
+[node name="Dispatch" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content"]
+layout_mode = 2
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content/Dispatch"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "最近派发"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/ProcessCard/Content/Dispatch"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.75, 0.86, 1)
+theme_override_font_sizes/font_size = 12
+text = "0"
+
+[node name="PhysicsCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid"]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "Physics"
+
+[node name="Clocks" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Game" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content/Clocks"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content/Clocks/Game"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 9
+text = "Game"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content/Clocks/Game"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 17
+text = "0"
+
+[node name="Unscaled" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content/Clocks"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content/Clocks/Unscaled"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 9
+text = "Unscaled"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content/Clocks/Unscaled"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 17
+text = "0"
+
+[node name="Real" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content/Clocks"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content/Clocks/Real"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 9
+text = "Real"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content/Clocks/Real"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 17
+text = "0"
+
+[node name="Dispatch" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content"]
+layout_mode = 2
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content/Dispatch"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.4, 0.47, 0.56, 1)
+theme_override_font_sizes/font_size = 10
+text = "最近派发"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/PhaseGrid/PhysicsCard/Content/Dispatch"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.75, 0.86, 1)
+theme_override_font_sizes/font_size = 12
+text = "0"
+
+[node name="LifetimeHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.48, 0.58, 1)
+theme_override_font_sizes/font_size = 10
+text = "Lifetime totals"
+
+[node name="LifetimeGrid" type="GridContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 7
+theme_override_constants/v_separation = 7
+columns = 3
+
+[node name="CanceledCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/LifetimeGrid"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/LifetimeGrid/CanceledCard"]
+layout_mode = 2
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/LifetimeGrid/CanceledCard/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "主动取消"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/LifetimeGrid/CanceledCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 18
+text = "0"
+vertical_alignment = 1
+
+[node name="OwnerCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/LifetimeGrid"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/LifetimeGrid/OwnerCard"]
+layout_mode = 2
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/LifetimeGrid/OwnerCard/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "OWNER 失效"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/LifetimeGrid/OwnerCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 18
+text = "0"
+vertical_alignment = 1
+
+[node name="FailedCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/LifetimeGrid"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/LifetimeGrid/FailedCard"]
+layout_mode = 2
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/LifetimeGrid/FailedCard/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "回调失败"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/LifetimeGrid/FailedCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 18
+text = "0"
+vertical_alignment = 1
+
+[node name="AudioDashboard" type="ScrollContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+horizontal_scroll_mode = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_flat")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="PlaybackHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.48, 0.58, 1)
+theme_override_font_sizes/font_size = 10
+text = "Playback"
+
+[node name="PlaybackGrid" type="GridContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 2
+
+[node name="BgmStateCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/PlaybackGrid"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/PlaybackGrid/BgmStateCard"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/PlaybackGrid/BgmStateCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "BGM 状态"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/PlaybackGrid/BgmStateCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "已停止"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/PlaybackGrid/BgmStateCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.46, 0.55, 0.66, 1)
+theme_override_font_sizes/font_size = 10
+text = "没有 BGM"
+
+[node name="SfxCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/PlaybackGrid"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/PlaybackGrid/SfxCard"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/PlaybackGrid/SfxCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "SFX 声部"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/PlaybackGrid/SfxCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 20
+text = "0/32"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/PlaybackGrid/SfxCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.46, 0.55, 0.66, 1)
+theme_override_font_sizes/font_size = 10
+text = "占用 0%"
+
+[node name="BgmHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.48, 0.58, 1)
+theme_override_font_sizes/font_size = 10
+text = "Current BGM"
+
+[node name="BgmCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/BgmCard"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/BgmCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "资源键"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/BgmCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.76, 0.84, 0.93, 1)
+theme_override_font_sizes/font_size = 13
+text = "无"
+text_overrun_behavior = 3
+
+[node name="VolumeHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.48, 0.58, 1)
+theme_override_font_sizes/font_size = 10
+text = "Bus volume"
+
+[node name="VolumeGrid" type="GridContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 3
+
+[node name="MasterCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/VolumeGrid"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/VolumeGrid/MasterCard"]
+layout_mode = 2
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/VolumeGrid/MasterCard/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "Master"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/VolumeGrid/MasterCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 18
+text = "100%"
+vertical_alignment = 1
+
+[node name="BgmCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/VolumeGrid"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/VolumeGrid/BgmCard"]
+layout_mode = 2
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/VolumeGrid/BgmCard/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "BGM"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/VolumeGrid/BgmCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 18
+text = "100%"
+vertical_alignment = 1
+
+[node name="SfxCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/VolumeGrid"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_metric_card")
+
+[node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/VolumeGrid/SfxCard"]
+layout_mode = 2
+
+[node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/VolumeGrid/SfxCard/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "SFX"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/AudioDashboard/Content/VolumeGrid/SfxCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
+theme_override_font_sizes/font_size = 18
+text = "100%"
+vertical_alignment = 1
+
+[node name="SceneDashboard" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="Summary" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/SceneDashboard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CurrentCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary/CurrentCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary/CurrentCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "当前场景"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary/CurrentCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.49, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "—"
+text_overrun_behavior = 3
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary/CurrentCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.46, 0.54, 0.64, 1)
+theme_override_font_sizes/font_size = 10
+text = "SceneTree.CurrentScene"
+text_overrun_behavior = 3
+
+[node name="NodesCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary"]
+custom_minimum_size = Vector2(112, 72)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary/NodesCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary/NodesCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "节点"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary/NodesCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="StateCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary"]
+custom_minimum_size = Vector2(112, 72)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary/StateCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary/StateCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "切换状态"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary/StateCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 18
+text = "空闲"
+
+[node name="ProgressCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary"]
+custom_minimum_size = Vector2(96, 72)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary/ProgressCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary/ProgressCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "进度"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SceneDashboard/Summary/ProgressCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "0%"
+
+[node name="DetailsHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/SceneDashboard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "切换诊断"
+
+[node name="Details" type="Tree" parent="Panel/Margin/VBox/Body/Page/SceneDashboard"]
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 2
+column_titles_visible = true
+hide_root = true
+
+[node name="ResourcesDashboard" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="Summary" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ActiveCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary/ActiveCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary/ActiveCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "活动加载"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary/ActiveCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.49, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="RequestsCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary/RequestsCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary/RequestsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "同步 / 异步"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary/RequestsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 18
+text = "0 / 0"
+
+[node name="MergedCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary/MergedCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary/MergedCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "同键合并"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary/MergedCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="ResultCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary/ResultCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary/ResultCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "成功 / 失败"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard/Summary/ResultCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 18
+text = "0 / 0"
+
+[node name="ActiveStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "当前请求 0"
+
+[node name="ActiveList" type="Tree" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 5
+column_titles_visible = true
+hide_root = true
+
+[node name="HistoryStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "最近请求 0 / 保留 0"
+
+[node name="HistoryList" type="Tree" parent="Panel/Margin/VBox/Body/Page/ResourcesDashboard"]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 5
+column_titles_visible = true
+hide_root = true
+
+[node name="DataTableDashboard" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="Summary" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LoadedCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary/LoadedCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary/LoadedCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "已加载数据集"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary/LoadedCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.49, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="TablesCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary/TablesCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary/TablesCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "缓存表"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary/TablesCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="LoadingCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary/LoadingCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary/LoadingCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "加载中"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary/LoadingCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="FailedCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary/FailedCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary/FailedCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "加载失败"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard/Summary/FailedCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="DataSetStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "当前数据集 0"
+
+[node name="DataSetList" type="Tree" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard"]
+custom_minimum_size = Vector2(0, 132)
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 5
+column_titles_visible = true
+hide_root = true
+
+[node name="HistoryStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "最近结果 0 / 保留 0"
+
+[node name="HistoryList" type="Tree" parent="Panel/Margin/VBox/Body/Page/DataTableDashboard"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 4
+column_titles_visible = true
+hide_root = true
+
+[node name="UiDashboard" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="Summary" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/UiDashboard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SceneCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary/SceneCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary/SceneCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "Scene 界面"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary/SceneCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.49, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="ViewCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary/ViewCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary/ViewCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "View 深度"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary/ViewCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="ModalCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary/ModalCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary/ModalCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "Modal 深度"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary/ModalCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="CurrentCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary/CurrentCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary/CurrentCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "当前顶层"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary/CurrentCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+text_overrun_behavior = 3
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 16
+text = "空闲"
+
+[node name="Detail" type="Label" parent="Panel/Margin/VBox/Body/Page/UiDashboard/Summary/CurrentCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+text_overrun_behavior = 3
+theme_override_colors/font_color = Color(0.49, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "无 View / Modal"
+
+[node name="StackStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/UiDashboard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "受管理界面 0"
+
+[node name="StackList" type="Tree" parent="Panel/Margin/VBox/Body/Page/UiDashboard"]
+custom_minimum_size = Vector2(0, 180)
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 5
+column_titles_visible = true
+hide_root = true
+
+[node name="ProcedureDashboard" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="Summary" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CurrentCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary/CurrentCard"]
+layout_mode = 2
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary/CurrentCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "当前流程"
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary/CurrentCard/Content"]
+layout_mode = 2
+text_overrun_behavior = 3
+theme_override_font_sizes/font_size = 18
+text = "空闲"
+
+[node name="StateCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary/StateCard"]
+layout_mode = 2
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary/StateCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "切换状态"
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary/StateCard/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "空闲"
+
+[node name="PendingCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary/PendingCard"]
+layout_mode = 2
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary/PendingCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "待处理请求"
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary/PendingCard/Content"]
+layout_mode = 2
+text_overrun_behavior = 3
+theme_override_font_sizes/font_size = 18
+text = "无"
+
+[node name="ResultCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary/ResultCard"]
+layout_mode = 2
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary/ResultCard/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "失败记录"
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard/Summary/ResultCard/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "无"
+
+[node name="DetailsHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "流程详情"
+
+[node name="Details" type="Tree" parent="Panel/Margin/VBox/Body/Page/ProcedureDashboard"]
+custom_minimum_size = Vector2(0, 180)
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 2
+column_titles_visible = true
+hide_root = true
+
+[node name="ServicesDashboard" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="Summary" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/ServicesDashboard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ContractsCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/ServicesDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/ServicesDashboard/Summary/ContractsCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/ServicesDashboard/Summary/ContractsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "注册接口"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/ServicesDashboard/Summary/ContractsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.49, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="ImplementationsCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/ServicesDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/ServicesDashboard/Summary/ImplementationsCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/ServicesDashboard/Summary/ImplementationsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "实现类型"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/ServicesDashboard/Summary/ImplementationsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="Search" type="LineEdit" parent="Panel/Margin/VBox/Body/Page/ServicesDashboard"]
+layout_mode = 2
+focus_mode = 1
+theme_override_colors/caret_color = Color(0.55, 0.76, 0.98, 1)
+theme_override_colors/clear_button_color = Color(0.48, 0.56, 0.65, 1)
+theme_override_colors/font_color = Color(0.78, 0.84, 0.91, 1)
+theme_override_colors/font_placeholder_color = Color(0.42, 0.5, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = SubResource("StyleBoxFlat_search")
+theme_override_styles/focus = SubResource("StyleBoxFlat_search_focus")
+placeholder_text = "搜索服务接口或实现类型"
+clear_button_enabled = true
+
+[node name="MatchStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/ServicesDashboard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "全部 0 个注册接口"
+
+[node name="ServiceList" type="Tree" parent="Panel/Margin/VBox/Body/Page/ServicesDashboard"]
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_colors/font_selected_color = Color(0.96, 0.98, 1, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 2
+column_titles_visible = true
+hide_root = true
+select_mode = 1
+
+[node name="SelectionDetail" type="Label" parent="Panel/Margin/VBox/Body/Page/ServicesDashboard"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 22)
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.53, 0.63, 0.74, 1)
+theme_override_font_sizes/font_size = 11
+text = "选择服务查看完整注册关系"
+text_overrun_behavior = 3
+
+[node name="EventsDashboard" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="Summary" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/EventsDashboard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TypesCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/EventsDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/EventsDashboard/Summary/TypesCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/EventsDashboard/Summary/TypesCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "事件类型"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/EventsDashboard/Summary/TypesCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.49, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="ListenersCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/EventsDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/EventsDashboard/Summary/ListenersCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/EventsDashboard/Summary/ListenersCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "监听器"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/EventsDashboard/Summary/ListenersCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="Search" type="LineEdit" parent="Panel/Margin/VBox/Body/Page/EventsDashboard"]
+layout_mode = 2
+focus_mode = 1
+theme_override_colors/caret_color = Color(0.55, 0.76, 0.98, 1)
+theme_override_colors/clear_button_color = Color(0.48, 0.56, 0.65, 1)
+theme_override_colors/font_color = Color(0.78, 0.84, 0.91, 1)
+theme_override_colors/font_placeholder_color = Color(0.42, 0.5, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = SubResource("StyleBoxFlat_search")
+theme_override_styles/focus = SubResource("StyleBoxFlat_search_focus")
+placeholder_text = "搜索事件名称或完整类型名"
+clear_button_enabled = true
+
+[node name="MatchStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/EventsDashboard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "全部 0 个事件类型"
+
+[node name="EventList" type="Tree" parent="Panel/Margin/VBox/Body/Page/EventsDashboard"]
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_colors/font_selected_color = Color(0.96, 0.98, 1, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 2
+column_titles_visible = true
+hide_root = true
+select_mode = 1
+
+[node name="SelectionDetail" type="Label" parent="Panel/Margin/VBox/Body/Page/EventsDashboard"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 22)
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.53, 0.63, 0.74, 1)
+theme_override_font_sizes/font_size = 11
+text = "选择事件查看完整类型名"
+text_overrun_behavior = 3
+
+[node name="ConsoleToolbar" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Search" type="LineEdit" parent="Panel/Margin/VBox/Body/Page/ConsoleToolbar"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 1
+theme_override_colors/caret_color = Color(0.55, 0.76, 0.98, 1)
+theme_override_colors/clear_button_color = Color(0.48, 0.56, 0.65, 1)
+theme_override_colors/font_color = Color(0.82, 0.87, 0.93, 1)
+theme_override_colors/font_placeholder_color = Color(0.42, 0.49, 0.58, 1)
+theme_override_colors/selection_color = Color(0.12, 0.36, 0.62, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/focus = SubResource("StyleBoxFlat_search_focus")
+theme_override_styles/normal = SubResource("StyleBoxFlat_search")
+placeholder_text = "搜索等级、模块、上下文或消息"
+clear_button_enabled = true
+
+[node name="Pause" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsoleToolbar"]
+layout_mode = 2
+custom_minimum_size = Vector2(56, 0)
+focus_mode = 0
+theme_override_colors/font_color = Color(0.67, 0.74, 0.82, 1)
+theme_override_colors/font_hover_color = Color(0.92, 0.96, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = SubResource("StyleBoxFlat_tool_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+text = "暂停"
+
+[node name="Copy" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsoleToolbar"]
+layout_mode = 2
+custom_minimum_size = Vector2(56, 0)
+focus_mode = 0
+theme_override_colors/font_color = Color(0.67, 0.74, 0.82, 1)
+theme_override_colors/font_hover_color = Color(0.92, 0.96, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = SubResource("StyleBoxFlat_tool_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+text = "复制"
+
+[node name="ConsoleFilters" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="All" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsoleFilters"]
+layout_mode = 2
+custom_minimum_size = Vector2(56, 0)
+focus_mode = 0
+theme_override_colors/font_color = Color(0.67, 0.74, 0.82, 1)
+theme_override_colors/font_hover_color = Color(0.92, 0.96, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_tool_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+toggle_mode = true
+button_pressed = true
+text = "All (0)"
+
+[node name="Debug" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsoleFilters"]
+layout_mode = 2
+custom_minimum_size = Vector2(66, 0)
+focus_mode = 0
+theme_override_colors/font_color = Color(0.67, 0.74, 0.82, 1)
+theme_override_colors/font_hover_color = Color(0.92, 0.96, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_tool_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+toggle_mode = true
+text = "Debug (0)"
+
+[node name="Info" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsoleFilters"]
+layout_mode = 2
+custom_minimum_size = Vector2(56, 0)
+focus_mode = 0
+theme_override_colors/font_color = Color(0.67, 0.74, 0.82, 1)
+theme_override_colors/font_hover_color = Color(0.92, 0.96, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_tool_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+toggle_mode = true
+text = "Info (0)"
+
+[node name="Warning" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsoleFilters"]
+layout_mode = 2
+custom_minimum_size = Vector2(78, 0)
+focus_mode = 0
+theme_override_colors/font_color = Color(0.67, 0.74, 0.82, 1)
+theme_override_colors/font_hover_color = Color(0.92, 0.96, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_tool_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+toggle_mode = true
+text = "Warning (0)"
+
+[node name="Error" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsoleFilters"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+focus_mode = 0
+theme_override_colors/font_color = Color(0.67, 0.74, 0.82, 1)
+theme_override_colors/font_hover_color = Color(0.92, 0.96, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_tool_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+toggle_mode = true
+text = "Error (0)"
+
+[node name="ConsolePagination" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Status" type="Label" parent="Panel/Margin/VBox/Body/Page/ConsolePagination"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
+theme_override_font_sizes/font_size = 11
+text = "日志 0"
+vertical_alignment = 1
+clip_text = true
+
+[node name="FileLink" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsolePagination"]
+layout_mode = 2
+custom_minimum_size = Vector2(148, 26)
+focus_mode = 0
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.42, 0.68, 0.94, 1)
+theme_override_colors/font_hover_color = Color(0.72, 0.86, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.88, 0.94, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_tool_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+tooltip_text = "完整日志文件尚未就绪"
+text = "godo_framework.log (启动中)"
+
+[node name="Older" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsolePagination"]
+layout_mode = 2
+custom_minimum_size = Vector2(56, 26)
+focus_mode = 0
+theme_override_colors/font_color = Color(0.67, 0.74, 0.82, 1)
+theme_override_colors/font_hover_color = Color(0.92, 0.96, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_tool_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+disabled = true
+text = "上一页"
+
+[node name="Newer" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsolePagination"]
+layout_mode = 2
+custom_minimum_size = Vector2(56, 26)
+focus_mode = 0
+theme_override_colors/font_color = Color(0.67, 0.74, 0.82, 1)
+theme_override_colors/font_hover_color = Color(0.92, 0.96, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_tool_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+disabled = true
+text = "下一页"
+
+[node name="Separator" type="VSeparator" parent="Panel/Margin/VBox/Body/Page/ConsolePagination"]
+custom_minimum_size = Vector2(8, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Latest" type="Button" parent="Panel/Margin/VBox/Body/Page/ConsolePagination"]
+layout_mode = 2
+custom_minimum_size = Vector2(72, 26)
+focus_mode = 0
+theme_override_colors/font_color = Color(0.67, 0.74, 0.82, 1)
+theme_override_colors/font_hover_color = Color(0.92, 0.96, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_tool_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+disabled = true
+text = "最新日志"
+
+[node name="Content" type="RichTextLabel" parent="Panel/Margin/VBox/Body/Page"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/default_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_colors/font_selected_color = Color(0.96, 0.98, 1, 1)
+theme_override_colors/selection_color = Color(0.12, 0.36, 0.62, 0.9)
+theme_override_constants/line_separation = 4
+theme_override_font_sizes/normal_font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_content")
 text = "Loading debugger..."
-autowrap_mode = 2
+fit_content = false
+selection_enabled = true
+context_menu_enabled = true
+
+[node name="ResizeRow" type="HBoxContainer" parent="Panel/Margin/VBox"]
+visible = false
+layout_mode = 2
+alignment = 2
+
+[node name="ResizeGrip" type="Button" parent="Panel/Margin/VBox/ResizeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(124, 26)
+focus_mode = 0
+mouse_default_cursor_shape = 13
+theme_override_colors/font_color = Color(0.34, 0.41, 0.5, 1)
+theme_override_colors/font_hover_color = Color(0.58, 0.72, 0.88, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_tool_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tool_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tool_button_pressed")
+tooltip_text = "拖动调整 Debugger 大小"
+text = "拖动调整大小 ↘"

@@ -14,11 +14,19 @@ namespace GoDo;
 public static class LogHub
 {
 #if DEBUG
-    internal const int DebugHistoryCapacity = 64;
+    internal const int DebugHistoryCapacity = 1000;
+    internal const int ConsoleOutputLimitPerSecond = 100;
 
     private static readonly LogEntry[] _debugHistory = new LogEntry[DebugHistoryCapacity];
     private static int _debugHistoryStart;
     private static int _debugHistoryCount;
+    private static int _debugHistoryVersion;
+    private static long _consoleOutputWindowStart = Stopwatch.GetTimestamp();
+    private static int _consoleOutputCount;
+    private static int _suppressedConsoleOutputCount;
+    private static RollingFileLogWriter? _fileWriter;
+
+    internal static int DebugHistoryVersion => _debugHistoryVersion;
 #endif
 
     /// <summary>输出开发期细节日志。</summary>
@@ -39,10 +47,11 @@ public static class LogHub
 #endif
     }
 
-    internal static void Initialize()
+    internal static void Initialize(RollingFileLogWriter? fileWriter = null)
     {
 #if DEBUG
         MainThreadGuard.VerifyAccess();
+        _fileWriter = fileWriter;
         ClearDebugHistory();
 #endif
     }
@@ -51,6 +60,8 @@ public static class LogHub
     {
 #if DEBUG
         MainThreadGuard.VerifyAccess();
+        FlushSuppressedConsoleOutput();
+        _fileWriter = null;
         ClearDebugHistory();
 #endif
     }
@@ -66,6 +77,29 @@ public static class LogHub
         return snapshot;
 #else
         return Array.Empty<LogEntry>();
+#endif
+    }
+
+#if DEBUG
+    internal static void AddDebugHistoryEntryForTesting(
+        string message,
+        string module,
+        string? context = null)
+    {
+        MainThreadGuard.VerifyAccess();
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        ArgumentException.ThrowIfNullOrWhiteSpace(module);
+        RecordDebugHistory(DateTime.UtcNow, LogLevel.Debug, message, module, context);
+    }
+#endif
+
+    internal static FileLogDebugSnapshot GetFileLogDebugSnapshot()
+    {
+#if DEBUG
+        MainThreadGuard.VerifyAccess();
+        return _fileWriter?.GetDebugSnapshot() ?? FileLogDebugSnapshot.Disabled;
+#else
+        return FileLogDebugSnapshot.Disabled;
 #endif
     }
 
@@ -86,28 +120,119 @@ public static class LogHub
     private static void Write(LogLevel level, string message, string module, string? context)
     {
         MainThreadGuard.VerifyAccess();
-        GD.Print(FormatForConsole(level, message, module, context));
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        ArgumentException.ThrowIfNullOrWhiteSpace(module);
 
 #if DEBUG
-        int writeIndex = (_debugHistoryStart + _debugHistoryCount) % DebugHistoryCapacity;
-        _debugHistory[writeIndex] = new LogEntry(DateTime.UtcNow, level, module, message, context);
-
-        if (_debugHistoryCount < DebugHistoryCapacity)
-        {
-            _debugHistoryCount++;
-            return;
-        }
-
-        _debugHistoryStart = (_debugHistoryStart + 1) % DebugHistoryCapacity;
+        DateTime timestampUtc = DateTime.UtcNow;
+        _fileWriter?.Write(timestampUtc, level, message, module, context);
+        int repeatCount = RecordDebugHistory(timestampUtc, level, message, module, context);
+        WriteConsoleOutput(level, message, module, context, repeatCount);
 #endif
     }
 
 #if DEBUG
+    private static int RecordDebugHistory(
+        DateTime timestampUtc,
+        LogLevel level,
+        string message,
+        string module,
+        string? context)
+    {
+        if (_debugHistoryCount > 0)
+        {
+            int lastIndex =
+                (_debugHistoryStart + _debugHistoryCount - 1) % DebugHistoryCapacity;
+            LogEntry lastEntry = _debugHistory[lastIndex];
+            if (lastEntry.Matches(level, module, message, context))
+            {
+                LogEntry repeatedEntry = lastEntry.Repeat(timestampUtc);
+                _debugHistory[lastIndex] = repeatedEntry;
+                IncrementDebugHistoryVersion();
+                return repeatedEntry.RepeatCount;
+            }
+        }
+
+        int writeIndex = (_debugHistoryStart + _debugHistoryCount) % DebugHistoryCapacity;
+        _debugHistory[writeIndex] =
+            new LogEntry(timestampUtc, timestampUtc, level, module, message, context);
+        IncrementDebugHistoryVersion();
+
+        if (_debugHistoryCount < DebugHistoryCapacity)
+        {
+            _debugHistoryCount++;
+        }
+        else
+        {
+            _debugHistoryStart = (_debugHistoryStart + 1) % DebugHistoryCapacity;
+        }
+
+        return 1;
+    }
+
+    private static void WriteConsoleOutput(
+        LogLevel level,
+        string message,
+        string module,
+        string? context,
+        int repeatCount)
+    {
+        AdvanceConsoleOutputWindow();
+
+        bool shouldPrint = repeatCount == 1 || IsPowerOfTwo(repeatCount);
+        if (!shouldPrint || _consoleOutputCount >= ConsoleOutputLimitPerSecond)
+        {
+            _suppressedConsoleOutputCount++;
+            return;
+        }
+
+        _consoleOutputCount++;
+        string formatted = FormatForConsole(level, message, module, context);
+        GD.Print(repeatCount == 1 ? formatted : $"{formatted} ×{repeatCount}");
+    }
+
+    private static void AdvanceConsoleOutputWindow()
+    {
+        long now = Stopwatch.GetTimestamp();
+        if (Stopwatch.GetElapsedTime(_consoleOutputWindowStart, now) < TimeSpan.FromSeconds(1))
+            return;
+
+        FlushSuppressedConsoleOutput();
+        _consoleOutputWindowStart = now;
+        _consoleOutputCount = 0;
+    }
+
+    private static void FlushSuppressedConsoleOutput()
+    {
+        if (_suppressedConsoleOutputCount == 0)
+            return;
+
+        GD.Print(
+            $"[LogHub] [INFO] 已抑制 {_suppressedConsoleOutputCount} 条控制台输出，" +
+            "完整记录仍保留在 Debugger 内存历史中");
+        _suppressedConsoleOutputCount = 0;
+    }
+
+    private static bool IsPowerOfTwo(int value) =>
+        value > 0 && (value & (value - 1)) == 0;
+
+    private static void IncrementDebugHistoryVersion()
+    {
+        unchecked
+        {
+            _debugHistoryVersion++;
+        }
+    }
+
     private static void ClearDebugHistory()
     {
         Array.Clear(_debugHistory);
         _debugHistoryStart = 0;
         _debugHistoryCount = 0;
+        _consoleOutputWindowStart = Stopwatch.GetTimestamp();
+        _consoleOutputCount = 0;
+        _suppressedConsoleOutputCount = 0;
+        IncrementDebugHistoryVersion();
     }
 #endif
 

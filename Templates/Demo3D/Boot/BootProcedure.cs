@@ -1,5 +1,4 @@
 using Game.DataTables.Base;
-using Godot;
 using GoDo;
 using System;
 using System.Threading.Tasks;
@@ -26,9 +25,10 @@ public sealed class BootProcedure : IProcedure
 
     private static void ReportDataTableProgress(DataTableLoadProgress progress)
     {
-        GD.Print(
-            $"[Demo3D] DataTable {progress.DataSetId}: " +
-            $"{progress.LoadedTableCount}/{progress.TotalTableCount} ({progress.Ratio:P0})");
+        LogHub.Debug(
+            $"DataTable {progress.DataSetId}: " +
+            $"{progress.LoadedTableCount}/{progress.TotalTableCount} ({progress.Ratio:P0})",
+            "Demo3D");
     }
 
     private static void VerifyDataTableAccess()
@@ -36,7 +36,7 @@ public sealed class BootProcedure : IProcedure
         if (!BaseDataTables.Items.TryGet("iron_sword", out ItemRow item))
             throw new InvalidOperationException("Demo3D 示例数据缺少 iron_sword。");
 
-        GD.Print($"[Demo3D] DataTable 示例：{item.DisplayName}; Price={item.Price}");
+        LogHub.Info($"DataTable 示例：{item.DisplayName}; Price={item.Price}", "Demo3D");
     }
 
     private static void LoadInputBindings()
@@ -70,22 +70,26 @@ public sealed class BootProcedure : IProcedure
         if (!BaseDataTables.Rewards.TryGet("quest_currency", out RewardRow reward))
             throw new InvalidOperationException("Demo3D sample data is missing reward 'quest_currency'.");
 
-        GD.Print(
-            $"[Demo3D] DataTable counts: " +
+        LogHub.Info(
+            $"DataTable counts: " +
             $"categories={BaseDataTables.ItemCategories.Count}, " +
             $"items={BaseDataTables.Items.Count}, " +
-            $"rewards={BaseDataTables.Rewards.Count}");
-        GD.Print(
-            $"[Demo3D] Category: id={category.Id}, name={category.DisplayName}, " +
-            $"sort={category.SortOrder}, enabled={category.Enabled}");
-        GD.Print(
-            $"[Demo3D] Item: id={item.Id}, name={item.DisplayName}, " +
+            $"rewards={BaseDataTables.Rewards.Count}",
+            "Demo3D");
+        LogHub.Info(
+            $"Category: id={category.Id}, name={category.DisplayName}, " +
+            $"sort={category.SortOrder}, enabled={category.Enabled}",
+            "Demo3D");
+        LogHub.Info(
+            $"Item: id={item.Id}, name={item.DisplayName}, " +
             $"rarity={item.Rarity}, price={item.Price}, weight={item.Weight}, " +
-            $"sellable={item.IsSellable}");
-        GD.Print(
-            $"[Demo3D] Reward: id={reward.Id}, name={reward.DisplayName}, " +
+            $"sellable={item.IsSellable}",
+            "Demo3D");
+        LogHub.Info(
+            $"Reward: id={reward.Id}, name={reward.DisplayName}, " +
             $"type={reward.RewardType}, amount={reward.Amount}, " +
-            $"itemId={reward.ItemId ?? "<none>"}, enabled={reward.Enabled}");
+            $"itemId={reward.ItemId ?? "<none>"}, enabled={reward.Enabled}",
+            "Demo3D");
     }
 
     private static void LoadSettings()

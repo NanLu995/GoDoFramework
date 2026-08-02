@@ -13,12 +13,18 @@ namespace GoDo;
 public sealed partial class SceneService : Node, ISceneService
 {
     private ResourceLoadOperation<PackedScene>? _loadOperation;
+    private TaskCompletionSource<bool>? _lifecycleCancellation;
     private int _lifecycleVersion;
+#if DEBUG
+    private ResourceKey? _currentChangeKey;
+    private ResourceKey? _lastChangeKey;
+    private bool _lastChangeSucceeded;
+#endif
 
     /// <summary>当前是否正在切换场景。</summary>
     public bool IsChanging { get; private set; }
 
-    /// <summary>当前场景加载进度，范围为 0 到 1。</summary>
+    /// <summary>当前场景加载进度，范围为 0 到 1；失败或取消后复位为 0。</summary>
     public float Progress { get; private set; }
 
     /// <inheritdoc />
@@ -31,6 +37,7 @@ public sealed partial class SceneService : Node, ISceneService
     public override void _ExitTree()
     {
         _lifecycleVersion++;
+        _lifecycleCancellation?.TrySetResult(true);
 
         if (_loadOperation != null)
             _loadOperation.ProgressChanged -= OnLoadProgressChanged;
@@ -40,7 +47,10 @@ public sealed partial class SceneService : Node, ISceneService
     /// 异步加载并替换当前主场景。加载或实例化失败时保留旧场景。
     /// </summary>
     /// <exception cref="InvalidOperationException">服务未进入场景树，或已有切换正在执行。</exception>
-    /// <exception cref="SceneChangeException">加载、实例化或挂载目标场景失败。</exception>
+    /// <exception cref="SceneChangeException">
+    /// 加载、实例化或挂载目标场景失败，或服务离树导致切换取消；
+    /// 生命周期取消时 <see cref="Exception.InnerException"/> 为 <see cref="OperationCanceledException"/>。
+    /// </exception>
     public async Task<Node> ChangeAsync(ResourceKey key)
     {
         MainThreadGuard.VerifyAccess();
@@ -62,25 +72,50 @@ public sealed partial class SceneService : Node, ISceneService
 
         IsChanging = true;
         Progress = 0f;
+#if DEBUG
+        _currentChangeKey = key;
+#endif
         int lifecycleVersion = _lifecycleVersion;
+        var lifecycleCancellation = new TaskCompletionSource<bool>();
+        _lifecycleCancellation = lifecycleCancellation;
 
         try
         {
             _loadOperation = ResourceHub.LoadAsync<PackedScene>(key);
             _loadOperation.ProgressChanged += OnLoadProgressChanged;
 
-            PackedScene packedScene = await _loadOperation.Completion;
-            MainThreadGuard.VerifyAccess();
+            Task<PackedScene> loadCompletion = _loadOperation.Completion;
+            await Task.WhenAny(loadCompletion, lifecycleCancellation.Task);
             VerifyLifecycle(lifecycleVersion, key);
+            MainThreadGuard.VerifyAccess();
 
+            PackedScene packedScene = await loadCompletion;
             Node newScene = InstantiateScene(packedScene, key);
             ReplaceCurrentScene(newScene, key, lifecycleVersion);
             EventChannel.Emit<FrameworkMainSceneChangedEvent>();
             Progress = 1f;
+#if DEBUG
+            _lastChangeKey = key;
+            _lastChangeSucceeded = true;
+#endif
             return newScene;
         }
-        catch (Exception exception) when (exception is not SceneChangeException)
+        catch (SceneChangeException)
         {
+            Progress = 0f;
+#if DEBUG
+            _lastChangeKey = key;
+            _lastChangeSucceeded = false;
+#endif
+            throw;
+        }
+        catch (Exception exception)
+        {
+            Progress = 0f;
+#if DEBUG
+            _lastChangeKey = key;
+            _lastChangeSucceeded = false;
+#endif
             throw new SceneChangeException(
                 key,
                 $"场景切换失败，旧场景保持不变: {key.Value}",
@@ -92,9 +127,26 @@ public sealed partial class SceneService : Node, ISceneService
                 _loadOperation.ProgressChanged -= OnLoadProgressChanged;
 
             _loadOperation = null;
+            if (ReferenceEquals(_lifecycleCancellation, lifecycleCancellation))
+                _lifecycleCancellation = null;
+
             IsChanging = false;
+#if DEBUG
+            _currentChangeKey = null;
+#endif
         }
     }
+
+#if DEBUG
+    internal SceneDebugSnapshot GetDebugSnapshot()
+    {
+        MainThreadGuard.VerifyAccess();
+        return new SceneDebugSnapshot(
+            _currentChangeKey,
+            _lastChangeKey,
+            _lastChangeSucceeded);
+    }
+#endif
 
     private static Node InstantiateScene(PackedScene packedScene, ResourceKey key)
     {
@@ -129,6 +181,13 @@ public sealed partial class SceneService : Node, ISceneService
             VerifyLifecycle(lifecycleVersion, key);
             tree.CurrentScene = newScene;
         }
+        catch (SceneChangeException)
+        {
+            if (IsInstanceValid(newScene))
+                newScene.QueueFree();
+
+            throw;
+        }
         catch (Exception exception)
         {
             if (IsInstanceValid(newScene))
@@ -146,7 +205,7 @@ public sealed partial class SceneService : Node, ISceneService
 
     private void VerifyLifecycle(int expectedVersion, ResourceKey key)
     {
-        if (IsInsideTree() && _lifecycleVersion == expectedVersion)
+        if (_lifecycleVersion == expectedVersion && IsInsideTree())
             return;
 
         throw new SceneChangeException(

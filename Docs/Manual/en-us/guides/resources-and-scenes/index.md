@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/resources-and-scenes/index.md
-translation_source_hash: sha256:50e8efb78a9dd93d3e814a369dce8b54d0c95b6003e0dbe3d2e6625f06443656
+translation_source_hash: sha256:bb03e4d5a548d435780bf268eb2e6384534428dcbfe79489b4784418b353dd48
 ---
 
 # Manage Resource Manifests, Async Loading, and Scene Changes
@@ -104,7 +104,7 @@ finally
 
 Progress ranges from 0 to 1 and is delivered on Godot's main thread. Use a named method and unsubscribe in `finally`. Do not call `.Wait()`, `.Result`, or poll Godot's threaded API yourself.
 
-Concurrent async requests for the same Key and type share one operation. Synchronous loading of that path during async work, or requesting another type, fails explicitly. Completed operations leave the active table; later loads continue to use Godot's cache.
+Concurrent async requests for the same Key and type share one operation. Synchronous loading of that path during async work, or requesting another type, fails explicitly. An operation leaves the active table before code after `await` resumes, so an immediate reload receives a new operation while continuing to use Godot's cache.
 
 ## 5. Change the main content scene
 
@@ -143,11 +143,13 @@ Loading UI must live in a persistent UI layer or another owner that survives the
 
 Only one scene change can run at a time; a second `ChangeAsync` throws `InvalidOperationException`. Centralize coordination in a Procedure, disable repeated input, and do not use fire-and-forget that loses exceptions.
 
+After success, `Progress` remains at 1. A load, instantiation, attachment, or lifecycle cancellation failure resets it to 0.
+
 ## 7. Failure, cancellation, and shutdown
 
 - Missing, mismatched, or failed Resource: `ResourceLoadException`.
 - Scene load, instantiation, or attachment failure: `SceneChangeException`, retaining the target Key.
-- SceneService leaves the tree or shuts down: an uncommitted change ends with a SceneChangeException containing `OperationCanceledException`.
+- SceneService leaves the tree or shuts down: an uncommitted change ends immediately with a SceneChangeException whose direct inner exception is `OperationCanceledException`; ResourceHub's shared underlying load may still finish.
 - ResourceHub shutdown: unfinished waiters receive `OperationCanceledException`; Godot's underlying load may still finish.
 
 Modules do not report before throwing. Add game context and report once at the Procedure or startup boundary.

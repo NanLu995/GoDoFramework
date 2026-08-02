@@ -103,8 +103,8 @@ Debug 构建中的 `SchedulerService` 提供 internal 只读快照，包含：
 - Shutdown 取消未完成等待并拒绝新任务；
 - 非法时间参数。
 
-`Verification/Automated/SchedulerRuntimeRegression.tscn` 另验证 Runtime 服务注册、真实 Process/Physics、TimeScale、SceneTree 暂停、Owner 与服务退出清理。
+`Verification/Automated/SchedulerRuntimeRegression.tscn` 另验证 Runtime 服务注册、真实 Process/Physics、TimeScale、SceneTree 暂停、10 FPS 持续低帧下重复任务不补发、Owner 与服务退出清理。
 
 `Verification/Performance/SchedulerBenchmark.tscn` 验证 1,000 个等待任务的空闲热路径、10,000 次创建取消、队列压缩和 1,000 个任务同轮派发。
 
-Windows Demo3D 人工验收已覆盖暂停/恢复、慢动作、窗口失焦/最小化、Owner 清理、750 毫秒主线程卡顿恢复和 Debugger 快照观察。持续低 FPS、真实项目长期体验与其他平台行为仍需后续验证。
+Windows Demo3D 人工验收已覆盖暂停/恢复、慢动作、窗口失焦/最小化、Owner 清理、750 毫秒主线程卡顿恢复和 Debugger 快照观察；Windows Headless 自动回归已覆盖 10 FPS 持续低帧。真实项目长期体验与其他平台行为仍需后续验证。

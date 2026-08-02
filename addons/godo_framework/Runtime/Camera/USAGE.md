@@ -120,6 +120,6 @@ CameraService 不包含 `_Process()`，不会每帧扫描镜头。注册、注�
 Verification/Automated/CameraServiceRegression.tscn
 ```
 
-覆盖初始状态、首次激活、切换与恢复、重复激活、激活失败保持、停用失败回滚、同场景重复 ID、跨场景同 ID 替换、失效历史跳过和未知镜头失败。
+覆盖初始状态、首次激活、切换与恢复、重复激活、激活失败保持、停用失败回滚与原始异常、同场景重复 ID、跨场景同 ID 替换、失效活动项与历史清理、按实例注销、真实 Rig 节点生命周期、服务关闭清理、默认 ID 和未知镜头失败。
 
 Phantom Camera 优先级适配的自动回归入口是 `Verification/Automated/PhantomCameraRigRegression.tscn`。实际过渡、避障和鼠标环绕仍需在编辑器中手动验证；小地图输出尚未接入。

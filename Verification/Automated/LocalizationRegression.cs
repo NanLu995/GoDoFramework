@@ -21,11 +21,12 @@ public sealed partial class LocalizationRegression : Node
             Run("翻译、上下文与复数", VerifyTranslations);
             Run("Settings 切换、规范化与事件", VerifySettingsIntegration);
             Run("非法 Locale 保持原状态", VerifyInvalidLocale);
+            Run("空翻译键拒绝", VerifyInvalidTranslationKeys);
             Run("Settings Locale 内存持久化往返", VerifySettingsPersistence);
             Run("伪本地化运行时开关", VerifyPseudolocalization);
             Run("无翻译资源的核心包回退", VerifyEmptyTranslationFallback);
 
-            GD.Print($"[LocalizationRegression] PASS ({_passed}/7)");
+            GD.Print($"[LocalizationRegression] PASS ({_passed}/8)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -132,6 +133,23 @@ public sealed partial class LocalizationRegression : Node
         {
             Services.Get<ISettingsService>().SetLocale("en");
         }
+    }
+
+    private static void VerifyInvalidTranslationKeys()
+    {
+        ILocalizationService localization = Services.Get<ILocalizationService>();
+        string originalLocale = localization.CurrentLocale;
+
+        AssertThrows<ArgumentException>(
+            () => localization.Translate(" "),
+            "空翻译键没有被拒绝");
+        AssertThrows<ArgumentException>(
+            () => localization.TranslatePlural("", "TEST.ITEM_PLURAL", 2),
+            "空单数键没有被拒绝");
+        AssertThrows<ArgumentException>(
+            () => localization.TranslatePlural("TEST.ITEM", "", 2),
+            "空复数键没有被拒绝");
+        AssertEqual(originalLocale, localization.CurrentLocale, "翻译键校验失败后 Locale 被修改");
     }
 
     private static void VerifyPseudolocalization()

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import shutil
@@ -49,12 +50,12 @@ def assert_equal(expected: object, actual: object, message: str) -> None:
         raise RuntimeError(f"{message}；期望 {expected!r}，实际 {actual!r}")
 
 
-def generate_sources() -> Path:
+def generate_sources(performance_rows: int) -> Path:
     sources = ARTIFACT_ROOT / "sources"
     if sources.exists():
         shutil.rmtree(sources)
     write_valid_set(sources / "small", 12)
-    write_valid_set(sources / "performance", 10_000)
+    write_valid_set(sources / "performance", performance_rows)
     write_invalid_sets(sources / "invalid")
     return sources
 
@@ -619,9 +620,13 @@ def verify_export_target_artifacts(sources: Path) -> None:
     print("[DataTablePrototype] PASS: 生成读取器使用 Godot FileAccess")
 
 
-def build_performance_artifacts(sources: Path) -> None:
+def build_performance_artifacts(sources: Path, performance_rows: int) -> None:
     output = ARTIFACT_ROOT / "output"
     compile_tables(PROFILE_PATH, sources / "performance", output, GENERATED_CSHARP)
+    (output / "benchmark_rows.txt").write_text(
+        f"{performance_rows}\n",
+        encoding="utf-8",
+    )
     print(f"[DataTablePrototype] PASS: 性能产物 {output}")
 
 
@@ -691,10 +696,21 @@ def build_corruption_artifacts() -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="运行 DataTable 原型验证。")
+    parser.add_argument(
+        "--performance-rows",
+        type=int,
+        default=10_000,
+        help="性能样例的 Item 行数，默认 10000。",
+    )
+    arguments = parser.parse_args()
+    if arguments.performance_rows < 12:
+        parser.error("--performance-rows 不能小于 12")
+
     scratch = ARTIFACT_ROOT / "scratch"
     if scratch.exists():
         shutil.rmtree(scratch)
-    sources = generate_sources()
+    sources = generate_sources(arguments.performance_rows)
     verify_determinism(sources)
     verify_invalid_cases(sources)
     verify_cli_modes(sources)
@@ -703,7 +719,7 @@ def main() -> int:
     verify_file_commit_rollback()
     verify_generated_detection(sources)
     verify_export_target_artifacts(sources)
-    build_performance_artifacts(sources)
+    build_performance_artifacts(sources, arguments.performance_rows)
     build_corruption_artifacts()
     print("[DataTablePrototype] PASS (41/41)")
     return 0

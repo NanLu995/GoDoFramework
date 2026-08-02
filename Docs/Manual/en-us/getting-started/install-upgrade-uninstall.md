@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/install-upgrade-uninstall.md
-translation_source_hash: sha256:32ee5e7ecaf5d17f375e089b3c17df23cf1066611c2140337ca93c52c100e01d
+translation_source_hash: sha256:e281914044a206f7d6c7baf62ab4de2a656e6d96ac3ff7f5f8058a4f8d9f9f0e
 ---
 
 # Install, Upgrade, and Uninstall the Framework
@@ -139,6 +139,16 @@ Disabling or omitting an optional integration does not change core GoDoRuntime i
 ## Upgrade to a new version
 
 Upgrade by replacing the complete directory, not by overwriting matching files. An incremental copy leaves source files removed by the new version, and Godot may still scan or compile them.
+
+### Check Godot and framework compatibility first
+
+GoDoFramework and Godot use independent version numbers. Each framework package declares its minimum and highest tested Godot versions in `addons/godo_framework/plugin.cfg`, and Setup displays both:
+
+- A Godot version below the minimum, or from another major, is an error and blocks Runtime installation.
+- A Godot version inside the tested range is normal.
+- A newer Godot version from the same major produces a warning but remains usable. That combination has not completed regression testing for this framework version and is not treated as verified compatibility.
+
+If an old framework reports that a new Godot version is untested, prefer upgrading to a GoDoFramework release that lists that Godot version as tested. If the framework cannot be upgraded yet, the project may still be opened, but complete the build, automated tests, and critical-scene regression before release. Do not edit `plugin.cfg` merely to hide the warning.
 
 Recommended process:
 

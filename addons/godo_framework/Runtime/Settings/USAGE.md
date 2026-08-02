@@ -74,3 +74,7 @@ Windows PC 已在 Godot 运行时通过以下验证：
 - GoDoRuntime 能够提供已注册的 `ISettingsService`。
 
 Settings 对正式文件损坏与双重损坏的处理沿用已验证的 SaveService 失败语义。Android/iOS 在具备导出环境后仍需补充真机验证，不能仅凭 Windows 上的模拟结果宣称移动端通过。
+
+### 自动回归验证
+
+`Verification/Automated/SettingsServiceRegression.tscn` 使用内存依赖和随机测试槽位验证默认值、不支持能力、非法输入后状态保持、平台能力声明矛盾、SaveException 透传且不重复上报、正式设置损坏后的备份恢复，以及正式设置与备份双重损坏。当前 Windows Godot Mono Headless 基线为 5/5。

@@ -12,6 +12,9 @@ public sealed class ResourceLoadOperation<T> where T : Resource
 {
     private readonly TaskCompletionSource<T> _completionSource = new();
     private readonly GodotArray _progressBuffer = new();
+    private T? _result;
+    private Exception? _completionException;
+    private bool _completionPublished;
 
     /// <summary>目标资源键。</summary>
     public ResourceKey Key { get; }
@@ -22,7 +25,9 @@ public sealed class ResourceLoadOperation<T> where T : Resource
     /// <summary>当前进度，范围为 0 到 1。</summary>
     public float Progress { get; private set; }
 
-    /// <summary>在主线程完成或失败的任务。</summary>
+    /// <summary>
+    /// 在主线程完成或失败的任务。任务发布前，本操作已从 ResourceHub 活动表移除。
+    /// </summary>
     public Task<T> Completion => _completionSource.Task;
 
     /// <summary>进度发生变化时在主线程触发。</summary>
@@ -82,7 +87,28 @@ public sealed class ResourceLoadOperation<T> where T : Resource
             return;
 
         Status = ResourceLoadStatus.Failed;
-        _completionSource.TrySetException(exception);
+        _completionException = exception;
+    }
+
+    internal void PublishCompletion()
+    {
+        if (!IsFinished || _completionPublished)
+            return;
+
+        _completionPublished = true;
+        if (Status == ResourceLoadStatus.Completed)
+        {
+            _completionSource.TrySetResult(_result!);
+        }
+        else
+        {
+            _completionSource.TrySetException(
+                _completionException ??
+                new InvalidOperationException($"资源操作失败但没有异常信息: {Key.Value}"));
+        }
+
+        _result = null;
+        _completionException = null;
         ProgressChanged = null;
     }
 
@@ -114,10 +140,9 @@ public sealed class ResourceLoadOperation<T> where T : Resource
             return;
         }
 
+        _result = typedResource;
         Status = ResourceLoadStatus.Completed;
         UpdateProgress(1f);
-        _completionSource.TrySetResult(typedResource);
-        ProgressChanged = null;
     }
 
     private void NotifyProgress(float value)

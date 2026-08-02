@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import configparser
 import hashlib
 import json
 import os
@@ -15,20 +16,15 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_PATH = REPOSITORY_ROOT / "GoDoFramework.csproj"
-CONTROLLER_PATH = (
-    REPOSITORY_ROOT
-    / "addons"
-    / "godo_framework"
-    / "Editor"
-    / "godo_runtime_setup_controller.gd"
-)
+PLUGIN_CONFIG_PATH = REPOSITORY_ROOT / "addons" / "godo_framework" / "plugin.cfg"
 COVERAGE_PATH = REPOSITORY_ROOT / "Docs" / "coverage.json"
 MANUAL_ROOT = REPOSITORY_ROOT / "Docs" / "Manual"
 VERSION_PATTERN = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
-SDK_PATTERN = re.compile(r'Godot\.NET\.Sdk/([0-9]+\.[0-9]+\.[0-9]+)')
-MIN_VERSION_PATTERN = re.compile(
-    r"const MIN_GODOT_VERSION := Vector3i\([0-9]+, [0-9]+, [0-9]+\)"
+FRAMEWORK_VERSION_PATTERN = re.compile(
+    r"^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$"
 )
+SDK_PATTERN = re.compile(r'Godot\.NET\.Sdk/([0-9]+\.[0-9]+\.[0-9]+)')
+TESTED_VERSION_PATTERN = re.compile(r'(?m)^tested_godot_version="[0-9]+\.[0-9]+\.[0-9]+"$')
 VERSIONED_EXECUTABLE_PATTERN = re.compile(r"Godot_v([0-9]+\.[0-9]+(?:\.[0-9]+)?)")
 TEXT_EXTENSIONS = {
     ".cfg",
@@ -64,7 +60,7 @@ def configure_console_encoding() -> None:
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="统一升级 GoDoFramework 的 Godot SDK、最低版本、工具路径和文档哈希。"
+        description="统一升级 GoDoFramework 的 Godot SDK、兼容性声明、工具路径和文档哈希。"
     )
     parser.add_argument("version", nargs="?", help="目标版本，例如 4.7.2。")
     parser.add_argument(
@@ -112,6 +108,22 @@ def read_project_version(updates: dict[Path, str] | None = None) -> str:
     return match.group(1)
 
 
+def read_plugin_metadata() -> tuple[str, str, str]:
+    config = configparser.ConfigParser()
+    if not config.read(PLUGIN_CONFIG_PATH, encoding="utf-8"):
+        raise RuntimeError(f"无法读取插件配置：{PLUGIN_CONFIG_PATH}")
+    values = tuple(
+        config.get("plugin", key, fallback="").strip().strip('"')
+        for key in ("version", "min_godot_version", "tested_godot_version")
+    )
+    framework_version, minimum_version, tested_version = values
+    if FRAMEWORK_VERSION_PATTERN.fullmatch(framework_version) is None:
+        raise RuntimeError("plugin.cfg 的框架版本不是有效的语义化版本。")
+    if any(VERSION_PATTERN.fullmatch(value) is None for value in (minimum_version, tested_version)):
+        raise RuntimeError("plugin.cfg 的 Godot 兼容版本不是 major.minor.patch。")
+    return values
+
+
 def collect_update_files() -> list[Path]:
     result = [REPOSITORY_ROOT / name for name in ROOT_FILES]
     for root_name in UPDATE_ROOTS:
@@ -132,18 +144,20 @@ def replace_current_version(
     updates: dict[Path, str],
 ) -> None:
     for path in collect_update_files():
+        if path == PLUGIN_CONFIG_PATH:
+            continue
         content = read_text(path, updates)
         changed = content.replace(old_version, new_version)
         if changed != content:
             updates[path] = changed
 
-    controller = read_text(CONTROLLER_PATH, updates)
-    major, minor, patch = (int(part) for part in new_version.split("."))
-    replacement = f"const MIN_GODOT_VERSION := Vector3i({major}, {minor}, {patch})"
-    controller, count = MIN_VERSION_PATTERN.subn(replacement, controller, count=1)
+    plugin_config = read_text(PLUGIN_CONFIG_PATH, updates)
+    plugin_config, count = TESTED_VERSION_PATTERN.subn(
+        f'tested_godot_version="{new_version}"', plugin_config, count=1
+    )
     if count != 1:
-        raise RuntimeError("无法定位 MIN_GODOT_VERSION。")
-    updates[CONTROLLER_PATH] = controller
+        raise RuntimeError("无法定位 plugin.cfg 的 tested_godot_version。")
+    updates[PLUGIN_CONFIG_PATH] = plugin_config
 
 
 def validate_godot_executable(path: Path, expected_version: str) -> Path:
@@ -226,10 +240,13 @@ def atomic_write_updates(updates: dict[Path, str]) -> None:
 
 def check_consistency() -> str:
     version = read_project_version()
-    major, minor, patch = version.split(".")
-    expected_constant = f"const MIN_GODOT_VERSION := Vector3i({major}, {minor}, {patch})"
-    if expected_constant not in CONTROLLER_PATH.read_text(encoding="utf-8"):
-        raise RuntimeError("EditorPlugin 最低 Godot 版本与 csproj 不一致。")
+    _framework_version, minimum_version, tested_version = read_plugin_metadata()
+    minimum_parts = tuple(map(int, minimum_version.split(".")))
+    tested_parts = tuple(map(int, tested_version.split(".")))
+    if tested_version != version:
+        raise RuntimeError("plugin.cfg 的最高已验证 Godot 版本与 csproj 不一致。")
+    if minimum_parts > tested_parts or minimum_parts[0] != tested_parts[0]:
+        raise RuntimeError("plugin.cfg 的 Godot 兼容范围无效。")
 
     workflow = (REPOSITORY_ROOT / ".github" / "workflows" / "core-verification.yml").read_text(
         encoding="utf-8"
@@ -281,7 +298,7 @@ def main() -> int:
     if old_version.split(".")[:2] != new_version.split(".")[:2]:
         raise RuntimeError(
             "该工具只处理同一 major.minor 内的 patch 升级；主次版本升级还需要人工复核 "
-            "project.godot、离线 API 文档和导出行为。"
+            "project.godot、对应版本的 Godot 官方 API 文档和导出行为。"
         )
     godot_path = None
     if arguments.godot is not None:

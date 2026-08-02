@@ -46,12 +46,20 @@ internal sealed class BgmPlaybackController
         try
         {
             ResourceLoadOperation<AudioStream> operation = ResourceHub.LoadAsync<AudioStream>(key);
-            AudioStream stream = await operation.Completion;
-            MainThreadGuard.VerifyAccess();
+            AudioStream stream;
+            try
+            {
+                stream = await operation.Completion;
+            }
+            catch (Exception) when (requestVersion != _requestVersion)
+            {
+                throw new OperationCanceledException("背景音乐加载完成前已被停止。");
+            }
 
             if (requestVersion != _requestVersion)
                 throw new OperationCanceledException("背景音乐加载完成前已被停止。");
 
+            MainThreadGuard.VerifyAccess();
             _player.Stop();
             _player.Stream = stream;
             _player.StreamPaused = false;
@@ -70,7 +78,8 @@ internal sealed class BgmPlaybackController
         }
         finally
         {
-            IsLoading = false;
+            if (requestVersion == _requestVersion)
+                IsLoading = false;
         }
     }
 
@@ -92,6 +101,7 @@ internal sealed class BgmPlaybackController
     {
         MainThreadGuard.VerifyAccess();
         _requestVersion++;
+        IsLoading = false;
         _player.Stop();
         _player.StreamPaused = false;
         _player.Stream = null;

@@ -112,6 +112,8 @@ UiService 不自动监听 `ui_cancel` 或平台返回键，避免与具体游戏
 
 UiService 没有每帧更新，也不池化或维护第二套资源缓存。View 栈会保留被隐藏界面，避免返回时丢失状态，但深层返回栈会相应占用节点内存。
 
+Debug 构建会为受管理界面额外记录打开时的 `ResourceKey`，供只读 Debugger 显示 Scene、View、Modal 数量、栈顺序和可见状态。快照仅在 UI 页面被选中时创建，不保留历史；Release 构建不记录这些 Key，也不包含快照入口。
+
 ## 验证
 
 - `dotnet build GoDoFramework.sln`：验证 C# API、Godot 绑定和场景资源引用可编译。

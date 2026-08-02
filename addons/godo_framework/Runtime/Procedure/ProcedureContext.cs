@@ -31,7 +31,10 @@ public sealed class ProcedureContext
         _requestChange(next);
     }
 
-    /// <summary>创建并请求进入无参构造的目标流程。</summary>
-    public void RequestChange<TProcedure>() where TProcedure : IProcedure, new() =>
+    /// <summary>在验证 Godot 主线程后创建并请求进入无参构造的目标流程。</summary>
+    public void RequestChange<TProcedure>() where TProcedure : IProcedure, new()
+    {
+        MainThreadGuard.VerifyAccess();
         RequestChange(new TProcedure());
+    }
 }

@@ -135,6 +135,16 @@ public partial class FrameworkProbe : Node
 
 升级采用“完整替换目录”，不要只覆盖同名文件。增量覆盖会留下新版本已经删除的旧源码，这些文件仍可能被 Godot 扫描或参与 C# 编译。
 
+### 先判断 Godot 与框架是否匹配
+
+GoDoFramework 版本与 Godot 版本是两套独立版本号。框架包在 `addons/godo_framework/plugin.cfg` 中声明最低 Godot 版本和最高已验证 Godot 版本，Setup 会显示两者：
+
+- 当前 Godot 低于最低版本，或 major 不同：显示错误并阻止安装 Runtime。
+- 当前 Godot 位于已验证范围：正常使用。
+- 当前 Godot 高于已验证版本但 major 相同：显示警告，不阻止使用。这个组合尚未由该框架版本完成回归，不等同于已确认兼容。
+
+如果旧版框架在新 Godot 中显示“版本尚未验证”，优先升级到声明已验证该 Godot 的 GoDoFramework 版本。暂时不能升级框架时，可以继续打开项目，但发布前必须完成编译、自动测试和关键场景人工回归；不要通过修改 `plugin.cfg` 消除警告。
+
 推荐步骤：
 
 1. 阅读目标版本说明，确认 Godot/.NET、public API 和迁移要求。
