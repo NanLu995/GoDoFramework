@@ -1,0 +1,7 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Shared/StarterConfig.cs" id="1_starter_config"]
+
+[resource]
+script = ExtResource("1_starter_config")
+ProjectTitle = "GoDoTemplate"

@@ -1,0 +1,18 @@
+<Project Sdk="Godot.NET.Sdk/4.7.1">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <GoDoIncludeGuideInput Condition="'$(GoDoIncludeGuideInput)' == '' and Exists('addons/guideCS/plugin.cfg') and Exists('addons/guideCS/guide/plugin.cfg')">true</GoDoIncludeGuideInput>
+    <GoDoIncludePhantomCamera Condition="'$(GoDoIncludePhantomCamera)' == '' and Exists('addons/phantom_camera/plugin.cfg')">true</GoDoIncludePhantomCamera>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(GoDoIncludeGuideInput)' != 'true'">
+    <Compile Remove="addons/guideCS/**/*.cs" />
+    <Compile Remove="addons/godo_framework/Integrations/GuideInput/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(GoDoIncludePhantomCamera)' != 'true'">
+    <Compile Remove="addons/godo_framework/Integrations/PhantomCamera/**/*.cs" />
+  </ItemGroup>
+</Project>

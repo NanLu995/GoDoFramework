@@ -1,0 +1,40 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="GoDoTemplate"
+run/main_scene="res://Boot/Boot.tscn"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+
+[audio]
+
+default_bus_layout="res://default_bus_layout.tres"
+
+[autoload]
+
+GoDoRuntime="*res://addons/godo_framework/Core/GoDoRuntime.tscn"
+
+[display]
+
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[dotnet]
+
+project/assembly_name="GoDoTemplate"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godo_framework/plugin.cfg")
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://Localization/en.po", "res://Localization/zh_CN.po")

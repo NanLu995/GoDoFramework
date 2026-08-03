@@ -1,0 +1,71 @@
+[gd_resource type="Resource" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://addons/godo_framework/Runtime/UI/UiConfig.cs" id="1_ui_config"]
+[ext_resource type="Script" path="res://addons/godo_framework/Runtime/UI/UiConfigEntry.cs" id="2_ui_config_entry"]
+
+[sub_resource type="Resource" id="UiConfigEntry_main_menu"]
+resource_name = "MainMenu"
+script = ExtResource("2_ui_config_entry")
+Id = "main_menu"
+Locator = "res://MainMenu/MainMenuView.tscn"
+Layer = 1
+InstanceMode = 0
+ReuseInstance = false
+
+[sub_resource type="Resource" id="UiConfigEntry_gameplay_hud"]
+resource_name = "GameplayHud"
+script = ExtResource("2_ui_config_entry")
+Id = "gameplay_hud"
+Locator = "res://Gameplay/GameplayHud.tscn"
+Layer = 0
+InstanceMode = 0
+ReuseInstance = false
+
+[sub_resource type="Resource" id="UiConfigEntry_settings"]
+resource_name = "Settings"
+script = ExtResource("2_ui_config_entry")
+Id = "settings"
+Locator = "res://Settings/SettingsView.tscn"
+Layer = 1
+InstanceMode = 0
+ReuseInstance = false
+
+[sub_resource type="Resource" id="UiConfigEntry_pause"]
+resource_name = "Pause"
+script = ExtResource("2_ui_config_entry")
+Id = "pause"
+Locator = "res://Ui/PauseModal.tscn"
+Layer = 2
+InstanceMode = 0
+ReuseInstance = false
+
+[sub_resource type="Resource" id="UiConfigEntry_confirm_dialog"]
+resource_name = "ConfirmDialog"
+script = ExtResource("2_ui_config_entry")
+Id = "confirm_dialog"
+Locator = "res://Ui/ConfirmDialogModal.tscn"
+Layer = 2
+InstanceMode = 0
+ReuseInstance = false
+
+[sub_resource type="Resource" id="UiConfigEntry_loading"]
+resource_name = "Loading"
+script = ExtResource("2_ui_config_entry")
+Id = "loading"
+Locator = "res://Ui/LoadingOverlay.tscn"
+Layer = 3
+InstanceMode = 0
+ReuseInstance = false
+
+[sub_resource type="Resource" id="UiConfigEntry_toast"]
+resource_name = "Toast"
+script = ExtResource("2_ui_config_entry")
+Id = "toast"
+Locator = "res://Ui/ToastOverlay.tscn"
+Layer = 3
+InstanceMode = 1
+ReuseInstance = false
+
+[resource]
+script = ExtResource("1_ui_config")
+Entries = Array[Resource]([SubResource("UiConfigEntry_main_menu"), SubResource("UiConfigEntry_settings"), SubResource("UiConfigEntry_gameplay_hud"), SubResource("UiConfigEntry_pause"), SubResource("UiConfigEntry_confirm_dialog"), SubResource("UiConfigEntry_loading"), SubResource("UiConfigEntry_toast")])

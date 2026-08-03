@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Boot/Boot.cs" id="1_boot"]
+[ext_resource type="Script" path="res://Input/InputBackHandler.cs" id="2_input_back_handler"]
+
+[node name="Boot" type="Node"]
+script = ExtResource("1_boot")
+
+[node name="InputBackHandler" type="Node" parent="."]
+process_mode = 3
+script = ExtResource("2_input_back_handler")

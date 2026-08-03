@@ -1,0 +1,16 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "TEMPLATE.SETTINGS.CURRENT_LOCALE"
+msgstr "Current language"
+
+msgid "TEMPLATE.SETTINGS.SAVED"
+msgstr "Settings saved."
+
+msgid "TEMPLATE.SETTINGS.SAVE_FAILED"
+msgstr "Settings could not be saved."
+
+msgid "TEMPLATE.SETTINGS.LOCALE_FAILED"
+msgstr "Language could not be applied."

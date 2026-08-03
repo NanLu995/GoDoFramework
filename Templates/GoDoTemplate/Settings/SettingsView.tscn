@@ -1,0 +1,109 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Settings/SettingsView.cs" id="1_settings"]
+
+[node name="SettingsView" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_settings")
+MasterSliderPath = NodePath("Center/Panel/Margin/VBox/MasterSlider")
+BgmSliderPath = NodePath("Center/Panel/Margin/VBox/BgmSlider")
+SfxSliderPath = NodePath("Center/Panel/Margin/VBox/SfxSlider")
+EnglishButtonPath = NodePath("Center/Panel/Margin/VBox/LanguageRow/EnglishButton")
+ChineseButtonPath = NodePath("Center/Panel/Margin/VBox/LanguageRow/ChineseButton")
+SaveButtonPath = NodePath("Center/Panel/Margin/VBox/SaveButton")
+BackButtonPath = NodePath("Center/Panel/Margin/VBox/BackButton")
+StatusLabelPath = NodePath("Center/Panel/Margin/VBox/Status")
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 28
+
+[node name="VBox" type="VBoxContainer" parent="Center/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="MasterLabel" type="Label" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+text = "Master Volume"
+
+[node name="MasterSlider" type="HSlider" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+step = 0.05
+value = 1.0
+
+[node name="BgmLabel" type="Label" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+text = "BGM Volume"
+
+[node name="BgmSlider" type="HSlider" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+step = 0.05
+value = 1.0
+
+[node name="SfxLabel" type="Label" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+text = "SFX Volume"
+
+[node name="SfxSlider" type="HSlider" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+step = 0.05
+value = 1.0
+
+[node name="LanguageLabel" type="Label" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+text = "Language"
+
+[node name="LanguageRow" type="HBoxContainer" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="EnglishButton" type="Button" parent="Center/Panel/Margin/VBox/LanguageRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "English"
+
+[node name="ChineseButton" type="Button" parent="Center/Panel/Margin/VBox/LanguageRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "中文"
+
+[node name="Status" type="Label" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.78, 0.9, 1)
+horizontal_alignment = 1
+
+[node name="SaveButton" type="Button" parent="Center/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "Save Settings"
+
+[node name="BackButton" type="Button" parent="Center/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Back"

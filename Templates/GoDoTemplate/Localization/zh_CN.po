@@ -1,0 +1,16 @@
+msgid ""
+msgstr ""
+"Language: zh_CN\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "TEMPLATE.SETTINGS.CURRENT_LOCALE"
+msgstr "当前语言"
+
+msgid "TEMPLATE.SETTINGS.SAVED"
+msgstr "设置已保存。"
+
+msgid "TEMPLATE.SETTINGS.SAVE_FAILED"
+msgstr "设置无法保存。"
+
+msgid "TEMPLATE.SETTINGS.LOCALE_FAILED"
+msgstr "语言无法应用。"
