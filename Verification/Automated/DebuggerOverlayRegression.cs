@@ -181,6 +181,8 @@ public sealed partial class DebuggerOverlayRegression : Node
                 uiDashboard.GetNode<Label>("Summary/ViewCard/Content/Value");
             Label uiModal =
                 uiDashboard.GetNode<Label>("Summary/ModalCard/Content/Value");
+            Label uiOverlay =
+                uiDashboard.GetNode<Label>("Summary/OverlayCard/Content/Value");
             Label uiCurrent =
                 uiDashboard.GetNode<Label>("Summary/CurrentCard/Content/Value");
             Label uiCurrentDetail =
@@ -561,8 +563,9 @@ public sealed partial class DebuggerOverlayRegression : Node
                 uiScene.Text == "0" &&
                 uiView.Text == "0" &&
                 uiModal.Text == "0" &&
+                uiOverlay.Text == "0" &&
                 uiCurrent.Text == "空闲" &&
-                uiStackStatus.Text == "受管理界面 0" &&
+                uiStackStatus.Text == "受管理界面 0 · 缓存 0" &&
                 uiStackTree.GetRoot() is not null,
                 "UI 空状态诊断页没有完整渲染");
 
@@ -575,22 +578,97 @@ public sealed partial class DebuggerOverlayRegression : Node
             Control firstView = originalUi.Open(uiControlAKey, UiLayer.View);
             Control secondView = originalUi.Open(uiControlBKey, UiLayer.View);
             Control modal = originalUi.Open(uiControlAKey, UiLayer.Modal);
+            var modalFocus = new Button
+            {
+                Name = "ModalFocus",
+                FocusMode = Control.FocusModeEnum.All
+            };
+            modal.AddChild(modalFocus);
+            modalFocus.GrabFocus();
+            Control overlayUi = originalUi.Open(uiControlBKey, UiLayer.Overlay);
             SelectNavigationItem(navigation, uiPage);
             TreeItem? topUiEntry = uiStackTree.GetRoot()?.GetFirstChild();
             Assert(uiScene.Text == "1" &&
                 uiView.Text == "2" &&
                 uiModal.Text == "1" &&
-                uiCurrent.Text == "UiControlA" &&
-                uiCurrentDetail.Text == uiControlAKey.Value &&
-                uiStackStatus.Text == "受管理界面 4" &&
-                topUiEntry?.GetText(0) == "Modal" &&
+                uiOverlay.Text == "1" &&
+                uiCurrent.Text == "UiControlB" &&
+                uiCurrentDetail.Text == uiControlBKey.Value &&
+                uiStackStatus.Text == "受管理界面 5 · 缓存 0" &&
+                topUiEntry?.GetText(0) == "Overlay" &&
                 topUiEntry.GetText(4) == "显示" &&
-                topUiEntry.GetNext()?.GetText(2) == "UiControlB",
+                topUiEntry.GetNext()?.GetText(0) == "Modal" &&
+                topUiEntry.GetNext()?.GetText(4) == "显示 · 焦点" &&
+                topUiEntry.GetNext()?.GetTooltipText(4) == "焦点控件：ModalFocus",
                 "UI 层数量、当前顶层或栈顺序显示错误");
+            originalUi.Close(overlayUi);
             originalUi.Close(modal);
             originalUi.Close(secondView);
             originalUi.Close(firstView);
             originalUi.Close(sceneUi);
+
+            ResourceKey directUiKey =
+                ResourceKey.Create(
+                    "res://Verification/Automated/Fixtures/UI/UiConfigurableControl.tscn");
+            Task<Control> directOpeningUi =
+                originalUi.OpenAsync<Control>(directUiKey, UiLayer.Overlay);
+            SelectNavigationItem(navigation, uiPage);
+            topUiEntry = uiStackTree.GetRoot()?.GetFirstChild();
+            Assert(uiScene.Text == "0" &&
+                uiView.Text == "0" &&
+                uiModal.Text == "0" &&
+                uiOverlay.Text == "0" &&
+                uiCurrent.Text == "空闲" &&
+                uiStackStatus.Text == "受管理界面 0 · 打开中 1 · 缓存 0" &&
+                topUiEntry?.GetText(0) == "Overlay" &&
+                topUiEntry.GetText(1) == "—" &&
+                topUiEntry.GetText(2) == "Direct" &&
+                topUiEntry.GetText(3) == directUiKey.Value &&
+                topUiEntry.GetText(4) == "加载中",
+                "ResourceKey 直接异步打开请求没有显示在诊断页");
+            Control directUi = await directOpeningUi;
+            originalUi.Close(directUi);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+            ResourceKey uiConfigKey =
+                ResourceKey.Create("res://Verification/Automated/Fixtures/UI/UiConfigValid.tres");
+            UiId reusableUiId = UiId.Create("reusable");
+            originalUi.LoadUiConfig(uiConfigKey);
+            Task<Control> openingUi = originalUi.OpenAsync<Control>(UiId.Create("configured"));
+            SelectNavigationItem(navigation, uiPage);
+            topUiEntry = uiStackTree.GetRoot()?.GetFirstChild();
+            Assert(uiScene.Text == "0" &&
+                uiView.Text == "0" &&
+                uiModal.Text == "0" &&
+                uiOverlay.Text == "0" &&
+                uiCurrent.Text == "空闲" &&
+                uiStackStatus.Text == "受管理界面 0 · 打开中 1 · 缓存 0" &&
+                topUiEntry?.GetText(0) == "View" &&
+                topUiEntry.GetText(1) == "—" &&
+                topUiEntry.GetText(2) == "configured" &&
+                topUiEntry.GetText(4) == "加载中",
+                "UI 异步打开请求没有显示在诊断页");
+            Control openedUi = await openingUi;
+            originalUi.Close(openedUi);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+            Control cachedUi = originalUi.Open(reusableUiId);
+            originalUi.Close(cachedUi);
+            SelectNavigationItem(navigation, uiPage);
+            topUiEntry = uiStackTree.GetRoot()?.GetFirstChild();
+            Assert(uiScene.Text == "0" &&
+                uiView.Text == "0" &&
+                uiModal.Text == "0" &&
+                uiOverlay.Text == "0" &&
+                uiCurrent.Text == "空闲" &&
+                uiStackStatus.Text == "受管理界面 0 · 缓存 1" &&
+                topUiEntry?.GetText(0) == "View" &&
+                topUiEntry.GetText(1) == "—" &&
+                topUiEntry.GetText(2) == "reusable · UiConfigurableControl" &&
+                topUiEntry.GetText(4) == "缓存",
+                "UI 缓存诊断没有与打开实例正确区分");
+            Assert(originalUi.ClearCachedInstance(reusableUiId), "UI 缓存诊断测试清理失败");
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
             Assert(Services.Unregister(originalUi), "UiService 测试注销失败");
             try
@@ -598,6 +676,7 @@ public sealed partial class DebuggerOverlayRegression : Node
                 SelectNavigationItem(navigation, uiPage);
                 Assert(uiScene.Text == "未注册" &&
                     uiView.Text == "—" &&
+                    uiOverlay.Text == "—" &&
                     uiStackTree.GetRoot() is null,
                     "UiService 未注册状态没有完整降级");
 
@@ -1288,12 +1367,92 @@ public sealed partial class DebuggerOverlayRegression : Node
 
     private sealed class UnsupportedUiService : IUiService
     {
+        public void LoadUiConfig(ResourceKey key) =>
+            throw new InvalidOperationException(nameof(UnsupportedUiService));
+
+        public Control Open(UiId id) =>
+            throw new InvalidOperationException(nameof(UnsupportedUiService));
+
+        public TView Open<TView>(UiId id, Action<TView>? configure = null)
+            where TView : Control =>
+            throw new InvalidOperationException(nameof(UnsupportedUiService));
+
+        public Task<TView> OpenAsync<TView>(
+            UiId id,
+            Action<TView>? configure = null,
+            Action<float>? onProgress = null,
+            CancellationToken cancellationToken = default)
+            where TView : Control =>
+            throw new InvalidOperationException(nameof(UnsupportedUiService));
+
         public Control Open(ResourceKey key, UiLayer layer) =>
             throw new InvalidOperationException(nameof(UnsupportedUiService));
+
+        public TView Open<TView>(ResourceKey key, UiLayer layer, Action<TView>? configure = null)
+            where TView : Control =>
+            throw new InvalidOperationException(nameof(UnsupportedUiService));
+
+        public Task<TView> OpenAsync<TView>(
+            ResourceKey key,
+            UiLayer layer,
+            Action<TView>? configure = null,
+            Action<float>? onProgress = null,
+            CancellationToken cancellationToken = default)
+            where TView : Control =>
+            throw new InvalidOperationException(nameof(UnsupportedUiService));
+
+        public bool IsOpen(UiId id) => false;
+
+        public int GetOpenCount(UiId id) => 0;
+
+        public bool IsOpening(UiId id) => false;
+
+        public int GetOpeningCount(UiId id) => 0;
+
+        public int CancelOpenRequests(UiId id) => 0;
+
+        public int CancelOpenRequests(UiLayer layer) => 0;
+
+        public bool HasCachedInstance(UiId id) => false;
+
+        public bool ClearCachedInstance(UiId id) => false;
+
+        public int ClearCachedInstances() => 0;
+
+        public bool TryGetTop(UiId id, out Control? view)
+        {
+            view = null;
+            return false;
+        }
+
+        public bool TryGetTop<TView>(UiId id, out TView? view)
+            where TView : Control
+        {
+            view = null;
+            return false;
+        }
+
+        public bool TryGetTop(UiLayer layer, out Control? view)
+        {
+            view = null;
+            return false;
+        }
 
         public void Close(Control view)
         {
         }
+
+        public bool TryClose(Control view) => false;
+
+        public bool TryClose(UiId id) => false;
+
+        public int CloseAll(UiId id) => 0;
+
+        public int CloseAll(UiLayer layer) => 0;
+
+        public int CloseTo(Control view) => 0;
+
+        public int CloseTo(UiId id) => 0;
 
         public bool TryGoBack() => false;
     }

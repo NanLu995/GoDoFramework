@@ -7,6 +7,7 @@ script = ExtResource("1_ui_root")
 SceneRootPath = NodePath("SceneLayer/SceneRoot")
 ViewRootPath = NodePath("ViewLayer/ViewRoot")
 ModalRootPath = NodePath("ModalLayer/ModalRoot")
+OverlayRootPath = NodePath("OverlayLayer/OverlayRoot")
 
 [node name="SceneLayer" type="CanvasLayer" parent="."]
 layer = 10
@@ -36,6 +37,18 @@ mouse_filter = 2
 layer = 30
 
 [node name="ModalRoot" type="Control" parent="ModalLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="OverlayLayer" type="CanvasLayer" parent="."]
+layer = 40
+
+[node name="OverlayRoot" type="Control" parent="OverlayLayer"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

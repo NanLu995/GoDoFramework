@@ -2,126 +2,148 @@
 
 ## 定位与适用场景
 
-UiService 统一管理基于 Godot `Control` 的屏幕空间游戏 UI。业务层负责具体界面的显示内容和交互逻辑，UiService 负责资源加载、实例化、显示层、关闭与返回顺序。
+UiService 统一管理根节点为 Godot `Control` 的屏幕空间游戏 UI，负责资源加载、实例化、显示层、焦点、查询、关闭、返回顺序和可选实例复用。业务层仍负责界面内容、交互、动画、数据绑定、暂停策略和输入映射。
 
-首版不负责主场景切换、游戏流程、自动暂停、输入映射、动画、数据绑定、窗口基类或 UI 池化。Node2D/Node3D 世界空间 UI 依赖业务坐标和摄像机，仍由业务场景直接管理；Debugger 是独立开发工具，不进入游戏 UI 层。
+Node2D/Node3D 世界空间 UI 依赖业务坐标和摄像机，由业务场景直接管理；Debugger 是独立开发工具，不进入游戏 UI 层。
 
 ## 运行时结构
 
-`GoDoRuntime` 是唯一 Autoload。它在运行时创建与自身平级的 `GoDoUI` 显示根，UiService 本身不承载业务 UI 节点：
+`GoDoRuntime` 创建与自身平级的 `GoDoUI`，UiService 只管理引用和生命周期：
 
 ```text
 /root
 ├── GoDoRuntime
 │   └── UiService
 ├── GoDoUI
-│   ├── SceneLayer (CanvasLayer 10)
-│   │   └── SceneRoot
-│   ├── ViewLayer (CanvasLayer 20)
-│   │   └── ViewRoot
-│   └── ModalLayer (CanvasLayer 30)
-│       └── ModalRoot
+│   ├── SceneLayer   (CanvasLayer 10)
+│   ├── ViewLayer    (CanvasLayer 20)
+│   ├── ModalLayer   (CanvasLayer 30)
+│   └── OverlayLayer (CanvasLayer 40)
 └── CurrentScene
 ```
 
-UI PackedScene 的根节点必须继承 `Control`。业务 UI 资源和脚本仍放在业务目录，打开后才成为 `GoDoUI` 的子节点。
+四个 CanvasLayer 都包含一个全屏 `Control` 根节点。UI PackedScene 的根节点必须继承 `Control`。
 
-## 快速上手
+## 配置与打开
+
+在 Godot Inspector 中创建 `UiConfig` Resource；也可通过 GoDo 菜单的 UI 配置管理弹窗创建、定位和校验当前项目中的配置。每个 `UiConfigEntry` 包含：
+
+- `Id`：业务使用的区分大小写语义标识；
+- `Locator`：UI PackedScene 的 `res://` 路径或 `uid://` 定位；
+- `Layer`：默认显示层；
+- `InstanceMode`：`Single` 或 `Multiple`；
+- `ReuseInstance`：关闭后保留一个 `Single` 实例，供下次打开复用。
+
+业务启动流程在打开 UI 前加载一次配置：
 
 ```csharp
+private static readonly ResourceKey UiConfigKey =
+    ResourceKey.Create("res://Config/UiConfig.tres");
+private static readonly UiId SettingsId = UiId.Create("settings");
+
 IUiService ui = Services.Get<IUiService>();
+ui.LoadUiConfig(UiConfigKey);
 
-Control hud = ui.Open(
-    ResourceKey.Create("res://UI/Hud.tscn"),
-    UiLayer.Scene);
-
-Control settings = ui.Open(
-    ResourceKey.Create("res://UI/Settings.tscn"),
-    UiLayer.View);
-
-Control confirm = ui.Open(
-    ResourceKey.Create("res://UI/ConfirmQuit.tscn"),
-    UiLayer.Modal);
+SettingsView settings = ui.Open<SettingsView>(
+    SettingsId,
+    view => view.Initialize(model));
 ```
 
-关闭已打开界面：
+`configure` 在加入场景树前执行，适合注入首帧所需数据。无语义配置的临时入口可直接指定资源和层：
 
 ```csharp
-ui.Close(settings);
+Control toast = ui.Open(
+    ResourceKey.Create("res://UI/Toast.tscn"),
+    UiLayer.Overlay);
 ```
 
-业务输入边界决定何时返回：
+较重界面可异步打开：
 
 ```csharp
-if (Input.IsActionJustPressed("ui_cancel"))
-    ui.TryGoBack();
+SettingsView settings = await ui.OpenAsync<SettingsView>(
+    SettingsId,
+    view => view.Initialize(model),
+    progress => loadingBar.Value = progress * 100f,
+    cancellationToken);
 ```
 
-UiService 不自动监听 `ui_cancel` 或平台返回键，避免与具体游戏的输入优先级冲突。
+ResourceHub 负责线程化资源加载；实例化、配置和挂载仍在 Godot 主线程进行。取消只阻止该请求继续实例化和挂载，不会中止可能被其他调用共享的底层资源加载。可使用 `IsOpening`、`GetOpeningCount` 和 `CancelOpenRequests` 按 UiId 或层查询、取消请求。主场景变更会立即取消 Scene 层请求。
 
-## 层级与生命周期语义
+## 层级与返回语义
 
 ### Scene
 
-- HUD、准星、关卡提示等与当前主内容场景关联的屏幕空间 UI。
-- 同一时间允许多个 Scene 界面共存，可以按实例分别关闭。
-- SceneService 成功提交新主场景后，UiService 自动清空该层。
-- Scene 界面不进入返回栈。
+- HUD、准星和关卡提示等与当前主内容场景关联的界面；
+- 可同时存在多个实例，不进入返回栈；
+- 主场景成功变更时自动关闭，并清理 Scene 层缓存和未完成打开请求。
 
 ### View
 
-- 设置、背包和菜单等需要前后导航的完整界面。
-- 打开新 View 会隐藏当前 View 并压入返回栈。
-- 关闭顶部 View 会恢复前一个 View。
-- View 默认跨主内容场景保留，业务流程结束时应显式关闭。
+- 设置、背包和菜单等前后导航页面；
+- 打开新 View 会隐藏当前 View；关闭顶部 View 会恢复前一个 View；
+- 默认跨主场景保留，拥有它的业务流程应负责关闭。
 
 ### Modal
 
-- 确认框等必须覆盖其他游戏 UI 的模态界面。
-- 多个 Modal 按打开顺序叠放，只能关闭最上层 Modal。
-- Modal Host 覆盖整个视口并使用 `MouseFilter.Stop`，阻止 GUI 指针事件落到下层 Control。
-- Modal 不自动暂停场景树，也不阻止业务节点处理键盘、手柄或 `_UnhandledInput`。
+- 确认框等需要覆盖其他游戏 UI 的模态界面；
+- 多个 Modal 按打开顺序叠放，只允许按顶部顺序关闭；
+- 每个 Modal Host 覆盖视口并使用 `MouseFilter.Stop`，阻止 GUI 指针事件落到下层；
+- 不自动暂停 SceneTree，也不阻止业务节点处理键盘、手柄或 `_UnhandledInput`。
 
-`TryGoBack()` 优先关闭顶部 Modal，其次关闭顶部 View；没有可返回界面时返回 `false`。Scene 界面不受返回操作影响。
+### Overlay
 
-受管理界面必须通过 `Close` 或 `TryGoBack` 退出，不要直接 `QueueFree()` 或从父节点移除，否则会绕过 UiService 的集合与返回栈维护。
+- Toast、加载提示、引导遮罩等位于 Modal 之上的短期界面；
+- 不进入返回栈，默认不阻止 GUI 指针输入；需要遮罩时由该 UI 自己提供全屏 `Control` 并设置鼠标过滤；
+- 可同时存在多个实例，关闭时不受 Modal/View 顶部约束。
+
+`TryGoBack()` 优先关闭顶部 Modal，其次关闭顶部 View；Scene 与 Overlay 不参与返回操作。打开 View 或 Modal 时会隔离当前受管理焦点；关闭顶部界面或重新打开缓存实例时，会尽力恢复仍有效、可见且可聚焦的最后焦点。首次打开后的默认焦点仍由业务设置。
+
+## 查询与关闭
+
+```csharp
+if (ui.IsOpen(SettingsId) && ui.TryGetTop<SettingsView>(SettingsId, out var settings))
+    settings.Refresh();
+
+ui.TryClose(SettingsId);        // 关闭该 Id 最上层实例
+ui.CloseAll(UiLayer.Overlay);   // 批量关闭一层
+ui.CloseAll(ToastId);           // 批量关闭一个 Id
+ui.CloseTo(SettingsId);         // 保留目标，关闭其显示顺序之上的所有 UI
+```
+
+`GetOpenCount` 返回指定 Id 的实例数；`TryGetTop(UiLayer, ...)` 返回指定层的顶部或最后打开实例。`Close(Control)` 用于必须成功的所有权路径，目标无效或顺序非法时抛出异常；`TryClose(Control)` 适合允许目标已关闭的清理路径。
+
+View 与 Modal 必须按顶部顺序逐个关闭。`CloseAll` 和 `CloseTo` 会在服务内部按安全顺序处理。受管理界面不应直接 `QueueFree()`、`RemoveChild()` 或重挂载；外部释放会在下一次服务操作时清理失效记录，但直接改变节点所有权仍会绕过正常顺序。
+
+## 实例复用
+
+仅 `Single` 配置可启用 `ReuseInstance`。关闭时节点会从显示层移到 UiService 的隐藏缓存根，并在下次按同一 UiId 打开时重新配置和挂载。它不建立第二套资源缓存，也不是多实例对象池。
+
+使用 `HasCachedInstance` 查询，使用 `ClearCachedInstance` 或 `ClearCachedInstances` 主动释放。重载 UiConfig、关闭服务和主场景变更都会清理相应缓存。只对实测创建成本较高且状态可可靠重置的界面启用复用；缓存节点仍占用内存并保留业务状态和信号连接。
 
 ## 失败语义
 
-- 未知 `UiLayer` 抛出 `ArgumentOutOfRangeException`。
-- 资源加载、PackedScene 实例化、根节点类型检查或场景树挂载失败时抛出 `UiOpenException`，其 `Key` 保存目标 ResourceKey。
-- UI 根节点不是 `Control` 时抛出 `UiOpenException`。
-- 服务或 `GoDoUI` 尚未完成初始化时抛出 `InvalidOperationException`。
-- `Close` 传入非托管界面、非顶部 View 或非顶部 Modal 时抛出 `InvalidOperationException`。
-- `TryGoBack` 没有可返回界面时返回 `false`，属于正常分支。
+- `LoadUiConfig` 加载失败抛出 `ResourceLoadException`，内容无效抛出 `ConfigValidationException`；存在打开或打开中的受管理 UI 时拒绝替换配置；
+- 未初始化 UiId 抛出 `ArgumentException`，未注册 Id 抛出 `KeyNotFoundException`，配置未加载或违反 `Single` 约束抛出 `InvalidOperationException`；
+- 未知 `UiLayer` 抛出 `ArgumentOutOfRangeException`；
+- 资源加载、实例化、根类型转换、配置或挂载失败时任务/调用失败；框架打开错误使用 `UiOpenException` 并保留目标 `ResourceKey`，业务 `configure` 异常原样传递；
+- `OpenAsync` 被调用方、UiService 或主场景变更取消时抛出 `OperationCanceledException`；
+- `Close`、`CloseTo` 的目标无效、不受管理或违反顶部顺序时抛出 `InvalidOperationException`；`TryClose`、`TryGoBack` 没有可操作目标时返回 `false`。
 
-打开失败不会隐藏当前 View，也不会修改任何层的管理集合。模块内部不先向 ErrorHub 上报再抛出；业务调用边界负责捕获异常并补充上下文。
+打开失败会回滚本次节点和管理状态，不隐藏原 View；关闭失败不会部分修改栈。模块内部不先向 ErrorHub 上报再抛出，业务调用边界负责补充上下文。
 
-## 生命周期与线程
+## 生命周期、线程与性能
 
-- 所有 API 只能在 Godot 主线程调用。
-- 必须启用 `GoDoRuntime.tscn` Autoload；GoDoRuntime 创建 `GoDoUI`，初始化并注册 UiService。
-- GoDoUI 位于主内容场景之外，SceneService 替换 `SceneTree.CurrentScene` 时不会释放显示根。
-- Scene 层通过框架内部场景变更事件自动清理；SceneService 不直接依赖 UiService。
-- 被覆盖的 View 仅隐藏，节点和状态会保留；关闭界面时在帧末释放。
-- UI 节点使用 Godot 自身 `_Ready()`、`_ExitTree()` 和 Signal 生命周期，不需要实现框架窗口基类。
-
-## 性能与误用
-
-首版同步通过 ResourceHub 加载并实例化 UI。打开操作不应放在 `_Process` / `_PhysicsProcess` 中；较大的 UI 可由业务层提前加载相关资源，出现真实异步需求后再设计取消和并发语义。
-
-UiService 没有每帧更新，也不池化或维护第二套资源缓存。View 栈会保留被隐藏界面，避免返回时丢失状态，但深层返回栈会相应占用节点内存。
-
-Debug 构建会为受管理界面额外记录打开时的 `ResourceKey`，供只读 Debugger 显示 Scene、View、Modal 数量、栈顺序和可见状态。快照仅在 UI 页面被选中时创建，不保留历史；Release 构建不记录这些 Key，也不包含快照入口。
+- 所有 API 都必须在 Godot 主线程调用；异步资源等待期间不在后台线程访问 Godot 节点；
+- GoDoUI 位于 CurrentScene 外，Scene 层通过内部场景事件清理，不形成 SceneService 到 UiService 的直接依赖；
+- UiConfig 加载以 O(n) 建立索引，按 UiId 定位平均为 O(1)；打开、查询和关闭不应放在每帧路径；
+- View 栈和复用缓存以节点内存换取状态保留或减少重新实例化，应根据真实界面规模控制；
+- Debug 构建记录受管理实例、缓存和未完成请求，Debugger 的 UI 页按需生成快照；Release 不保留调试资源键和快照入口。
 
 ## 验证
 
-- `dotnet build GoDoFramework.sln`：验证 C# API、Godot 绑定和场景资源引用可编译。
-- `Verification/Automated/UiServiceRegression.tscn`：Headless 验证三层打开与关闭、View / Modal 栈约束、失败后的状态保持，以及主场景变更事件对 Scene 层的清理。
-- `python Verification/Automated/run_all.py --suite all --godot $env:GODOT_PATH`：运行包含 UiService 在内的工作台永久回归套件。
-- `Verification/UI/UiVerificationScene.tscn`：使用 F6 手动验证 View 恢复、嵌套 Modal、视觉层级和 GUI 指针阻挡。
-- Scene 层清理：先打开 Scene 层标记和 View A，再在 View A 内点击“切换主场景（验证 Scene 清理）”；切换后 View A 必须继续显示，关闭 View A 后应看到只有说明 Label 的目标场景，且顶部 Scene 层标记必须不存在。
-- 失败语义：在 View A 或 View B 点击“运行失败语义验证”，结果必须显示通过，当前 View 的计数与导航仍应正常工作。
-- 已在 Godot 中完成层级重构后的 View 恢复、嵌套 Modal、视觉层级和 GUI 指针阻挡验证。
-- 已在 Godot 中完成 Scene 层随主内容场景切换自动清理，以及 View 跨场景保留验证。
-- 已在 Godot 中完成资源缺失、错误根类型和非法关闭的失败语义验证；异常后当前 View 的状态与导航保持正常。
+- `dotnet build GoDoFramework.csproj -c Debug --no-restore`：验证 C# API、Godot 绑定和场景资源引用；
+- `Verification/Automated/UiServiceRegression.tscn`：验证四层打开/关闭、UiConfig、查询与批量关闭、`CloseTo`、异步取消、场景清理、焦点、复用和失败回滚；
+- `Verification/Automated/UiConfigEditorControllerRegression.gd`：验证编辑器配置发现、单配置直接显示与多配置管理；
+- `Verification/Automated/DebuggerOverlayRegression.tscn`：验证 UI 实例、缓存和打开中请求的只读诊断；
+- `Verification/Performance/UiFirstOpenBenchmark.tscn`：记录首开、首次入树、首帧和缓存重开成本，不把单机测量值承诺为跨平台预算；
+- Modal 指针阻挡、Overlay 遮罩、键盘/手柄返回和焦点切换仍需在 Godot 中结合业务场景人工验证。

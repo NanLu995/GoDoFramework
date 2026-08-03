@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UiConfig" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://addons/godo_framework/Runtime/UI/UiConfig.cs" id="1_config"]
+[ext_resource type="Script" path="res://addons/godo_framework/Runtime/UI/UiConfigEntry.cs" id="2_entry"]
+
+[sub_resource type="Resource" id="Performance"]
+script = ExtResource("2_entry")
+Id = "performance"
+Locator = "res://Verification/Performance/UiPerformanceFixture.tscn"
+Layer = 1
+InstanceMode = 0
+ReuseInstance = true
+
+[resource]
+script = ExtResource("1_config")
+Entries = Array[ExtResource("2_entry")]([SubResource("Performance")])

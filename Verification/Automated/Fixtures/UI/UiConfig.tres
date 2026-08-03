@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="UiConfig" format=3 uid="uid://qahnbxe2i5hw"]
+
+[ext_resource type="Script" uid="uid://bk81hpkn2teyp" path="res://addons/godo_framework/Runtime/UI/UiConfigEntry.cs" id="1_b375f"]
+[ext_resource type="Script" uid="uid://yn0xivqpc6d6" path="res://addons/godo_framework/Runtime/UI/UiConfig.cs" id="2_vlyg8"]
+
+[resource]
+script = ExtResource("2_vlyg8")

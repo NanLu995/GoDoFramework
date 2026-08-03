@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UiConfig" format=3 uid="uid://oi8hcuq35ntv"]
+
+[ext_resource type="Script" uid="uid://yn0xivqpc6d6" path="res://addons/godo_framework/Runtime/UI/UiConfig.cs" id="1_config"]
+[ext_resource type="Script" uid="uid://bk81hpkn2teyp" path="res://addons/godo_framework/Runtime/UI/UiConfigEntry.cs" id="2_entry"]
+
+[sub_resource type="Resource" id="First"]
+script = ExtResource("2_entry")
+Id = "duplicate"
+Locator = "res://Verification/Automated/Fixtures/UI/UiControlA.tscn"
+
+[sub_resource type="Resource" id="Second"]
+script = ExtResource("2_entry")
+Id = "duplicate"
+Locator = "res://Verification/Automated/Fixtures/UI/UiControlB.tscn"
+
+[resource]
+script = ExtResource("1_config")
+Entries = Array[ExtResource("2_entry")]([SubResource("First"), SubResource("Second")])

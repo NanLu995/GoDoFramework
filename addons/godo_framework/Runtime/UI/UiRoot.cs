@@ -11,6 +11,7 @@ public sealed partial class UiRoot : Node
     internal Control SceneRoot { get; private set; } = null!;
     internal Control ViewRoot { get; private set; } = null!;
     internal Control ModalRoot { get; private set; } = null!;
+    internal Control OverlayRoot { get; private set; } = null!;
 
     /// <summary>Scene 层挂载根节点路径。</summary>
     [Export] public NodePath SceneRootPath { get; set; } = null!;
@@ -21,8 +22,14 @@ public sealed partial class UiRoot : Node
     /// <summary>Modal 层挂载根节点路径。</summary>
     [Export] public NodePath ModalRootPath { get; set; } = null!;
 
+    /// <summary>Overlay 层挂载根节点路径。</summary>
+    [Export] public NodePath OverlayRootPath { get; set; } = null!;
+
     internal bool IsInitialized =>
-        IsInstanceValid(SceneRoot) && IsInstanceValid(ViewRoot) && IsInstanceValid(ModalRoot);
+        IsInstanceValid(SceneRoot) &&
+        IsInstanceValid(ViewRoot) &&
+        IsInstanceValid(ModalRoot) &&
+        IsInstanceValid(OverlayRoot);
 
     /// <inheritdoc />
     public override void _Ready()
@@ -30,7 +37,9 @@ public sealed partial class UiRoot : Node
         SceneRoot = GetNodeOrNull<Control>(SceneRootPath)!;
         ViewRoot = GetNodeOrNull<Control>(ViewRootPath)!;
         ModalRoot = GetNodeOrNull<Control>(ModalRootPath)!;
+        OverlayRoot = GetNodeOrNull<Control>(OverlayRootPath)!;
         if (!IsInitialized)
-            throw new InvalidOperationException("UiRoot 缺少 SceneRoot、ViewRoot 或 ModalRoot 子节点。");
+            throw new InvalidOperationException(
+                "UiRoot 缺少 SceneRoot、ViewRoot、ModalRoot 或 OverlayRoot 子节点。");
     }
 }

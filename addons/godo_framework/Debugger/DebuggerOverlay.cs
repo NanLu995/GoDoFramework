@@ -210,6 +210,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private Label? _uiSceneValue;
     private Label? _uiViewValue;
     private Label? _uiModalValue;
+    private Label? _uiOverlayValue;
     private Label? _uiCurrentValue;
     private Label? _uiCurrentDetail;
     private Label? _uiStackStatus;
@@ -684,6 +685,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _uiSceneValue = null;
         _uiViewValue = null;
         _uiModalValue = null;
+        _uiOverlayValue = null;
         _uiCurrentValue = null;
         _uiCurrentDetail = null;
         _uiStackStatus = null;
@@ -1652,13 +1654,14 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _uiSceneValue = GetUiNode<Label>("Summary/SceneCard/Content/Value");
         _uiViewValue = GetUiNode<Label>("Summary/ViewCard/Content/Value");
         _uiModalValue = GetUiNode<Label>("Summary/ModalCard/Content/Value");
+        _uiOverlayValue = GetUiNode<Label>("Summary/OverlayCard/Content/Value");
         _uiCurrentValue = GetUiNode<Label>("Summary/CurrentCard/Content/Value");
         _uiCurrentDetail = GetUiNode<Label>("Summary/CurrentCard/Content/Detail");
         _uiStackStatus = GetUiNode<Label>("StackStatus");
         _uiStackTree = GetUiNode<Tree>("StackList");
         _uiStackTree.SetColumnTitle(0, "层");
         _uiStackTree.SetColumnTitle(1, "顺序");
-        _uiStackTree.SetColumnTitle(2, "节点");
+        _uiStackTree.SetColumnTitle(2, "UI / 节点");
         _uiStackTree.SetColumnTitle(3, "资源 Key");
         _uiStackTree.SetColumnTitle(4, "状态");
         _uiStackTree.SetColumnTitleAlignment(0, HorizontalAlignment.Center);
@@ -1673,7 +1676,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _uiStackTree.SetColumnExpand(4, false);
         _uiStackTree.SetColumnCustomMinimumWidth(0, 58);
         _uiStackTree.SetColumnCustomMinimumWidth(1, 54);
-        _uiStackTree.SetColumnCustomMinimumWidth(4, 64);
+        _uiStackTree.SetColumnCustomMinimumWidth(4, 88);
     }
 
     private T GetUiNode<T>(string path) where T : Node
@@ -3136,6 +3139,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         if (!IsInstanceValid(_uiSceneValue) ||
             !IsInstanceValid(_uiViewValue) ||
             !IsInstanceValid(_uiModalValue) ||
+            !IsInstanceValid(_uiOverlayValue) ||
             !IsInstanceValid(_uiCurrentValue) ||
             !IsInstanceValid(_uiCurrentDetail) ||
             !IsInstanceValid(_uiStackStatus) ||
@@ -3157,11 +3161,23 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         int sceneCount = 0;
         int viewCount = 0;
         int modalCount = 0;
+        int overlayCount = 0;
+        int cachedCount = 0;
         int invalidCount = 0;
+        int openingRequestCount = 0;
         UiDebugEntry? current = null;
+        for (int index = 0; index < snapshot.Openings.Length; index++)
+            openingRequestCount += snapshot.Openings[index].RequestCount;
+
         for (int index = 0; index < snapshot.Entries.Length; index++)
         {
             UiDebugEntry entry = snapshot.Entries[index];
+            if (entry.IsCached)
+            {
+                cachedCount++;
+                continue;
+            }
+
             switch (entry.Layer)
             {
                 case UiLayer.Scene:
@@ -3175,6 +3191,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
                     modalCount++;
                     current = entry;
                     break;
+                case UiLayer.Overlay:
+                    overlayCount++;
+                    current = entry;
+                    break;
             }
 
             if (!entry.IsValid)
@@ -3184,20 +3204,57 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _uiSceneValue.Text = sceneCount.ToString(CultureInfo.InvariantCulture);
         _uiViewValue.Text = viewCount.ToString(CultureInfo.InvariantCulture);
         _uiModalValue.Text = modalCount.ToString(CultureInfo.InvariantCulture);
+        _uiOverlayValue.Text = overlayCount.ToString(CultureInfo.InvariantCulture);
         _uiCurrentValue.Text = current?.NodeName ?? "空闲";
-        _uiCurrentDetail.Text = current?.Key.Value ?? "无 View / Modal";
+        _uiCurrentDetail.Text = current?.Key.Value ?? "无 View / Modal / Overlay";
         _uiCurrentValue.TooltipText = current?.NodeName ?? string.Empty;
         _uiCurrentDetail.TooltipText = current?.Key.Value ?? string.Empty;
-        int displayedEntryCount = Math.Min(snapshot.Entries.Length, MaxDisplayedUiEntries);
-        string displayDetail = snapshot.Entries.Length <= MaxDisplayedUiEntries
+        int displayedOpeningCount = Math.Min(snapshot.Openings.Length, MaxDisplayedUiEntries);
+        int displayedEntryCount = Math.Min(
+            snapshot.Entries.Length,
+            MaxDisplayedUiEntries - displayedOpeningCount);
+        int totalRowCount = snapshot.Openings.Length + snapshot.Entries.Length;
+        int displayedRowCount = displayedOpeningCount + displayedEntryCount;
+        string displayDetail = totalRowCount <= MaxDisplayedUiEntries
             ? string.Empty
-            : $" · 显示顶部 {displayedEntryCount}";
-        _uiStackStatus.Text = invalidCount == 0
-            ? $"受管理界面 {snapshot.Entries.Length}{displayDetail}"
-            : $"受管理界面 {snapshot.Entries.Length} · 异常 {invalidCount}{displayDetail}";
+            : $" · 显示 {displayedRowCount}";
+        int openCount = snapshot.Entries.Length - cachedCount;
+        string status = $"受管理界面 {openCount}";
+        if (openingRequestCount > 0)
+            status += $" · 打开中 {openingRequestCount}";
+        status += $" · 缓存 {cachedCount}";
+        if (invalidCount > 0)
+            status += $" · 异常 {invalidCount}";
+        _uiStackStatus.Text = status + displayDetail;
 
         _uiStackTree.Clear();
         TreeItem root = _uiStackTree.CreateItem();
+        for (int index = 0; index < displayedOpeningCount; index++)
+        {
+            UiDebugOpeningEntry opening = snapshot.Openings[index];
+            TreeItem item = _uiStackTree.CreateItem(root);
+            item.SetText(0, opening.Layer.ToString());
+            item.SetText(1, "—");
+            item.SetText(2, opening.Id.IsValid ? opening.Id.Value : "Direct");
+            item.SetText(3, opening.Key.Value);
+            item.SetText(
+                4,
+                opening.RequestCount == 1
+                    ? "加载中"
+                    : $"加载中 ×{opening.RequestCount.ToString(CultureInfo.InvariantCulture)}");
+            item.SetTooltipText(
+                2,
+                opening.Id.IsValid
+                    ? opening.Id.Value
+                    : "通过 ResourceKey 直接打开");
+            item.SetTooltipText(3, opening.Key.Value);
+            item.SetTooltipText(4, "异步打开请求尚未完成");
+            item.SetTextAlignment(0, HorizontalAlignment.Center);
+            item.SetTextAlignment(1, HorizontalAlignment.Center);
+            item.SetTextAlignment(4, HorizontalAlignment.Center);
+            item.SetCustomColor(4, new Color(0.96f, 0.75f, 0.32f));
+        }
+
         int firstDisplayedIndex = Math.Max(0, snapshot.Entries.Length - displayedEntryCount);
         for (int index = snapshot.Entries.Length - 1; index >= firstDisplayedIndex; index--)
         {
@@ -3205,16 +3262,29 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             TreeItem item = _uiStackTree.CreateItem(root);
             item.SetText(0, entry.Layer.ToString());
             item.SetText(1, GetUiOrderText(entry));
-            item.SetText(2, entry.NodeName);
+            item.SetText(
+                2,
+                entry.Id.IsValid
+                    ? $"{entry.Id.Value} · {entry.NodeName}"
+                    : entry.NodeName);
             item.SetText(3, entry.Key.Value);
-            item.SetText(4, !entry.IsValid ? "已失效" : entry.IsVisible ? "显示" : "隐藏");
+            item.SetText(4, GetUiStateText(entry));
             item.SetTooltipText(2, entry.NodeName);
             item.SetTooltipText(3, entry.Key.Value);
+            item.SetTooltipText(
+                4,
+                entry.HasFocus
+                    ? $"焦点控件：{entry.FocusNodeName}"
+                    : item.GetText(4));
             item.SetTextAlignment(0, HorizontalAlignment.Center);
             item.SetTextAlignment(1, HorizontalAlignment.Center);
             item.SetTextAlignment(4, HorizontalAlignment.Center);
             if (!entry.IsValid)
                 item.SetCustomColor(4, new Color(1f, 0.38f, 0.38f));
+            else if (entry.IsCached)
+                item.SetCustomColor(4, new Color(0.48f, 0.72f, 0.92f));
+            else if (entry.HasFocus)
+                item.SetCustomColor(4, new Color(0.45f, 0.88f, 0.62f));
         }
     }
 
@@ -3223,6 +3293,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _uiSceneValue!.Text = state;
         _uiViewValue!.Text = "—";
         _uiModalValue!.Text = "—";
+        _uiOverlayValue!.Text = "—";
         _uiCurrentValue!.Text = "—";
         _uiCurrentDetail!.Text = detail;
         _uiStackStatus!.Text = detail;
@@ -3230,9 +3301,25 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     }
 
     private static string GetUiOrderText(UiDebugEntry entry) =>
-        entry.Layer == UiLayer.Scene
+        entry.IsCached
+            ? "—"
+            : entry.Layer == UiLayer.Scene
             ? (entry.Index + 1).ToString(CultureInfo.InvariantCulture)
             : $"#{(entry.Index + 1).ToString(CultureInfo.InvariantCulture)}";
+
+    private static string GetUiStateText(UiDebugEntry entry)
+    {
+        if (!entry.IsValid)
+            return "已失效";
+
+        if (entry.IsCached)
+            return "缓存";
+
+        if (entry.HasFocus)
+            return entry.IsVisible ? "显示 · 焦点" : "隐藏 · 焦点";
+
+        return entry.IsVisible ? "显示" : "隐藏";
+    }
 
     private void RefreshProcedurePage()
     {

@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="UiConfig" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://addons/godo_framework/Runtime/UI/UiConfig.cs" id="1_config"]
+[ext_resource type="Script" path="res://addons/godo_framework/Runtime/UI/UiConfigEntry.cs" id="2_entry"]
+
+[sub_resource type="Resource" id="Settings"]
+script = ExtResource("2_entry")
+Id = "settings"
+Locator = "res://Verification/Automated/Fixtures/UI/UiControlA.tscn"
+Layer = 1
+InstanceMode = 0
+
+[sub_resource type="Resource" id="Confirm"]
+script = ExtResource("2_entry")
+Id = "confirm"
+Locator = "res://Verification/Automated/Fixtures/UI/UiControlB.tscn"
+Layer = 2
+InstanceMode = 1
+
+[sub_resource type="Resource" id="Configured"]
+script = ExtResource("2_entry")
+Id = "configured"
+Locator = "res://Verification/Automated/Fixtures/UI/UiConfigurableControl.tscn"
+Layer = 1
+InstanceMode = 0
+
+[sub_resource type="Resource" id="ConfiguredScene"]
+script = ExtResource("2_entry")
+Id = "configured_scene"
+Locator = "res://Verification/Automated/Fixtures/UI/UiConfigurableControl.tscn"
+Layer = 0
+InstanceMode = 0
+
+[sub_resource type="Resource" id="Reusable"]
+script = ExtResource("2_entry")
+Id = "reusable"
+Locator = "res://Verification/Automated/Fixtures/UI/UiConfigurableControl.tscn"
+Layer = 1
+InstanceMode = 0
+ReuseInstance = true
+
+[sub_resource type="Resource" id="ReusableScene"]
+script = ExtResource("2_entry")
+Id = "reusable_scene"
+Locator = "res://Verification/Automated/Fixtures/UI/UiConfigurableControl.tscn"
+Layer = 0
+InstanceMode = 0
+ReuseInstance = true
+
+[resource]
+script = ExtResource("1_config")
+Entries = Array[ExtResource("2_entry")]([SubResource("Settings"), SubResource("Confirm"), SubResource("Configured"), SubResource("ConfiguredScene"), SubResource("Reusable"), SubResource("ReusableScene")])

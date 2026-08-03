@@ -281,6 +281,6 @@ public sealed class WelcomeProcedure : IProcedure
 5. 点击“取消”，只关闭确认框。
 6. 再次打开确认框并点击“确定”，游戏退出。
 
-在 Remote 场景树中，业务 UI 位于 `/root/GoDoUI` 的对应层，而不是 `MainScene` 子节点。不要对这些受管理界面直接调用 `QueueFree()`；使用 `Close()` 或 `TryGoBack()`，否则会破坏 UiService 的集合与返回栈。
+在 Remote 场景树中，业务 UI 位于 `/root/GoDoUI` 的对应层，而不是 `MainScene` 子节点。受管理界面应使用 `Close()` 或 `TryGoBack()`；如果被外部 `QueueFree()`，UiService 会在下一次操作时清理失效记录，但直接移除或重挂载仍会绕过正常所有权与返回顺序。
 
 精确接口可查询 <xref:GoDo.IUiService>、<xref:GoDo.UiLayer> 和 <xref:GoDo.UiOpenException>。

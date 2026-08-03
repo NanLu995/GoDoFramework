@@ -10,5 +10,8 @@ public enum UiLayer
     View,
 
     /// <summary>显示在其他游戏 UI 上方，并阻止 GUI 指针输入穿透。</summary>
-    Modal
+    Modal,
+
+    /// <summary>显示在 Modal 上方，不进入返回栈且默认不阻止 GUI 指针输入。</summary>
+    Overlay
 }

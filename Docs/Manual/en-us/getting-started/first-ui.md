@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/first-ui.md
-translation_source_hash: sha256:676775c66394107a4128144a1c3a0f840bf00c9cd6924dc0778c8ae916c810b7
+translation_source_hash: sha256:ec4885e76f6fe60fef0f95ce17fb2b9a23c2ee84f0d80abe68bd285e042c41c7
 ---
 
 # Open a Main Menu and Confirmation Dialog
@@ -286,6 +286,6 @@ Verify these steps in order:
 5. Select “Cancel.” Only the confirmation closes.
 6. Open the confirmation again and select “Confirm.” The game exits.
 
-In the Remote scene tree, game UI appears under the matching layers in `/root/GoDoUI`, not under `MainScene`. Do not call `QueueFree()` directly on managed interfaces. Use `Close()` or `TryGoBack()` so UiService can maintain its collections and back stack.
+In the Remote scene tree, game UI appears under the matching layers in `/root/GoDoUI`, not under `MainScene`. Managed interfaces should use `Close()` or `TryGoBack()`. If one is externally `QueueFree()`d, UiService removes its stale record on the next operation, while direct removal or reparenting still bypasses normal ownership and back order.
 
 For exact members, see <xref:GoDo.IUiService>, <xref:GoDo.UiLayer>, and <xref:GoDo.UiOpenException>.

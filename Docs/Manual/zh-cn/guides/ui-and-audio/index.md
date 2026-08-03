@@ -11,16 +11,67 @@ UiService 管理屏幕空间 `Control` 的层级、实例和返回顺序；Audio
 | `Scene` | HUD、准星、关卡提示 | 成功切换后自动清理 | 不进入返回栈 |
 | `View` | 设置、背包、完整菜单 | 默认保留 | 新页面隐藏旧页面，返回时恢复 |
 | `Modal` | 确认框、阻塞式选择 | 默认保留 | 只允许关闭最上层 |
+| `Overlay` | Toast、加载提示、引导遮罩 | 默认保留 | 不进入返回栈 |
 
 ```csharp
 Control hud = ui.Open(HudKey, UiLayer.Scene);
 Control inventory = ui.Open(InventoryKey, UiLayer.View);
 Control confirm = ui.Open(ConfirmKey, UiLayer.Modal);
+Control toast = ui.Open(ToastKey, UiLayer.Overlay);
 ```
 
 UI PackedScene 根节点必须继承 `Control`。世界空间血条、Node2D/Node3D 标签和跟随角色的界面仍由业务场景管理。
 
-## 2. 明确谁拥有界面
+## 2. 用 UiConfig 集中维护界面
+
+在 Godot Inspector 中新建 `UiConfig` Resource。展开 `Entries`，为每个 `UiConfigEntry` 填写：
+
+- `Id`：业务使用的语义标识。
+- `Locator`：通过文件选择器指定 UI PackedScene。
+- `Layer`：默认 Scene、View、Modal 或 Overlay。
+- `InstanceMode`：`Single` 或 `Multiple`。
+- `ReuseInstance`：关闭后是否保留一个 `Single` 实例供下次复用。
+
+在启动流程尚未打开任何 UI 时加载目录：
+
+```csharp
+private static readonly ResourceKey UiConfigKey =
+    ResourceKey.Create("res://Config/UiConfig.tres");
+private static readonly UiId SettingsId = UiId.Create("settings");
+
+IUiService ui = context.GetService<IUiService>();
+ui.LoadUiConfig(UiConfigKey);
+Control settings = ui.Open(SettingsId);
+```
+
+配置会一次性校验空或重复 Id、非法资源定位、层级、实例策略和复用组合。`Single` 标识不能重复打开；`Multiple` 每次打开都会创建独立实例。目录未注册的 Id 不会静默返回 null，而是抛出异常。保留 `Open(ResourceKey, UiLayer)` 供不需要配置或需要临时指定层级的低层调用。
+
+### 异步打开和取消
+
+```csharp
+SettingsView settings = await ui.OpenAsync<SettingsView>(
+    SettingsId,
+    view => view.Initialize(model),
+    progress => loadingBar.Value = progress * 100f,
+    cancellationToken);
+```
+
+资源在线程化加载后，节点仍在 Godot 主线程实例化、配置和挂载。取消令牌或 `CancelOpenRequests(SettingsId)` 会阻止当前请求继续挂载，但不会中止 ResourceHub 中可能共享的底层加载。场景切换会自动取消 Scene 层未完成请求。
+
+### 查询、批量关闭和复用
+
+```csharp
+if (ui.TryGetTop<SettingsView>(SettingsId, out var settings))
+    settings.Refresh();
+
+ui.CloseAll(UiLayer.Overlay);
+ui.CloseTo(SettingsId); // 保留设置页，关闭其显示顺序之上的 UI
+ui.ClearCachedInstance(SettingsId);
+```
+
+`IsOpen`、`GetOpenCount`、`IsOpening` 和 `GetOpeningCount` 可用于业务状态判断。启用 `ReuseInstance` 后，关闭的 `Single` 节点仍占用内存并保留状态与信号连接；只对实测创建成本较高、且每次重开都能可靠重置的界面使用。
+
+## 3. 明确谁拥有界面
 
 打开界面的流程或协调器应保存实例，并负责关闭自己创建的界面：
 
@@ -45,9 +96,9 @@ public Task ExitAsync(ProcedureContext context)
 }
 ```
 
-受管理界面不要直接 `QueueFree()` 或 `RemoveChild()`。这样会绕过 UiService 的集合和返回栈。View 被覆盖时只是隐藏，节点状态和内存仍保留；不要无限堆叠深层 View。
+受管理界面应通过 `Close()` 或 `TryGoBack()` 退出，不要直接 `QueueFree()` 或 `RemoveChild()`。如果界面被外部释放，UiService 会在下一次操作时清理失效记录、恢复前一个有效 View，并回收空的 Modal Host；直接移除或重挂载仍会绕过正常所有权与返回顺序。View 被覆盖时只是隐藏，节点状态和内存仍保留；不要无限堆叠深层 View。
 
-## 3. 集中处理返回输入
+## 4. 集中处理返回输入
 
 UiService 不监听 `ui_cancel`、Android 返回键或手柄按钮。游戏应在一个明确输入边界中决定顺序：
 
@@ -61,7 +112,7 @@ private void HandleBackRequested()
 }
 ```
 
-`TryGoBack()` 先关闭顶部 Modal，再关闭顶部 View；没有可返回页面时返回 `false`。不要让 HUD、菜单和角色控制器同时处理同一个返回 Action。
+`TryGoBack()` 先关闭顶部 Modal，再关闭顶部 View；没有可返回页面时返回 `false`。Scene 和 Overlay 不参与返回。不要让 HUD、菜单和角色控制器同时处理同一个返回 Action。
 
 Modal Host 会阻止鼠标事件落到底层 Control，但不会自动暂停 SceneTree，也不会阻止角色脚本读取键盘、手柄或 `_UnhandledInput`。打开暂停 Modal 时还应：
 
@@ -69,7 +120,7 @@ Modal Host 会阻止鼠标事件落到底层 Control，但不会自动暂停 Sce
 2. 切换 InputService Context，屏蔽 Gameplay Action。
 3. 关闭时按相反顺序恢复。
 
-## 4. 处理 UI 打开失败
+## 5. 处理 UI 打开失败
 
 ```csharp
 try
@@ -87,7 +138,7 @@ catch (UiOpenException exception)
 
 关闭非托管界面、非顶部 View 或非顶部 Modal 会抛出 `InvalidOperationException`。这通常说明所有权或调用顺序错误，不应捕获后静默忽略。
 
-## 5. 让 Procedure 决定 BGM
+## 6. 让 Procedure 决定 BGM
 
 ```csharp
 IAudioService audio = context.GetService<IAudioService>();
@@ -114,7 +165,7 @@ catch (AudioPlaybackException exception)
 
 `PauseBgm()` 和 `ResumeBgm()` 只影响当前 BGM，不会暂停 SFX 或 SceneTree。暂停菜单是否暂停音乐由游戏设计决定。
 
-## 6. 正确处理短音效容量
+## 7. 正确处理短音效容量
 
 ```csharp
 try
@@ -140,7 +191,7 @@ catch (AudioPlaybackException exception)
 
 不要用全局 SFX 播放脚步、发动机或环境循环等需要单独停止和定位的声音。
 
-## 7. 音量、设置与 Audio Bus
+## 8. 音量、设置与 Audio Bus
 
 ```csharp
 audio.SetVolume(AudioGroup.Master, settings.MasterVolume);
@@ -152,7 +203,7 @@ audio.SetVolume(AudioGroup.Sfx, settings.SfxVolume);
 
 项目最好在 Audio Bus Layout 中预先建立 `BGM` 和 `SFX`。缺失时框架会在运行时创建并 Warning，但不会修改持久化 Bus Layout；不要把这个降级行为当成正式配置流程。
 
-## 8. 场景和框架退出
+## 9. 场景和框架退出
 
 - `GoDoUI`、AudioService 和播放器位于 CurrentScene 之外。
 - 场景成功切换会清理 Scene UI，但保留 View、Modal 和音频。
@@ -167,7 +218,7 @@ audio.SetVolume(AudioGroup.Sfx, settings.SfxVolume);
 - Modal 打开后角色仍移动：Modal 只拦截 GUI 指针，需切换输入 Context 或暂停流程。
 - 返回一次关闭了错误页面：多个节点同时处理返回输入，应集中到单一边界。
 - View 跨场景意外保留：这是默认语义，拥有它的流程必须显式关闭。
-- 直接 QueueFree 后返回栈损坏：受管理 UI 必须通过 Close/TryGoBack 退出。
+- 直接 QueueFree 后界面顺序异常：继续使用 UiService 会清理失效记录，但业务仍应通过 Close/TryGoBack 维持明确所有权。
 - BGM 请求偶尔被拒绝：上一项 BGM 仍在加载，流程没有串行等待。
 - SFX 返回 false：并发容量已满，可跳过非关键声音或调整设计。
 - 循环 SFX 永不归还：循环流不会自然 Finished，改用可独立管理的业务播放器。
