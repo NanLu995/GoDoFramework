@@ -43,7 +43,7 @@ Core（ErrorHub / EventChannel / Services / GoDoRuntime）
 - 按接口注册服务，并在退出时按相反方向注销和清理；
 - 安装进程级未处理异常兜底。
 
-GoDoRuntime 初始化 UI 时，在 `/root` 下创建与自身平级的 `GoDoUI` 显示根。UiService 仍是 GoDoRuntime 的服务子节点，只管理引用和生命周期；业务 UI 实例挂载到 `GoDoUI` 的 Scene、View、Modal 三个显式 CanvasLayer。主场景切换成功后由 SceneService 广播内部事实事件，UiService 据此清空 Scene 层，不形成服务间直接引用。
+GoDoRuntime 初始化 UI 时，在 `/root` 下创建与自身平级的 `GoDoUI` 显示根。UiService 仍是 GoDoRuntime 的服务子节点，只管理引用和生命周期；业务 UI 实例挂载到 `GoDoUI` 的 Scene、View、Modal、Overlay 四个显式 CanvasLayer。业务启动流程通过 ResourceHub 显式加载 Inspector 维护的 UiConfig，将 UiId 解析为资源定位、默认层级、实例策略与复用选项；GoDoRuntime 不硬编码具体游戏的配置路径。主场景切换成功后由 SceneService 广播内部事实事件，UiService 据此取消 Scene 层打开请求并清理实例与缓存，不形成服务间直接引用。
 
 GoDoRuntime 不承载菜单、关卡、登录等具体游戏流程。业务场景和测试场景不得重复初始化框架。
 
@@ -65,7 +65,7 @@ GoDoRuntime 不承载菜单、关卡、登录等具体游戏流程。业务场�
 |---|---|---|---|---|---|
 | Core | EventChannel | 类型安全的一对多同步通知与订阅生命周期 | ErrorHub（异常报告，见规则 2 的例外说明） | 静态 API | 稳定基线 |
 | Core | ErrorHub | 结构化错误、控制台输出、Reporter 与后台队列 | 无框架内部依赖（仅使用 Godot 日志/文件 API）；不存在任何模块反向依赖它以外的模块 | 静态 API | 稳定基线 |
-| Core | LogHub | Debug 构建中的普通开发日志、统一控制台格式与固定容量历史；通过内部有界后台写入器与 ErrorHub 共用 `user://logs` 滚动文件，异常、降级和失败仍由 ErrorHub 处理 | Core 主线程约束、Godot 控制台 API、.NET 文件 API | 静态 API | 首版完成 |
+| Core | LogHub | 统一日志调用入口与模块绑定通道；Debug/Info 提供 Debug 构建的普通开发日志、统一控制台格式与固定容量历史，Warning/Error/Fatal 直接复用 ErrorHub 报告管线；通过内部有界后台写入器与 ErrorHub 共用 `user://logs` 滚动文件 | ErrorHub（Warning/Error/Fatal 委托与文件写入失败上报）、Core 主线程约束、Godot 控制台 API、.NET 文件 API | 静态 API / `LogChannel` | 首版完成 |
 | Core | Services | 按接口登记长期服务 | 无 | `Services.Get<T>()` | 稳定基线 |
 | Core | GoDoRuntime | 唯一 Autoload 入口：初始化/关闭 ResourceHub 与 ErrorHub、注册与注销长期服务、安装进程级异常兜底（详见第 3 节） | Core 其余模块（ErrorHub、EventChannel、Services）、Godot Autoload 机制 | 无（框架内部入口，不面向业务代码直接调用） | 已采用 |
 | Foundation | ResourceHub | `ResourceKey`、语义资源注册表、同步/线程化加载、类型检查与请求合并 | Core、Godot ResourceLoader | 静态 API | 稳定基线 |
@@ -77,7 +77,7 @@ GoDoRuntime 不承载菜单、关卡、登录等具体游戏流程。业务场�
 | Service | Audio | BGM、SFX 池与音量分组 | ResourceHub、NodePool、Core | `IAudioService` | 稳定基线 |
 | Service | Localization | TranslationServer 薄封装、语言有效性、翻译查询与变更通知 | Core、Godot TranslationServer | `ILocalizationService` | 首版完成 |
 | Service | DataTable | 业务显式触发的数据集 Manifest 校验、逐表加载、事务发布、缓存与卸载 | Core、Godot FileAccess、生成解码委托 | `IDataTableService` / 生成数据集门面 | 首版完成 |
-| Service | UI | 屏幕空间 UI 的 Scene、View、Modal 层与返回栈 | ResourceHub、Core | `IUiService` | 稳定基线 |
+| Service | UI | 屏幕空间 UI 的四层显示、语义配置、同步/异步打开、查询关闭、返回栈、焦点与可选实例复用 | ResourceHub、Config、Core | `IUiService` | 首版完成 |
 | Service | Save | 多槽位可靠容器、校验、备份和 Codec 边界 | Core、Godot FileAccess | `ISaveService` | 稳定基线 |
 | Service | Settings | 音量、Locale 选择与持久化、显示偏好 | Audio、Save、Localization、平台适配器 | `ISettingsService` | Windows 稳定基线（其他平台待验证，见上方图例） |
 | Service | Procedure | 顶层游戏流程阶段的串行切换与进入/退出生命周期 | Core、Services | `IProcedureService` | 首版完成 |

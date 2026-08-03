@@ -15,11 +15,11 @@
     "error-hub": {
       "contract": "addons/godo_framework/Core/ErrorHub/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖等级选择、异常边界、事件生命周期、自定义 Reporter、后台队列与错误风暴；仍等待远程上报隐私、离线缓存和平台合规专项指南。",
+      "reason": "功能指南已覆盖 LogHub 便捷入口、等级选择、异常边界、事件生命周期、自定义 Reporter、后台队列与错误风暴；仍等待远程上报隐私、离线缓存和平台合规专项指南。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:dacef3dc9ff68619ae9b0f072ad3e30b3dce55deed317523fd0209c37e35eabd"
+      "reviewed_contract_hash": "sha256:b50270a0d38d6e0ff17bedc31a3d76499bae847b6e824fdaf18f5fbe83e96178"
     },
     "event-channel": {
       "contract": "addons/godo_framework/Core/EventChannel/USAGE.md",
@@ -35,11 +35,11 @@
     "log-hub": {
       "contract": "addons/godo_framework/Core/LogHub/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖 Debug/Info 选择、模块与上下文、主线程约束、Release 移除行为、滚动文件、多实例文件回退、失败降级及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
+      "reason": "功能指南已覆盖模块绑定通道、统一等级入口、Debug/Info 选择、线程与 Release 行为、滚动文件、失败降级及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:1f6b0dfaf10ac8fc8ad2b8a0fa1f13c1192fbf3accaa98e962093925323b08f3"
+      "reviewed_contract_hash": "sha256:60d056bd06dfe274c47f4d1e5f6fd00ef643211ccd2f6c15b7f5358b51d90c5c"
     },
     "services": {
       "contract": "addons/godo_framework/Core/Services/USAGE.md",
@@ -211,7 +211,7 @@
     "ui": {
       "contract": "addons/godo_framework/Runtime/UI/USAGE.md",
       "status": "documented",
-      "reason": "教程和功能指南已覆盖三层显示、界面所有权、返回栈、Modal 输入边界、暂停协调、失败原子性、场景清理和信号生命周期；仍等待动画、数据绑定和大型 UI 内存策略未来能力。",
+      "reason": "教程和功能指南已覆盖 Inspector UiConfig/UiId、四层显示、同步/异步打开与取消、查询和批量关闭、CloseTo、焦点恢复、可选实例复用、外部释放恢复、输入边界、失败原子性与场景清理；仍等待动画、数据绑定和真实大型 UI 内存预算。",
       "manual_pages": [
         "getting-started/first-ui.md",
         "getting-started/switch-procedures.md",
@@ -219,7 +219,7 @@
         "guides/ui-and-audio/index.md",
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:27b4c19b6a21aa525ba99d614bbe61431ba8e25d63fb02b127fc31c17493d66e"
+      "reviewed_contract_hash": "sha256:2157334d4d3a34a32fd669af43e6419e1baeec27af79dca3750c044fa9f4ae25"
     },
     "data-table-runtime": {
       "contract": "addons/godo_framework/Runtime/DataTable/USAGE.md",

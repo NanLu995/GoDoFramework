@@ -56,7 +56,7 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 |---|---|---|
 | EventChannel | 稳定基线 | 继续补关键回归测试；避免事件总线替代直接调用和 Signal |
 | ErrorHub | 稳定基线 | 已接入本地滚动文件 Reporter；远程 Reporter 等真实需求出现后再实现 |
-| LogHub | 首版完成 | Debug / Info、控制台规范、Debugger 历史与本地滚动文件已接入；ErrorHub 仅保留 Warning / Error / Fatal 异常上报 |
+| LogHub | 首版完成 | 已提供模块绑定通道与统一 Debug / Info / Warning / Error / Fatal 调用入口；Debug / Info 仅用于开发诊断，Warning 以上直接复用 ErrorHub 报告管线、Debugger 历史与本地滚动文件 |
 | Services | 稳定基线 | 保持为业务层长期服务注册表，不扩张成 DI 容器 |
 | GoDoRuntime | 已采用 | 只管理框架生命周期和服务注册，不承载游戏流程 |
 | ResourceHub | 稳定基线 | 不加入远程下载、PCK/DLC、目录加载或第二套缓存 |
@@ -70,7 +70,7 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 | Localization | 首版完成 | 复用 TranslationServer、PO/CSV、复数、上下文、回退与伪本地化；动态语言包后置 |
 | Config | 稳定基线 | Resource 强类型校验与唯一键表；大量外部表格数据由独立 DataTable 工具链处理，不把 CSV 解析与二进制索引塞入 ConfigHub |
 | DataTable | 首版完成 | 离线校验/生成/导出门禁与显式运行时 Service 已接通；Windows 完整 ExportRelease 和 10 万行峰值内存已验证，真实业务长期体验与移动端/AOT 后置 |
-| UI | 稳定基线 | 管理屏幕空间 Control 的 Scene、View、Modal 层与返回栈；不承担主场景和游戏流程 |
+| UI | 首版完成 | 已提供 Scene、View、Modal、Overlay，Inspector UiConfig/UiId，同步/异步打开与取消，查询/批量关闭/CloseTo，焦点恢复、外部释放自恢复及可选 Single 实例复用；下一步以真实项目使用反馈校验 API 与性能预算 |
 | Debugger | 稳定基线 | 紧凑健康入口、树状诊断导航、System/Performance 与运行时模块快照、可拖动缩放面板和可搜索控制台；Release 不创建节点 |
 | EditorPlugin | 首版完成 | 单一 GoDo 插件入口；显式安装与检查 GoDoRuntime Autoload，并通过版本化清单发现 GUIDE Input、Phantom Camera 等可选编辑器扩展；扩展失败隔离、项目修改需确认，不进入运行时依赖 |
 | Procedure | 首版完成 | 顶层游戏流程状态机；只提供流程切换机制，不内置具体业务流程，不先抽象通用 StateMachine |

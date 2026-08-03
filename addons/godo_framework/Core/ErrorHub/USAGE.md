@@ -6,6 +6,8 @@ ErrorHub 是框架与业务层共享的结构化错误出口，提供等级、�
 
 ErrorHub 用于记录错误，不是普通业务日志系统，也不会替调用方决定重试、回退或退出游戏。
 
+普通业务代码可以使用 `LogHub.Warn`、`LogHub.Error` 和 `LogHub.Fatal` 作为更紧凑的调用入口；这些方法直接进入 ErrorHub 的同一条结构化报告管线。需要注册 Reporter、监听 `OnError`、修改 `MinLevel` 或直接构造指定等级报告时，仍使用 ErrorHub。
+
 ## 快速上手
 
 ```csharp
@@ -21,6 +23,15 @@ catch (Exception exception)
 ErrorHub.Warn("配置项缺失，使用默认值", "Config", context: "Audio.Volume");
 LogHub.Debug("资源已命中缓存", "Resources");
 ErrorHub.Fatal("启动所需配置不可用", "Bootstrap");
+```
+
+同一类型反复记录同一模块时，可以绑定一次模块名：
+
+```csharp
+private static readonly LogChannel Log = LogHub.For("Save");
+
+Log.Warn("备份缺失，继续读取主存档");
+Log.Error(exception, context: "slot=slot-1");
 ```
 
 `Fatal` 只表示最高严重等级，**不会主动退出游戏**；是否调用 `GetTree().Quit()` 由业务边界决定。

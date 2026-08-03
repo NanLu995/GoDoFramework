@@ -1,6 +1,6 @@
 # 记录日志、上报错误与查看运行状态
 
-GoDo 把运行信息分为两条通道：LogHub 记录正常流程的开发诊断，ErrorHub 记录需要关注的降级、失败和致命问题。Debug 构建还会自动显示只读 Debugger，方便在游戏运行时查看框架状态。
+GoDo 把日志调用和错误处理分为两层：业务代码通常通过 LogHub 记录正常流程或上报问题；Warning、Error 和 Fatal 会进入 ErrorHub 的结构化报告、Reporter 与后台队列。需要监听报告或扩展 Reporter 时再直接使用 ErrorHub。Debug 构建还会自动显示只读 Debugger，方便在游戏运行时查看框架状态。
 
 这套分工的目标不是“多打印一些文字”，而是让开发日志在 Release 中消失，同时让真正的错误在发布版本中仍然可见。
 
@@ -9,9 +9,9 @@ GoDo 把运行信息分为两条通道：LogHub 记录正常流程的开发诊�
 | 情况 | 使用 |
 |---|---|
 | 正常进入流程、缓存命中、开发期状态变化 | `LogHub.Debug` / `LogHub.Info` |
-| 可以恢复，但结果发生了降级 | `ErrorHub.Warn` |
-| 当前操作失败，并且拿到了异常 | `ErrorHub.Report` |
-| 游戏已无法安全继续 | `ErrorHub.Fatal`，再由业务边界决定退出或回到安全页面 |
+| 可以恢复，但结果发生了降级 | `LogHub.Warn` |
+| 当前操作失败 | `LogHub.Error` |
+| 游戏已无法安全继续 | `LogHub.Fatal`，再由业务边界决定退出或回到安全页面 |
 | 给玩家显示提示 | 游戏自己的 UI；不要直接展示控制台文本 |
 
 `Fatal` 只是最高错误等级，不会自动退出游戏。重试、回退、返回标题页或退出进程，始终由知道业务上下文的调用方决定。
@@ -19,8 +19,10 @@ GoDo 把运行信息分为两条通道：LogHub 记录正常流程的开发诊�
 ## 1. 为正常流程添加开发日志
 
 ```csharp
-LogHub.Info("进入主菜单流程", "Game.Procedure");
-LogHub.Debug("资源已命中缓存", "Game.Inventory", context: "item=sword");
+private static readonly LogChannel Log = LogHub.For("Game.Inventory");
+
+Log.Info("进入主菜单流程");
+Log.Debug("资源已命中缓存", context: "item=sword");
 ```
 
 输出格式统一为：
@@ -29,16 +31,16 @@ LogHub.Debug("资源已命中缓存", "Game.Inventory", context: "item=sword");
 [模块] [等级] (可选上下文) 消息
 ```
 
-模块名应稳定，例如 `Game.Boot`、`Game.Save`、`Game.Inventory`。消息说明发生了什么，`context` 放槽位、资源 ID 或流程名等定位信息。不要把等级和模块再次拼进消息。
+模块名应稳定，例如 `Game.Boot`、`Game.Save`、`Game.Inventory`。`LogHub.For` 返回不分配托管对象的只读值类型，适合在一个类型中绑定一次模块名并重复使用。一次性日志仍可调用 `LogHub.Info(message, module)`。消息说明发生了什么，`context` 放槽位、资源 ID 或流程名等定位信息。不要把等级和模块再次拼进消息。
 
-LogHub 只能从 Godot 主线程调用。它的调用带有 `Conditional("DEBUG")`：Release 构建会在调用点移除，连参数表达式也不会求值。因此不要依赖日志参数中的函数产生副作用。
+Debug 用于详细排障，Info 只用于启动完成、流程切换、场景提交等低频正常里程碑。两者都只能从 Godot 主线程调用，并带有 `Conditional("DEBUG")`：Release 构建会在调用点移除，连参数表达式也不会求值。因此不要依赖日志参数中的函数产生副作用。
 
 ## 2. 上报可恢复问题
 
 当操作可以继续，但使用了备用值或降级路径：
 
 ```csharp
-ErrorHub.Warn(
+LogHub.Warn(
     "音量配置缺失，已使用默认值。",
     "Game.Settings",
     context: "key=audio.master");
@@ -61,7 +63,7 @@ try
 }
 catch (SaveException exception)
 {
-    ErrorHub.Report(exception, "Game.Save", context: "slot=slot-1");
+    LogHub.Error(exception, "Game.Save", context: "slot=slot-1");
     ShowLoadFailedDialog();
 }
 ```
@@ -73,7 +75,7 @@ catch (SaveException exception)
 ```csharp
 catch (Exception exception)
 {
-    ErrorHub.Fatal(exception, "Game.Boot", context: "phase=initialization");
+    LogHub.Fatal(exception, "Game.Boot", context: "phase=initialization");
     ShowFatalStartupScreen();
 }
 ```
@@ -188,13 +190,13 @@ GoDoRuntime 会优先把日志写到 `user://logs/godo_framework.log`。如果�
 
 ## 后台线程与错误风暴
 
-LogHub 仅允许主线程。ErrorHub 可以从后台线程调用，但报告会先进入最多 1024 条的有界队列，再由 GoDoRuntime 每帧最多分发 256 条；监听者与 Reporter 仍在主线程运行。
+LogHub 的 Debug / Info 仅允许主线程。LogHub 的 Warn / Error / Fatal 与直接调用 ErrorHub 一样可以从后台线程调用，但报告会先进入最多 1024 条的有界队列，再由 GoDoRuntime 每帧最多分发 256 条；监听者与 Reporter 仍在主线程运行。
 
 队列满时报告会被丢弃，并在主线程汇总为 Warning。后台 Fatal 还会同步写入降级控制台。遇到大量重复错误时，应修复或限流源头，不能把 ErrorHub 当作无限队列。
 
 ## 常见错误
 
-- Release 中看不到 Info：这是预期行为；线上失败必须使用 ErrorHub。
+- Release 中看不到 Info：这是预期行为；线上失败必须使用 LogHub 的 Warn / Error / Fatal 或直接使用 ErrorHub。
 - 玩家提示暴露技术细节：不要直接展示异常消息，改为本地化的业务提示。
 - 同一异常出现多次：检查是否在多个调用层先上报再抛出。
 - 切换场景后回调仍触发：短生命周期对象忘记解绑 `OnError`。
@@ -202,4 +204,4 @@ LogHub 仅允许主线程。ErrorHub 可以从后台线程调用，但报告会�
 - `Fatal` 后游戏仍运行：Fatal 不负责退出，业务边界必须显式采取行动。
 - Debugger 在导出版本消失：Release 默认不创建它，这是设计行为。
 
-精确接口可查询 <xref:GoDo.LogHub>、<xref:GoDo.ErrorHub>、<xref:GoDo.ErrorReport>、<xref:GoDo.ErrorLevel> 和 <xref:GoDo.IErrorReporter>。
+精确接口可查询 <xref:GoDo.LogHub>、<xref:GoDo.LogChannel>、<xref:GoDo.ErrorHub>、<xref:GoDo.ErrorReport>、<xref:GoDo.ErrorLevel> 和 <xref:GoDo.IErrorReporter>。

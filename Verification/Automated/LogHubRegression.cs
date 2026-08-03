@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Godot;
@@ -21,6 +22,7 @@ public sealed partial class LogHubRegression : Node
             Run("Debug 格式", VerifyDebugFormat);
             Run("Info 格式", VerifyInfoFormat);
             Run("空参数拒绝", VerifyInvalidArguments);
+            Run("模块绑定与错误委托", VerifyChannelAndErrorDelegation);
             Run("控制台输出", VerifyConsoleOutput);
             Run("滚动文件与退出刷新", VerifyRollingFileAndShutdownFlush);
             Run("文件日志运行中刷新", VerifyPeriodicFileFlush);
@@ -69,6 +71,80 @@ public sealed partial class LogHubRegression : Node
         AssertThrows<ArgumentException>(
             static () => LogHub.FormatForConsole(LogLevel.Info, "进入主菜单", " "),
             "空模块没有被拒绝");
+        AssertThrows<ArgumentException>(
+            static () => LogHub.For(" "),
+            "模块绑定入口接受了空模块");
+        AssertThrows<ArgumentException>(
+            static () => default(LogChannel).Warn("invalid channel"),
+            "默认日志通道没有拒绝缺失模块");
+        AssertThrows<ArgumentException>(
+            static () => LogHub.Warn(string.Empty, "LogHubRegression"),
+            "Warning 接受了空消息");
+        AssertThrows<ArgumentNullException>(
+            static () => LogHub.Error((Exception)null!, "LogHubRegression"),
+            "Error 接受了 null 异常");
+    }
+
+    private static void VerifyChannelAndErrorDelegation()
+    {
+        ErrorLevel previousMinLevel = ErrorHub.MinLevel;
+#if DEBUG
+        bool previousSuppressOutput = ErrorHub.SuppressGodotOutputForTesting;
+        ErrorHub.SuppressGodotOutputForTesting = true;
+#endif
+        var reports = new List<ErrorReport>();
+        void OnError(ErrorReport report) => reports.Add(report);
+
+        ErrorHub.OnError += OnError;
+        try
+        {
+            ErrorHub.MinLevel = ErrorLevel.Warning;
+            LogChannel log = LogHub.For("LogHubRegression");
+            var exception = new InvalidOperationException("delegated exception");
+
+            LogHub.Warn("fallback applied", "LogHubRegression", "source=static");
+            log.Error("operation failed", "source=channel");
+            log.Error(exception, "source=exception");
+            log.Fatal("cannot continue", "source=fatal");
+
+            AssertEqual(4, reports.Count, "便捷入口没有产生预期数量的错误报告");
+            AssertReport(
+                reports[0],
+                ErrorLevel.Warning,
+                "fallback applied",
+                "LogHubRegression",
+                "source=static",
+                exception: null);
+            AssertReport(
+                reports[1],
+                ErrorLevel.Error,
+                "operation failed",
+                "LogHubRegression",
+                "source=channel",
+                exception: null);
+            AssertReport(
+                reports[2],
+                ErrorLevel.Error,
+                "delegated exception",
+                "LogHubRegression",
+                "source=exception",
+                exception);
+            AssertReport(
+                reports[3],
+                ErrorLevel.Fatal,
+                "cannot continue",
+                "LogHubRegression",
+                "source=fatal",
+                exception: null);
+        }
+        finally
+        {
+            ErrorHub.OnError -= OnError;
+            ErrorHub.MinLevel = previousMinLevel;
+#if DEBUG
+            ErrorHub.SuppressGodotOutputForTesting = previousSuppressOutput;
+#endif
+        }
     }
 
     private static void VerifyConsoleOutput()
@@ -346,6 +422,23 @@ public sealed partial class LogHubRegression : Node
     {
         if (expected != actual)
             throw new InvalidOperationException($"{message}；期望 {expected}，实际 {actual}");
+    }
+
+    private static void AssertReport(
+        ErrorReport report,
+        ErrorLevel expectedLevel,
+        string expectedMessage,
+        string expectedModule,
+        string expectedContext,
+        Exception? exception)
+    {
+        Assert(report.Level == expectedLevel, $"报告等级错误：{report.Level}");
+        AssertEqual(expectedMessage, report.Message, "报告消息错误");
+        AssertEqual(expectedModule, report.Module, "报告模块错误");
+        AssertEqual(expectedContext, report.Context ?? string.Empty, "报告上下文错误");
+        Assert(
+            ReferenceEquals(exception, report.Exception),
+            "报告没有保留预期的异常引用");
     }
 
     private static void Assert(bool condition, string message)

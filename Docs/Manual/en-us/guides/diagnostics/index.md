@@ -1,11 +1,11 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:0cea09685d86c398394e15c063dd852a5057ffec9a0f1997b9f92e4d3d5d5832
+translation_source_hash: sha256:ca28a72fbdc5c9e00f45426d95908920c1160f09bd94dc2a0fd398a612ec739b
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
 
-GoDo separates runtime information into two channels. LogHub records normal-flow development diagnostics, while ErrorHub records degradation, failures, and fatal conditions that require attention. Debug builds also display a read-only Debugger for inspecting framework state while the game runs.
+GoDo separates logging calls from error infrastructure. Game code normally uses LogHub for both normal-flow diagnostics and problem reports. Warning, Error, and Fatal calls enter ErrorHub's structured reports, Reporters, and background queue. Use ErrorHub directly when listening for reports or extending Reporters. Debug builds also display a read-only Debugger for inspecting framework state while the game runs.
 
 This separation is not merely about printing more text. Development logs disappear from Release builds, while real errors remain visible in shipped builds.
 
@@ -14,9 +14,9 @@ This separation is not merely about printing more text. Development logs disappe
 | Situation | Use |
 |---|---|
 | Normal flow entry, cache hit, or development-only state change | `LogHub.Debug` / `LogHub.Info` |
-| The operation recovered with degraded behavior | `ErrorHub.Warn` |
-| The current operation failed and produced an exception | `ErrorHub.Report` |
-| The game cannot continue safely | `ErrorHub.Fatal`, followed by a decision at the game boundary |
+| The operation recovered with degraded behavior | `LogHub.Warn` |
+| The current operation failed | `LogHub.Error` |
+| The game cannot continue safely | `LogHub.Fatal`, followed by a decision at the game boundary |
 | A message for the player | Game UI; do not expose console text directly |
 
 `Fatal` is only the highest error level; it does not exit the game. The caller that understands the game context decides whether to retry, fall back, return to the title screen, or terminate the process.
@@ -24,8 +24,10 @@ This separation is not merely about printing more text. Development logs disappe
 ## 1. Add development logs for normal flow
 
 ```csharp
-LogHub.Info("Entered the main-menu flow.", "Game.Procedure");
-LogHub.Debug("Resource cache hit.", "Game.Inventory", context: "item=sword");
+private static readonly LogChannel Log = LogHub.For("Game.Inventory");
+
+Log.Info("Entered the main-menu flow.");
+Log.Debug("Resource cache hit.", context: "item=sword");
 ```
 
 The console format is:
@@ -34,16 +36,16 @@ The console format is:
 [module] [level] (optional context) message
 ```
 
-Use stable module names such as `Game.Boot`, `Game.Save`, and `Game.Inventory`. The message says what happened; `context` carries a slot, resource ID, flow name, or similar locator. Do not repeat the level and module inside the message.
+Use stable module names such as `Game.Boot`, `Game.Save`, and `Game.Inventory`. `LogHub.For` returns a readonly value type without a managed allocation, so a type can bind its module once and reuse it. One-off logs can still call `LogHub.Info(message, module)`. The message says what happened; `context` carries a slot, resource ID, flow name, or similar locator. Do not repeat the level and module inside the message.
 
-LogHub can only be called from Godot's main thread. Its calls use `Conditional("DEBUG")`: Release removes each call site and does not evaluate argument expressions. Never rely on a logging argument to perform a side effect.
+Use Debug for detailed investigation and reserve Info for low-frequency normal milestones such as startup completion, procedure changes, and scene commits. Both can only be called from Godot's main thread and use `Conditional("DEBUG")`: Release removes each call site and does not evaluate argument expressions. Never rely on a logging argument to perform a side effect.
 
 ## 2. Report a recoverable problem
 
 When an operation can continue by using a fallback:
 
 ```csharp
-ErrorHub.Warn(
+LogHub.Warn(
     "Volume setting was missing; the default was applied.",
     "Game.Settings",
     context: "key=audio.master");
@@ -66,7 +68,7 @@ try
 }
 catch (SaveException exception)
 {
-    ErrorHub.Report(exception, "Game.Save", context: "slot=slot-1");
+    LogHub.Error(exception, "Game.Save", context: "slot=slot-1");
     ShowLoadFailedDialog();
 }
 ```
@@ -78,7 +80,7 @@ For a startup failure that cannot continue:
 ```csharp
 catch (Exception exception)
 {
-    ErrorHub.Fatal(exception, "Game.Boot", context: "phase=initialization");
+    LogHub.Fatal(exception, "Game.Boot", context: "phase=initialization");
     ShowFatalStartupScreen();
 }
 ```
@@ -193,13 +195,13 @@ Disk writes run through a bounded background queue and do not block error dispat
 
 ## Background threads and error storms
 
-LogHub is main-thread only. ErrorHub may be called from a background thread, but it places reports in a bounded queue of at most 1,024 entries. GoDoRuntime dispatches at most 256 per frame, and listeners and Reporters still run on the main thread.
+LogHub Debug and Info are main-thread only. LogHub Warn, Error, and Fatal follow the same threading rules as direct ErrorHub calls: background-thread reports enter a bounded queue of at most 1,024 entries. GoDoRuntime dispatches at most 256 per frame, and listeners and Reporters still run on the main thread.
 
 When the queue fills, reports are dropped and summarized as a Warning on the main thread. A background Fatal also writes synchronously to the fallback console. Fix or rate-limit a repeated source instead of treating ErrorHub as an unbounded queue.
 
 ## Common failures
 
-- Info is missing in Release: expected behavior; use ErrorHub for shipped failures.
+- Info is missing in Release: expected behavior; use LogHub Warn, Error, or Fatal—or ErrorHub directly—for shipped failures.
 - A player message exposes technical details: replace the raw exception with localized game copy.
 - The same exception appears repeatedly: check for report-and-rethrow at several call layers.
 - Callbacks continue after a scene switch: a short-lived object forgot to unsubscribe from `OnError`.
@@ -207,4 +209,4 @@ When the queue fills, reports are dropped and summarized as a Warning on the mai
 - The game continues after Fatal: Fatal does not terminate; the game boundary must act explicitly.
 - The Debugger disappears from an exported build: Release does not create it by design.
 
-For exact members, see <xref:GoDo.LogHub>, <xref:GoDo.ErrorHub>, <xref:GoDo.ErrorReport>, <xref:GoDo.ErrorLevel>, and <xref:GoDo.IErrorReporter>.
+For exact members, see <xref:GoDo.LogHub>, <xref:GoDo.LogChannel>, <xref:GoDo.ErrorHub>, <xref:GoDo.ErrorReport>, <xref:GoDo.ErrorLevel>, and <xref:GoDo.IErrorReporter>.

@@ -7,9 +7,9 @@ using Godot;
 namespace GoDo;
 
 /// <summary>
-/// 统一输出仅供开发诊断的普通日志。
-/// <para>仅提供正常流程的 Debug 与 Info 日志；异常、降级和失败应使用 ErrorHub。</para>
-/// <para>调用仅限 Godot 主线程，且在 Release 构建中会从调用点移除。</para>
+/// 统一的日志调用入口。
+/// <para>Debug 与 Info 用于正常流程的开发诊断，仅限 Godot 主线程，并在 Release 构建中从调用点移除。</para>
+/// <para>Warning、Error 与 Fatal 复用 ErrorHub 的结构化报告和 Reporter 管线。</para>
 /// </summary>
 public static class LogHub
 {
@@ -29,6 +29,18 @@ public static class LogHub
     internal static int DebugHistoryVersion => _debugHistoryVersion;
 #endif
 
+    /// <summary>
+    /// 创建绑定固定模块名的轻量日志通道，减少同一类型内重复传递模块参数。
+    /// </summary>
+    /// <param name="module">稳定的来源模块名称；不能为 null、空或全空白。</param>
+    /// <returns>不分配托管对象、可复用的只读日志通道。</returns>
+    /// <exception cref="ArgumentException"><paramref name="module"/> 为空或全空白。</exception>
+    public static LogChannel For(string module)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(module);
+        return new LogChannel(module);
+    }
+
     /// <summary>输出开发期细节日志。</summary>
     [Conditional("DEBUG")]
     public static void Debug(string message, string module, string? context = null)
@@ -45,6 +57,80 @@ public static class LogHub
 #if DEBUG
         Write(LogLevel.Info, message, module, context);
 #endif
+    }
+
+    /// <summary>
+    /// 上报可恢复的异常情况或降级结果。
+    /// <para>该调用复用 ErrorHub，在 Release 构建中仍然保留。</para>
+    /// </summary>
+    /// <param name="message">可读的降级描述；不能为 null、空或全空白。</param>
+    /// <param name="module">稳定的来源模块名称；不能为 null、空或全空白。</param>
+    /// <param name="context">可选的定位上下文。</param>
+    /// <exception cref="ArgumentException"><paramref name="message"/> 或 <paramref name="module"/> 为空或全空白。</exception>
+    public static void Warn(string message, string module, string? context = null)
+    {
+        ValidateReportArguments(message, module);
+        ErrorHub.Warn(message, module, context);
+    }
+
+    /// <summary>
+    /// 上报没有关联异常对象的当前操作失败。
+    /// <para>该调用复用 ErrorHub，在 Release 构建中仍然保留。</para>
+    /// </summary>
+    /// <param name="message">可读的失败描述；不能为 null、空或全空白。</param>
+    /// <param name="module">稳定的来源模块名称；不能为 null、空或全空白。</param>
+    /// <param name="context">可选的定位上下文。</param>
+    /// <exception cref="ArgumentException"><paramref name="message"/> 或 <paramref name="module"/> 为空或全空白。</exception>
+    public static void Error(string message, string module, string? context = null)
+    {
+        ValidateReportArguments(message, module);
+        ErrorHub.Report(ErrorLevel.Error, message, module, context);
+    }
+
+    /// <summary>
+    /// 上报带有原始异常对象的当前操作失败。
+    /// <para>该调用复用 ErrorHub，在 Release 构建中仍然保留。</para>
+    /// </summary>
+    /// <param name="exception">需要保留的原始异常对象。</param>
+    /// <param name="module">稳定的来源模块名称；不能为 null、空或全空白。</param>
+    /// <param name="context">可选的定位上下文。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="exception"/> 为 null。</exception>
+    /// <exception cref="ArgumentException"><paramref name="module"/> 为空或全空白。</exception>
+    public static void Error(Exception exception, string module, string? context = null)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        ArgumentException.ThrowIfNullOrWhiteSpace(module);
+        ErrorHub.Report(exception, module, context);
+    }
+
+    /// <summary>
+    /// 上报没有关联异常对象的最高严重等级错误。
+    /// <para>Fatal 不会主动退出游戏；恢复或退出策略仍由调用边界决定。</para>
+    /// </summary>
+    /// <param name="message">可读的致命错误描述；不能为 null、空或全空白。</param>
+    /// <param name="module">稳定的来源模块名称；不能为 null、空或全空白。</param>
+    /// <param name="context">可选的定位上下文。</param>
+    /// <exception cref="ArgumentException"><paramref name="message"/> 或 <paramref name="module"/> 为空或全空白。</exception>
+    public static void Fatal(string message, string module, string? context = null)
+    {
+        ValidateReportArguments(message, module);
+        ErrorHub.Fatal(message, module, context);
+    }
+
+    /// <summary>
+    /// 上报带有原始异常对象的最高严重等级错误。
+    /// <para>Fatal 不会主动退出游戏；恢复或退出策略仍由调用边界决定。</para>
+    /// </summary>
+    /// <param name="exception">需要保留的原始异常对象。</param>
+    /// <param name="module">稳定的来源模块名称；不能为 null、空或全空白。</param>
+    /// <param name="context">可选的定位上下文。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="exception"/> 为 null。</exception>
+    /// <exception cref="ArgumentException"><paramref name="module"/> 为空或全空白。</exception>
+    public static void Fatal(Exception exception, string module, string? context = null)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        ArgumentException.ThrowIfNullOrWhiteSpace(module);
+        ErrorHub.Fatal(exception, module, context);
     }
 
     internal static void Initialize(RollingFileLogWriter? fileWriter = null)
@@ -129,6 +215,12 @@ public static class LogHub
         int repeatCount = RecordDebugHistory(timestampUtc, level, message, module, context);
         WriteConsoleOutput(level, message, module, context, repeatCount);
 #endif
+    }
+
+    private static void ValidateReportArguments(string message, string module)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        ArgumentException.ThrowIfNullOrWhiteSpace(module);
     }
 
 #if DEBUG
