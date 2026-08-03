@@ -112,6 +112,14 @@ ui.CloseTo(SettingsId);         // 保留目标，关闭其显示顺序之上的
 
 `GetOpenCount` 返回指定 Id 的实例数；`TryGetTop(UiLayer, ...)` 返回指定层的顶部或最后打开实例。`Close(Control)` 用于必须成功的所有权路径，目标无效或顺序非法时抛出异常；`TryClose(Control)` 适合允许目标已关闭的清理路径。
 
+Procedure 或其他明确生命周期的所有者可使用 `OpenScoped<TView>` 获得 `UiScope<TView>`，并把 Scope 登记到 `ProcedureContext.RegisterCleanup`。Scope 只能在 Godot 主线程释放，释放时通过 `TryClose` 幂等关闭该实例；它不提供终结器，也不改变 View/Modal 的顶部关闭约束。
+
+```csharp
+UiScope<GameplayHud> hud = ui.OpenScoped<GameplayHud>(GameplayHudId);
+context.RegisterCleanup(hud);
+hud.View.SetScore(score);
+```
+
 View 与 Modal 必须按顶部顺序逐个关闭。`CloseAll` 和 `CloseTo` 会在服务内部按安全顺序处理。受管理界面不应直接 `QueueFree()`、`RemoveChild()` 或重挂载；外部释放会在下一次服务操作时清理失效记录，但直接改变节点所有权仍会绕过正常顺序。
 
 ## 实例复用
@@ -126,6 +134,7 @@ View 与 Modal 必须按顶部顺序逐个关闭。`CloseAll` 和 `CloseTo` 会�
 - 未初始化 UiId 抛出 `ArgumentException`，未注册 Id 抛出 `KeyNotFoundException`，配置未加载或违反 `Single` 约束抛出 `InvalidOperationException`；
 - 未知 `UiLayer` 抛出 `ArgumentOutOfRangeException`；
 - 资源加载、实例化、根类型转换、配置或挂载失败时任务/调用失败；框架打开错误使用 `UiOpenException` 并保留目标 `ResourceKey`，业务 `configure` 异常原样传递；
+- `UiOpenException.Phase` 使用 `Loading`、`Preparing` 或 `Committing` 标识框架失败边界；兼容旧构造函数产生 `Unknown`；
 - `OpenAsync` 被调用方、UiService 或主场景变更取消时抛出 `OperationCanceledException`；
 - `Close`、`CloseTo` 的目标无效、不受管理或违反顶部顺序时抛出 `InvalidOperationException`；`TryClose`、`TryGoBack` 没有可操作目标时返回 `false`。
 

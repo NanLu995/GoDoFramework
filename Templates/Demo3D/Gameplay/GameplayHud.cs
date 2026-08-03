@@ -19,6 +19,7 @@ public sealed partial class GameplayHud : Control
     [Export] public NodePath RebindJumpButtonPath { get; set; } = null!;
     [Export] public NodePath RestoreJumpButtonPath { get; set; } = null!;
     [Export] public NodePath RebindStatusLabelPath { get; set; } = null!;
+    [Export] public NodePath PauseButtonPath { get; set; } = null!;
 
     private Label? _progressLabel;
     private Label? _deviceLabel;
@@ -26,6 +27,7 @@ public sealed partial class GameplayHud : Control
     private Button? _rebindJumpButton;
     private Button? _restoreJumpButton;
     private Label? _rebindStatusLabel;
+    private Button? _pauseButton;
     private IInputService? _input;
     private IInputRebinding? _rebinding;
     private IInputRebindingPersistence? _rebindingPersistence;
@@ -44,6 +46,7 @@ public sealed partial class GameplayHud : Control
         _rebindJumpButton = RequireNode<Button>(RebindJumpButtonPath, "跳跃改键按钮");
         _restoreJumpButton = RequireNode<Button>(RestoreJumpButtonPath, "恢复默认按钮");
         _rebindStatusLabel = RequireNode<Label>(RebindStatusLabelPath, "改键状态标签");
+        _pauseButton = RequireNode<Button>(PauseButtonPath, "暂停按钮");
 
         _input = Services.Get<IInputService>();
         if (!_input.TryGetRebinding(out _rebinding))
@@ -58,6 +61,7 @@ public sealed partial class GameplayHud : Control
         EventChannel.Bind<InputBindingsChangedEvent>(this, OnInputBindingsChanged);
         _rebindJumpButton.Pressed += OnRebindJumpPressed;
         _restoreJumpButton.Pressed += OnRestoreJumpPressed;
+        _pauseButton.Pressed += OnPausePressed;
         UpdateDeviceLabel(_input.ActiveDevice);
         RefreshJumpPrompt();
     }
@@ -68,6 +72,8 @@ public sealed partial class GameplayHud : Control
             _rebindJumpButton!.Pressed -= OnRebindJumpPressed;
         if (GodotObject.IsInstanceValid(_restoreJumpButton))
             _restoreJumpButton!.Pressed -= OnRestoreJumpPressed;
+        if (GodotObject.IsInstanceValid(_pauseButton))
+            _pauseButton!.Pressed -= OnPausePressed;
         if (_captureOwned && _rebinding?.IsCapturing == true)
             _rebinding.CancelCapture();
 
@@ -76,6 +82,26 @@ public sealed partial class GameplayHud : Control
         _rebinding = null;
         _rebindingPersistence = null;
         _promptQuery = null;
+        _pauseButton = null;
+    }
+
+    public override void _UnhandledKeyInput(InputEvent @event)
+    {
+        if (@event is not InputEventKey { Pressed: true, Echo: false } keyEvent ||
+            keyEvent.Keycode != Key.Escape ||
+            _captureOwned)
+        {
+            return;
+        }
+
+        GetViewport().SetInputAsHandled();
+        EventChannel.Emit<PauseRequestedEvent>();
+    }
+
+    private void OnPausePressed()
+    {
+        _pauseButton!.ReleaseFocus();
+        EventChannel.Emit<PauseRequestedEvent>();
     }
 
     private void OnCollectionProgressChanged(CollectionProgressChangedEvent evt)

@@ -120,6 +120,8 @@ catch (SceneChangeException exception)
 
 SceneService 先完整加载、检查 PackedScene、实例化并挂入 SceneTree，成功后才更新 `CurrentScene`。提交前失败时旧场景保持不变。
 
+`SceneChangeException.Phase` 区分 Loading、Instantiating 和 Committing。加载失败通常可重试或换资源；实例化与提交失败更可能表示场景内容或节点生命周期错误。诊断与恢复逻辑应读取该枚举，不要解析异常消息。
+
 成功提交后旧场景会 `QueueFree()` 并在帧末释放。`await` 返回后只使用返回的新场景，不再访问旧场景节点。
 
 ## 6. 显示加载进度

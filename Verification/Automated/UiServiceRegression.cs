@@ -53,6 +53,7 @@ public sealed partial class UiServiceRegression : Node
             await RunAsync("UiConfig 配置与打开", VerifyUiConfig);
             await RunAsync("类型安全打开与挂载前配置", VerifyGenericOpen);
             await RunAsync("Single UI 实例复用", VerifyReusableUi);
+            await RunAsync("Scoped UI 临时所有权", VerifyScopedOpen);
             await RunAsync("异步打开与加载中并发保护", VerifyAsyncOpen);
             await RunAsync("异步打开取消", VerifyAsyncOpenCancellation);
             await RunAsync("按标识与层取消异步打开", VerifyManagedOpenCancellation);
@@ -61,7 +62,7 @@ public sealed partial class UiServiceRegression : Node
             await RunAsync("关闭并返回到目标界面", VerifyCloseTo);
             await RunAsync("键盘与手柄焦点行为", VerifyFocusBehavior);
 
-            GD.Print($"[UiServiceRegression] PASS ({_passed}/20)");
+            GD.Print($"[UiServiceRegression] PASS ({_passed}/21)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -260,10 +261,12 @@ public sealed partial class UiServiceRegression : Node
             () => _ui.Open(MissingKey, UiLayer.View),
             "缺失资源没有抛出 UiOpenException");
         Assert(missing.Key == MissingKey, "UiOpenException 没有保留缺失资源键");
+        Assert(missing.Phase == UiOpenPhase.Loading, "缺失 UI 资源阶段不是 Loading");
         UiOpenException invalidRoot = AssertThrows<UiOpenException>(
             () => _ui.Open(InvalidRootKey, UiLayer.Modal),
             "非 Control 根节点没有抛出 UiOpenException");
         Assert(invalidRoot.Key == InvalidRootKey, "UiOpenException 没有保留错误根资源键");
+        Assert(invalidRoot.Phase == UiOpenPhase.Preparing, "无效 UI 根节点阶段不是 Preparing");
         AssertThrows<ArgumentOutOfRangeException>(
             () => _ui.Open(ControlBKey, (UiLayer)999),
             "未知 UiLayer 没有抛出 ArgumentOutOfRangeException");
@@ -389,9 +392,11 @@ public sealed partial class UiServiceRegression : Node
             closed is null,
             "强类型查询错误地返回了已关闭实例");
 
-        AssertThrows<UiOpenException>(
+        UiOpenException typeMismatch = AssertThrows<UiOpenException>(
             () => _ui.Open<Button>(ConfiguredViewId),
             "UI 根节点类型不匹配没有导致打开失败");
+        Assert(typeMismatch.Phase == UiOpenPhase.Preparing,
+            "同步 UI 类型不匹配阶段不是 Preparing");
         Assert(!_ui.IsOpen(ConfiguredViewId), "类型不匹配后污染了 UiId 打开状态");
 
         InvalidOperationException configureFailure = AssertThrows<InvalidOperationException>(
@@ -415,11 +420,38 @@ public sealed partial class UiServiceRegression : Node
     {
         float progress = 0f;
         void OnProgress(float value) => progress = value;
+#if DEBUG
+        UiConfigurableControl.ConstructedAction = () =>
+        {
+            UiDebugSnapshot preparingSnapshot = ((UiService)_ui).GetDebugSnapshot();
+            Assert(
+                preparingSnapshot.Openings.Length == 1 &&
+                preparingSnapshot.Openings[0].Phase == UiDebugOpenPhase.Preparing,
+                "Debug 快照没有观察到 UI 准备阶段");
+        };
+#endif
         Task<UiConfigurableControl> opening =
             _ui.OpenAsync<UiConfigurableControl>(
                 ConfiguredViewId,
-                view => view.ConfiguredValue = "configured",
+                view =>
+                {
+#if DEBUG
+                    UiDebugSnapshot committingSnapshot = ((UiService)_ui).GetDebugSnapshot();
+                    Assert(
+                        committingSnapshot.Openings.Length == 1 &&
+                        committingSnapshot.Openings[0].Phase == UiDebugOpenPhase.Committing,
+                        "Debug 快照没有观察到 UI 提交阶段");
+#endif
+                    view.ConfiguredValue = "configured";
+                },
                 OnProgress);
+#if DEBUG
+        UiDebugSnapshot loadingSnapshot = ((UiService)_ui).GetDebugSnapshot();
+        Assert(
+            loadingSnapshot.Openings.Length == 1 &&
+            loadingSnapshot.Openings[0].Phase == UiDebugOpenPhase.Loading,
+            "Debug 快照没有观察到 UI 加载阶段");
+#endif
         Assert(_ui.IsOpening(ConfiguredViewId), "异步打开期间 IsOpening 返回 false");
         Assert(_ui.GetOpeningCount(ConfiguredViewId) == 1, "Single UI 加载中数量错误");
         AssertThrows<InvalidOperationException>(
@@ -433,6 +465,16 @@ public sealed partial class UiServiceRegression : Node
             "异步打开期间可以替换 UiConfig");
 
         UiConfigurableControl view = await opening;
+#if DEBUG
+        UiConfigurableControl.ConstructedAction = null;
+        UiDebugSnapshot succeededSnapshot = ((UiService)_ui).GetDebugSnapshot();
+        Assert(succeededSnapshot.LastId == ConfiguredViewId, "Debug 最近成功没有保留 UiId");
+        Assert(succeededSnapshot.LastPhase == UiDebugOpenPhase.Committing,
+            "Debug 最近成功阶段不是 Committing");
+        Assert(succeededSnapshot.LastResult == UiDebugOpenResult.Succeeded,
+            "Debug 最近结果不是 Succeeded");
+        Assert(succeededSnapshot.LastDetail is null, "Debug 成功后仍保留失败详情");
+#endif
         Assert(view.WasConfiguredBeforeReady, "异步打开的配置回调没有在 _Ready 前执行");
         Assert(progress == 1f, "异步打开没有发布最终加载进度");
         Assert(_ui.IsOpen(ConfiguredViewId), "异步打开完成后没有登记 UiId");
@@ -442,9 +484,19 @@ public sealed partial class UiServiceRegression : Node
         await NextFrame();
 
         Task<Button> mismatch = _ui.OpenAsync<Button>(ConfiguredViewId);
-        await AssertThrowsAsync<UiOpenException>(
+        UiOpenException asyncMismatch = await AssertThrowsAsync<UiOpenException>(
             () => mismatch,
             "异步打开根节点类型不匹配没有导致失败");
+        Assert(asyncMismatch.Phase == UiOpenPhase.Preparing,
+            "异步 UI 类型不匹配阶段不是 Preparing");
+#if DEBUG
+        UiDebugSnapshot mismatchSnapshot = ((UiService)_ui).GetDebugSnapshot();
+        Assert(mismatchSnapshot.LastPhase == UiDebugOpenPhase.Preparing,
+            "类型失败没有记录在准备阶段");
+        Assert(mismatchSnapshot.LastResult == UiDebugOpenResult.Failed,
+            "类型失败没有分类为 Failed");
+        Assert(!string.IsNullOrEmpty(mismatchSnapshot.LastDetail), "类型失败没有记录详情");
+#endif
         Assert(!_ui.IsOpen(ConfiguredViewId), "异步类型不匹配后污染了 UiId 打开状态");
         Assert(!_ui.IsOpening(ConfiguredViewId), "异步类型不匹配后没有清理加载中状态");
 
@@ -457,6 +509,13 @@ public sealed partial class UiServiceRegression : Node
                 () => configureFailure,
                 "异步配置回调异常没有透传给调用方");
         Assert(configureException.Message == "async configure failed", "异步配置回调异常被错误包装");
+#if DEBUG
+        UiDebugSnapshot configureFailureSnapshot = ((UiService)_ui).GetDebugSnapshot();
+        Assert(configureFailureSnapshot.LastPhase == UiDebugOpenPhase.Committing,
+            "配置失败没有记录在提交阶段");
+        Assert(configureFailureSnapshot.LastResult == UiDebugOpenResult.Failed,
+            "配置失败没有分类为 Failed");
+#endif
         Assert(!_ui.IsOpen(ConfiguredViewId), "异步配置回调失败后污染了 UiId 打开状态");
 
         Task<UiConfigurableControl> recovered =
@@ -478,7 +537,8 @@ public sealed partial class UiServiceRegression : Node
             openingSnapshot.Openings.Length == 1 &&
             openingSnapshot.Openings[0].Id == ConfigModalId &&
             openingSnapshot.Openings[0].Layer == UiLayer.Modal &&
-            openingSnapshot.Openings[0].RequestCount == 2,
+            openingSnapshot.Openings[0].RequestCount == 2 &&
+            openingSnapshot.Openings[0].Phase == UiDebugOpenPhase.Loading,
             "Debug 快照没有按 UiId 聚合异步打开请求");
 #endif
         Control[] modalViews = await Task.WhenAll(firstModal, secondModal);
@@ -658,6 +718,8 @@ public sealed partial class UiServiceRegression : Node
         Assert(
             acquireFailure.InnerException?.Message == "acquire failed",
             "OnAcquire 失败没有保留原始异常");
+        Assert(acquireFailure.Phase == UiOpenPhase.Committing,
+            "OnAcquire 失败阶段不是 Committing");
         Assert(
             lowerView.Visible &&
             _ui.TryGetTop(UiLayer.View, out Control? restoredView) &&
@@ -716,6 +778,47 @@ public sealed partial class UiServiceRegression : Node
         Assert(!GodotObject.IsInstanceValid(clearAllScene), "全量缓存清理没有释放 Scene 实例");
     }
 
+    private async Task VerifyScopedOpen()
+    {
+        UiScope<Control> direct = _ui.OpenScoped<Control>(ControlAKey, UiLayer.Overlay);
+        Control directView = direct.View;
+        Assert(!direct.IsDisposed && GodotObject.IsInstanceValid(directView),
+            "ResourceKey OpenScoped 没有返回有效所有权");
+        direct.Dispose();
+        Assert(direct.IsDisposed, "UiScope 释放后没有进入已释放状态");
+        direct.Dispose();
+        await NextFrame();
+        Assert(!GodotObject.IsInstanceValid(directView), "UiScope 没有关闭 ResourceKey UI");
+
+        UiScope<UiConfigurableControl> configured =
+            _ui.OpenScoped<UiConfigurableControl>(
+                ConfiguredViewId,
+                view => view.ConfiguredValue = "scoped");
+        Assert(configured.View.ConfiguredValue == "scoped" && _ui.IsOpen(ConfiguredViewId),
+            "UiId OpenScoped 没有沿用强类型配置语义");
+        _ui.Close(configured.View);
+        configured.Dispose();
+        Assert(configured.IsDisposed, "外部提前关闭后 UiScope 没有完成释放");
+        await NextFrame();
+
+        UiScope<UiConfigurableControl> failing =
+            _ui.OpenScoped<UiConfigurableControl>(ReusableViewId);
+        failing.View.ThrowOnRelease = true;
+        InvalidOperationException releaseFailure = AssertThrows<InvalidOperationException>(
+            failing.Dispose,
+            "UiScope 隐藏了 UI 关闭异常");
+        Assert(failing.IsDisposed, "关闭异常后 UiScope 仍会重复尝试释放");
+        Assert(releaseFailure.InnerException?.Message == "release failed",
+            "UiScope 没有保留 UI 关闭的原始异常");
+        await NextFrame();
+        Assert(!GodotObject.IsInstanceValid(failing.View),
+            "关闭异常后的 UI 实例没有按 UiService 语义释放");
+
+        await AssertThrowsAsync<InvalidOperationException>(
+            () => Task.Run(direct.Dispose),
+            "已释放 UiScope 在非主线程静默执行 Dispose");
+    }
+
     private async Task VerifyAsyncOpenCancellation()
     {
         using var preCanceled = new CancellationTokenSource();
@@ -750,6 +853,13 @@ public sealed partial class UiServiceRegression : Node
             "加载中取消异常没有保留调用方令牌");
         Assert(!_ui.IsOpening(ConfiguredViewId), "取消后没有清理加载中状态");
         Assert(!_ui.IsOpen(ConfiguredViewId), "取消后仍然打开了 UI");
+#if DEBUG
+        UiDebugSnapshot callerCanceledSnapshot = ((UiService)_ui).GetDebugSnapshot();
+        Assert(callerCanceledSnapshot.LastId == ConfiguredViewId,
+            "调用方取消没有保留 UiId");
+        Assert(callerCanceledSnapshot.LastResult == UiDebugOpenResult.CallerCanceled,
+            "调用方取消没有分类为 CallerCanceled");
+#endif
 
         using var sharedCancellation = new CancellationTokenSource();
         Task<Control> canceledModal =
@@ -800,6 +910,11 @@ public sealed partial class UiServiceRegression : Node
         await AssertThrowsAsync<OperationCanceledException>(
             () => secondModal,
             "按 UiId 取消后第二个请求仍然完成");
+#if DEBUG
+        Assert(
+            ((UiService)_ui).GetDebugSnapshot().LastResult == UiDebugOpenResult.ServiceCanceled,
+            "显式取消没有分类为 ServiceCanceled");
+#endif
         Assert(!_ui.IsOpening(ConfigModalId), "按 UiId 取消后仍保留加载中状态");
         Assert(!_ui.IsOpen(ConfigModalId), "按 UiId 取消后仍然挂载了界面");
 
@@ -832,7 +947,8 @@ public sealed partial class UiServiceRegression : Node
             !directOpeningSnapshot.Openings[0].Id.IsValid &&
             directOpeningSnapshot.Openings[0].Layer == UiLayer.Overlay &&
             directOpeningSnapshot.Openings[0].Key == ControlAKey &&
-            directOpeningSnapshot.Openings[0].RequestCount == 1,
+            directOpeningSnapshot.Openings[0].RequestCount == 1 &&
+            directOpeningSnapshot.Openings[0].Phase == UiDebugOpenPhase.Loading,
             "Debug 快照没有记录 ResourceKey 直接打开请求");
 #endif
         Assert(
@@ -848,6 +964,20 @@ public sealed partial class UiServiceRegression : Node
         Assert(
             ((UiService)_ui).GetDebugSnapshot().Openings.Length == 0,
             "ResourceKey 直接请求取消后仍保留 Debug 快照");
+#endif
+
+        Task<UiConfigurableControl> lifecycleScene =
+            _ui.OpenAsync<UiConfigurableControl>(ConfiguredSceneId);
+        EventChannel.Emit<FrameworkMainSceneChangedEvent>();
+        await AssertThrowsAsync<OperationCanceledException>(
+            () => lifecycleScene,
+            "主场景生命周期变化没有取消 Scene UI 打开请求");
+#if DEBUG
+        UiDebugSnapshot lifecycleSnapshot = ((UiService)_ui).GetDebugSnapshot();
+        Assert(lifecycleSnapshot.LastId == ConfiguredSceneId,
+            "生命周期取消没有保留 Scene UI 标识");
+        Assert(lifecycleSnapshot.LastResult == UiDebugOpenResult.LifecycleCanceled,
+            "Scene UI 取消没有分类为 LifecycleCanceled");
 #endif
 
         AssertThrows<System.Collections.Generic.KeyNotFoundException>(

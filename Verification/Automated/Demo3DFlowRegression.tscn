@@ -1,0 +1,14 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://Verification/Automated/Demo3DFlowRegression.cs" id="1_test"]
+[ext_resource type="Script" path="res://addons/godo_framework/Integrations/GuideInput/Runtime/GuideInputBackendInstaller.cs" id="2_installer"]
+[ext_resource type="Resource" path="res://Templates/Demo3D/Input/Demo3DInputProfile.tres" id="3_profile"]
+
+[node name="Demo3DFlowRegression" type="Node"]
+process_mode = 3
+script = ExtResource("1_test")
+
+[node name="GuideInputBackendInstaller" type="Node" parent="."]
+script = ExtResource("2_installer")
+Profile = ExtResource("3_profile")
+PersistenceSlot = "godo-demo3d-flow-regression"

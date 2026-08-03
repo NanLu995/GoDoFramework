@@ -193,10 +193,20 @@ public sealed partial class DebuggerOverlayRegression : Node
                 overlay.GetNode<VBoxContainer>("Panel/Margin/VBox/Body/Page/ProcedureDashboard");
             Label procedureCurrent =
                 procedureDashboard.GetNode<Label>("Summary/CurrentCard/Content/Value");
+            Label procedureCurrentTitle =
+                procedureDashboard.GetNode<Label>("Summary/CurrentCard/Content/Title");
             Label procedureState =
                 procedureDashboard.GetNode<Label>("Summary/StateCard/Content/Value");
+            Label procedureStateTitle =
+                procedureDashboard.GetNode<Label>("Summary/StateCard/Content/Title");
+            Label procedurePending =
+                procedureDashboard.GetNode<Label>("Summary/PendingCard/Content/Value");
+            Label procedurePendingTitle =
+                procedureDashboard.GetNode<Label>("Summary/PendingCard/Content/Title");
             Label procedureResult =
                 procedureDashboard.GetNode<Label>("Summary/ResultCard/Content/Value");
+            Label procedureResultTitle =
+                procedureDashboard.GetNode<Label>("Summary/ResultCard/Content/Title");
             Tree procedureDetails = procedureDashboard.GetNode<Tree>("Details");
             VBoxContainer servicesDashboard =
                 overlay.GetNode<VBoxContainer>("Panel/Margin/VBox/Body/Page/ServicesDashboard");
@@ -425,12 +435,13 @@ public sealed partial class DebuggerOverlayRegression : Node
                 firstPerformanceMetric.GetTextAlignment(3) == HorizontalAlignment.Left,
                 "Performance 指标、数值和说明没有按规则对齐");
 
-            Assert(runtime.GetChildCount() == 8, "运行时二级页面错误");
+            Assert(runtime.GetChildCount() == 9, "运行时二级页面错误");
             TreeItem scenePage = runtime.GetFirstChild().GetNext().GetNext().GetNext();
             TreeItem resourcesPage = scenePage.GetNext();
             TreeItem dataTablePage = resourcesPage.GetNext();
             TreeItem uiPage = dataTablePage.GetNext();
             TreeItem procedurePage = uiPage.GetNext();
+            TreeItem flowPage = procedurePage.GetNext();
             SelectNavigationItem(navigation, scenePage);
             Assert(title.Text == "Scene" &&
                 sceneDashboard.Visible &&
@@ -440,7 +451,10 @@ public sealed partial class DebuggerOverlayRegression : Node
                 sceneNodeCount > 0 &&
                 sceneState.Text.Length > 0 &&
                 sceneProgress.Text.EndsWith('%') &&
-                sceneDetails.GetRoot()?.GetChildCount() >= 3,
+                sceneDetails.GetRoot()?.GetChildCount() >= 7 &&
+                GetDetailValue(sceneDetails, "当前阶段") == "空闲" &&
+                GetDetailValue(sceneDetails, "最近结果") == "—" &&
+                GetDetailValue(sceneDetails, "最近耗时") == "—",
                 "Scene 结构化诊断页没有完整显示场景摘要与切换状态");
             SelectNavigationItem(navigation, resourcesPage);
             Assert(title.Text == "Resources" &&
@@ -627,6 +641,15 @@ public sealed partial class DebuggerOverlayRegression : Node
                 topUiEntry.GetText(4) == "加载中",
                 "ResourceKey 直接异步打开请求没有显示在诊断页");
             Control directUi = await directOpeningUi;
+            SelectNavigationItem(navigation, uiPage);
+            TreeItem? uiDiagnostic = FindTreeItem(uiStackTree, 0, "诊断");
+            Assert(uiDiagnostic?.GetText(1) == "Overlay" &&
+                uiDiagnostic.GetText(2) == "Direct" &&
+                uiDiagnostic.GetText(3) == directUiKey.Value &&
+                uiDiagnostic.GetText(4) == "成功" &&
+                uiDiagnostic.GetTooltipText(4).Contains("提交中", StringComparison.Ordinal) &&
+                uiDiagnostic.GetTooltipText(4).Contains(" ms", StringComparison.Ordinal),
+                "UI 最近异步打开诊断没有显示目标、结果、阶段与耗时");
             originalUi.Close(directUi);
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
@@ -701,15 +724,20 @@ public sealed partial class DebuggerOverlayRegression : Node
                 !debuggerLabel.Visible &&
                 procedureCurrent.Text == "空闲" &&
                 procedureState.Text == "空闲" &&
-                procedureDetails.GetRoot()?.GetChildCount() == 4,
+                procedureResult.Text == "—" &&
+                procedureDetails.GetRoot()?.GetChildCount() == 11 &&
+                GetDetailValue(procedureDetails, "最近结果") == "—" &&
+                GetDetailValue(procedureDetails, "最近耗时") == "—",
                 "Procedure 空状态诊断页没有完整渲染");
             IProcedureService procedures = Services.Get<IProcedureService>();
             await procedures.ChangeAsync(new DebuggerProcedure("Debugger.Active"));
             SelectNavigationItem(navigation, procedurePage);
             Assert(procedureCurrent.Text == "Debugger.Active" &&
-                procedureResult.Text == "无" &&
-                procedureDetails.GetRoot()?.GetFirstChild()?.GetNext()?.GetNext()
-                    ?.GetText(1) == "Debugger.Active",
+                procedureResult.Text == "成功" &&
+                GetDetailValue(procedureDetails, "最近成功") == "Debugger.Active" &&
+                GetDetailValue(procedureDetails, "最近阶段") == "进入" &&
+                GetDetailValue(procedureDetails, "最近结果") == "成功" &&
+                GetDetailValue(procedureDetails, "最近耗时").EndsWith(" ms", StringComparison.Ordinal),
                 "Procedure 成功切换没有更新当前流程和最近结果");
             try
             {
@@ -721,12 +749,37 @@ public sealed partial class DebuggerOverlayRegression : Node
             {
             }
             SelectNavigationItem(navigation, procedurePage);
-            TreeItem? failureDetail = procedureDetails.GetRoot()?.GetFirstChild()
-                ?.GetNext()?.GetNext()?.GetNext();
+            string failureDetail = GetDetailValue(procedureDetails, "最近详情");
             Assert(procedureCurrent.Text == "空闲" &&
-                procedureResult.Text == "有" &&
-                failureDetail?.GetText(1).Contains("Debugger.Failed", StringComparison.Ordinal) == true,
+                procedureResult.Text == "失败" &&
+                GetDetailValue(procedureDetails, "最近阶段") == "进入" &&
+                GetDetailValue(procedureDetails, "最近结果") == "失败" &&
+                failureDetail.Contains("Debugger.Failed", StringComparison.Ordinal),
                 "Procedure 进入失败没有显示最近失败");
+
+            SelectNavigationItem(navigation, flowPage);
+            Assert(title.Text == "Flow" &&
+                procedureDashboard.Visible &&
+                !debuggerLabel.Visible &&
+                procedureCurrentTitle.Text == "Procedure" &&
+                procedureStateTitle.Text == "Scene" &&
+                procedurePendingTitle.Text == "UI" &&
+                procedureResultTitle.Text == "健康状态" &&
+                procedureCurrent.Text == "空闲" &&
+                procedureState.Text.Length > 0 &&
+                int.TryParse(procedurePending.Text, out _) &&
+                procedureResult.Text == "最近失败" &&
+                procedureDetails.GetRoot()?.GetChildCount() == 15 &&
+                GetDetailValue(procedureDetails, "Procedure 最近结果") == "失败" &&
+                GetDetailValue(procedureDetails, "Scene 阶段").Length > 0 &&
+                GetDetailValue(procedureDetails, "UI 已打开").Length > 0,
+                "Flow 联合诊断页没有聚合 Procedure、Scene 与 UI 状态");
+            SelectNavigationItem(navigation, procedurePage);
+            Assert(procedureCurrentTitle.Text == "当前流程" &&
+                procedureStateTitle.Text == "切换状态" &&
+                procedurePendingTitle.Text == "待处理请求" &&
+                procedureResultTitle.Text == "失败记录",
+                "从 Flow 返回 Procedure 后摘要标题没有恢复");
 
             SelectNavigationItem(navigation, runtime.GetFirstChild());
             bool hasInputActionCount = int.TryParse(inputActions.Text, out int inputActionCount);
@@ -1515,6 +1568,34 @@ public sealed partial class DebuggerOverlayRegression : Node
         }
     }
 #endif
+
+    private static string GetDetailValue(Tree tree, string name)
+    {
+        TreeItem? item = tree.GetRoot()?.GetFirstChild();
+        while (item is not null)
+        {
+            if (item.GetText(0) == name)
+                return item.GetText(1);
+
+            item = item.GetNext();
+        }
+
+        return string.Empty;
+    }
+
+    private static TreeItem? FindTreeItem(Tree tree, int column, string value)
+    {
+        TreeItem? item = tree.GetRoot()?.GetFirstChild();
+        while (item is not null)
+        {
+            if (item.GetText(column) == value)
+                return item;
+
+            item = item.GetNext();
+        }
+
+        return null;
+    }
 
     private static void Assert(bool condition, string message)
     {

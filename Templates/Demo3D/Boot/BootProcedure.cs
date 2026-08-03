@@ -18,7 +18,7 @@ public sealed class BootProcedure : IProcedure
         await BaseDataTables.LoadAsync(ReportDataTableProgress);
         VerifyDataTableAccess();
         LogDataTableSamples();
-        context.RequestChange<GameplayProcedure>();
+        context.RequestChange<MainMenuProcedure>();
     }
 
     public Task ExitAsync(ProcedureContext context) => Task.CompletedTask;

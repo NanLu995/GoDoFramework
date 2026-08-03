@@ -96,6 +96,7 @@ public sealed class ResourceLoadOperation<T> where T : Resource
             return;
 
         _completionPublished = true;
+        _progressBuffer.Dispose();
         if (Status == ResourceLoadStatus.Completed)
         {
             _completionSource.TrySetResult(_result!);

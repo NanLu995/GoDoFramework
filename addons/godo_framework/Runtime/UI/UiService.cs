@@ -29,6 +29,13 @@ public sealed partial class UiService : Node, IUiService
     private readonly Dictionary<Control, Control> _lastFocusedControls = new();
 #if DEBUG
     private readonly Dictionary<Control, ResourceKey> _debugKeys = new();
+    private UiId _debugLastOpenId;
+    private UiLayer _debugLastOpenLayer;
+    private ResourceKey _debugLastOpenKey;
+    private UiDebugOpenPhase _debugLastOpenPhase;
+    private UiDebugOpenResult _debugLastOpenResult;
+    private string? _debugLastOpenDetail;
+    private ulong _debugLastOpenDurationMilliseconds;
 #endif
     private UiRoot? _root;
     private bool _uiConfigLoaded;
@@ -50,7 +57,7 @@ public sealed partial class UiService : Node, IUiService
     /// <inheritdoc />
     public override void _ExitTree()
     {
-        CancelAllOpenRequestsCore();
+        CancelAllOpenRequestsCore(lifecycle: true);
         ClearCachedInstancesCore();
         _sceneViews.Clear();
         _views.Clear();
@@ -243,7 +250,7 @@ public sealed partial class UiService : Node, IUiService
     {
         try
         {
-            return await CompleteOpenAsync(
+            TView view = await CompleteOpenAsync(
                 resourceOperation,
                 key,
                 layer,
@@ -252,6 +259,34 @@ public sealed partial class UiService : Node, IUiService
                 sceneVersion,
                 cancellationToken,
                 cancellation);
+#if DEBUG
+            RecordDebugOpenSuccess(default, key, layer, cancellation);
+#endif
+            return view;
+        }
+        catch (OperationCanceledException exception)
+        {
+#if DEBUG
+            RecordDebugOpenCancellation(
+                default,
+                key,
+                layer,
+                sceneVersion,
+                cancellation,
+                exception);
+#else
+            _ = exception;
+#endif
+            throw;
+        }
+        catch (Exception exception)
+        {
+#if DEBUG
+            RecordDebugOpenFailure(default, key, layer, cancellation, exception);
+#else
+            _ = exception;
+#endif
+            throw;
         }
         finally
         {
@@ -274,16 +309,38 @@ public sealed partial class UiService : Node, IUiService
             onProgress?.Invoke(1f);
             cancellation.ThrowIfCancellationRequested();
             cancellationToken.ThrowIfCancellationRequested();
+#if DEBUG
+            cancellation.SetDebugPhase(UiDebugOpenPhase.Preparing);
+#endif
             TView view = TakeCachedOrInstantiate<TView>(id, entry);
+#if DEBUG
+            cancellation.SetDebugPhase(UiDebugOpenPhase.Committing);
+#endif
             ConfigureAndMount(view, entry.Key, entry.Layer, configure);
-            return Task.FromResult(RegisterConfiguredView(view, id, entry));
+            TView registered = RegisterConfiguredView(view, id, entry);
+#if DEBUG
+            RecordDebugOpenSuccess(id, entry.Key, entry.Layer, cancellation);
+#endif
+            return Task.FromResult(registered);
         }
         catch (OperationCanceledException exception)
         {
+#if DEBUG
+            RecordDebugOpenCancellation(
+                id,
+                entry.Key,
+                entry.Layer,
+                entry.Layer == UiLayer.Scene ? _sceneVersion : -1,
+                cancellation,
+                exception);
+#endif
             return Task.FromCanceled<TView>(exception.CancellationToken);
         }
         catch (Exception exception)
         {
+#if DEBUG
+            RecordDebugOpenFailure(id, entry.Key, entry.Layer, cancellation, exception);
+#endif
             return Task.FromException<TView>(exception);
         }
         finally
@@ -345,6 +402,7 @@ public sealed partial class UiService : Node, IUiService
             DiscardManagedView(view);
             throw new UiOpenException(
                 entry.Key,
+                UiOpenPhase.Committing,
                 $"复用 UI 的 OnAcquire 执行失败：{id.Value}",
                 exception);
         }
@@ -395,7 +453,35 @@ public sealed partial class UiService : Node, IUiService
                 sceneVersion,
                 cancellationToken,
                 cancellation);
-            return RegisterConfiguredView(view, id, GetUiConfigEntry(id));
+            TView registered = RegisterConfiguredView(view, id, GetUiConfigEntry(id));
+#if DEBUG
+            RecordDebugOpenSuccess(id, key, layer, cancellation);
+#endif
+            return registered;
+        }
+        catch (OperationCanceledException exception)
+        {
+#if DEBUG
+            RecordDebugOpenCancellation(
+                id,
+                key,
+                layer,
+                sceneVersion,
+                cancellation,
+                exception);
+#else
+            _ = exception;
+#endif
+            throw;
+        }
+        catch (Exception exception)
+        {
+#if DEBUG
+            RecordDebugOpenFailure(id, key, layer, cancellation, exception);
+#else
+            _ = exception;
+#endif
+            throw;
         }
         finally
         {
@@ -451,6 +537,7 @@ public sealed partial class UiService : Node, IUiService
             {
                 throw new UiOpenException(
                     key,
+                    UiOpenPhase.Loading,
                     $"UI 场景无法异步加载：{key.Value}",
                     exception);
             }
@@ -463,7 +550,13 @@ public sealed partial class UiService : Node, IUiService
             }
 
             PruneInvalidEntries();
+#if DEBUG
+            cancellation?.SetDebugPhase(UiDebugOpenPhase.Preparing);
+#endif
             TView view = InstantiateView<TView>(scene, key);
+#if DEBUG
+            cancellation?.SetDebugPhase(UiDebugOpenPhase.Committing);
+#endif
             ConfigureAndMount(view, key, layer, configure);
             RestoreOpenedFocus(view, layer);
             return view;
@@ -483,6 +576,11 @@ public sealed partial class UiService : Node, IUiService
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationToken _callerToken;
         private int _requested;
+#if DEBUG
+        public UiDebugOpenPhase DebugPhase { get; private set; } = UiDebugOpenPhase.Loading;
+        public UiDebugOpenCancellationOrigin DebugCancellationOrigin { get; private set; }
+        public ulong DebugStartedTicks { get; } = Time.GetTicksMsec();
+#endif
 
         public UiOpenCancellation(CancellationToken callerToken)
         {
@@ -491,9 +589,36 @@ public sealed partial class UiService : Node, IUiService
 
         public Task Completion => _completion.Task;
 
-        public bool RequestFromService() => Request(ServiceCancellationToken);
+        public bool RequestFromService()
+        {
+#if DEBUG
+            return Request(ServiceCancellationToken, UiDebugOpenCancellationOrigin.Service);
+#else
+            return Request(ServiceCancellationToken);
+#endif
+        }
 
-        public void RequestFromCaller() => Request(_callerToken);
+        public bool RequestFromLifecycle()
+        {
+#if DEBUG
+            return Request(ServiceCancellationToken, UiDebugOpenCancellationOrigin.Lifecycle);
+#else
+            return Request(ServiceCancellationToken);
+#endif
+        }
+
+        public void RequestFromCaller()
+        {
+#if DEBUG
+            _ = Request(_callerToken, UiDebugOpenCancellationOrigin.Caller);
+#else
+            _ = Request(_callerToken);
+#endif
+        }
+
+#if DEBUG
+        public void SetDebugPhase(UiDebugOpenPhase phase) => DebugPhase = phase;
+#endif
 
         public void ThrowIfCancellationRequested()
         {
@@ -509,6 +634,20 @@ public sealed partial class UiService : Node, IUiService
             _completion.TrySetCanceled(cancellationToken);
             return true;
         }
+
+#if DEBUG
+        private bool Request(
+            CancellationToken cancellationToken,
+            UiDebugOpenCancellationOrigin origin)
+        {
+            if (Interlocked.Exchange(ref _requested, 1) != 0)
+                return false;
+
+            DebugCancellationOrigin = origin;
+            _completion.TrySetCanceled(cancellationToken);
+            return true;
+        }
+#endif
     }
 
     private static void VerifyLayer(UiLayer layer)
@@ -607,19 +746,19 @@ public sealed partial class UiService : Node, IUiService
         return CancelOpenRequestsCore(layer);
     }
 
-    private int CancelOpenRequestsCore(UiLayer layer)
+    private int CancelOpenRequestsCore(UiLayer layer, bool lifecycle = false)
     {
         int canceled = 0;
         foreach (KeyValuePair<UiId, List<UiOpenCancellation>> pair in _openingCancellations)
         {
             if (_uiConfigEntries[pair.Key].Layer == layer)
-                canceled += CancelOpenRequestsCore(pair.Value);
+                canceled += CancelOpenRequestsCore(pair.Value, lifecycle);
         }
         if (_directOpeningRequests.TryGetValue(
                 layer,
                 out List<DirectUiOpenRequest>? directRequests))
         {
-            canceled += CancelDirectOpenRequestsCore(directRequests);
+            canceled += CancelDirectOpenRequestsCore(directRequests, lifecycle);
         }
 
         return canceled;
@@ -1266,34 +1405,44 @@ public sealed partial class UiService : Node, IUiService
             ? CancelOpenRequestsCore(cancellations)
             : 0;
 
-    private static int CancelOpenRequestsCore(List<UiOpenCancellation> cancellations)
+    private static int CancelOpenRequestsCore(
+        List<UiOpenCancellation> cancellations,
+        bool lifecycle = false)
     {
         int canceled = 0;
         for (int index = 0; index < cancellations.Count; index++)
         {
-            if (cancellations[index].RequestFromService())
+            bool requested = lifecycle
+                ? cancellations[index].RequestFromLifecycle()
+                : cancellations[index].RequestFromService();
+            if (requested)
                 canceled++;
         }
 
         return canceled;
     }
 
-    private int CancelAllOpenRequestsCore()
+    private int CancelAllOpenRequestsCore(bool lifecycle = false)
     {
         int canceled = 0;
         foreach (List<UiOpenCancellation> cancellations in _openingCancellations.Values)
-            canceled += CancelOpenRequestsCore(cancellations);
+            canceled += CancelOpenRequestsCore(cancellations, lifecycle);
         foreach (List<DirectUiOpenRequest> requests in _directOpeningRequests.Values)
-            canceled += CancelDirectOpenRequestsCore(requests);
+            canceled += CancelDirectOpenRequestsCore(requests, lifecycle);
         return canceled;
     }
 
-    private static int CancelDirectOpenRequestsCore(List<DirectUiOpenRequest> requests)
+    private static int CancelDirectOpenRequestsCore(
+        List<DirectUiOpenRequest> requests,
+        bool lifecycle = false)
     {
         int canceled = 0;
         for (int index = 0; index < requests.Count; index++)
         {
-            if (requests[index].Cancellation.RequestFromService())
+            bool requested = lifecycle
+                ? requests[index].Cancellation.RequestFromLifecycle()
+                : requests[index].Cancellation.RequestFromService();
+            if (requested)
                 canceled++;
         }
 
@@ -1507,7 +1656,11 @@ public sealed partial class UiService : Node, IUiService
         catch (Exception exception)
         {
             host.QueueFree();
-            throw new UiOpenException(key, $"UI 模态无法加入场景树: {key.Value}", exception);
+            throw new UiOpenException(
+                key,
+                UiOpenPhase.Committing,
+                $"UI 模态无法加入场景树: {key.Value}",
+                exception);
         }
 
         _modals.Add(new ModalEntry(view, host));
@@ -1538,6 +1691,7 @@ public sealed partial class UiService : Node, IUiService
             view.QueueFree();
             throw new UiOpenException(
                 key,
+                UiOpenPhase.Committing,
                 $"UI 无法加入 {layer} 层: {key.Value}",
                 exception);
         }
@@ -1552,7 +1706,11 @@ public sealed partial class UiService : Node, IUiService
         }
         catch (Exception exception) when (exception is not UiOpenException)
         {
-            throw new UiOpenException(key, $"UI 场景无法打开: {key.Value}", exception);
+            throw new UiOpenException(
+                key,
+                UiOpenPhase.Loading,
+                $"UI 场景无法打开: {key.Value}",
+                exception);
         }
     }
 
@@ -1572,7 +1730,11 @@ public sealed partial class UiService : Node, IUiService
         }
         catch (Exception exception) when (exception is not UiOpenException)
         {
-            throw new UiOpenException(key, $"UI 场景无法打开：{key.Value}", exception);
+            throw new UiOpenException(
+                key,
+                UiOpenPhase.Preparing,
+                $"UI 场景无法打开：{key.Value}",
+                exception);
         }
     }
 
@@ -1607,6 +1769,7 @@ public sealed partial class UiService : Node, IUiService
         where TView : Control =>
         new(
             key,
+            UiOpenPhase.Preparing,
             $"UI 场景根节点类型不匹配，期望 {typeof(TView).FullName}，实际 {view.GetType().FullName}: {key.Value}");
 
     private int ClearCachedInstancesCore(UiLayer? layer = null)
@@ -1638,7 +1801,7 @@ public sealed partial class UiService : Node, IUiService
     private void OnMainSceneChanged(FrameworkMainSceneChangedEvent _)
     {
         _sceneVersion++;
-        CancelOpenRequestsCore(UiLayer.Scene);
+        CancelOpenRequestsCore(UiLayer.Scene, lifecycle: true);
         for (int i = _sceneViews.Count - 1; i >= 0; i--)
             CloseSceneAt(i, allowReuse: false);
         ClearCachedInstancesCore(UiLayer.Scene);
@@ -1692,29 +1855,132 @@ public sealed partial class UiService : Node, IUiService
                 pair.Key,
                 configEntry.Layer,
                 configEntry.Key,
-                pair.Value.Count));
+                pair.Value.Count,
+                GetDebugOpeningPhase(pair.Value)));
         }
 
-        var directOpeningCounts = new Dictionary<(UiLayer Layer, ResourceKey Key), int>();
+        var directOpeningCounts =
+            new Dictionary<
+                (UiLayer Layer, ResourceKey Key),
+                (int Count, UiDebugOpenPhase Phase)>();
         foreach (KeyValuePair<UiLayer, List<DirectUiOpenRequest>> pair in _directOpeningRequests)
         {
             for (int index = 0; index < pair.Value.Count; index++)
             {
                 var openingKey = (pair.Key, pair.Value[index].Key);
-                directOpeningCounts.TryGetValue(openingKey, out int count);
-                directOpeningCounts[openingKey] = count + 1;
+                directOpeningCounts.TryGetValue(openingKey, out var state);
+                UiDebugOpenPhase phase = pair.Value[index].Cancellation.DebugPhase;
+                directOpeningCounts[openingKey] = (
+                    state.Count + 1,
+                    phase > state.Phase ? phase : state.Phase);
             }
         }
-        foreach (KeyValuePair<(UiLayer Layer, ResourceKey Key), int> pair in directOpeningCounts)
+        foreach (KeyValuePair<
+                     (UiLayer Layer, ResourceKey Key),
+                     (int Count, UiDebugOpenPhase Phase)> pair in directOpeningCounts)
         {
             openings.Add(new UiDebugOpeningEntry(
                 default,
                 pair.Key.Layer,
                 pair.Key.Key,
-                pair.Value));
+                pair.Value.Count,
+                pair.Value.Phase));
         }
 
-        return new UiDebugSnapshot(entries, openings.ToArray());
+        return new UiDebugSnapshot(
+            entries,
+            openings.ToArray(),
+            _debugLastOpenId,
+            _debugLastOpenLayer,
+            _debugLastOpenKey,
+            _debugLastOpenPhase,
+            _debugLastOpenResult,
+            _debugLastOpenDetail,
+            _debugLastOpenDurationMilliseconds);
+    }
+
+    private static UiDebugOpenPhase GetDebugOpeningPhase(
+        List<UiOpenCancellation> cancellations)
+    {
+        UiDebugOpenPhase phase = UiDebugOpenPhase.Loading;
+        for (int index = 0; index < cancellations.Count; index++)
+        {
+            if (cancellations[index].DebugPhase > phase)
+                phase = cancellations[index].DebugPhase;
+        }
+
+        return phase;
+    }
+
+    private void RecordDebugOpenSuccess(
+        UiId id,
+        ResourceKey key,
+        UiLayer layer,
+        UiOpenCancellation cancellation)
+    {
+        RecordDebugOpenResult(
+            id,
+            key,
+            layer,
+            cancellation,
+            UiDebugOpenResult.Succeeded,
+            null);
+    }
+
+    private void RecordDebugOpenCancellation(
+        UiId id,
+        ResourceKey key,
+        UiLayer layer,
+        int sceneVersion,
+        UiOpenCancellation cancellation,
+        OperationCanceledException exception)
+    {
+        UiDebugOpenResult result = cancellation.DebugCancellationOrigin switch
+        {
+            UiDebugOpenCancellationOrigin.Caller => UiDebugOpenResult.CallerCanceled,
+            UiDebugOpenCancellationOrigin.Service => UiDebugOpenResult.ServiceCanceled,
+            UiDebugOpenCancellationOrigin.Lifecycle => UiDebugOpenResult.LifecycleCanceled,
+            _ when layer == UiLayer.Scene && sceneVersion != _sceneVersion =>
+                UiDebugOpenResult.LifecycleCanceled,
+            _ => UiDebugOpenResult.LifecycleCanceled,
+        };
+        RecordDebugOpenResult(id, key, layer, cancellation, result, exception.Message);
+    }
+
+    private void RecordDebugOpenFailure(
+        UiId id,
+        ResourceKey key,
+        UiLayer layer,
+        UiOpenCancellation cancellation,
+        Exception exception)
+    {
+        RecordDebugOpenResult(
+            id,
+            key,
+            layer,
+            cancellation,
+            UiDebugOpenResult.Failed,
+            exception.GetBaseException().Message);
+    }
+
+    private void RecordDebugOpenResult(
+        UiId id,
+        ResourceKey key,
+        UiLayer layer,
+        UiOpenCancellation cancellation,
+        UiDebugOpenResult result,
+        string? detail)
+    {
+        if (detail?.Length > 256)
+            detail = detail[..256];
+        _debugLastOpenId = id;
+        _debugLastOpenLayer = layer;
+        _debugLastOpenKey = key;
+        _debugLastOpenPhase = cancellation.DebugPhase;
+        _debugLastOpenResult = result;
+        _debugLastOpenDetail = detail;
+        _debugLastOpenDurationMilliseconds =
+            Time.GetTicksMsec() - cancellation.DebugStartedTicks;
     }
 
     private UiDebugEntry CreateDebugEntry(

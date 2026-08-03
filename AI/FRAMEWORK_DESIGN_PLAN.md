@@ -61,7 +61,7 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 | GoDoRuntime | 已采用 | 只管理框架生命周期和服务注册，不承载游戏流程 |
 | ResourceHub | 稳定基线 | 不加入远程下载、PCK/DLC、目录加载或第二套缓存 |
 | NodePool | 稳定基线 | 当前只支持 Godot Node/PackedScene 与显式重置 |
-| Scene | 稳定基线 | 当前只管理主内容场景切换，不承担 UI 栈 |
+| Scene | 稳定基线 | 只管理主内容场景切换，不承担 UI 栈；已提供单请求进度/取消与 Loading / Instantiating / Committing 失败阶段 |
 | Camera | 首版完成 | 已完成主镜头注册、激活、恢复、跨场景同 ID 与 Phantom 优先级适配；第二视角 / 小地图 SubViewport 输出已列入后续设计，需先以真实 2D / 3D 场景确定所有权与更新语义 |
 | Input | 首版完成 | 已完成语义 ID、零分配 Frame、Context 栈、GUIDE 适配、设备检测、运行时改键、SaveService 持久化、文本提示查询与 Demo3D 真实 Profile；Windows 真实手柄与窗口失焦验收通过，其他平台待验证 |
 | Audio | 稳定基线 | 当前为单路 BGM、非空间 SFX 池和音量分组；保持现有立即切换兼容语义，后续单独设计 BGM 淡入淡出与双播放器 Crossfade |
@@ -70,10 +70,10 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 | Localization | 首版完成 | 复用 TranslationServer、PO/CSV、复数、上下文、回退与伪本地化；动态语言包后置 |
 | Config | 稳定基线 | Resource 强类型校验与唯一键表；大量外部表格数据由独立 DataTable 工具链处理，不把 CSV 解析与二进制索引塞入 ConfigHub |
 | DataTable | 首版完成 | 离线校验/生成/导出门禁与显式运行时 Service 已接通；Windows 完整 ExportRelease 和 10 万行峰值内存已验证，真实业务长期体验与移动端/AOT 后置 |
-| UI | 首版完成 | 已提供 Scene、View、Modal、Overlay，Inspector UiConfig/UiId，同步/异步打开与取消，查询/批量关闭/CloseTo，焦点恢复、外部释放自恢复及可选 Single 实例复用；下一步以真实项目使用反馈校验 API 与性能预算 |
-| Debugger | 稳定基线 | 紧凑健康入口、树状诊断导航、System/Performance 与运行时模块快照、可拖动缩放面板和可搜索控制台；Release 不创建节点 |
+| UI | 首版完成 | 已提供四层显示、Inspector UiConfig/UiId、同步/异步打开与取消、查询/批量关闭/CloseTo、焦点恢复、外部释放自恢复、`UiScope<TView>` 所有权及可选 Single 实例复用；下一步以真实项目使用反馈校验 API 与性能预算 |
+| Debugger | 稳定基线 | 紧凑健康入口、树状诊断导航、System/Performance、运行时模块快照及 Procedure / Scene / UI 联合 Flow 页面；Release 不创建节点 |
 | EditorPlugin | 首版完成 | 单一 GoDo 插件入口；显式安装与检查 GoDoRuntime Autoload，并通过版本化清单发现 GUIDE Input、Phantom Camera 等可选编辑器扩展；扩展失败隔离、项目修改需确认，不进入运行时依赖 |
-| Procedure | 首版完成 | 顶层游戏流程状态机；只提供流程切换机制，不内置具体业务流程，不先抽象通用 StateMachine |
+| Procedure | 首版完成 | 顶层游戏流程状态机；已提供激活生命周期资源、首请求仲裁、结构化失败阶段和延迟请求失败通知，不内置具体业务流程 |
 
 模块完成状态的证据、性能数据和详细边界只记录在对应 `USAGE.md`，避免多处同步。
 
@@ -81,7 +81,7 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 
 ### Debugger
 
-> **状态更新**：Debugger 已完成显示与交互优化，采用紧凑健康入口、树状只读页面和可拖动缩放面板；System、Performance、Input、Scheduler、Audio、Scene、Resources、DataTable、UI、Procedure、Services、Events 与可搜索控制台已接入。以下设计初衷作为历史决策记录保留。
+> **状态更新**：Debugger 已完成显示与交互优化，采用紧凑健康入口、树状只读页面和可拖动缩放面板；System、Performance、Input、Scheduler、Audio、Scene、Resources、DataTable、UI、Procedure、联合 Flow、Services、Events 与可搜索控制台已接入。以下设计初衷作为历史决策记录保留。
 
 借鉴 Game Framework 的可扩展 Debugger 思路，但只考虑编辑器或 Debug 构建中的只读诊断页：展示事件监听、资源请求、池占用、场景和长期服务状态。诊断优先复用已有公开状态，不接管模块逻辑，也不成为运行时反向依赖。
 
@@ -101,7 +101,7 @@ Procedure 已完成首版。它借用状态机思想，但不先建设通用 Sta
 - 不替代 SceneService、UiService、AudioService、SaveService，也不替代角色、AI、战斗阶段等局部状态机。
 - 首版不做流程栈、层级状态机、黑板、反射自动发现、自动依赖注入或参数系统。
 
-首版提供 `ProcedureContext.GetService<T>()`，让业务流程显式获取已注册长期服务；Procedure 模块本身不直接依赖 Scene、UI、Audio、Save 等具体服务，避免变成全局大管家。
+ProcedureContext 除显式获取长期服务外，还提供激活 `LifetimeToken`、自动释放的 `EventScope`、逆序同步清理和首请求仲裁。Procedure 模块本身仍不直接依赖 Scene、UI、Audio、Save 等具体服务，避免变成全局大管家。
 
 切换语义：
 
@@ -114,7 +114,7 @@ Procedure 已完成首版。它借用状态机思想，但不先建设通用 Sta
 验证要求：
 
 - 已新增独立自动回归场景，覆盖初始状态、首次进入、切换顺序、并发切换拒绝、`ExitAsync` 失败、`EnterAsync` 失败和清理语义。
-- 手动验证应覆盖真实业务流程：主菜单进入游戏、连续点击防重入、返回菜单时 UI/场景/音频清理正常。
+- Demo3D 自动流程覆盖主菜单、进入游戏、暂停/恢复、结算、重试和返回菜单，并验证长期失败协调器跨 CurrentScene 存活。
 - Procedure 已写入 `AI/ARCHITECTURE.md` 的已采用模块，并新增模块 `USAGE.md` 作为 API、失败语义和验证结果的唯一详细来源。
 
 ### Tick

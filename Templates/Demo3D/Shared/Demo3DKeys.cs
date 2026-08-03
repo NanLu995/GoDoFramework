@@ -7,9 +7,13 @@ internal static class Demo3DKeys
 {
     private const string RootPath = "res://Templates/Demo3D";
 
+    public static readonly ResourceKey MainMenuScene = Key("MainMenu/MainMenuScene.tscn");
+    public static readonly ResourceKey MainMenuView = Key("MainMenu/MainMenuView.tscn");
     public static readonly ResourceKey GameplayScene = Key("Gameplay/GameplayScene.tscn");
     public static readonly ResourceKey GameplayHud = Key("Gameplay/GameplayHud.tscn");
     public static readonly ResourceKey ResultView = Key("Result/ResultView.tscn");
+    public static readonly ResourceKey LoadingOverlay = Key("Ui/LoadingOverlay.tscn");
+    public static readonly ResourceKey PauseModal = Key("Ui/PauseModal.tscn");
 
     public static readonly CameraId GameplayCamera = CameraId.Create("gameplay");
 

@@ -84,6 +84,7 @@ public interface IProcedure
 ```csharp
 public interface IProcedureService
 {
+    event Action<ProcedureChangeException>? RequestedChangeFailed;
     IProcedure? Current { get; }
     bool IsChanging { get; }
     Task ChangeAsync(IProcedure next);
@@ -91,6 +92,7 @@ public interface IProcedureService
 }
 ```
 
+- `RequestedChangeFailed`：仅在 Context 请求的延迟切换失败且服务状态已经复位后通知；直接 `ChangeAsync` 的失败仍由返回任务传播，关闭取消不通知。
 - `Current`：当前已成功进入的流程；无流程或进入失败后为 `null`。
 - `IsChanging`：是否正在切换。
 - `ChangeAsync`：退出当前流程并进入目标流程。
@@ -101,14 +103,21 @@ public interface IProcedureService
 ```csharp
 public sealed class ProcedureContext
 {
+    public bool IsActive { get; }
+    public CancellationToken LifetimeToken { get; }
+    public EventScope Events { get; }
     public TService GetService<TService>() where TService : class;
     public bool TryGetService<TService>(out TService? service) where TService : class;
+    public void RegisterCleanup(Action cleanup);
+    public void RegisterCleanup(IDisposable disposable);
     public void RequestChange(IProcedure next);
     public void RequestChange<TProcedure>() where TProcedure : IProcedure, new();
+    public bool TryRequestChange(IProcedure next);
+    public bool TryRequestChange<TProcedure>() where TProcedure : IProcedure, new();
 }
 ```
 
-Procedure 模块本身不直接依赖 Scene、UI、Audio、Save 等具体服务。业务 Procedure 可以通过 `ProcedureContext` 显式获取已注册服务，也可以通过 `RequestChange<TProcedure>()` 请求无参流程切换；需要传递业务数据时使用 `RequestChange(IProcedure next)`。
+Procedure 模块本身不直接依赖 Scene、UI、Audio、Save 等具体服务。业务 Procedure 可以通过 `ProcedureContext` 显式获取服务；使用 `LifetimeToken`、`Events` 和 `RegisterCleanup` 把异步工作、事件监听及同步资源绑定到本次激活。清理按登记逆序执行。需要判断流程请求是否被首请求仲裁接受时使用 `TryRequestChange`。
 
 ## 切换语义
 
@@ -121,7 +130,7 @@ Procedure 模块本身不直接依赖 Scene、UI、Audio、Save 等具体服务�
 5. 进入成功后，将 `Current` 更新为新流程。
 6. 无论成功或失败，最终复位 `IsChanging`。
 
-`ChangeAsync` 不允许重入。流程内部或当前流程暴露给 UI 的业务方法需要切换流程时，应调用 `ProcedureContext.RequestChange(next)`。请求不会递归执行；ProcedureService 会在当前 Enter / Exit 或当前调用边界安全结束后串行处理。
+`ChangeAsync` 不允许重入。流程内部或当前流程暴露给 UI 的业务方法需要切换流程时，应调用 `ProcedureContext.RequestChange(next)`。请求不会递归执行；ProcedureService 会在当前 Enter / Exit 或当前调用边界安全结束后串行处理。每次 Procedure 激活只接受第一个请求，后续请求不会覆盖目标；`TryRequestChange` 会以 `false` 明确返回拒绝结果。
 
 ## 失败语义
 
@@ -130,8 +139,9 @@ Procedure 模块本身不直接依赖 Scene、UI、Audio、Save 等具体服务�
 - 旧流程 `ExitAsync` 失败：抛出 `ProcedureChangeException`，不进入新流程，`Current` 保持旧流程。
 - 新流程 `EnterAsync` 失败：抛出 `ProcedureChangeException`，`Current` 为 `null`。
 - `EnterAsync` 或 `ExitAsync` 内部异常会作为 `ProcedureChangeException.InnerException` 保留。
+- `ProcedureChangeException.Phase` 使用 `Requesting`、`Exiting`、`Cleanup` 或 `Entering` 标识失败边界；兼容旧构造函数产生 `Unknown`。
 - 当前切换失败时，流程边界内产生但尚未执行的 `RequestChange` 会被丢弃，不会泄漏到下一次恢复切换。
-- `RequestChange` 只保留最近一次请求；如果请求执行失败，会通过 ErrorHub 报告。
+- Context 请求执行失败会通过 ErrorHub 报告，并在状态复位后触发 `RequestedChangeFailed`；订阅者可以选择明确恢复目标。
 - GoDoRuntime 关闭期间尚未完成的切换以 `ProcedureChangeException` 结束，内部异常为 `OperationCanceledException`，且不会重新写回 `Current`。
 - `Name` 读取失败或返回空白时，异常和 Debug 诊断使用流程类型名作为回退。
 
@@ -142,6 +152,7 @@ Procedure 不会静默吞掉异常，也不会自动回滚旧流程。需要复�
 - 所有公共 API 必须在 GoDoRuntime 记录的 Godot 主线程调用。
 - 泛型 `ChangeAsync<TProcedure>` 和 `RequestChange<TProcedure>` 会先验证主线程，再执行目标流程构造函数。
 - `IProcedureService` 由 GoDoRuntime 创建并注册到 Services。
+- Context 在 Enter 失败、正常 Exit 后或服务关闭时失效；失效后不能继续登记清理、访问 `Events` 或请求切换。Exit 失败会保留当前激活及其资源。
 - 推荐由当前 Procedure 决定下一步流程；UI 和场景脚本只通知当前 Procedure 玩家意图。
 - GoDoRuntime 退出时会清空当前 Procedure 引用，但不会调用业务 Procedure 的 `ExitAsync`。项目退出阶段如需保存或清理业务状态，应由业务层主动完成。
 - Procedure 对象由业务项目创建，框架不负责复用、释放或自动发现。
@@ -150,7 +161,7 @@ Procedure 不会静默吞掉异常，也不会自动回滚旧流程。需要复�
 
 Procedure 切换不是高频路径。首版优先保证生命周期清楚和失败可见，不为每帧零分配做额外复杂化。不要在 `_Process` 中频繁调用 `ChangeAsync`。
 
-Debug 构建会保留上一个流程、当前目标、待处理请求、最近成功和最近一次失败的简短诊断。失败信息最多保存 256 个字符，不持有原始 Exception；只读 Debugger 仅在 Procedure 页面被选中时读取。Release 构建不包含这些诊断状态。
+Debug 构建会保留上一个流程、当前目标、待处理请求、被仲裁拒绝的目标与原因、最近成功和最近一次失败的简短诊断。失败信息最多保存 256 个字符，不持有原始 Exception；只读 Debugger 仅在 Procedure 或 Flow 页面被选中时读取。Release 构建不包含这些诊断状态。
 
 ## 常见误用
 

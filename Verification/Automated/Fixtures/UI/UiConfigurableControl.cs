@@ -2,10 +2,19 @@ using System;
 using Godot;
 using GoDo;
 
+#nullable enable
+
 namespace GoDoFramework.Verification;
 
 public sealed partial class UiConfigurableControl : Control, IPoolable
 {
+    internal static Action? ConstructedAction { get; set; }
+
+    public UiConfigurableControl()
+    {
+        ConstructedAction?.Invoke();
+    }
+
     public string ConfiguredValue { get; set; } = string.Empty;
 
     public bool WasConfiguredBeforeReady { get; private set; }

@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/procedure-recovery/index.md
-translation_source_hash: sha256:571e2027e940a1fdd1947e8c23cb9416131202ffe11d4029e045349536cb4a06
+translation_source_hash: sha256:2909d098e443fed2b3fb6344e6dd7a317751e052f0db9b0a0219386a727cec86
 ---
 
 # Organize Procedure Changes, Cleanup, and Failure Recovery
@@ -35,7 +35,15 @@ public sealed class GameplayProcedure : IProcedure
 
 Complete likely-to-fail operations that do not corrupt existing state before committing later state. Scene change must precede Scene-layer UI, because scene commit clears that layer.
 
-If a later step can fail after earlier work succeeds, catch inside the Procedure, clean up what this entry created, and rethrow. ProcedureService wraps it in `ProcedureChangeException`.
+When a later step can fail after earlier work succeeds, register synchronous ownership with the Context immediately. Enter failure and normal exit clean these registrations in reverse order:
+
+```csharp
+UiScope<GameplayHud> hud = ui.OpenScoped<GameplayHud>(GameUi.GameplayHud);
+context.RegisterCleanup(hud);
+context.Events.On<PlayerQuitRequested>(OnPlayerQuitRequested);
+```
+
+Use `context.LifetimeToken` for long-running async work instead of maintaining a CancellationTokenSource in every Procedure. Still order non-reversible game operations as validate first, commit later.
 
 ## 2. Exit symmetrically
 
@@ -99,7 +107,7 @@ public Task EnterAsync(ProcedureContext context)
 
 UI and scene scripts publish player intent; the current Procedure coordinator calls `RequestChange`. The request runs serially after the current boundary ends.
 
-Only the latest request is retained, so this is not a command queue. A failed requested change is reported through ErrorHub. Pass game data explicitly with `RequestChange(new ResultProcedure(data))`.
+Each Procedure activation accepts only its first request, so this is not a command queue. Event callbacks that need the arbitration result use `TryRequestChange`; later requests return `false` and never replace the accepted target. Pass game data explicitly with `TryRequestChange(new ResultProcedure(data))`.
 
 ## 5. Prevent repeated clicks and concurrent changes
 
@@ -128,30 +136,23 @@ Never trigger changes from `_Process()` or use fire-and-forget that loses except
 
 ## 6. Own cancellation and long async work
 
-The Procedure creates a CancellationTokenSource and cancels it on Exit:
+Use the activation lifetime token supplied by the Context:
 
 ```csharp
-private CancellationTokenSource? _lifetime;
-
 public async Task EnterAsync(ProcedureContext context)
 {
-    _lifetime = new CancellationTokenSource();
     ISchedulerService scheduler = context.GetService<ISchedulerService>();
-    await scheduler.DelayAsync(1.0, ScheduleOptions.RealTime, _lifetime.Token);
-}
-
-public Task ExitAsync(ProcedureContext context)
-{
-    _lifetime?.Cancel();
-    _lifetime?.Dispose();
-    _lifetime = null;
-    return Task.CompletedTask;
+    await scheduler.DelayAsync(1.0, ScheduleOptions.RealTime, context.LifetimeToken);
 }
 ```
 
 Handle expected `OperationCanceledException` separately instead of reporting content corruption. Exit is not called on this instance while Enter is still awaiting, so any background-style game operation started during Enter still needs an explicit owner and observed exceptions.
 
 If GoDoRuntime shuts down while a flow change is awaiting, the change ends with `ProcedureChangeException` whose `InnerException` is `OperationCanceledException`. The old asynchronous operation cannot write `Current` again after shutdown.
+
+A long-lived game coordinator may subscribe to `IProcedureService.RequestedChangeFailed` for deferred request failures. Notification runs after `IsChanging` resets. Direct `ChangeAsync` failures and shutdown cancellation do not raise the event, so recovery can explicitly try one safe Procedure without creating a notification loop. Unsubscribe with the coordinator's lifetime.
+
+`ProcedureChangeException.Phase` distinguishes Requesting, Exiting, Cleanup, and Entering. Base recovery decisions on the phase and `Current`, never on parsed message text.
 
 ## 7. Keep flows small and diagnosable
 
@@ -171,4 +172,4 @@ If GoDoRuntime shuts down while a flow change is awaiting, the change ends with 
 - ExitAsync is expected to save on application shutdown: Runtime shutdown does not invoke it; save earlier.
 - Procedure becomes a giant controller: move concrete gameplay into services and scene Nodes.
 
-For exact members, see <xref:GoDo.IProcedure>, <xref:GoDo.IProcedureService>, <xref:GoDo.ProcedureContext>, and <xref:GoDo.ProcedureChangeException>.
+For exact members, see <xref:GoDo.IProcedure>, <xref:GoDo.IProcedureService>, <xref:GoDo.ProcedureContext>, <xref:GoDo.ProcedureChangePhase>, and <xref:GoDo.ProcedureChangeException>.

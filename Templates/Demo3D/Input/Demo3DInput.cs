@@ -10,6 +10,7 @@ internal static class Demo3DInput
     internal static readonly InputActionId Jump = InputActionId.Create("gameplay.jump");
     internal static readonly InputActionId ReleasePointer = InputActionId.Create("gameplay.release_pointer");
 
+    internal static readonly InputContextId Menu = InputContextId.Create("menu");
     internal static readonly InputContextId Gameplay = InputContextId.Create("gameplay");
     internal static readonly InputContextId Result = InputContextId.Create("result");
 }

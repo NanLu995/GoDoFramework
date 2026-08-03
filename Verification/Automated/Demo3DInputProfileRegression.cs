@@ -37,10 +37,11 @@ public sealed partial class Demo3DInputProfileRegression : Node
             VerifyPromptQuery();
             VerifyKeyboardMovement();
             VerifyMouseLookAndJump();
+            VerifyMenuIsolation();
             VerifyResultIsolation();
 
             _service.Shutdown();
-            GD.Print("[Demo3DInputProfileRegression] PASS (6/6)");
+            GD.Print("[Demo3DInputProfileRegression] PASS (7/7)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -131,6 +132,20 @@ public sealed partial class Demo3DInputProfileRegression : Node
         Assert(_service.IsContextActive(Demo3D.Demo3DInput.Result), "Result Context 没有生效");
         Assert(_service.Frame.Axis2(Demo3D.Demo3DInput.Move).IsZeroApprox(),
             "Result Context 仍然输出 Gameplay Move");
+
+        InjectKey(Key.W, pressed: false);
+        EvaluateAndSample();
+    }
+
+    private void VerifyMenuIsolation()
+    {
+        _service!.SetBaseContext(Demo3D.Demo3DInput.Menu);
+        InjectKey(Key.W, pressed: true);
+        EvaluateAndSample();
+
+        Assert(_service.IsContextActive(Demo3D.Demo3DInput.Menu), "Menu Context 没有生效");
+        Assert(_service.Frame.Axis2(Demo3D.Demo3DInput.Move).IsZeroApprox(),
+            "Menu Context 仍然输出 Gameplay Move");
 
         InjectKey(Key.W, pressed: false);
         EvaluateAndSample();

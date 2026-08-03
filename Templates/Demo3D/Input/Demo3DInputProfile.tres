@@ -10,6 +10,7 @@
 [ext_resource type="Resource" uid="uid://y7ctbslaibyj" path="res://Templates/Demo3D/Input/GameplayContext.tres" id="8_gameplay"]
 [ext_resource type="Resource" path="res://Templates/Demo3D/Input/ResultContext.tres" id="9_result"]
 [ext_resource type="Script" uid="uid://d0gt5myw54f3n" path="res://addons/godo_framework/Integrations/GuideInput/Runtime/GuideInputBindingDefinition.cs" id="10_binding_definition"]
+[ext_resource type="Resource" path="res://Templates/Demo3D/Input/MenuContext.tres" id="11_menu"]
 
 [sub_resource type="Resource" id="MoveBinding"]
 script = ExtResource("2_action_binding")
@@ -96,6 +97,11 @@ script = ExtResource("3_context_binding")
 ContextId = "gameplay"
 GuideContextResource = ExtResource("8_gameplay")
 
+[sub_resource type="Resource" id="MenuBinding"]
+script = ExtResource("3_context_binding")
+ContextId = "menu"
+GuideContextResource = ExtResource("11_menu")
+
 [sub_resource type="Resource" id="ResultBinding"]
 script = ExtResource("3_context_binding")
 ContextId = "result"
@@ -104,5 +110,5 @@ GuideContextResource = ExtResource("9_result")
 [resource]
 script = ExtResource("1_profile")
 Actions = [SubResource("MoveBinding"), SubResource("LookBinding"), SubResource("JumpBinding"), SubResource("ReleasePointerBinding")]
-Contexts = [SubResource("GameplayBinding"), SubResource("ResultBinding")]
+Contexts = [SubResource("MenuBinding"), SubResource("GameplayBinding"), SubResource("ResultBinding")]
 Bindings = [SubResource("MoveForwardBinding"), SubResource("MoveBackwardBinding"), SubResource("MoveLeftBinding"), SubResource("MoveRightBinding"), SubResource("MoveGamepadBinding"), SubResource("LookMouseBinding"), SubResource("LookGamepadBinding"), SubResource("JumpPrimaryBinding"), SubResource("JumpGamepadBinding")]

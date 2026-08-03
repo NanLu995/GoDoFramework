@@ -73,28 +73,19 @@ ui.ClearCachedInstance(SettingsId);
 
 ## 3. 明确谁拥有界面
 
-打开界面的流程或协调器应保存实例，并负责关闭自己创建的界面：
+打开界面的流程或协调器应保存所有权，并负责关闭自己创建的界面。Procedure 可以把 `UiScope` 直接交给激活生命周期清理：
 
 ```csharp
-private IUiService? _ui;
-private Control? _hud;
-
 public async Task EnterAsync(ProcedureContext context)
 {
-    _ui = context.GetService<IUiService>();
-    _hud = _ui.Open(HudKey, UiLayer.Scene);
-}
-
-public Task ExitAsync(ProcedureContext context)
-{
-    if (_ui != null && _hud != null && GodotObject.IsInstanceValid(_hud))
-        _ui.Close(_hud);
-
-    _hud = null;
-    _ui = null;
-    return Task.CompletedTask;
+    IUiService ui = context.GetService<IUiService>();
+    UiScope<GameplayHud> hud = ui.OpenScoped<GameplayHud>(HudId);
+    context.RegisterCleanup(hud);
+    hud.View.Refresh();
 }
 ```
+
+`UiScope.Dispose()` 只能在 Godot 主线程调用，可安全重复释放；界面已由其他路径关闭时也会正常完成。非 Procedure 所有者仍可直接保存节点并通过 `Close`/`TryClose` 对称清理。
 
 受管理界面应通过 `Close()` 或 `TryGoBack()` 退出，不要直接 `QueueFree()` 或 `RemoveChild()`。如果界面被外部释放，UiService 会在下一次操作时清理失效记录、恢复前一个有效 View，并回收空的 Modal Host；直接移除或重挂载仍会绕过正常所有权与返回顺序。View 被覆盖时只是隐藏，节点状态和内存仍保留；不要无限堆叠深层 View。
 
@@ -134,7 +125,7 @@ catch (UiOpenException exception)
 }
 ```
 
-资源缺失、根节点不是 Control、实例化或挂载失败都会抛出 `UiOpenException`。失败不会隐藏当前 View，也不会修改任何层的管理状态。
+资源缺失、根节点不是 Control、实例化或挂载失败都会抛出 `UiOpenException`。`Phase` 区分 Loading、Preparing 和 Committing，恢复与日志应使用该结构化值而非解析消息。失败不会隐藏当前 View，也不会修改任何层的管理状态。
 
 关闭非托管界面、非顶部 View 或非顶部 Modal 会抛出 `InvalidOperationException`。这通常说明所有权或调用顺序错误，不应捕获后静默忽略。
 

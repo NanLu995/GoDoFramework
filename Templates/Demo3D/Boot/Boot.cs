@@ -9,6 +9,7 @@ public sealed partial class Boot : Node
 {
     public override async void _Ready()
     {
+        Demo3DFlowCoordinator.EnsureInstalled(GetTree());
         try
         {
             await Services.Get<IProcedureService>().ChangeAsync<BootProcedure>();

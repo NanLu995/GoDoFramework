@@ -57,7 +57,7 @@
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:c43d008f78287f8a40d1c72c64bc4923441815bdcb81c8cfd760e14672c578d6"
+      "reviewed_contract_hash": "sha256:868ab4c76d05eaf93132bb69439b13bfb9e06874f5b31fbc57a0bdc85a61aa29"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
@@ -152,7 +152,7 @@
         "guides/input/index.md",
         "guides/procedure-recovery/index.md"
       ],
-      "reviewed_contract_hash": "sha256:c8e7084f9bac16aa789081af2299d1d96b3fd6c2bd94d0848be046a15041b5c0"
+      "reviewed_contract_hash": "sha256:71463c8f8cea25f6d9b59ca5ea2eaccbb7516bd7f837ae3b1b956d2087881dd7"
     },
     "resources": {
       "contract": "addons/godo_framework/Runtime/Resources/USAGE.md",
@@ -186,7 +186,7 @@
         "getting-started/switch-procedures.md",
         "guides/resources-and-scenes/index.md"
       ],
-      "reviewed_contract_hash": "sha256:9eb8d70e5b86ce56742249ca73a425b6c6c785e1f40def00fb01f68846c8833e"
+      "reviewed_contract_hash": "sha256:2af1039978a121284ed3c307aa4076e3bdb1daffc16566fda97ec19a1966f0ab"
     },
     "scheduler": {
       "contract": "addons/godo_framework/Runtime/Scheduler/USAGE.md",
@@ -219,7 +219,7 @@
         "guides/ui-and-audio/index.md",
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:2157334d4d3a34a32fd669af43e6419e1baeec27af79dca3750c044fa9f4ae25"
+      "reviewed_contract_hash": "sha256:fa53bc34abdb38d6fa7120ef0ed6986bfcff6311a24f3cdf37a6fb13294d9669"
     },
     "data-table-runtime": {
       "contract": "addons/godo_framework/Runtime/DataTable/USAGE.md",

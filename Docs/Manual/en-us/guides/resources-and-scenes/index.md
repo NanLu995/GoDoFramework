@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/resources-and-scenes/index.md
-translation_source_hash: sha256:bb03e4d5a548d435780bf268eb2e6384534428dcbfe79489b4784418b353dd48
+translation_source_hash: sha256:d6e7569ce2072fbefa57eacf9b34418905635e14e5e0e84ca115539a05cf709c
 ---
 
 # Manage Resource Manifests, Async Loading, and Scene Changes
@@ -124,6 +124,8 @@ catch (SceneChangeException exception)
 ```
 
 SceneService fully loads, verifies the PackedScene, instantiates it, and adds it to SceneTree before changing `CurrentScene`. A pre-commit failure leaves the old scene unchanged.
+
+`SceneChangeException.Phase` distinguishes Loading, Instantiating, and Committing. A loading failure may support retry or a fallback asset, while instantiation and commit failures more often indicate scene content or node-lifecycle errors. Diagnostics and recovery should read the enum instead of parsing exception messages.
 
 After commit, the old scene is `QueueFree()`d and released at frame end. Once `await` returns, use only the returned new scene and never access old scene Nodes.
 

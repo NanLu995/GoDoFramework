@@ -220,6 +220,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private Label? _procedureStateValue;
     private Label? _procedurePendingValue;
     private Label? _procedureResultValue;
+    private Label? _procedureCurrentTitle;
+    private Label? _procedureStateTitle;
+    private Label? _procedurePendingTitle;
+    private Label? _procedureResultTitle;
     private Tree? _procedureDetailsTree;
     private Control? _servicesDashboard;
     private LineEdit? _servicesSearch;
@@ -1689,6 +1693,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
 
     private void CacheProcedureNodes()
     {
+        _procedureCurrentTitle = GetProcedureNode<Label>("Summary/CurrentCard/Content/Title");
+        _procedureStateTitle = GetProcedureNode<Label>("Summary/StateCard/Content/Title");
+        _procedurePendingTitle = GetProcedureNode<Label>("Summary/PendingCard/Content/Title");
+        _procedureResultTitle = GetProcedureNode<Label>("Summary/ResultCard/Content/Title");
         _procedureCurrentValue = GetProcedureNode<Label>("Summary/CurrentCard/Content/Value");
         _procedureStateValue = GetProcedureNode<Label>("Summary/StateCard/Content/Value");
         _procedurePendingValue = GetProcedureNode<Label>("Summary/PendingCard/Content/Value");
@@ -1800,6 +1808,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         RegisterPage("Runtime/DataTable", "运行时", "DataTable", RefreshDataTablePage);
         RegisterPage("Runtime/UI", "运行时", "UI", RefreshUiPage);
         RegisterPage("Runtime/Procedure", "运行时", "Procedure", RefreshProcedurePage);
+        RegisterPage("Runtime/Flow", "运行时", "Flow", RefreshFlowPage);
         RegisterPage("Framework/Services", "框架", "Services", RefreshServicesDashboard);
         RegisterPage("Framework/Events", "框架", "Events", RefreshEventsDashboard);
     }
@@ -2858,12 +2867,36 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         }
 
         SceneDebugSnapshot snapshot = sceneService.GetDebugSnapshot();
+        _sceneStateValue.Text = GetScenePhaseText(snapshot.CurrentPhase);
         AddSceneDetail(root, "正在加载", snapshot.CurrentChangeKey?.Value ?? "—");
+        AddSceneDetail(root, "当前阶段", GetScenePhaseText(snapshot.CurrentPhase));
         AddSceneDetail(root, "最近切换", snapshot.LastChangeKey?.Value ?? "—");
-        AddSceneDetail(root, "最近结果", snapshot.LastChangeKey.HasValue
-            ? snapshot.LastChangeSucceeded ? "成功" : "失败"
+        AddSceneDetail(root, "最近阶段", snapshot.LastChangeKey.HasValue
+            ? GetScenePhaseText(snapshot.LastPhase)
             : "—");
+        AddSceneDetail(root, "最近结果", GetSceneResultText(snapshot.LastResult));
+        AddSceneDetail(root, "最近耗时", snapshot.LastChangeKey.HasValue
+            ? $"{snapshot.LastDurationMilliseconds.ToString(CultureInfo.InvariantCulture)} ms"
+            : "—");
+        AddSceneDetail(root, "最近详情", snapshot.LastDetail ?? "—");
     }
+
+    private static string GetScenePhaseText(SceneDebugPhase phase) => phase switch
+    {
+        SceneDebugPhase.Loading => "加载中",
+        SceneDebugPhase.Instantiating => "实例化中",
+        SceneDebugPhase.Committing => "提交中",
+        _ => "空闲",
+    };
+
+    private static string GetSceneResultText(SceneDebugResult result) => result switch
+    {
+        SceneDebugResult.Succeeded => "成功",
+        SceneDebugResult.CallerCanceled => "调用方取消",
+        SceneDebugResult.LifecycleCanceled => "生命周期取消",
+        SceneDebugResult.Failed => "失败",
+        _ => "—",
+    };
 
     private void AddSceneDetail(TreeItem root, string name, string value)
     {
@@ -3240,15 +3273,15 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             item.SetText(
                 4,
                 opening.RequestCount == 1
-                    ? "加载中"
-                    : $"加载中 ×{opening.RequestCount.ToString(CultureInfo.InvariantCulture)}");
+                    ? GetUiOpeningPhaseText(opening.Phase)
+                    : $"{GetUiOpeningPhaseText(opening.Phase)} ×{opening.RequestCount.ToString(CultureInfo.InvariantCulture)}");
             item.SetTooltipText(
                 2,
                 opening.Id.IsValid
                     ? opening.Id.Value
                     : "通过 ResourceKey 直接打开");
             item.SetTooltipText(3, opening.Key.Value);
-            item.SetTooltipText(4, "异步打开请求尚未完成");
+            item.SetTooltipText(4, $"异步打开请求尚未完成：{GetUiOpeningPhaseText(opening.Phase)}");
             item.SetTextAlignment(0, HorizontalAlignment.Center);
             item.SetTextAlignment(1, HorizontalAlignment.Center);
             item.SetTextAlignment(4, HorizontalAlignment.Center);
@@ -3286,6 +3319,31 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             else if (entry.HasFocus)
                 item.SetCustomColor(4, new Color(0.45f, 0.88f, 0.62f));
         }
+
+        if (snapshot.LastResult != UiDebugOpenResult.None)
+        {
+            TreeItem item = _uiStackTree.CreateItem(root);
+            string target = snapshot.LastId.IsValid ? snapshot.LastId.Value : "Direct";
+            string result = GetUiOpenResultText(snapshot.LastResult);
+            string detail = $"{GetUiOpeningPhaseText(snapshot.LastPhase)} · " +
+                $"{snapshot.LastDurationMilliseconds.ToString(CultureInfo.InvariantCulture)} ms";
+            if (!string.IsNullOrEmpty(snapshot.LastDetail))
+                detail += $" · {snapshot.LastDetail}";
+            item.SetText(0, "诊断");
+            item.SetText(1, snapshot.LastLayer.ToString());
+            item.SetText(2, target);
+            item.SetText(3, snapshot.LastKey.Value);
+            item.SetText(4, result);
+            item.SetTooltipText(4, detail);
+            item.SetTextAlignment(0, HorizontalAlignment.Center);
+            item.SetTextAlignment(1, HorizontalAlignment.Center);
+            item.SetTextAlignment(4, HorizontalAlignment.Center);
+            item.SetCustomColor(
+                4,
+                snapshot.LastResult == UiDebugOpenResult.Succeeded
+                    ? new Color(0.45f, 0.88f, 0.62f)
+                    : new Color(1f, 0.56f, 0.36f));
+        }
     }
 
     private void SetUiUnavailable(string state, string detail)
@@ -3321,8 +3379,26 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         return entry.IsVisible ? "显示" : "隐藏";
     }
 
+    private static string GetUiOpeningPhaseText(UiDebugOpenPhase phase) => phase switch
+    {
+        UiDebugOpenPhase.Preparing => "准备中",
+        UiDebugOpenPhase.Committing => "提交中",
+        _ => "加载中",
+    };
+
+    private static string GetUiOpenResultText(UiDebugOpenResult result) => result switch
+    {
+        UiDebugOpenResult.Succeeded => "成功",
+        UiDebugOpenResult.CallerCanceled => "调用方取消",
+        UiDebugOpenResult.ServiceCanceled => "服务取消",
+        UiDebugOpenResult.LifecycleCanceled => "生命周期取消",
+        UiDebugOpenResult.Failed => "失败",
+        _ => "—",
+    };
+
     private void RefreshProcedurePage()
     {
+        SetProcedureCardTitles("当前流程", "切换状态", "待处理请求", "失败记录");
         if (!IsInstanceValid(_procedureCurrentValue) ||
             !IsInstanceValid(_procedureStateValue) ||
             !IsInstanceValid(_procedurePendingValue) ||
@@ -3350,13 +3426,25 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             _ => service.IsChanging ? "切换中" : "空闲",
         };
         _procedurePendingValue.Text = snapshot.PendingName ?? "无";
-        _procedureResultValue.Text = snapshot.LastFailure is null ? "无" : "有";
+        _procedureResultValue.Text = GetProcedureResultText(snapshot.LastResult);
         _procedureDetailsTree.Clear();
         TreeItem root = _procedureDetailsTree.CreateItem();
         AddProcedureDetail(root, "上一个流程", snapshot.PreviousName ?? "—");
         AddProcedureDetail(root, "切换目标", snapshot.TargetName ?? "—");
+        AddProcedureDetail(root, "激活 Context", snapshot.HasActiveContext ? "有效" : "无");
+        AddProcedureDetail(root, "待清理项", snapshot.CleanupCount.ToString());
         AddProcedureDetail(root, "最近成功", snapshot.LastSucceededName ?? "—");
-        AddProcedureDetail(root, "最近失败", snapshot.LastFailure ?? "—");
+        AddProcedureDetail(root, "最近阶段", GetProcedurePhaseText(snapshot.LastPhase));
+        AddProcedureDetail(root, "最近结果", GetProcedureResultText(snapshot.LastResult));
+        AddProcedureDetail(
+            root,
+            "最近耗时",
+            snapshot.LastResult == ProcedureDebugResult.None
+                ? "—"
+                : $"{snapshot.LastDurationMilliseconds} ms");
+        AddProcedureDetail(root, "最近详情", snapshot.LastFailure ?? "—");
+        AddProcedureDetail(root, "最近拒绝请求", snapshot.LastRejectedRequestName ?? "—");
+        AddProcedureDetail(root, "请求拒绝原因", snapshot.LastRequestRejection ?? "—");
     }
 
     private void SetProcedureUnavailable(string state, string detail)
@@ -3370,6 +3458,99 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         AddProcedureDetail(root, "诊断", detail);
     }
 
+    private void RefreshFlowPage()
+    {
+        SetProcedureCardTitles("Procedure", "Scene", "UI", "健康状态");
+        if (!Services.TryGet<IProcedureService>(out IProcedureService? procedureContract) ||
+            procedureContract is not ProcedureService procedureService ||
+            !Services.TryGet<ISceneService>(out ISceneService? sceneContract) ||
+            sceneContract is not SceneService sceneService ||
+            !Services.TryGet<IUiService>(out IUiService? uiContract) ||
+            uiContract is not UiService uiService)
+        {
+            SetProcedureUnavailable("不可用", "Flow 诊断需要内置 ProcedureService、SceneService 与 UiService");
+            return;
+        }
+
+        ProcedureDebugSnapshot procedure = procedureService.GetDebugSnapshot();
+        SceneDebugSnapshot scene = sceneService.GetDebugSnapshot();
+        UiDebugSnapshot ui = uiService.GetDebugSnapshot();
+        int openUiCount = 0;
+        int openingUiCount = 0;
+        for (int index = 0; index < ui.Entries.Length; index++)
+        {
+            if (!ui.Entries[index].IsCached)
+                openUiCount++;
+        }
+        for (int index = 0; index < ui.Openings.Length; index++)
+            openingUiCount += ui.Openings[index].RequestCount;
+
+        bool isChanging = procedureContract.IsChanging ||
+            sceneContract.IsChanging ||
+            openingUiCount > 0;
+        bool hasRecentFailure =
+            procedure.LastResult is ProcedureDebugResult.Rejected or ProcedureDebugResult.Failed ||
+            scene.LastResult == SceneDebugResult.Failed ||
+            ui.LastResult == UiDebugOpenResult.Failed;
+        bool hasRecentCancellation =
+            procedure.LastResult == ProcedureDebugResult.LifecycleCanceled ||
+            scene.LastResult is SceneDebugResult.CallerCanceled or SceneDebugResult.LifecycleCanceled ||
+            ui.LastResult is UiDebugOpenResult.CallerCanceled or
+                UiDebugOpenResult.ServiceCanceled or UiDebugOpenResult.LifecycleCanceled;
+
+        _procedureCurrentValue!.Text = procedure.CurrentName ??
+            (procedureContract.IsChanging ? procedure.TargetName : null) ??
+            "空闲";
+        Node? currentScene = GetTree().CurrentScene;
+        _procedureStateValue!.Text = scene.CurrentChangeKey?.Value ??
+            (IsInstanceValid(currentScene) ? currentScene!.Name : "空闲");
+        _procedurePendingValue!.Text = openingUiCount == 0
+            ? openUiCount.ToString(CultureInfo.InvariantCulture)
+            : $"{openUiCount.ToString(CultureInfo.InvariantCulture)} + {openingUiCount.ToString(CultureInfo.InvariantCulture)}";
+        _procedureResultValue!.Text = isChanging
+            ? "切换中"
+            : hasRecentFailure
+                ? "最近失败"
+                : hasRecentCancellation
+                    ? "最近取消"
+                    : "正常";
+
+        _procedureDetailsTree!.Clear();
+        TreeItem root = _procedureDetailsTree.CreateItem();
+        AddProcedureDetail(root, "Procedure 状态", GetProcedurePhaseText(procedure.Phase));
+        AddProcedureDetail(root, "Procedure 目标", procedure.TargetName ?? "—");
+        AddProcedureDetail(root, "Procedure 待处理", procedure.PendingName ?? "—");
+        AddProcedureDetail(root, "Procedure 最近结果", GetProcedureResultText(procedure.LastResult));
+        AddProcedureDetail(root, "Procedure 详情", procedure.LastFailure ?? "—");
+        AddProcedureDetail(
+            root,
+            "Procedure 最近拒绝",
+            procedure.LastRejectedRequestName is null
+                ? "—"
+                : $"{procedure.LastRejectedRequestName} · {procedure.LastRequestRejection}");
+        AddProcedureDetail(root, "Scene 阶段", GetScenePhaseText(scene.CurrentPhase));
+        AddProcedureDetail(root, "Scene 目标", scene.CurrentChangeKey?.Value ?? "—");
+        AddProcedureDetail(root, "Scene 进度", $"{sceneContract.Progress * 100f:0}%");
+        AddProcedureDetail(root, "Scene 最近结果", GetSceneResultText(scene.LastResult));
+        AddProcedureDetail(root, "Scene 详情", scene.LastDetail ?? "—");
+        AddProcedureDetail(root, "UI 已打开", openUiCount.ToString(CultureInfo.InvariantCulture));
+        AddProcedureDetail(root, "UI 打开中", openingUiCount.ToString(CultureInfo.InvariantCulture));
+        AddProcedureDetail(root, "UI 最近结果", GetUiOpenResultText(ui.LastResult));
+        AddProcedureDetail(root, "UI 详情", ui.LastDetail ?? "—");
+    }
+
+    private void SetProcedureCardTitles(
+        string current,
+        string state,
+        string pending,
+        string result)
+    {
+        _procedureCurrentTitle!.Text = current;
+        _procedureStateTitle!.Text = state;
+        _procedurePendingTitle!.Text = pending;
+        _procedureResultTitle!.Text = result;
+    }
+
     private void AddProcedureDetail(TreeItem root, string name, string value)
     {
         TreeItem item = _procedureDetailsTree!.CreateItem(root);
@@ -3377,6 +3558,22 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         item.SetText(1, value);
         item.SetTooltipText(1, value);
     }
+
+    private static string GetProcedurePhaseText(ProcedureDebugPhase phase) => phase switch
+    {
+        ProcedureDebugPhase.Exiting => "退出",
+        ProcedureDebugPhase.Entering => "进入",
+        _ => "空闲",
+    };
+
+    private static string GetProcedureResultText(ProcedureDebugResult result) => result switch
+    {
+        ProcedureDebugResult.Succeeded => "成功",
+        ProcedureDebugResult.Rejected => "已拒绝",
+        ProcedureDebugResult.LifecycleCanceled => "生命周期取消",
+        ProcedureDebugResult.Failed => "失败",
+        _ => "—",
+    };
 
     private void RefreshInputDashboard()
     {
@@ -4201,7 +4398,9 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         public bool IsResources => string.Equals(Path, "Runtime/Resources", StringComparison.Ordinal);
         public bool IsDataTable => string.Equals(Path, "Runtime/DataTable", StringComparison.Ordinal);
         public bool IsUi => string.Equals(Path, "Runtime/UI", StringComparison.Ordinal);
-        public bool IsProcedure => string.Equals(Path, "Runtime/Procedure", StringComparison.Ordinal);
+        public bool IsProcedure =>
+            string.Equals(Path, "Runtime/Procedure", StringComparison.Ordinal) ||
+            string.Equals(Path, "Runtime/Flow", StringComparison.Ordinal);
         public bool IsServices => string.Equals(Path, "Framework/Services", StringComparison.Ordinal);
         public bool IsEvents => string.Equals(Path, "Framework/Events", StringComparison.Ordinal);
         public bool IsConsole => string.Equals(Path, "Console", StringComparison.Ordinal);

@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/ui-and-audio/index.md
-translation_source_hash: sha256:1119568e9d160eb54ecf5aff7337956a84f1e554344acc48b826010b0d5a4b56
+translation_source_hash: sha256:e71aec3627b6a571516ba48c82129f3dc420427489da083786a233a7b9bf516b
 ---
 
 # Organize Complex UI and Long-Lived Audio
@@ -78,28 +78,19 @@ Use `IsOpen`, `GetOpenCount`, `IsOpening`, and `GetOpeningCount` for game-state 
 
 ## 3. Give every UI instance an owner
 
-The flow or coordinator that opens UI retains its instance and closes what it created:
+The flow or coordinator that opens UI retains ownership and closes what it created. A Procedure can hand a `UiScope` directly to activation cleanup:
 
 ```csharp
-private IUiService? _ui;
-private Control? _hud;
-
 public async Task EnterAsync(ProcedureContext context)
 {
-    _ui = context.GetService<IUiService>();
-    _hud = _ui.Open(HudKey, UiLayer.Scene);
-}
-
-public Task ExitAsync(ProcedureContext context)
-{
-    if (_ui != null && _hud != null && GodotObject.IsInstanceValid(_hud))
-        _ui.Close(_hud);
-
-    _hud = null;
-    _ui = null;
-    return Task.CompletedTask;
+    IUiService ui = context.GetService<IUiService>();
+    UiScope<GameplayHud> hud = ui.OpenScoped<GameplayHud>(HudId);
+    context.RegisterCleanup(hud);
+    hud.View.Refresh();
 }
 ```
+
+Call `UiScope.Dispose()` only on Godot's main thread. It is idempotent and completes normally if another path already closed the interface. Owners outside a Procedure may still retain the node and clean it up symmetrically through `Close` or `TryClose`.
 
 Managed UI should exit through `Close()` or `TryGoBack()`, not direct `QueueFree()` or `RemoveChild()`. If an interface is freed externally, UiService removes the stale record on its next operation, restores the previous valid View, and releases an empty Modal Host. Direct removal or reparenting still bypasses normal ownership and back order. A covered View is hidden, not freed, so its state and memory remain. Avoid an indefinitely deep View stack.
 
@@ -139,7 +130,7 @@ catch (UiOpenException exception)
 }
 ```
 
-A missing Resource, non-Control root, instantiation failure, or tree attachment failure throws `UiOpenException`. Failure does not hide the current View or modify managed layer state.
+A missing Resource, non-Control root, instantiation failure, or tree attachment failure throws `UiOpenException`. `Phase` distinguishes Loading, Preparing, and Committing; recovery and logs should use this structured value instead of parsing messages. Failure does not hide the current View or modify managed layer state.
 
 Closing unmanaged UI, a non-top View, or a non-top Modal throws `InvalidOperationException`. This normally indicates broken ownership or ordering and should not be silently ignored.
 

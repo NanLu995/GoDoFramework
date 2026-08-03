@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://Templates/Demo3D/Result/ResultView.cs" id="1_result"]
 
 [node name="ResultView" type="Control"]
+process_mode = 3
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,6 +12,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_result")
 RetryButtonPath = NodePath("Center/Panel/Margin/VBox/RetryButton")
+ReturnToMenuButtonPath = NodePath("Center/Panel/Margin/VBox/ReturnToMenuButton")
 
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -50,3 +52,8 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "再玩一次"
+
+[node name="ReturnToMenuButton" type="Button" parent="Center/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "返回主菜单"

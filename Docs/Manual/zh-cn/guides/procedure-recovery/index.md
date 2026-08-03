@@ -30,7 +30,15 @@ public sealed class GameplayProcedure : IProcedure
 
 先完成最可能失败且不会污染现有状态的步骤，再提交后续状态。场景切换必须先于 Scene 层 UI，否则场景提交会清理刚打开的 UI。
 
-如果某一步成功后，后续步骤仍可能失败，Procedure 应在 `catch` 中清理自己已经创建的内容，再重新抛出，让 ProcedureService 包装为 `ProcedureChangeException`。
+如果某一步成功后，后续步骤仍可能失败，优先在成功后立即把同步资源登记给 Context；Enter 失败和正常退出都会逆序清理：
+
+```csharp
+UiScope<GameplayHud> hud = ui.OpenScoped<GameplayHud>(GameUi.GameplayHud);
+context.RegisterCleanup(hud);
+context.Events.On<PlayerQuitRequested>(OnPlayerQuitRequested);
+```
+
+长期异步工作使用 `context.LifetimeToken`，不必为每个 Procedure 重复维护 CancellationTokenSource。业务仍应在 Enter 内按“先验证、后提交”的顺序组织不可自动撤销的操作。
 
 ## 2. 对称退出且不依赖字段猜测
 
@@ -94,7 +102,7 @@ public Task EnterAsync(ProcedureContext context)
 
 UI 和场景脚本应发送玩家意图，由当前 Procedure 的协调对象调用 `RequestChange`。请求会在当前边界安全结束后串行处理。
 
-只保留最近一次请求，因此不要把它当作命令队列。请求执行失败会通过 ErrorHub 报告；重要业务数据用 `RequestChange(new ResultProcedure(data))` 显式传入实例。
+每次 Procedure 激活只接受第一次请求，因此不要把它当作命令队列。事件回调需要知道是否获胜时使用 `TryRequestChange`；后续请求返回 `false`，不会覆盖已经接受的目标。重要业务数据用 `TryRequestChange(new ResultProcedure(data))` 显式传入实例。
 
 ## 5. 防止按钮连点和并发切换
 
@@ -123,30 +131,23 @@ private async void OnStartPressed()
 
 ## 6. 管理取消和长期异步操作
 
-Procedure 自己创建 CancellationTokenSource，并在 Exit 中取消：
+使用 Context 提供的激活生命周期令牌：
 
 ```csharp
-private CancellationTokenSource? _lifetime;
-
 public async Task EnterAsync(ProcedureContext context)
 {
-    _lifetime = new CancellationTokenSource();
     ISchedulerService scheduler = context.GetService<ISchedulerService>();
-    await scheduler.DelayAsync(1.0, ScheduleOptions.RealTime, _lifetime.Token);
-}
-
-public Task ExitAsync(ProcedureContext context)
-{
-    _lifetime?.Cancel();
-    _lifetime?.Dispose();
-    _lifetime = null;
-    return Task.CompletedTask;
+    await scheduler.DelayAsync(1.0, ScheduleOptions.RealTime, context.LifetimeToken);
 }
 ```
 
 对预期取消单独处理 `OperationCanceledException`，不要当作资源损坏上报。进入尚未返回时不会同时调用该实例的 Exit，因此 Enter 内启动的后台式业务工作也必须有清晰所有者和异常观察方式。
 
 GoDoRuntime 关闭时，尚未完成的流程切换会以 `ProcedureChangeException` 结束，其 `InnerException` 为 `OperationCanceledException`；旧异步操作不会在关闭后重新写回 `Current`。
+
+延迟请求失败时，长期业务协调器可以订阅 `IProcedureService.RequestedChangeFailed`。通知发生在 `IsChanging` 复位后；直接 `ChangeAsync` 的失败和关闭取消不触发该事件，因此恢复逻辑可以明确尝试一次安全 Procedure，且不会因同一直接失败形成通知循环。订阅者必须按自身生命周期取消订阅。
+
+`ProcedureChangeException.Phase` 区分 Requesting、Exiting、Cleanup 和 Entering。恢复策略应同时检查 `Phase` 与 `Current`，不要解析错误消息文本。
 
 ## 7. 设计可诊断的小流程
 
@@ -166,4 +167,4 @@ GoDoRuntime 关闭时，尚未完成的流程切换会以 `ProcedureChangeExcept
 - Godot 退出时依赖 ExitAsync 保存：Runtime Shutdown 不调用业务退出，提前保存。
 - Procedure 变成巨大控制器：把具体玩法拆回业务服务和场景节点。
 
-精确接口可查询 <xref:GoDo.IProcedure>、<xref:GoDo.IProcedureService>、<xref:GoDo.ProcedureContext> 和 <xref:GoDo.ProcedureChangeException>。
+精确接口可查询 <xref:GoDo.IProcedure>、<xref:GoDo.IProcedureService>、<xref:GoDo.ProcedureContext>、<xref:GoDo.ProcedureChangePhase> 和 <xref:GoDo.ProcedureChangeException>。

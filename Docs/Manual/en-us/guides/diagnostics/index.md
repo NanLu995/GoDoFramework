@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:ca28a72fbdc5c9e00f45426d95908920c1160f09bd94dc2a0fd398a612ec739b
+translation_source_hash: sha256:7e6e1d5b83bf30ab9aac447276057a29792c546bc196361f92f21837e34c18b0
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
@@ -181,7 +181,7 @@ The DataTable page reports published data sets, cached tables, active loads, and
 
 The UI page reports the number of Scene-layer interfaces, View and Modal stack depths, and the current topmost View or Modal. Its list is ordered from top to bottom and shows each managed node, its opening resource key, and its visible or hidden state, making return-order and covered-View issues easy to inspect; an unusually deep stack renders only the top 64 entries. Missing UiService registration, custom implementations without snapshot support, and nodes released outside the service are shown explicitly. Resource keys for this page are recorded only in Debug builds.
 
-The Procedure page reports the current procedure, entering or exiting phase, and pending request. Details retain the previous procedure, latest success, and latest failure. A failure stores only one summary of at most 256 characters and does not retain the exception object; this diagnostic state is absent from Release builds.
+The Procedure page reports the current procedure, entering or exiting phase, pending request, and the target rejected by first-request arbitration. Details retain the previous procedure and the latest success and failure. The Flow page places key Procedure, Scene, and UI state in one view for cases where the flow changed but its scene or interface did not arrive. Failure summaries include structured phases, retain only bounded text, and never retain exception objects. This diagnostic state is absent from Release builds.
 
 The Console displays Debug, Info, Warning, Error, and Fatal entries as one chronological stream without a separate recent-errors heading. Its toolbar provides counted All, Debug, Info, Warning, and Error chips. All is selected by default. Click a level to show only that level, click additional levels to combine them, or click All to reset. Warning lines are yellow, while Error and Fatal lines are red. Search scans the complete in-memory history; when results span multiple pages, use Previous and Next, or click the separate Latest Logs button on the right to return directly to the final page and scroll to the bottom. While you remain on the latest page and refresh is not paused, new logs automatically follow the bottom. Scrolling upward stops following and enables Latest Logs; scrolling back to the bottom or clicking that button resumes following. Pause stops automatic refresh and scrolling. Copy copies only the plain text currently displayed by the active filters, search, and page. The search field captures input only after a click and releases focus when you submit the search or leave the Console. The filename beside the pagination status is clickable; on Windows it reveals and selects the active log in File Explorer. The file and pagination buttons share the same height. Hover the filename for the full path, write status, flushed size, cumulative dropped count, and failure reason.
 

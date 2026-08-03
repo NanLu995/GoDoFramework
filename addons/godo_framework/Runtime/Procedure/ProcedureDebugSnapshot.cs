@@ -10,6 +10,15 @@ internal enum ProcedureDebugPhase
     Entering,
 }
 
+internal enum ProcedureDebugResult
+{
+    None,
+    Succeeded,
+    Rejected,
+    LifecycleCanceled,
+    Failed,
+}
+
 internal readonly struct ProcedureDebugSnapshot
 {
     public string? CurrentName { get; }
@@ -18,7 +27,14 @@ internal readonly struct ProcedureDebugSnapshot
     public string? PendingName { get; }
     public ProcedureDebugPhase Phase { get; }
     public string? LastSucceededName { get; }
+    public ProcedureDebugPhase LastPhase { get; }
+    public ProcedureDebugResult LastResult { get; }
     public string? LastFailure { get; }
+    public string? LastRejectedRequestName { get; }
+    public string? LastRequestRejection { get; }
+    public ulong LastDurationMilliseconds { get; }
+    public bool HasActiveContext { get; }
+    public int CleanupCount { get; }
 
     public ProcedureDebugSnapshot(
         string? currentName,
@@ -27,7 +43,14 @@ internal readonly struct ProcedureDebugSnapshot
         string? pendingName,
         ProcedureDebugPhase phase,
         string? lastSucceededName,
-        string? lastFailure)
+        ProcedureDebugPhase lastPhase,
+        ProcedureDebugResult lastResult,
+        string? lastFailure,
+        string? lastRejectedRequestName,
+        string? lastRequestRejection,
+        ulong lastDurationMilliseconds,
+        bool hasActiveContext,
+        int cleanupCount)
     {
         CurrentName = currentName;
         PreviousName = previousName;
@@ -35,7 +58,14 @@ internal readonly struct ProcedureDebugSnapshot
         PendingName = pendingName;
         Phase = phase;
         LastSucceededName = lastSucceededName;
+        LastPhase = lastPhase;
+        LastResult = lastResult;
         LastFailure = lastFailure;
+        LastRejectedRequestName = lastRejectedRequestName;
+        LastRequestRejection = lastRequestRejection;
+        LastDurationMilliseconds = lastDurationMilliseconds;
+        HasActiveContext = hasActiveContext;
+        CleanupCount = cleanupCount;
     }
 }
 #endif

@@ -71,19 +71,19 @@ GoDoRuntime 不承载菜单、关卡、登录等具体游戏流程。业务场�
 | Foundation | ResourceHub | `ResourceKey`、语义资源注册表、同步/线程化加载、类型检查与请求合并 | Core、Godot ResourceLoader | 静态 API | 稳定基线 |
 | Foundation | NodePool | PackedScene 节点实例复用与显式重置生命周期 | Core、Godot Node | 实例 API | 稳定基线 |
 | Service | Scheduler | 三种时间语义、Process/Physics 阶段的一次性/重复回调与可取消异步等待 | Core、Godot Time 与 Node 生命周期 | `ISchedulerService` | 首版完成 |
-| Service | Scene | 主内容场景异步加载与安全替换 | ResourceHub、Core | `ISceneService` | 稳定基线 |
+| Service | Scene | 主内容场景异步加载、安全替换、单请求进度/取消与结构化失败阶段 | ResourceHub、Core | `ISceneService` | 稳定基线 |
 | Service | Camera | 主镜头 Rig 的语义注册、激活、恢复与场景生命周期清理 | Core、Godot Node | `ICameraService` | 首版完成 |
 | Service | Input | 语义 Action 当前帧快照、Context 栈、可选运行时重绑定/持久化、文本提示查询与可替换后端边界 | Core、Godot 值类型、`IInputBackend` | `IInputService` | 首版完成 |
 | Service | Audio | BGM、SFX 池与音量分组 | ResourceHub、NodePool、Core | `IAudioService` | 稳定基线 |
 | Service | Localization | TranslationServer 薄封装、语言有效性、翻译查询与变更通知 | Core、Godot TranslationServer | `ILocalizationService` | 首版完成 |
 | Service | DataTable | 业务显式触发的数据集 Manifest 校验、逐表加载、事务发布、缓存与卸载 | Core、Godot FileAccess、生成解码委托 | `IDataTableService` / 生成数据集门面 | 首版完成 |
-| Service | UI | 屏幕空间 UI 的四层显示、语义配置、同步/异步打开、查询关闭、返回栈、焦点与可选实例复用 | ResourceHub、Config、Core | `IUiService` | 首版完成 |
+| Service | UI | 屏幕空间 UI 的四层显示、语义配置、同步/异步打开、查询关闭、返回栈、焦点、限定作用域所有权与可选实例复用 | ResourceHub、Config、Core | `IUiService` / `UiScope<TView>` | 首版完成 |
 | Service | Save | 多槽位可靠容器、校验、备份和 Codec 边界 | Core、Godot FileAccess | `ISaveService` | 稳定基线 |
 | Service | Settings | 音量、Locale 选择与持久化、显示偏好 | Audio、Save、Localization、平台适配器 | `ISettingsService` | Windows 稳定基线（其他平台待验证，见上方图例） |
-| Service | Procedure | 顶层游戏流程阶段的串行切换与进入/退出生命周期 | Core、Services | `IProcedureService` | 首版完成 |
+| Service | Procedure | 顶层游戏流程阶段的串行切换、激活资源生命周期、首请求仲裁与可恢复失败通知 | Core、Services | `IProcedureService` / `ProcedureContext` | 首版完成 |
 | Foundation | Config | 强类型 Resource 校验与唯一键只读表 | ResourceHub | `ConfigHub` / `ConfigTable` | 稳定基线 |
 | Editor | Installer / Validator / Extension Host | GoDoRuntime Autoload 的显式安装、健康检查、ResourceManifest 只读校验，以及 Integrations / Tools 编辑器扩展的受控发现与菜单注册；DataTable 通过该宿主执行离线检查、全量生成、带基线保护的单表生成与目标导出过滤，CLI 另提供只读产物过期检查、语言无关 Manifest 兼容比较及校验后才启动 Godot 的可靠发布门禁 | Godot Editor API、通用扩展清单 | 顶部 `GoDo` 菜单 | 首版完成 |
-| Development | Debugger | Debug 构建的只读运行时仪表盘 | 各模块 Debug 快照 | GoDoRuntime 自动创建 | 稳定基线 |
+| Development | Debugger | Debug 构建的只读运行时仪表盘，含 Procedure / Scene / UI 联合 Flow 诊断 | 各模块 Debug 快照 | GoDoRuntime 自动创建 | 稳定基线 |
 
 模块的完整公共 API、失败语义、线程限制、性能注意事项和验证范围以各自 `USAGE.md` 为唯一详细来源。
 

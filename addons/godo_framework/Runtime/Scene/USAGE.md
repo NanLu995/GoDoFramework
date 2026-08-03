@@ -22,7 +22,7 @@ catch (SceneChangeException exception)
 }
 ```
 
-加载、类型检查、实例化或挂载失败时抛出 `SceneChangeException`，`Key` 保存目标 ResourceKey。失败发生在切换提交前时，旧场景保持不变。
+加载、类型检查、实例化或挂载失败时抛出 `SceneChangeException`，`Key` 保存目标 ResourceKey，`Phase` 标识 `Loading`、`Instantiating` 或 `Committing`。兼容旧构造函数产生 `Unknown`。失败发生在切换提交前时，旧场景保持不变。
 
 ## 状态与进度
 
@@ -53,7 +53,7 @@ if (scenes.IsChanging)
 
 ## 自动回归验证
 
-`Verification/Automated/SceneServiceRegression.tscn` 验证资源失败保留旧场景、并发拒绝、成功提交、离树立即取消、重新入树恢复、挂载期取消和取消后再次切换。当前共 5/5 组验证；测试目标场景只位于 `Verification/Automated/`，不进入框架发布包。
+`Verification/Automated/SceneServiceRegression.tscn` 验证资源失败保留旧场景、并发拒绝、成功提交、离树立即取消、重新入树恢复、挂载期取消、取消后再次切换和结构化失败阶段。测试目标场景只位于 `Verification/Automated/`，不进入框架发布包。
 
 ## 常见误用
 

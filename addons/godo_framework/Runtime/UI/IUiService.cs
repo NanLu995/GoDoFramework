@@ -64,6 +64,7 @@ public interface IUiService
     /// <exception cref="InvalidOperationException">配置未加载，或 Single 界面已经打开或正在打开。</exception>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">配置中不存在该标识。</exception>
     /// <exception cref="ResourceLoadException">无法启动资源异步加载。</exception>
+    /// <exception cref="UiOpenException">UI 无法异步加载、实例化、转换为目标类型或提交到配置层。</exception>
     /// <exception cref="OperationCanceledException">调用方或 UiService 取消请求，或 Scene 层请求在加载期间因主场景变更而过期。</exception>
     Task<TView> OpenAsync<TView>(
         UiId id,
@@ -72,7 +73,13 @@ public interface IUiService
         CancellationToken cancellationToken = default)
         where TView : Control;
 
-    /// <summary>在指定层打开 UI 界面。</summary>
+    /// <summary>在指定层同步加载并打开 UI 界面。</summary>
+    /// <param name="key">UI PackedScene 的资源键。</param>
+    /// <param name="layer">目标 UI 层。</param>
+    /// <returns>已加入指定 UI 层的 Control 根节点。</returns>
+    /// <exception cref="InvalidOperationException">UiService 尚未完成初始化。</exception>
+    /// <exception cref="ArgumentOutOfRangeException">层值未知。</exception>
+    /// <exception cref="UiOpenException">UI 无法加载、实例化或提交到目标层。</exception>
     Control Open(ResourceKey key, UiLayer layer);
 
     /// <summary>在指定层打开指定根节点类型的 UI，并在加入场景树前完成可选配置。</summary>
@@ -81,6 +88,7 @@ public interface IUiService
     /// <param name="layer">目标 UI 层。</param>
     /// <param name="configure">可选的挂载前配置；回调异常会原样传递，实例不会加入托管栈。</param>
     /// <returns>已加入指定 UI 层的强类型根节点。</returns>
+    /// <exception cref="InvalidOperationException">UiService 尚未完成初始化。</exception>
     /// <exception cref="ArgumentOutOfRangeException">层值未知。</exception>
     /// <exception cref="UiOpenException">UI 无法加载、实例化、转换为目标类型或挂载。</exception>
     TView Open<TView>(ResourceKey key, UiLayer layer, Action<TView>? configure = null)
@@ -95,7 +103,9 @@ public interface IUiService
     /// <param name="cancellationToken">取消当前 UI 打开请求；不会取消 ResourceHub 中可能共享的底层资源加载。</param>
     /// <returns>最终返回已挂载强类型 UI 的任务。</returns>
     /// <exception cref="ArgumentOutOfRangeException">层值未知。</exception>
+    /// <exception cref="InvalidOperationException">UiService 尚未完成初始化。</exception>
     /// <exception cref="ResourceLoadException">无法启动资源异步加载。</exception>
+    /// <exception cref="UiOpenException">UI 无法异步加载、实例化、转换为目标类型或提交到目标层。</exception>
     /// <exception cref="OperationCanceledException">调用方或 UiService 取消请求，或 Scene 层请求在加载期间因主场景变更而过期。</exception>
     Task<TView> OpenAsync<TView>(
         ResourceKey key,
