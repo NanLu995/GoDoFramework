@@ -2237,7 +2237,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             _overviewAudioValue.Text = audio.IsBgmLoading
                 ? "加载中"
                 : audio.IsBgmPlaying ? "播放中" : "已停止";
-            _overviewAudioDetail.Text = $"SFX {audio.ActiveSfxCount}/{audio.MaxSfxVoices}";
+            _overviewAudioDetail.Text =
+                $"SFX {audio.ActiveSfxCount}+{audio.PendingSfxCount}/{audio.MaxSfxVoices}";
         }
         else
         {
@@ -3884,24 +3885,50 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         }
 
         ResourceKey? currentBgm = audio.CurrentBgm;
-        _audioBgmStateValue.Text = audio.IsBgmLoading
-            ? "加载中"
-            : audio.IsBgmPlaying
-                ? "播放中"
-                : currentBgm.HasValue ? "已加载" : "已停止";
-        _audioBgmStateDetail.Text = currentBgm.HasValue
-            ? audio.IsBgmPlaying ? "播放器活跃" : "当前未播放"
-            : "没有 BGM";
+        _audioBgmStateValue.Text = audio.BgmState switch
+        {
+            BgmPlaybackState.Stopped => "已停止",
+            BgmPlaybackState.Loading => "加载中",
+            BgmPlaybackState.Playing => "播放中",
+            BgmPlaybackState.Paused => "已暂停",
+            BgmPlaybackState.Transitioning => "过渡中",
+            BgmPlaybackState.Ended => "已结束",
+            _ => "未知",
+        };
+        _audioBgmStateDetail.Text = audio.BgmState switch
+        {
+            BgmPlaybackState.Loading => currentBgm.HasValue ? "旧音乐继续播放" : "等待首次播放",
+            BgmPlaybackState.Transitioning => "双播放器交叉淡化",
+            BgmPlaybackState.Paused => "播放器与过渡均暂停",
+            BgmPlaybackState.Playing => "播放器活跃",
+            BgmPlaybackState.Ended => "资源保留，播放已结束",
+            _ => "没有 BGM",
+        };
 
         string bgmResource = currentBgm?.Value ?? "无";
         _audioBgmResourceValue.Text = bgmResource;
         _audioBgmResourceValue.TooltipText = currentBgm?.Value ?? string.Empty;
 
         int activeSfx = audio.ActiveSfxCount;
+        int pendingSfx = audio.PendingSfxCount;
         int maxSfx = audio.MaxSfxVoices;
-        _audioSfxValue.Text = $"{activeSfx}/{maxSfx}";
+        int activeSfx3D = audio.ActiveSfx3DCount;
+        int pendingSfx3D = audio.PendingSfx3DCount;
+        int maxSfx3D = audio.MaxSfx3DVoices;
+        int followingSfx3D = audio.FollowingSfx3DCount;
+        int maxFollowingSfx3D = audio.MaxFollowingSfx3DVoices;
+        _audioSfxValue.Text = $"{activeSfx}/{maxSfx} · 3D {activeSfx3D}/{maxSfx3D}";
         _audioSfxDetail.Text = maxSfx > 0
-            ? $"占用 {Mathf.RoundToInt(activeSfx * 100f / maxSfx).ToString(CultureInfo.InvariantCulture)}%"
+            ? $"非空间占用 {Mathf.RoundToInt((activeSfx + pendingSfx) * 100f / maxSfx).ToString(CultureInfo.InvariantCulture)}% · " +
+              $"等待 {pendingSfx.ToString(CultureInfo.InvariantCulture)} · " +
+              $"已准备 {audio.PreparedSfxVoiceCount.ToString(CultureInfo.InvariantCulture)} · " +
+              $"拒绝 {audio.RejectedSfxCount.ToString(CultureInfo.InvariantCulture)} · " +
+              $"抢占 {audio.PreemptedSfxCount.ToString(CultureInfo.InvariantCulture)}\n" +
+              $"3D 等待 {pendingSfx3D.ToString(CultureInfo.InvariantCulture)} · " +
+              $"跟随 {followingSfx3D.ToString(CultureInfo.InvariantCulture)}/{maxFollowingSfx3D.ToString(CultureInfo.InvariantCulture)} · " +
+              $"已准备 {audio.PreparedSfx3DVoiceCount.ToString(CultureInfo.InvariantCulture)} · " +
+              $"拒绝 {audio.RejectedSfx3DCount.ToString(CultureInfo.InvariantCulture)} · " +
+              $"抢占 {audio.PreemptedSfx3DCount.ToString(CultureInfo.InvariantCulture)}"
             : "容量未配置";
 
         SetAudioVolume(_audioMasterVolumeValue, audio.GetVolume(AudioGroup.Master));

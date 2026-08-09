@@ -132,6 +132,8 @@ public sealed partial class DebuggerOverlayRegression : Node
                 audioDashboard.GetNode<Label>("Content/BgmCard/Content/Value");
             Label audioSfx =
                 audioDashboard.GetNode<Label>("Content/PlaybackGrid/SfxCard/Content/Value");
+            Label audioSfxDetail =
+                audioDashboard.GetNode<Label>("Content/PlaybackGrid/SfxCard/Content/Detail");
             Label audioMasterVolume =
                 audioDashboard.GetNode<Label>("Content/VolumeGrid/MasterCard/Content/Value");
             Label audioBgmVolume =
@@ -927,6 +929,12 @@ public sealed partial class DebuggerOverlayRegression : Node
                 audioBgmState.Text.Length > 0 &&
                 audioBgmResource.Text.Length > 0 &&
                 audioSfx.Text.Contains("/", StringComparison.Ordinal) &&
+                audioSfx.Text.Contains("3D", StringComparison.Ordinal) &&
+                audioSfxDetail.Text.Contains("已准备", StringComparison.Ordinal) &&
+                audioSfxDetail.Text.Contains("等待", StringComparison.Ordinal) &&
+                audioSfxDetail.Text.Contains("跟随", StringComparison.Ordinal) &&
+                audioSfxDetail.Text.Contains("拒绝", StringComparison.Ordinal) &&
+                audioSfxDetail.Text.Contains("抢占", StringComparison.Ordinal) &&
                 IsPercentage(audioMasterVolume.Text) &&
                 IsPercentage(audioBgmVolume.Text) &&
                 IsPercentage(audioSfxVolume.Text),
@@ -1553,10 +1561,34 @@ public sealed partial class DebuggerOverlayRegression : Node
             throw new InvalidOperationException(nameof(ThrowingAudioService));
         public bool IsBgmPlaying => false;
         public bool IsBgmLoading => false;
+        public BgmPlaybackState BgmState => BgmPlaybackState.Stopped;
         public int ActiveSfxCount => 0;
+        public int PendingSfxCount => 0;
+        public int PreparedSfxVoiceCount => 0;
         public int MaxSfxVoices => 0;
+        public long RejectedSfxCount => 0;
+        public long PreemptedSfxCount => 0;
+        public int ActiveSfx3DCount => 0;
+        public int PendingSfx3DCount => 0;
+        public int PreparedSfx3DVoiceCount => 0;
+        public int MaxSfx3DVoices => 0;
+        public int FollowingSfx3DCount => 0;
+        public int MaxFollowingSfx3DVoices => 0;
+        public long RejectedSfx3DCount => 0;
+        public long PreemptedSfx3DCount => 0;
 
         public Task PlayBgmAsync(ResourceKey key, bool restart = false) =>
+            Task.CompletedTask;
+
+        public Task CrossfadeBgmAsync(
+            ResourceKey key,
+            double durationSeconds,
+            System.Threading.CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task FadeOutBgmAsync(
+            double durationSeconds,
+            System.Threading.CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
         public void PauseBgm()
@@ -1573,6 +1605,51 @@ public sealed partial class DebuggerOverlayRegression : Node
 
         public Task<bool> PlaySfxAsync(ResourceKey key) =>
             Task.FromResult(false);
+
+        public Task<bool> PlaySfxAsync(
+            ResourceKey key,
+            float volumeLinear,
+            float pitchScale = 1f) =>
+            Task.FromResult(false);
+
+        public Task<SfxPlaybackResult> PlaySfxAsync(
+            ResourceKey key,
+            SfxPlaybackOptions options) =>
+            Task.FromResult(new SfxPlaybackResult());
+
+        public Task PrepareSfxAsync(
+            ResourceKey key,
+            System.Threading.CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public int PrewarmSfxVoices(int targetVoiceCount) => 0;
+
+        public Task<Sfx3DPlaybackResult> PlaySfx3DAsync(
+            ResourceKey key,
+            Vector3 globalPosition,
+            Sfx3DPlaybackOptions options) =>
+            Task.FromResult(new Sfx3DPlaybackResult());
+
+        public Task<Sfx3DPlaybackResult> PlaySfx3DFollowAsync(
+            ResourceKey key,
+            Node3D target,
+            Vector3 localOffset,
+            Sfx3DPlaybackOptions options) =>
+            Task.FromResult(new Sfx3DPlaybackResult());
+
+        public int PrewarmSfx3DVoices(int targetVoiceCount) => 0;
+
+        public bool IsSfx3DPlaying(Sfx3DPlaybackHandle handle) => false;
+
+        public bool TryStopSfx3D(Sfx3DPlaybackHandle handle) => false;
+
+        public void StopAllSfx3D()
+        {
+        }
+
+        public bool IsSfxPlaying(SfxPlaybackHandle handle) => false;
+
+        public bool TryStopSfx(SfxPlaybackHandle handle) => false;
 
         public void StopAllSfx()
         {

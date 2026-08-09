@@ -1,6 +1,6 @@
 # 组织复杂 UI 与长期音频
 
-UiService 管理屏幕空间 `Control` 的层级、实例和返回顺序；AudioService 管理非空间 BGM、短音效和分组音量。两者都由 GoDoRuntime 长期持有，因此主场景切换不会释放 View、Modal 或正在播放的音乐。
+UiService 管理屏幕空间 `Control` 的层级、实例和返回顺序；AudioService 管理非空间 BGM、非空间/3D 短音效和分组音量。两者都由 GoDoRuntime 长期持有，因此主场景切换不会释放 View、Modal 或正在播放的音乐。
 
 业务层仍负责界面内容、输入优先级、暂停策略、动画和具体音频资源选择。
 
@@ -156,12 +156,54 @@ catch (AudioPlaybackException exception)
 
 `PauseBgm()` 和 `ResumeBgm()` 只影响当前 BGM，不会暂停 SFX 或 SceneTree。暂停菜单是否暂停音乐由游戏设计决定。
 
+需要平滑切换时，使用独立的 Crossfade API，而不是改变现有立即切换调用的语义：
+
+```csharp
+using CancellationTokenSource transitionCancellation = new();
+
+try
+{
+    await audio.CrossfadeBgmAsync(
+        GameAudio.GameplayTheme,
+        durationSeconds: 0.5d,
+        cancellationToken: transitionCancellation.Token);
+}
+catch (OperationCanceledException)
+{
+    // 调用方取消、StopBgm、框架退出，或更新的播放请求取代了本次过渡。
+}
+```
+
+目标资源加载期间旧音乐继续播放；加载完成后两台长期播放器使用等功率曲线交叉淡化。过渡时间不受 `Engine.TimeScale` 影响，但仍遵循 AudioService 所在场景树的暂停状态。更新的 Crossfade 请求以最新请求为准，旧任务收到 `OperationCanceledException`；若淡化已经开始，服务保留当时音量较高的一路，避免完全静音。现有 `PlayBgmAsync` 在任何 BGM 请求执行期间仍会拒绝并发调用。
+
+`BgmState` 可区分加载、播放、暂停、过渡、自然结束和完全停止。正常 Crossfade 完成前，`CurrentBgm` 仍表示已经提交的旧音乐；完成后才切换到目标键。`PauseBgm()` 会同时暂停两路播放器和过渡进度，`StopBgm()` 会取消请求并清空两路。
+
+需要平滑进入无 BGM 状态时不要自行循环修改 Bus 音量，直接淡出当前音乐：
+
+```csharp
+try
+{
+    await audio.FadeOutBgmAsync(
+        durationSeconds: 0.5d,
+        cancellationToken: context.LifetimeToken);
+}
+catch (OperationCanceledException)
+{
+    // 当前流程结束，或更新的 Crossfade/FadeOut 取代了本次淡出。
+}
+```
+
+FadeOut 完成后状态为 `Stopped` 且 `CurrentBgm` 为空；没有当前音乐时直接完成。调用方取消已经开始的淡出时，当前音乐恢复正常音量继续播放。新的 Crossfade 或 FadeOut 会取消旧过渡并接管后续状态。
+
 ## 7. 正确处理短音效容量
 
 ```csharp
 try
 {
-    bool played = await audio.PlaySfxAsync(GameAudio.ButtonClick);
+    bool played = await audio.PlaySfxAsync(
+        GameAudio.ButtonClick,
+        volumeLinear: 0.75f,
+        pitchScale: 1.05f);
     if (!played)
         LogHub.Debug("SFX capacity reached.", "Game.Audio");
 }
@@ -176,11 +218,92 @@ catch (AudioPlaybackException exception)
 
 `false` 表示并发 Voice 已满，是正常容量分支，不是资源损坏。默认预热 8 路、最大 32 路；加载中的请求也会预占名额，防止同时完成后突破上限。
 
+省略逐次参数时音量和音高倍率均为 1。`volumeLinear` 必须是 0–1 的有限值，`pitchScale` 必须是有限正数并会同时改变音高与播放速度；无效参数在加载资源和预占容量前抛出 `ArgumentOutOfRangeException`。这些值只影响本次播放，Voice 回收后会恢复默认值。随机音高或音量的规则属于具体游戏逻辑，应由业务层生成后传入。
+
+### 在进入大型战斗前准备资源和 Voice
+
+把确定会使用的音效资源加载和播放器实例化放进副本加载流程，而不是等第一轮技能同时触发：
+
+```csharp
+await Task.WhenAll(
+    audio.PrepareSfxAsync(GameAudio.PlayerHit, loadingToken),
+    audio.PrepareSfxAsync(GameAudio.RemoteExplosion, loadingToken),
+    audio.PrepareSfxAsync(GameAudio.CriticalWarning, loadingToken));
+
+int createdVoices = audio.PrewarmSfxVoices(32);
+int created3DVoices = audio.PrewarmSfx3DVoices(32);
+```
+
+`PrepareSfxAsync` 复用 ResourceHub 与 Godot Resource 缓存，不建立第二套 Audio 缓存，也不占用活动或待加载 Voice 容量。调用方取消只停止当前等待，共享的底层加载可能继续；`StopAllSfx()` 不取消资源准备，AudioService 退出会取消等待。加载失败或资源不是 AudioStream 时抛出 `AudioPlaybackException`。
+
+`PrewarmSfxVoices` 在主线程同步实例化非空间 Voice；`PrewarmSfx3DVoices` 预热独立的 3D Voice 池。两者都返回本次新增数量，活动与空闲 Voice 都计入对应的 Prepared 数量，重复或更小目标不会重复创建，也不会缩池。预热目标不能超过各自 Max 容量；实例化会增加加载阶段耗时和常驻对象，应在加载界面调用，不要放进战斗帧。
+
 `StopAllSfx()` 会立即归还活动 Voice 并释放待加载请求预占的逻辑容量。旧等待方会在共享底层加载完成后以 `OperationCanceledException` 结束，不会减少新一代请求的容量计数。
 
-自然播放结束的非循环音效会自动归还池。循环 AudioStream 不会触发 Finished，当前 public API 没有单路 SFX Handle；必须用 `StopAllSfx()` 统一停止，或对需要独立控制的循环/空间声音直接使用业务层 `AudioStreamPlayer`、`AudioStreamPlayer2D/3D`。
+### 处理大型战斗的突发音效
 
-不要用全局 SFX 播放脚步、发动机或环境循环等需要单独停止和定位的声音。
+不要通过盲目提高 Voice 上限或排队播放来处理同帧爆发。为可丢弃的声音设置较低优先级和同资源上限，让关键提示在容量满时显式抢占：
+
+```csharp
+SfxPlaybackResult result = await audio.PlaySfxAsync(
+    GameAudio.RemoteExplosion,
+    new SfxPlaybackOptions(
+        volumeLinear: 0.7f,
+        pitchScale: 1f,
+        priority: SfxPriority.Low,
+        maxConcurrentPerKey: 4,
+        allowStealLowerPriority: false));
+
+if (result.Status == SfxPlaybackStatus.GlobalCapacityReached ||
+    result.Status == SfxPlaybackStatus.PerKeyLimitReached)
+{
+    // 正常丢弃，不排队补播。
+}
+```
+
+玩家技能确认或关键警告可以使用 `High` / `Critical` 并启用 `allowStealLowerPriority`。容量满时，AudioService 只选择更低优先级候选，先淘汰最低优先级，再淘汰其中最早提交的一路；活动 Voice 与仍在加载的请求都参与。旧 bool API 的请求按 `Normal` 参与统一仲裁，因此也可能被高级请求取代：尚未开始的旧请求返回 `false`，已经播放的声音提前停止。
+
+`maxConcurrentPerKey` 同时统计相同资源的活动和待加载数量，适合限制爆炸、碰撞等重复声音。它不能替代距离截止；极端战斗仍可由业务按 Listener 距离跳过明显不可听请求。
+
+成功结果提供 `SfxPlaybackHandle`。循环 AudioStream 不会自然触发 Finished，应保存 Handle 并调用 `TryStopSfx(handle)`；自然结束、停止、被抢占或服务退出后，`IsSfxPlaying(handle)` 和重复停止都返回 `false`。`StopAllSfx()` 仍用于流程退出时的统一清理。
+
+### 播放静态世界坐标 3D 音效
+
+爆炸、命中点和落地声可以提交世界坐标，并显式给出最大可听距离：
+
+```csharp
+Sfx3DPlaybackResult result = await audio.PlaySfx3DAsync(
+    GameAudio.RemoteExplosion,
+    explosion.GlobalPosition,
+    new Sfx3DPlaybackOptions(
+        maxDistance: 80f,
+        unitSize: 8f,
+        volumeLinear: 0.8f,
+        priority: SfxPriority.Low,
+        maxConcurrentPerKey: 8));
+
+if (result.Started)
+{
+    // 循环流或需要提前终止时保存 Handle。
+    audio.TryStopSfx3D(result.Handle);
+}
+```
+
+`MaxDistance` 和 `UnitSize` 必须是有限正数。最大距离让 Godot 在 Listener 超距后停止混音，不能省略为无界值；衰减听感同时取决于 `AttenuationModel`。3D 池与非空间池分别维护容量、预热、拒绝和抢占统计，不会互相抢占。资源仍通过同一个 `PrepareSfxAsync` 准备。
+
+短促的爆炸、命中和脚步应继续使用静态坐标，避免持续同步成本。移动发动机声、持续技能等确实需要追随目标的声音可以使用跟随入口：
+
+```csharp
+Sfx3DPlaybackResult engineLoop = await audio.PlaySfx3DFollowAsync(
+    GameAudio.VehicleEngine,
+    vehicle,
+    new Vector3(0f, 0.5f, -1f),
+    new Sfx3DPlaybackOptions(maxDistance: 60f, unitSize: 4f));
+```
+
+跟随位置按固定物理帧更新，不按渲染帧更新；没有活动跟随 Voice 时 AudioService 会关闭这条物理更新。`MaxFollowingSfx3DVoices` 是独立硬预算，默认 16 且不能高于 `MaxSfx3DVoices`；活动与待加载跟随请求达到上限时返回 `FollowCapacityReached`。目标提交时必须位于场景树中，加载期间失效返回 `TargetUnavailableBeforeStart`，播放中离树或删除则自动停止。循环声仍需保存 Handle，并在业务所有权结束时主动停止。
+
+Viewport 必须有活动的 `Camera3D` 或 `AudioListener3D`。使用 `TryStopSfx3D`、`IsSfx3DPlaying` 和 `StopAllSfx3D` 管理独立 3D Handle 与池；这些方法不会停止非空间 SFX。
 
 ## 8. 音量、设置与 Audio Bus
 
@@ -199,8 +322,8 @@ audio.SetVolume(AudioGroup.Sfx, settings.SfxVolume);
 - `GoDoUI`、AudioService 和播放器位于 CurrentScene 之外。
 - 场景成功切换会清理 Scene UI，但保留 View、Modal 和音频。
 - 流程退出时显式清理自己拥有的 View/Modal；不要清空其他系统页面。
-- AudioService 退出时停止 BGM、取消加载并释放 SFX 池。
-- `StopAllSfx()` 会归还活动 Voice，并取消尚未完成的 SFX 请求。
+- AudioService 退出时停止两路 BGM、取消加载和过渡，并释放非空间与 3D SFX 池。
+- `StopAllSfx()` 与 `StopAllSfx3D()` 分别归还各自活动 Voice，并取消对应的待加载请求。
 
 所有 UI 和 Audio public API 都只能从 Godot 主线程调用。打开界面和首次音频加载不应放在每帧路径。
 
@@ -211,9 +334,12 @@ audio.SetVolume(AudioGroup.Sfx, settings.SfxVolume);
 - View 跨场景意外保留：这是默认语义，拥有它的流程必须显式关闭。
 - 直接 QueueFree 后界面顺序异常：继续使用 UiService 会清理失效记录，但业务仍应通过 Close/TryGoBack 维持明确所有权。
 - BGM 请求偶尔被拒绝：上一项 BGM 仍在加载，流程没有串行等待。
-- SFX 返回 false：并发容量已满，可跳过非关键声音或调整设计。
-- 循环 SFX 永不归还：循环流不会自然 Finished，改用可独立管理的业务播放器。
+- Crossfade 任务被取消：更新的播放请求取代了它，或调用方/Stop/框架生命周期发出了取消；按流程所有权处理，不要当作资源损坏。
+- SFX 返回 false：兼容入口容量已满，或其待加载预占被高级请求取代；可跳过非关键声音。需要区分原因时使用结构化受控入口。
+- 第一次大规模 SFX 仍然卡顿：在副本加载流程调用 `PrepareSfxAsync`，并把非空间/3D Voice 分别预热到实测预算；不要仅提高最大容量。
+- 循环 SFX 永不归还：循环流不会自然 Finished，保存成功结果的 Handle 并在所有权结束时调用 `TryStopSfx`。
 - 重启后音量恢复默认：只调用 SetVolume 没有通过 SettingsService 保存。
-- 空间声音听起来没有位置：AudioService 只负责非空间音频。
+- 3D 声音听起来没有位置：确认使用 `PlaySfx3DAsync` 或 `PlaySfx3DFollowAsync`、Viewport 有活动 Listener，且坐标、`UnitSize`、`MaxDistance` 与游戏世界尺度匹配。
+- 移动物体的 3D 声音留在旧位置：静态入口只采样提交时坐标；持续移动声应使用 `PlaySfx3DFollowAsync`，并确认请求没有因跟随预算或目标生命周期被拒绝。
 
-精确接口可查询 <xref:GoDo.IUiService>、<xref:GoDo.UiLayer>、<xref:GoDo.UiOpenException>、<xref:GoDo.IAudioService>、<xref:GoDo.AudioGroup> 和 <xref:GoDo.AudioPlaybackException>。
+精确接口可查询 <xref:GoDo.IUiService>、<xref:GoDo.UiLayer>、<xref:GoDo.UiOpenException>、<xref:GoDo.IAudioService>、<xref:GoDo.BgmPlaybackState>、<xref:GoDo.SfxPlaybackOptions>、<xref:GoDo.SfxPlaybackResult>、<xref:GoDo.SfxPlaybackHandle>、<xref:GoDo.Sfx3DPlaybackOptions>、<xref:GoDo.Sfx3DPlaybackResult>、<xref:GoDo.Sfx3DPlaybackHandle>、<xref:GoDo.AudioGroup> 和 <xref:GoDo.AudioPlaybackException>。

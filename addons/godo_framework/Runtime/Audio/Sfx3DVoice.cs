@@ -5,10 +5,10 @@ using Godot;
 
 namespace GoDo;
 
-/// <summary>NodePool 管理的单路非空间音效播放器。</summary>
-public sealed partial class SfxVoice : AudioStreamPlayer, IPoolable
+/// <summary>NodePool 管理的单路 3D 空间音效播放器。</summary>
+public sealed partial class Sfx3DVoice : AudioStreamPlayer3D, IPoolable
 {
-    internal event Action<SfxVoice>? PlaybackFinished;
+    internal event Action<Sfx3DVoice>? PlaybackFinished;
 
     /// <inheritdoc />
     public void OnAcquire()
@@ -18,6 +18,11 @@ public sealed partial class SfxVoice : AudioStreamPlayer, IPoolable
         StreamPaused = false;
         VolumeLinear = 1f;
         PitchScale = 1f;
+        AttenuationModel = AttenuationModelEnum.InverseDistance;
+        UnitSize = 10f;
+        MaxDistance = 0f;
+        DopplerTracking = DopplerTrackingEnum.Disabled;
+        EmissionAngleEnabled = false;
         Finished += OnFinished;
     }
 
@@ -33,11 +38,15 @@ public sealed partial class SfxVoice : AudioStreamPlayer, IPoolable
 
     internal void PlayStream(
         AudioStream stream,
-        float volumeLinear,
-        float pitchScale)
+        Vector3 globalPosition,
+        Sfx3DPlaybackOptions options)
     {
-        VolumeLinear = volumeLinear;
-        PitchScale = pitchScale;
+        GlobalPosition = globalPosition;
+        MaxDistance = options.MaxDistance;
+        UnitSize = options.UnitSize;
+        VolumeLinear = options.VolumeLinear;
+        PitchScale = options.PitchScale;
+        AttenuationModel = options.AttenuationModel;
         Stream = stream ?? throw new ArgumentNullException(nameof(stream));
         Play();
     }

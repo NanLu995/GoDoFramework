@@ -74,7 +74,7 @@ GoDoRuntime 不承载菜单、关卡、登录等具体游戏流程。业务场�
 | Service | Scene | 主内容场景异步加载、安全替换、单请求进度/取消与结构化失败阶段 | ResourceHub、Core | `ISceneService` | 稳定基线 |
 | Service | Camera | 主镜头 Rig 的语义注册、激活、恢复与场景生命周期清理 | Core、Godot Node | `ICameraService` | 首版完成 |
 | Service | Input | 语义 Action 当前帧快照、Context 栈、可选运行时重绑定/持久化、文本提示查询与可替换后端边界 | Core、Godot 值类型、`IInputBackend` | `IInputService` | 首版完成 |
-| Service | Audio | BGM、SFX 池与音量分组 | ResourceHub、NodePool、Core | `IAudioService` | 稳定基线 |
+| Service | Audio | 立即切换、双播放器交叉淡化或淡出到静音的 BGM；共享 ResourceHub 准备、分别使用独立 Voice 池/容量/预热/Handle/突发准入的非空间 SFX 与 3D SFX；3D 支持静态世界坐标及带独立硬预算、固定物理帧更新和空闲停更的 Node3D 跟随；音量分组 | ResourceHub、NodePool、Core | `IAudioService` | 稳定基线；跟随扩展待真实项目/跨平台验证 |
 | Service | Localization | TranslationServer 薄封装、语言有效性、翻译查询与变更通知 | Core、Godot TranslationServer | `ILocalizationService` | 首版完成 |
 | Service | DataTable | 业务显式触发的数据集 Manifest 校验、逐表加载、事务发布、缓存与卸载 | Core、Godot FileAccess、生成解码委托 | `IDataTableService` / 生成数据集门面 | 首版完成 |
 | Service | UI | 屏幕空间 UI 的四层显示、语义配置、同步/异步打开、查询关闭、返回栈、焦点、限定作用域所有权与可选实例复用 | ResourceHub、Config、Core | `IUiService` / `UiScope<TView>` | 首版完成 |

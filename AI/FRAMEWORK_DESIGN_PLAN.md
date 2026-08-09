@@ -64,7 +64,7 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 | Scene | 稳定基线 | 只管理主内容场景切换，不承担 UI 栈；已提供单请求进度/取消与 Loading / Instantiating / Committing 失败阶段 |
 | Camera | 首版完成 | 已完成主镜头注册、激活、恢复、跨场景同 ID 与 Phantom 优先级适配；第二视角 / 小地图 SubViewport 输出已列入后续设计，需先以真实 2D / 3D 场景确定所有权与更新语义 |
 | Input | 首版完成 | 已完成语义 ID、零分配 Frame、Context 栈、GUIDE 适配、设备检测、运行时改键、SaveService 持久化、文本提示查询与 Demo3D 真实 Profile；Windows 真实手柄与窗口失焦验收通过，其他平台待验证 |
-| Audio | 稳定基线 | 当前为单路 BGM、非空间 SFX 池和音量分组；保持现有立即切换兼容语义，后续单独设计 BGM 淡入淡出与双播放器 Crossfade |
+| Audio | 稳定基线 | 当前为双路 BGM、可取消等功率 Crossfade、淡出到静音，以及共享 ResourceHub 准备、分别使用独立 Voice 池/预算/预热/Handle/突发准入的非空间 SFX 与 3D SFX；3D 已支持静态坐标和带独立硬上限、固定物理帧同步、空闲停更的 Node3D 跟随，AudioStreamPlayer2D 后置；跟随扩展待真实项目与跨平台验证 |
 | Save | 稳定基线 | 可靠容器与 Codec 边界；不包含云存档、自动 JSON 或加密承诺 |
 | Settings | Windows 稳定基线 | 移动端真机验证后置；不包含键位、画质预设或云同步 |
 | Localization | 首版完成 | 复用 TranslationServer、PO/CSV、复数、上下文、回退与伪本地化；动态语言包后置 |
@@ -178,7 +178,7 @@ Timer 的真实缺口已经确认：业务需要统一的一次性/重复延迟�
 1. **Scheduler 真实项目验证**：首版实现、自动回归、性能基准、Windows Demo3D 人工验收和 Windows Headless 10 FPS 持续低帧验证已完成；真实项目长期体验与跨平台行为继续随游戏开发验证，不阻塞当前首版。详细边界见 `Docs/SchedulerServiceDesign.md`。
 2. **独立核心示例**：核心包已通过临时干净项目验证；是否新增可直接打开的独立核心示例，等待当前代码梳理后决定。
 3. **DataTable**：阶段 A / B 实验原型已完成 CSV 校验、强类型代码生成、紧凑 v2 二进制、损坏文件拒绝、Godot Zstd 候选、确定性报告与 Windows Debug / ExportRelease IL/JIT 对比；阶段 C.1 至 C.6 已提供可分发 Python 编译前端、单一 Schema、整套 `generate` / 不写入的 `check`、安全单表生成、只读 `verify-generated`、Client / Server audience 隔离产物、ExportPlugin 过滤、可靠发布包装命令，以及面向非 Godot 服务端的语言无关 Manifest 契约与兼容比较。C.7 已新增业务显式触发的 `IDataTableService`、生成数据集门面、表级进度、事务发布、缓存和卸载；Windows 完整 ExportRelease 可执行文件回归与 10 万行峰值内存验证通过，首版完成。`Auto` 当前只建议并保守选择未压缩；真实业务长期体验和移动端/AOT 随目标项目继续验证，加密、热更新与 v3 分块格式后置。
-4. **Audio BGM 过渡**：保留现有 `PlayBgmAsync` 立即切换行为，后续设计可取消的淡入淡出与双播放器 Crossfade；实现前确认并发请求、暂停、Stop 和场景树退出语义。
+4. **Audio 空间 SFX**：静态世界坐标 3D SFX 已完成独立容量、预热、Handle、距离衰减参数和共享突发准入规则；移动 Node3D 跟随采用独立 16/32 默认硬预算、固定物理帧同步和空闲停更，并通过 Windows Godot 4.7.1 Headless 生命周期回归与 8/16/32 路零托管分配热路径基准。真实副本素材、目标设备长期性能、2D 对称线路和其他平台行为继续分批验证。
 5. **Camera 第二视角输出**：以真实小地图或监控画面为输入，先确认 2D / 3D、SubViewport 所有权、渲染层、分辨率和更新频率，再决定是否存在值得进入 Camera public API 的通用缺口。
 
 Input 的活动设备、有效 Context 和 Action 当前值已通过 Debug-only 快照接入 Debugger；提示查询作为后端可选能力显式暴露，不把图标或具体 UI 样式加入框架。Windows Demo3D 已通过真实手柄、设备切换、拔插后键盘切换、改键持久化、恢复默认与窗口失焦人工验收；其他平台和真实项目长期渲染/物理时序继续随开发验证。

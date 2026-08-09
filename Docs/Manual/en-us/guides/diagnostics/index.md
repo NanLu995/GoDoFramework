@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:41fe87716381f6f8470eb8b6ce9ea42d30711189f166f577df65e778f5ede818
+translation_source_hash: sha256:196d24bf000f4b9dd4ddb71d5118329be6e584635296d61ae05f94dda76426ca
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
@@ -173,7 +173,7 @@ The Events page summarizes event types and listener counts. Its search field mat
 
 The Input page uses status cards for the current backend, active device, sample sequence, and Action count, followed by separate Context-stack and Action-state tables. The sequence normally increases after each successful per-frame sample, remains unchanged after a failed sample, and resets when the backend is reinstalled or the service shuts down. Action rows include value type, current value, and just-pressed/just-released edges. Search filters the complete snapshot by Action name or value type and renders at most the first 32 matches.
 
-The Audio page reports whether BGM is loading, playing, loaded but not playing, or stopped, together with the current resource key. Its SFX card shows active voices, capacity, and utilization, while the lower cards show linear Master, BGM, and SFX volume. Because the current audio interface cannot distinguish a paused stream from one that ended naturally, either case is conservatively reported as loaded but not playing.
+The Audio page uses structured state to distinguish BGM loading, playback, pause, Crossfade, natural completion, and stop, together with the currently committed resource key. Its SFX card reports active, pending, and prepared Voices, capacity, and cumulative rejection and priority-preemption counts separately for the non-spatial and 3D pools. The 3D detail also shows the active target-follow count and its independent limit. If either prepared count is below the encounter's measured burst budget, prewarm that pool during loading instead of expanding it in a combat frame. If follow usage stays at its limit, first separate short static sounds from sustained moving sounds, then tune the budget on target hardware. A rising rejection count usually means a per-Resource, global, or follow budget is taking effect; a rising preemption count means higher-priority requests are replacing lower-priority sounds in the same pool. The lower cards show linear Master, BGM, and SFX volume.
 
 The Scene page uses status cards for the current scene, node count, transition state, and progress. Its detail table shows the resource key currently loading and the most recent transition target and result. Node counting runs once per second only while this page is selected. Missing SceneService registration and custom implementations without a Debug snapshot are shown as explicit degraded states.
 

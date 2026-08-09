@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" uid="uid://2y8nge3y4gp0" path="res://addons/godo_framework/Core/GoDoRuntime.cs" id="1_runtime"]
 [ext_resource type="Script" path="res://addons/godo_framework/Runtime/Scene/SceneService.cs" id="2_scene_service"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://addons/godo_framework/Runtime/UI/GoDoUiRoot.tscn" id="6_ui_root"]
 [ext_resource type="Script" path="res://addons/godo_framework/Runtime/Scheduler/SchedulerService.cs" id="7_scheduler_service"]
 [ext_resource type="Script" path="res://addons/godo_framework/Runtime/DataTable/DataTableService.cs" id="8_data_table_service"]
+[ext_resource type="PackedScene" path="res://addons/godo_framework/Runtime/Audio/Sfx3DVoice.tscn" id="9_sfx3d_voice"]
 
 [node name="GoDoRuntime" type="Node"]
 process_mode = 3
@@ -29,14 +30,24 @@ script = ExtResource("2_scene_service")
 [node name="AudioService" type="Node" parent="."]
 script = ExtResource("3_audio_service")
 BgmPlayerPath = NodePath("BgmPlayer")
+SecondaryBgmPlayerPath = NodePath("BgmSecondaryPlayer")
 SfxRootPath = NodePath("SfxRoot")
 SfxVoiceScene = ExtResource("4_sfx_voice")
 MaxSfxVoices = 32
 InitialSfxVoices = 8
+Sfx3DRootPath = NodePath("Sfx3DRoot")
+Sfx3DVoiceScene = ExtResource("9_sfx3d_voice")
+MaxSfx3DVoices = 32
+MaxFollowingSfx3DVoices = 16
+InitialSfx3DVoices = 8
 
 [node name="BgmPlayer" type="AudioStreamPlayer" parent="AudioService"]
 
+[node name="BgmSecondaryPlayer" type="AudioStreamPlayer" parent="AudioService"]
+
 [node name="SfxRoot" type="Node" parent="AudioService"]
+
+[node name="Sfx3DRoot" type="Node3D" parent="AudioService"]
 
 [node name="DataTableService" type="Node" parent="."]
 script = ExtResource("8_data_table_service")

@@ -1,11 +1,11 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/ui-and-audio/index.md
-translation_source_hash: sha256:e71aec3627b6a571516ba48c82129f3dc420427489da083786a233a7b9bf516b
+translation_source_hash: sha256:a9039443efd19982db30d73f217fb368d4dd7804ae04d2d16baaecd16c4b98ee
 ---
 
 # Organize Complex UI and Long-Lived Audio
 
-UiService manages screen-space `Control` layers, instances, and back order. AudioService manages non-spatial BGM, short SFX, and group volume. GoDoRuntime owns both for the long term, so changing the main scene does not free Views, Modals, or playing music.
+UiService manages screen-space `Control` layers, instances, and back order. AudioService manages non-spatial BGM, non-spatial/3D short SFX, and group volume. GoDoRuntime owns both for the long term, so changing the main scene does not free Views, Modals, or playing music.
 
 Game code still owns UI content, input priority, pause policy, animation, and concrete audio choices.
 
@@ -161,12 +161,54 @@ Only one BGM load may run at a time. Serialize flow changes instead of letting s
 
 `PauseBgm()` and `ResumeBgm()` affect only current BGM, not SFX or SceneTree. The game design decides whether a pause menu pauses music.
 
+Use the separate Crossfade API when a smooth transition is required, without changing the existing immediate-switch contract:
+
+```csharp
+using CancellationTokenSource transitionCancellation = new();
+
+try
+{
+    await audio.CrossfadeBgmAsync(
+        GameAudio.GameplayTheme,
+        durationSeconds: 0.5d,
+        cancellationToken: transitionCancellation.Token);
+}
+catch (OperationCanceledException)
+{
+    // The caller, StopBgm, shutdown, or a newer playback request cancelled this transition.
+}
+```
+
+The old track continues while the target Resource loads. Once ready, two long-lived players apply an equal-power crossfade. Transition time ignores `Engine.TimeScale` but still follows the AudioService node's SceneTree pause state. A newer Crossfade request wins and the older Task receives `OperationCanceledException`. If fading has started, the service keeps the louder player so cancellation does not produce complete silence. The existing `PlayBgmAsync` still rejects concurrent calls while any BGM request is active.
+
+`BgmState` distinguishes loading, playing, paused, transitioning, natural completion, and fully stopped states. Until a normal Crossfade completes, `CurrentBgm` remains the previously committed key. `PauseBgm()` pauses both players and transition progress; `StopBgm()` cancels the request and clears both players.
+
+To enter a silent BGM state smoothly, fade the current track instead of repeatedly changing Bus volume:
+
+```csharp
+try
+{
+    await audio.FadeOutBgmAsync(
+        durationSeconds: 0.5d,
+        cancellationToken: context.LifetimeToken);
+}
+catch (OperationCanceledException)
+{
+    // This flow ended, or a newer Crossfade/FadeOut replaced this fade.
+}
+```
+
+After FadeOut completes, state is `Stopped` and `CurrentBgm` is empty. With no current track, it completes immediately. Caller cancellation after fading starts restores the current track at normal volume. A newer Crossfade or FadeOut cancels the older transition and owns the resulting state.
+
 ## 7. Treat short-SFX capacity correctly
 
 ```csharp
 try
 {
-    bool played = await audio.PlaySfxAsync(GameAudio.ButtonClick);
+    bool played = await audio.PlaySfxAsync(
+        GameAudio.ButtonClick,
+        volumeLinear: 0.75f,
+        pitchScale: 1.05f);
     if (!played)
         LogHub.Debug("SFX capacity reached.", "Game.Audio");
 }
@@ -181,11 +223,92 @@ catch (AudioPlaybackException exception)
 
 `false` means Voice capacity is full, a normal capacity branch rather than corrupt content. Defaults are eight prewarmed and 32 maximum Voices. Loading requests reserve capacity so simultaneous completions cannot exceed the limit.
 
+When per-play parameters are omitted, both volume and pitch scale default to 1. `volumeLinear` must be finite and between 0 and 1. `pitchScale` must be finite and positive, and changes both pitch and playback speed. Invalid values throw `ArgumentOutOfRangeException` before resource loading or capacity reservation. Values affect only the current playback and reset when its Voice returns to the pool. Game code remains responsible for choosing any random variation.
+
+### Prepare Resources and Voices before a large encounter
+
+Move known audio loading and player instantiation into the dungeon loading flow instead of waiting for the first wave of simultaneous abilities:
+
+```csharp
+await Task.WhenAll(
+    audio.PrepareSfxAsync(GameAudio.PlayerHit, loadingToken),
+    audio.PrepareSfxAsync(GameAudio.RemoteExplosion, loadingToken),
+    audio.PrepareSfxAsync(GameAudio.CriticalWarning, loadingToken));
+
+int createdVoices = audio.PrewarmSfxVoices(32);
+int created3DVoices = audio.PrewarmSfx3DVoices(32);
+```
+
+`PrepareSfxAsync` reuses ResourceHub and Godot's Resource cache. It creates no second Audio cache and reserves no active or pending Voice capacity. Caller cancellation stops only that wait; a shared underlying load may continue. `StopAllSfx()` does not cancel preparation, while AudioService shutdown cancels outstanding waits. A load failure or non-AudioStream Resource throws `AudioPlaybackException`.
+
+`PrewarmSfxVoices` synchronously instantiates non-spatial Voices on the main thread, while `PrewarmSfx3DVoices` warms the independent 3D pool. Each returns the number created by that call. Active and idle Voices count toward the corresponding Prepared value; repeating the same or a smaller target creates nothing and never shrinks a pool. A target cannot exceed its matching Max capacity. Instantiation trades loading-screen time and retained objects for a smoother combat burst, so do not call it during a combat frame.
+
 `StopAllSfx()` immediately returns active Voices and releases logical capacity reserved by pending requests. Old waiters end with `OperationCanceledException` after the shared underlying load finishes and cannot decrement capacity owned by the new request generation.
 
-A non-looping sound returns to the pool after natural completion. A looping AudioStream never emits Finished, and the current public API has no per-SFX Handle. Use `StopAllSfx()` for global cleanup, or a game-owned `AudioStreamPlayer` / `AudioStreamPlayer2D/3D` for a loop or spatial sound requiring independent control.
+### Handle combat-scale SFX bursts
 
-Do not use global SFX playback for footsteps, engines, or ambient loops that need positioning and individual stopping.
+Do not handle a same-frame burst by blindly raising the Voice limit or queueing late sounds. Give disposable sounds a low priority and a per-Resource limit, then let critical feedback opt into explicit preemption:
+
+```csharp
+SfxPlaybackResult result = await audio.PlaySfxAsync(
+    GameAudio.RemoteExplosion,
+    new SfxPlaybackOptions(
+        volumeLinear: 0.7f,
+        pitchScale: 1f,
+        priority: SfxPriority.Low,
+        maxConcurrentPerKey: 4,
+        allowStealLowerPriority: false));
+
+if (result.Status == SfxPlaybackStatus.GlobalCapacityReached ||
+    result.Status == SfxPlaybackStatus.PerKeyLimitReached)
+{
+    // Expected drop; do not queue it for late playback.
+}
+```
+
+Player confirmation and critical warnings can use `High` or `Critical` with `allowStealLowerPriority`. At full capacity, AudioService considers only lower-priority candidates, chooses the lowest priority first, then the oldest submission within that priority. Both active Voices and pending loads participate. Requests made through the legacy bool API participate as `Normal`, so an advanced request may replace them: a pending legacy request returns `false`, while an active sound stops early.
+
+`maxConcurrentPerKey` counts both active and pending requests for the same Resource. It is useful for repeated explosions and impacts, but does not replace distance cutoff. An extreme battle can still skip obviously inaudible requests in game code based on Listener distance.
+
+A successful result provides an `SfxPlaybackHandle`. A looping AudioStream never emits Finished, so retain its Handle and call `TryStopSfx(handle)`. Natural completion, stopping, preemption, or service shutdown invalidates the Handle; `IsSfxPlaying(handle)` and repeated stopping then return `false`. `StopAllSfx()` remains the flow-level cleanup operation.
+
+### Play 3D SFX at a static world position
+
+Explosions, impact points, and landing sounds can submit a world position with an explicit audible range:
+
+```csharp
+Sfx3DPlaybackResult result = await audio.PlaySfx3DAsync(
+    GameAudio.RemoteExplosion,
+    explosion.GlobalPosition,
+    new Sfx3DPlaybackOptions(
+        maxDistance: 80f,
+        unitSize: 8f,
+        volumeLinear: 0.8f,
+        priority: SfxPriority.Low,
+        maxConcurrentPerKey: 8));
+
+if (result.Started)
+{
+    // Retain the Handle for a loop or early termination.
+    audio.TryStopSfx3D(result.Handle);
+}
+```
+
+`MaxDistance` and `UnitSize` must be finite and positive. Maximum distance lets Godot stop mixing after the Listener moves out of range and must not be omitted as an unbounded value. The attenuation curve also depends on `AttenuationModel`. The 3D and non-spatial pools keep separate capacity, prewarming, rejection, and preemption statistics and never preempt across pools. Resources still use the same `PrepareSfxAsync` path.
+
+Keep short explosions, impacts, and footsteps on the static-position entry to avoid continuous synchronization. Use the follow entry only for moving engine loops, sustained abilities, and similar sounds that genuinely need a target:
+
+```csharp
+Sfx3DPlaybackResult engineLoop = await audio.PlaySfx3DFollowAsync(
+    GameAudio.VehicleEngine,
+    vehicle,
+    new Vector3(0f, 0.5f, -1f),
+    new Sfx3DPlaybackOptions(maxDistance: 60f, unitSize: 4f));
+```
+
+Follow positions update at the fixed physics rate, not the render rate, and AudioService disables this physics path while no followed Voice is active. `MaxFollowingSfx3DVoices` is an independent hard budget, defaults to 16, and cannot exceed `MaxSfx3DVoices`. Active plus pending follow requests return `FollowCapacityReached` at that limit. A target must be in the scene tree when submitted. Losing it during loading returns `TargetUnavailableBeforeStart`; leaving the tree or deletion during playback stops the Voice automatically. A loop still requires retaining its Handle and stopping it when business ownership ends.
+
+The Viewport also needs an active `Camera3D` or `AudioListener3D`. Use `TryStopSfx3D`, `IsSfx3DPlaying`, and `StopAllSfx3D` for the independent 3D Handles and pool; they do not stop non-spatial SFX.
 
 ## 8. Volume, settings, and Audio Bus
 
@@ -204,8 +327,8 @@ Prefer defining `BGM` and `SFX` in the project's Audio Bus Layout. When missing,
 - `GoDoUI`, AudioService, and players live outside CurrentScene.
 - A successful scene change clears Scene UI but retains Views, Modals, and audio.
 - A flow explicitly closes the Views and Modals it owns; it must not clear another system's pages.
-- AudioService exit stops BGM, cancels loads, and disposes the SFX pool.
-- `StopAllSfx()` returns active Voices and cancels pending SFX requests.
+- AudioService exit stops both BGM players, cancels loads and transitions, and disposes both non-spatial and 3D SFX pools.
+- `StopAllSfx()` and `StopAllSfx3D()` independently return active Voices and cancel the matching pending requests.
 
 Every UI and Audio public API is main-thread only. Opening UI and first-time audio loading do not belong on a per-frame path.
 
@@ -216,9 +339,12 @@ Every UI and Audio public API is main-thread only. Opening UI and first-time aud
 - A View unexpectedly survives a scene change: that is default behavior; its owner must close it.
 - UI order looks wrong after direct QueueFree: continuing through UiService removes stale records, but game code should still use Close/TryGoBack to preserve explicit ownership.
 - A BGM request is occasionally rejected: another BGM is still loading because flows were not serialized.
-- SFX returns false: capacity is full; skip noncritical sound or revisit design.
-- A looping SFX never returns: loops do not finish naturally; use a separately managed game player.
+- A Crossfade Task is cancelled: a newer playback request replaced it, or the caller, Stop, or framework lifecycle cancelled it. Handle it as flow ownership rather than corrupt content.
+- SFX returns false: the legacy entry reached capacity or its pending reservation was replaced by an advanced request. Skip noncritical sound; use the structured entry when the rejection reason matters.
+- The first large SFX burst still hitches: call `PrepareSfxAsync` during dungeon loading and prewarm non-spatial and 3D Voices independently to measured budgets. Do not only raise the maximum.
+- A looping SFX never returns: loops do not finish naturally. Retain the successful Handle and call `TryStopSfx` when its owner ends.
 - Volume resets after restart: SetVolume was called without saving through SettingsService.
-- A spatial sound has no position: AudioService handles non-spatial audio only.
+- A 3D sound has no position: verify that it uses `PlaySfx3DAsync` or `PlaySfx3DFollowAsync`, the Viewport has an active Listener, and its position, `UnitSize`, and `MaxDistance` match the game world's scale.
+- A moving object's 3D sound remains behind: the static entry samples only the submitted position. Use `PlaySfx3DFollowAsync` for sustained moving audio and check whether follow capacity or target lifecycle rejected the request.
 
-For exact members, see <xref:GoDo.IUiService>, <xref:GoDo.UiLayer>, <xref:GoDo.UiOpenException>, <xref:GoDo.IAudioService>, <xref:GoDo.AudioGroup>, and <xref:GoDo.AudioPlaybackException>.
+For exact members, see <xref:GoDo.IUiService>, <xref:GoDo.UiLayer>, <xref:GoDo.UiOpenException>, <xref:GoDo.IAudioService>, <xref:GoDo.BgmPlaybackState>, <xref:GoDo.SfxPlaybackOptions>, <xref:GoDo.SfxPlaybackResult>, <xref:GoDo.SfxPlaybackHandle>, <xref:GoDo.Sfx3DPlaybackOptions>, <xref:GoDo.Sfx3DPlaybackResult>, <xref:GoDo.Sfx3DPlaybackHandle>, <xref:GoDo.AudioGroup>, and <xref:GoDo.AudioPlaybackException>.
