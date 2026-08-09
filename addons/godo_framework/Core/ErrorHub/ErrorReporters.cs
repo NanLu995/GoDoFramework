@@ -42,9 +42,12 @@ public sealed class RemoteErrorReporterTemplate : IErrorReporter
         var message = report.Message;
         var context = report.Context;
         var time    = report.Timestamp;
+        var cause   = report.Exception == null
+            ? null
+            : ExceptionDiagnostics.FormatCauseSummary(report.Exception);
 
         // fire-and-forget：故意不 await，也不让异常向上传播到 ErrorHub.Dispatch。
-        _ = SendAsync(level, module, message, context, time);
+        _ = SendAsync(level, module, message, context, cause, time);
     }
 
     private async System.Threading.Tasks.Task SendAsync(
@@ -52,15 +55,16 @@ public sealed class RemoteErrorReporterTemplate : IErrorReporter
         string module,
         string message,
         string? context,
+        string? cause,
         System.DateTime timestamp)
     {
         try
         {
             // TODO: 序列化并通过 HttpClient 异步 POST 到 _endpoint。
-            // 建议 Release 模式下不携带 StackTrace，减少上报体积与隐私风险。
+            // 模板只复制有界根因摘要，不跨异步边界持有 Exception 或默认上传 StackTrace。
             //
             // var payload = JsonSerializer.Serialize(new {
-            //     level, module, message, context, time = timestamp,
+            //     level, module, message, context, cause, time = timestamp,
             // });
             // using var client = SharedHttpClient.Instance; // 复用单例，不要每次 new HttpClient
             // await client.PostAsync(_endpoint, new StringContent(payload));

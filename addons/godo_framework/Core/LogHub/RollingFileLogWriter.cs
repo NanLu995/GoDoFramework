@@ -117,8 +117,12 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
 
         string message = report.Message;
         if (report.Exception != null)
-            message += $" | Exception={report.Exception.GetType().Name}";
-        if (!string.IsNullOrWhiteSpace(report.StackTrace))
+        {
+            message +=
+                $" | Cause={SingleLine(ExceptionDiagnostics.FormatCauseSummary(report.Exception))}" +
+                $" | Exception={SingleLine(ExceptionDiagnostics.FormatDetails(report.Exception))}";
+        }
+        else if (!string.IsNullOrWhiteSpace(report.StackTrace))
             message += $" | StackTrace={SingleLine(report.StackTrace)}";
 
         Enqueue(FormatLine(

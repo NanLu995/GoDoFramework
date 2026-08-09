@@ -4204,7 +4204,15 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     {
         _textBuilder.Append(error.TimestampUtc.ToLocalTime().ToString("HH:mm:ss"))
             .Append(' ').Append('[').Append(error.Level).Append("] ")
-            .Append(error.Module).Append(": ").AppendLine(error.Message);
+            .Append(error.Module).Append(": ");
+
+        if (!string.IsNullOrWhiteSpace(error.Context))
+            _textBuilder.Append('(').Append(error.Context).Append(") ");
+
+        _textBuilder.Append(error.Message);
+        if (!string.IsNullOrWhiteSpace(error.Cause))
+            _textBuilder.Append(" | Cause: ").Append(error.Cause);
+        _textBuilder.AppendLine();
     }
 
     private string BuildConsoleMarkup(string text)
@@ -4348,6 +4356,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         return query.Length == 0 ||
             entry.Level.ToString().Contains(query, StringComparison.OrdinalIgnoreCase) ||
             entry.Module.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+            entry.Context?.Contains(query, StringComparison.OrdinalIgnoreCase) == true ||
+            entry.Cause?.Contains(query, StringComparison.OrdinalIgnoreCase) == true ||
             entry.Message.Contains(query, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -4363,7 +4373,11 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             report.Timestamp,
             report.Level,
             report.Module,
-            report.Message));
+            report.Message,
+            report.Context,
+            report.Exception == null
+                ? null
+                : ExceptionDiagnostics.FormatCauseSummary(report.Exception)));
         unchecked
         {
             _consoleErrorVersion++;
@@ -4430,17 +4444,23 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         public ErrorLevel Level { get; }
         public string Module { get; }
         public string Message { get; }
+        public string? Context { get; }
+        public string? Cause { get; }
 
         public DebuggerErrorEntry(
             DateTime timestampUtc,
             ErrorLevel level,
             string module,
-            string message)
+            string message,
+            string? context,
+            string? cause)
         {
             TimestampUtc = timestampUtc;
             Level = level;
             Module = module;
             Message = message;
+            Context = context;
+            Cause = cause;
         }
     }
 #else

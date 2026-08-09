@@ -1049,9 +1049,11 @@ public sealed partial class DebuggerOverlayRegression : Node
             ErrorHub.Warn("Debugger warning filter", "DebuggerRegression");
             LogHub.Info("Debugger chronological bridge", "DebuggerRegression");
             ErrorHub.Report(
-                ErrorLevel.Error,
-                "Debugger error filter",
-                "DebuggerRegression");
+                new InvalidOperationException(
+                    "Debugger error filter",
+                    new ArgumentException("Debugger root cause")),
+                "DebuggerRegression",
+                context: "phase=console");
             overlay._Process(0.3d);
             Assert(warningFilter.Text == "Warning (1)" &&
                 errorFilter.Text == "Error (1)" &&
@@ -1068,6 +1070,12 @@ public sealed partial class DebuggerOverlayRegression : Node
                     StringComparison.Ordinal) &&
                 debuggerLabel.GetParsedText().Contains(
                     "Debugger error filter",
+                    StringComparison.Ordinal) &&
+                debuggerLabel.GetParsedText().Contains(
+                    "(phase=console)",
+                    StringComparison.Ordinal) &&
+                debuggerLabel.GetParsedText().Contains(
+                    "Cause: ArgumentException: Debugger root cause",
                     StringComparison.Ordinal),
                 "ErrorHub Warning/Error 摘要或 FPS 紧凑文本错误");
             string chronologicalConsole = debuggerLabel.GetParsedText();
@@ -1108,6 +1116,15 @@ public sealed partial class DebuggerOverlayRegression : Node
             errorFilter.EmitSignal(BaseButton.SignalName.Pressed);
             Assert(allFilter.ButtonPressed && !errorFilter.ButtonPressed,
                 "控制台取消最后一个 Error 筛选后没有恢复 All");
+
+            search.Text = "Debugger root cause";
+            search.EmitSignal(LineEdit.SignalName.TextChanged, search.Text);
+            Assert(debuggerLabel.GetParsedText().Contains(
+                    "Debugger error filter",
+                    StringComparison.Ordinal),
+                "控制台搜索无法匹配错误根因");
+            search.Text = string.Empty;
+            search.EmitSignal(LineEdit.SignalName.TextChanged, search.Text);
 
             for (int index = 0; index < LogHub.DebugHistoryCapacity - 18; index++)
             {

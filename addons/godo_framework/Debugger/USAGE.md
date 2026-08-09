@@ -35,7 +35,7 @@ Release 构建不会由 GoDoRuntime 创建 Debugger 节点；Debugger 不是业�
 
 Input 搜索扫描完整 Action 快照，但列表最多显示前 32 个匹配项，并明确显示总数，避免异常后端布局制造过长排版。LogHub 保留最多 1000 条聚合历史，连续相同日志显示为带首次/最后时间的 `×次数` 条目；ErrorHub 摘要总容量为 16 条，控制台将两类记录按时间合并后每页最多显示 100 条匹配项。
 
-错误历史只保存时间、等级、模块和消息，不持有原始 Exception，避免调试面板延长异常对象及其引用图的生命周期。
+错误历史只保存时间、等级、模块、消息、上下文和有界根因摘要，不持有原始 Exception 或完整堆栈，避免调试面板延长异常对象及其引用图的生命周期。上下文和根因都参与控制台搜索。
 
 Input、Scheduler、Audio 未注册时分别显示明确的“未注册”降级状态并清空当前页旧数据。Input 与 Scheduler 已按接口注册、但当前实现不是框架内置实现时，显示“不支持 Debug 快照”，与服务缺失区分；Audio 页面只读取 `IAudioService` 的既有只读接口，不要求专用 Debug 快照。
 
@@ -115,4 +115,4 @@ Input、Scheduler、Audio 未注册时分别显示明确的“未注册”降级
 Verification/Automated/DebuggerOverlayRegression.tscn
 ```
 
-Windows Debug 回归覆盖默认折叠、点击展开、焦点策略、树状页面切换、Overview、System 环境分组、Performance 摘要/趋势/指标分组、Scene / Resources / DataTable / UI 结构化仪表盘、DataTable 加载中/发布/空集/卸载/失败及未注册降级、UI 三层栈顺序及未注册降级、Input 空布局、Input/Scheduler/Audio 未注册降级、Input/Scheduler/DataTable/UI 不支持 Debug 快照、Scheduler 旧数据清理、页面读取异常隔离与恢复、Scheduler 与 Audio 仪表盘、Services / Events 统计、搜索与选中详情、控制台空筛选结果、文件日志状态与链接、文件/翻页按钮对齐、普通日志与 ErrorHub 摘要时间混排、Warning/Error 分级着色、等级多选、1000 条历史搜索、分页、搜索/暂停/复制、布局重置和再次折叠；`ResourceHubRegression.tscn` 同时验证资源诊断的合并、统计，以及写入 33 条记录后固定保留最新 32 条的淘汰顺序。同一场景使用 Release 程序集运行时，验证 GoDoRuntime 不创建 Debugger 节点。非空 Input 快照由 `InputServiceRegression.tscn` 覆盖后端、设备、Frame、Action 状态及 Context 有效性。系统页在非 Windows 平台的返回值、性能曲线的真实波动、窗口拖动与缩放的视觉手感、播放中的 Audio 状态、文件管理器定位、非空 Input 仪表盘、移动端触摸、窄视口和真实设备显示仍需在目标平台手动验证。
+Windows Debug 回归覆盖默认折叠、点击展开、焦点策略、树状页面切换、Overview、System 环境分组、Performance 摘要/趋势/指标分组、Scene / Resources / DataTable / UI 结构化仪表盘、DataTable 加载中/发布/空集/卸载/失败及未注册降级、UI 三层栈顺序及未注册降级、Input 空布局、Input/Scheduler/Audio 未注册降级、Input/Scheduler/DataTable/UI 不支持 Debug 快照、Scheduler 旧数据清理、页面读取异常隔离与恢复、Scheduler 与 Audio 仪表盘、Services / Events 统计、搜索与选中详情、控制台空筛选结果、错误上下文与根因显示/搜索、文件日志状态与链接、文件/翻页按钮对齐、普通日志与 ErrorHub 摘要时间混排、Warning/Error 分级着色、等级多选、1000 条历史搜索、分页、搜索/暂停/复制、布局重置和再次折叠；`ResourceHubRegression.tscn` 同时验证资源诊断的合并、统计，以及写入 33 条记录后固定保留最新 32 条的淘汰顺序。同一场景使用 Release 程序集运行时，验证 GoDoRuntime 不创建 Debugger 节点。非空 Input 快照由 `InputServiceRegression.tscn` 覆盖后端、设备、Frame、Action 状态及 Context 有效性。系统页在非 Windows 平台的返回值、性能曲线的真实波动、窗口拖动与缩放的视觉手感、播放中的 Audio 状态、文件管理器定位、非空 Input 仪表盘、移动端触摸、窄视口和真实设备显示仍需在目标平台手动验证。

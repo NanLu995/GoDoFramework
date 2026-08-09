@@ -52,6 +52,17 @@ ErrorHub.MinLevel = ErrorLevel.Warning;
 
 过滤后的等级不会构造 `ErrorReport`。
 
+## 异常链与输出策略
+
+异常重载会保留原始 `Exception`，包装异常与 `InnerException` 的语义不变。各输出端统一从异常链生成有界诊断文本：
+
+- Godot 控制台始终显示 `Cause` 根因摘要；Debug 构建额外显示完整 `ExceptionChain`，Release 不输出完整堆栈。
+- 本地滚动文件保存根因摘要和完整异常链，便于导出后离线排障；日志文件可能包含路径等技术信息，不应直接展示给玩家或未经审查上传。
+- Debugger 只保存上下文和根因摘要字符串，不持有原始异常或完整堆栈；上下文与根因都可搜索。
+- 自定义远程 Reporter 应先复制需要的有界字符串，并根据隐私策略决定是否上传堆栈。内置模板只复制根因摘要，不跨异步边界持有异常对象。
+
+上层异常应描述“哪个操作失败”，最内层异常应尽量说明“缺少什么、值是什么或下一步检查什么”。ErrorHub 负责保真呈现原因，不会根据异常类型猜测修复方案。
+
 ## 监听与生命周期
 
 `OnError` 是原始 C# event。生命周期短于 GoDoRuntime 的订阅者必须对称解绑：
@@ -117,13 +128,13 @@ GoDoRuntime 安装 `AppDomain.UnhandledException`，以 `Fatal`、模块 `Runtim
 
 ## 自动回归验证
 
-`Verification/Automated/ErrorHubRegression.tscn` 验证最低等级过滤、结构化异常报告、Reporter 引用去重与移除、OnError 与 Reporter 异常隔离、递归上报降级、Fatal 只上报不主动退出，以及后台队列满汇总。runner 会恢复原始 `MinLevel` 并对称移除自己的监听者和 Reporter，不调用全局 Shutdown。
+`Verification/Automated/ErrorHubRegression.tscn` 验证最低等级过滤、结构化异常报告、嵌套与聚合异常诊断、Reporter 引用去重与移除、OnError 与 Reporter 异常隔离、递归上报降级、Fatal 只上报不主动退出，以及后台队列满汇总。runner 会恢复原始 `MinLevel` 并对称移除自己的监听者和 Reporter，不调用全局 Shutdown。
 
 ```powershell
 & $env:GODOT_PATH --headless --path . Verification/Automated/ErrorHubRegression.tscn
 ```
 
-当前 runner 已通过 `dotnet build` 编译，并在项目声明的 Godot Mono Headless 版本中完成 8/8 项验证；成功退出码为 0，失败退出码为 1。测试会刻意产生 Warning、Error、Fatal 和降级隔离日志，以断言结果与进程退出码判断成功。
+Debug runner 包含 9 项验证，Release runner 包含 8 项；成功退出码为 0，失败退出码为 1。测试会刻意产生 Warning、Error、Fatal 和降级隔离日志，以断言结果与进程退出码判断成功。
 
 ## 常见误用
 

@@ -263,7 +263,8 @@ public static class ErrorHub
                 Interlocked.Increment(ref _droppedReportCount);
 
                 if (report.Level == ErrorLevel.Fatal)
-                    Console.Error.WriteLine($"[GoDo.ErrorHub] 队列已满，Fatal 报告未入队: {report}");
+                    Console.Error.WriteLine(
+                        $"[GoDo.ErrorHub] 队列已满，Fatal 报告未入队: {FormatFallbackReport(in report)}");
                 return;
             }
 
@@ -271,7 +272,7 @@ public static class ErrorHub
 
             // 进程终止阶段可能没有下一帧可供 FlushPending，至少保留同步降级输出。
             if (report.Level == ErrorLevel.Fatal)
-                Console.Error.WriteLine($"[GoDo.ErrorHub] {report}");
+                Console.Error.WriteLine($"[GoDo.ErrorHub] {FormatFallbackReport(in report)}");
             return;
         }
 
@@ -377,15 +378,16 @@ public static class ErrorHub
     private static void FallbackLog(string reason, in ErrorReport originalReport)
     {
         // 降级路径绝不再调用 ErrorHub，避免形成递归。
+        string formattedReport = FormatFallbackReport(in originalReport);
         if (MainThreadGuard.IsInitialized && !MainThreadGuard.IsMainThread)
         {
-            Console.Error.WriteLine($"[GoDo.ErrorHub] {reason}; 原始报告: {originalReport}");
+            Console.Error.WriteLine($"[GoDo.ErrorHub] {reason}; 原始报告: {formattedReport}");
             return;
         }
 
         try
         {
-            GD.PrintErr($"[GoDo.ErrorHub] {reason}; 原始报告: {originalReport}");
+            GD.PrintErr($"[GoDo.ErrorHub] {reason}; 原始报告: {formattedReport}");
         }
         catch
         {
@@ -400,7 +402,12 @@ public static class ErrorHub
             return;
 #endif
 
-        string formatted = FormatForConsole(in report);
+#if DEBUG
+        const bool IncludeExceptionDetails = true;
+#else
+        const bool IncludeExceptionDetails = false;
+#endif
+        string formatted = FormatForConsole(in report, IncludeExceptionDetails);
 
         switch (report.Level)
         {
@@ -415,7 +422,9 @@ public static class ErrorHub
         }
     }
 
-    private static string FormatForConsole(in ErrorReport report)
+    internal static string FormatForConsole(
+        in ErrorReport report,
+        bool includeExceptionDetails)
     {
         // 注意：不用共享/池化的 StringBuilder——错误处理本身有可能在处理过程中
         // 再触发另一条错误上报（例如本类型转换失败），共享 buffer 会被嵌套调用污染。
@@ -426,24 +435,27 @@ public static class ErrorHub
             ? $"[{report.Module}] [{LevelLabel(report.Level)}] {report.Message}"
             : $"[{report.Module}] [{LevelLabel(report.Level)}] ({report.Context}) {report.Message}";
 
-#if DEBUG
-        // Debug 下才拼接异常类型与调用栈，这部分本身就比 head 大得多，
-        // 没必要在 Release（Warning/Error/Fatal 仍会输出）路径上保留它的拼接逻辑。
-        if (report.Exception != null || !string.IsNullOrEmpty(report.StackTrace))
+        if (report.Exception != null)
         {
-            string exceptionPart = report.Exception != null
-                ? $"\n  Exception: {report.Exception.GetType().Name}"
-                : string.Empty;
-
-            string stackPart = !string.IsNullOrEmpty(report.StackTrace)
-                ? $"\n  StackTrace:\n{report.StackTrace}"
-                : string.Empty;
-
-            return head + exceptionPart + stackPart;
+            string formatted = head +
+                $"\n  Cause: {ExceptionDiagnostics.FormatCauseSummary(report.Exception)}";
+            if (includeExceptionDetails)
+                formatted += $"\n  ExceptionChain:\n{ExceptionDiagnostics.FormatDetails(report.Exception)}";
+            return formatted;
         }
-#endif
+
+        if (includeExceptionDetails && !string.IsNullOrEmpty(report.StackTrace))
+            return head + $"\n  StackTrace:\n{report.StackTrace}";
 
         return head;
+    }
+
+    private static string FormatFallbackReport(in ErrorReport report)
+    {
+        if (report.Exception == null)
+            return report.ToString();
+
+        return $"{report} | Cause={ExceptionDiagnostics.FormatCauseSummary(report.Exception)}";
     }
 
     // 等级标签预先大写好，避免每次调用 ToString().ToUpperInvariant() 的双重分配

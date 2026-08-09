@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:7e6e1d5b83bf30ab9aac447276057a29792c546bc196361f92f21837e34c18b0
+translation_source_hash: sha256:41fe87716381f6f8470eb8b6ce9ea42d30711189f166f577df65e778f5ede818
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
@@ -74,6 +74,8 @@ catch (SaveException exception)
 ```
 
 Report one failure once. If a lower layer throws and an upper layer owns handling, the lower layer should not report first and rethrow. Doing both duplicates console entries, Reporter payloads, and player telemetry.
+
+Wrapping an exception does not require discarding higher-level meaning: the outer message should identify the failed operation, while the innermost exception should explain the direct cause. The Godot console always includes a bounded `Cause` summary, so Release builds still expose the root cause; Debug builds additionally print the full `ExceptionChain`. ErrorHub preserves this information but does not guess a repair from an exception type, so leaf messages should name the missing resource, invalid value, or next check whenever possible.
 
 For a startup failure that cannot continue:
 
@@ -185,11 +187,11 @@ The Procedure page reports the current procedure, entering or exiting phase, pen
 
 The Console displays Debug, Info, Warning, Error, and Fatal entries as one chronological stream without a separate recent-errors heading. Its toolbar provides counted All, Debug, Info, Warning, and Error chips. All is selected by default. Click a level to show only that level, click additional levels to combine them, or click All to reset. Warning lines are yellow, while Error and Fatal lines are red. Search scans the complete in-memory history; when results span multiple pages, use Previous and Next, or click the separate Latest Logs button on the right to return directly to the final page and scroll to the bottom. While you remain on the latest page and refresh is not paused, new logs automatically follow the bottom. Scrolling upward stops following and enables Latest Logs; scrolling back to the bottom or clicking that button resumes following. Pause stops automatic refresh and scrolling. Copy copies only the plain text currently displayed by the active filters, search, and page. The search field captures input only after a click and releases focus when you submit the search or leave the Console. The filename beside the pagination status is clickable; on Windows it reveals and selects the active log in File Explorer. The file and pagination buttons share the same height. Hover the filename for the full path, write status, flushed size, cumulative dropped count, and failure reason.
 
-Console pages retain only limited recent data. LogHub uses a 1,000-entry ring and ErrorHub retains 16 summaries. Filtering and search scan both histories, merge them chronologically, and render at most 100 matching entries per page. Consecutive identical logs are aggregated into a `×count` entry with first and last timestamps. The Godot output console receives at most 100 LogHub lines per second, while suppressed lines remain available in Debugger history. This is a quick inspection tool, not a persistent log archive or profiler.
+Console pages retain only limited recent data. LogHub uses a 1,000-entry ring and ErrorHub retains 16 summaries. Error summaries include searchable context and a bounded cause, but retain neither the original exception nor its full stack. Filtering and search scan both histories, merge them chronologically, and render at most 100 matching entries per page. Consecutive identical logs are aggregated into a `×count` entry with first and last timestamps. The Godot output console receives at most 100 LogHub lines per second, while suppressed lines remain available in Debugger history. This is a quick inspection tool, not a persistent log archive or profiler.
 
 ## Inspect rolling logs across sessions
 
-GoDoRuntime writes to `user://logs/godo_framework.log` when possible. If another running instance already holds that file, the new instance automatically uses `godo_framework.<process-id>.log`, and the Debugger file button points to the actual file. A file rolls after reaching 2 MiB and retains up to four archives; process-specific archives keep the same process ID. Debug builds record Debug, Info, Warning, Error, and Fatal entries. Release builds record only the Warning, Error, and Fatal entries that remain in the compiled application.
+GoDoRuntime writes to `user://logs/godo_framework.log` when possible. If another running instance already holds that file, the new instance automatically uses `godo_framework.<process-id>.log`, and the Debugger file button points to the actual file. A file rolls after reaching 2 MiB and retains up to four archives; process-specific archives keep the same process ID. Debug builds record Debug, Info, Warning, Error, and Fatal entries. Release builds record only the Warning, Error, and Fatal entries that remain in the compiled application. Exception entries retain a cause summary and the full exception chain for offline diagnosis. These files can contain technical details such as local paths, so review them for privacy before upload.
 
 Disk writes run through a bounded background queue and do not block error dispatch. The worker flushes about 0.25 seconds after becoming idle; under continuous traffic it flushes after about one second or 64 entries, whichever comes first. A full queue drops entries and emits a summary warning. If the directory cannot be created or the disk cannot be written, file logging is disabled for the current run and the console reports the failure once. Other tools may open the active log file for reading while the game runs. The current baseline is validated on Windows; mobile sandbox paths and shutdown flushing still require device testing.
 
