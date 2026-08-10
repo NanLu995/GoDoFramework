@@ -45,9 +45,9 @@ Qwen2.5-Coder-14B-Instruct-GGUF
 LM Studio 参数：
 
 ```text
-Context Length：16384
+Context Length：8192
 Temperature：0.1
-Max Output Tokens：4096
+Max Output Tokens：768
 GPU Offload：尽可能全部层
 Flash Attention：开启
 模型自动卸载：按需开启
@@ -71,9 +71,10 @@ Developer → Start Server
 http://127.0.0.1:1234
 ```
 
-OpenAI 兼容接口：
+LocalAiWorker 使用原生 v1 接口预检模型，并使用 OpenAI 兼容接口执行结构化推理：
 
 ```text
+http://127.0.0.1:1234/api/v1/models
 http://127.0.0.1:1234/v1/chat/completions
 ```
 
@@ -86,15 +87,16 @@ http://127.0.0.1:1234/v1/chat/completions
 
 ## 4. Codex MCP 配置
 
-需要额外实现一个轻量的 `LocalAiWorker` MCP 服务。LM Studio 只是模型服务器，不会自动成为 Codex 的辅助工具。
+项目已在 `Tools/LocalAiWorker/` 实现轻量的 `LocalAiWorker` MCP 服务。LM Studio 只是模型服务器，不会自动成为 Codex 的辅助工具。
 
 Codex 项目级配置示例：
 
 ```toml
 [mcp_servers.local_ai_worker]
-command = "python"
-args = ["D:/LocalAiWorker/server.py"]
-cwd = "D:/LocalAiWorker"
+command = "E:/Python/python.exe"
+args = ["Tools/LocalAiWorker/server.py"]
+cwd = "E:/GodotProjects/GoDoFramework"
+env = { GODO_LOCAL_AI_MODEL = "qwen2.5-coder-14b" }
 
 enabled_tools = [
     "analyze_files",
@@ -104,7 +106,8 @@ enabled_tools = [
 
 default_tools_approval_mode = "auto"
 startup_timeout_sec = 20
-tool_timeout_sec = 300
+tool_timeout_sec = 150
+required = false
 enabled = true
 ```
 
@@ -248,10 +251,19 @@ LocalAiWorker 应强制使用 JSON Schema。示例：
 - 需要整理重复 API 或样板代码。
 - 需要检查文档和实现是否存在明显差异。
 
+不适合调用的情况：
+
+- 单个文件或范围明确、Codex 可直接快速完成的任务。
+- 本地模型无法替代最终判断的架构与兼容性决策。
+- 为确认本地服务状态而单独发起模型对话。
+
+Worker 会在每次实际推理前调用 `/api/v1/models` 做短超时预检。该预检不生成模型 Token；成功结果短期缓存，失败结果触发临时熔断。服务关闭、超时、目标模型不存在、输出不符合 Schema 或请求失败时，Codex 在当前任务中不自动重试，直接自行完成工作。
+
 Codex 不得直接接受本地 AI 的结论。必须遵循：
 
 ```text
-明确任务范围
+Codex 判断调用是否能节省上下文或审查成本
+→ 明确任务范围
 → 本地 AI 初步分析
 → Codex 检查引用文件和行号
 → Codex 判断结论是否成立
@@ -314,14 +326,14 @@ Codex 不得直接接受本地 AI 的结论。必须遵循：
 每个开发阶段采用：
 
 1. Codex 明确本阶段完成标准。
-2. 本地 AI 扫描限定范围。
-3. Codex 复核并提出设计方案。
-4. 用户确认涉及命名或兼容性的选择。
-5. Codex 实现最小改动。
-6. 本地 AI 审查 Diff。
-7. Codex 过滤误报并修正成立的问题。
-8. 执行真实编译和目标回归。
-9. Codex 汇报改动与验证结果。
+2. Codex 判断本地分析是否有净收益；没有则直接处理。
+3. Worker 用无推理预检确认 LM Studio 和目标模型可用；失败则 Codex 接管。
+4. 本地 AI 对限定范围执行一次分析。
+5. Codex 只复核本地 AI 引用的证据片段并提出设计方案。
+6. 用户确认涉及命名或兼容性的选择。
+7. Codex 实现最小改动。
+8. 仅在 Diff 足够复杂时让本地 AI 做一次独立审查。
+9. Codex 过滤误报、执行真实编译和目标回归并汇报结果。
 
 ## 10. 安全边界
 
@@ -330,8 +342,11 @@ LocalAiWorker 必须做到：
 - 只允许读取指定的项目根目录。
 - 拒绝路径中包含 `..` 的越界访问。
 - 排除 `.git`、`.godot`、`bin`、`obj` 和敏感配置。
+- 在发送前拦截输入中明显的私钥和 Token 特征；命中后整次请求失败关闭。
 - 限制单次文件数量和总字符数。
 - 设置请求超时。
+- 预检成功缓存 30 秒；失败或模型请求异常熔断 60 秒，期间不重复请求。
+- 单次推理失败或输出不符合 Schema 时不自动重试。
 - 不记录完整源码到长期日志。
 - 不将内容发送到 LM Studio 之外的地址。
 - 不开放任意命令参数。
@@ -355,4 +370,10 @@ LocalAiWorker 必须做到：
 
 ## 12. 当前状态
 
-本文件只定义协作协议。真正接通 Codex 与 LM Studio，还需要实现只读的 `LocalAiWorker` MCP 服务。该服务不应要求修改 GoDoFramework 的 `.csproj`、`project.godot` 或 Autoload。
+只读的 `LocalAiWorker` 已实现于 `Tools/LocalAiWorker/`，并登记到项目 `.codex/config.toml`。它不修改 GoDoFramework 的 `.csproj`、`project.godot` 或 Autoload。
+
+LM Studio `127.0.0.1:1234` 与 `qwen2.5-coder-14b` 已确认可访问。模型使用 `8192` Context、单并发、全 GPU Offload；Worker 使用结构化输出、`768` 输出 Token 上限和最多两个 Findings。两文件真实分析在约 20 秒内返回符合 Schema 的 `complete` 结果，最小推理、敏感内容拦截、超时/截断失败关闭与 Codex 回退均已验证。
+
+当前对话启动时尚未加载新增的项目 MCP 工具；MCP 工具集不会在既有任务中热加载。更新配置后应在该项目下新建 Codex 任务，并确认 `analyze_files`、`review_diff` 和 `summarize_test_log` 出现在可用工具中。
+
+Codex 桌面启动 MCP 时不应依赖终端 PATH；当前项目配置使用 `E:/Python/python.exe` 绝对路径。Python 安装位置变化时，需同步更新 `.codex/config.toml`。

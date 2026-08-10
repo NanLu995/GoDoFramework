@@ -1,1 +1,17 @@
 sandbox_mode = "workspace-write"
+
+[mcp_servers.local_ai_worker]
+command = "E:/Python/python.exe"
+args = ["Tools/LocalAiWorker/server.py"]
+cwd = "E:/GodotProjects/GoDoFramework"
+env = { GODO_LOCAL_AI_MODEL = "qwen2.5-coder-14b", PYTHONUTF8 = "1", PYTHONIOENCODING = "utf-8" }
+enabled_tools = [
+    "analyze_files",
+    "review_diff",
+    "summarize_test_log",
+]
+default_tools_approval_mode = "auto"
+startup_timeout_sec = 60
+tool_timeout_sec = 150
+required = false
+enabled = true
