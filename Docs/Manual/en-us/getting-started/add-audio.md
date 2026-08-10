@@ -1,13 +1,13 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/add-audio.md
-translation_source_hash: sha256:04a5ca97c3275b846b00867bc58622ce6456b96232efeeabcef483dcfbc220bc
+translation_source_hash: sha256:3c3df99884792a368e092db4fe886773463cde7ce9d4ba48cb3d4df1a6bf0d53
 ---
 
 # Add Background Music and Button Sounds
 
 This tutorial adds two BGM tracks and one button sound to the previous menu and gameplay flows. Procedures decide which long-running music belongs to the current phase. UI only plays short sounds directly associated with clicks.
 
-AudioService manages non-spatial BGM, SFX, and group volume. Sounds that follow a 2D or 3D position should still use Godot's `AudioStreamPlayer2D` or `AudioStreamPlayer3D`.
+AudioService manages non-spatial BGM, non-spatial/3D SFX, group volume, and budgeted 3D target following. Game code still owns 2D positional audio and advanced effects that require custom acoustic-node ownership.
 
 ## Prepare audio resources
 

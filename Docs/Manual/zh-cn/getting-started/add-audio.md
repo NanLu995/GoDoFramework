@@ -2,7 +2,7 @@
 
 本教程为前面的主菜单与游戏流程加入两首 BGM 和一个按钮音效。Procedure 决定当前阶段播放哪首长期音乐，UI 只播放与点击直接相关的短音效。
 
-AudioService 管理非空间 BGM、SFX 和分组音量。需要随 2D/3D 位置变化的声音仍应使用 Godot 的 `AudioStreamPlayer2D` 或 `AudioStreamPlayer3D`。
+AudioService 管理非空间 BGM、非空间/3D SFX 和分组音量，并提供受预算约束的 3D 目标跟随。2D 位置音频或需要自定义声学节点所有权的高级效果仍由业务直接使用 Godot 播放器。
 
 ## 准备音频资源
 

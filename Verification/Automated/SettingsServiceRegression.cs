@@ -298,13 +298,63 @@ public sealed partial class SettingsServiceRegression : Node
         public ResourceKey? CurrentBgm => null;
         public bool IsBgmPlaying => false;
         public bool IsBgmLoading => false;
+        public BgmPlaybackState BgmState => BgmPlaybackState.Stopped;
         public int ActiveSfxCount => 0;
+        public int PendingSfxCount => 0;
+        public int PreparedSfxVoiceCount => 0;
         public int MaxSfxVoices => 0;
+        public long RejectedSfxCount => 0;
+        public long PreemptedSfxCount => 0;
+        public int ActiveSfx3DCount => 0;
+        public int PendingSfx3DCount => 0;
+        public int PreparedSfx3DVoiceCount => 0;
+        public int MaxSfx3DVoices => 0;
+        public int FollowingSfx3DCount => 0;
+        public int MaxFollowingSfx3DVoices => 0;
+        public long RejectedSfx3DCount => 0;
+        public long PreemptedSfx3DCount => 0;
         public Task PlayBgmAsync(ResourceKey key, bool restart = false) => Task.CompletedTask;
+        public Task CrossfadeBgmAsync(
+            ResourceKey key,
+            double durationSeconds,
+            System.Threading.CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task FadeOutBgmAsync(
+            double durationSeconds,
+            System.Threading.CancellationToken cancellationToken = default) => Task.CompletedTask;
         public void PauseBgm() { }
         public void ResumeBgm() { }
         public void StopBgm() { }
         public Task<bool> PlaySfxAsync(ResourceKey key) => Task.FromResult(false);
+        public Task<bool> PlaySfxAsync(
+            ResourceKey key,
+            float volumeLinear,
+            float pitchScale = 1f) => Task.FromResult(false);
+        public Task<SfxPlaybackResult> PlaySfxAsync(
+            ResourceKey key,
+            SfxPlaybackOptions options) =>
+            Task.FromResult(new SfxPlaybackResult());
+        public Task PrepareSfxAsync(
+            ResourceKey key,
+            System.Threading.CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+        public int PrewarmSfxVoices(int targetVoiceCount) => 0;
+        public Task<Sfx3DPlaybackResult> PlaySfx3DAsync(
+            ResourceKey key,
+            Vector3 globalPosition,
+            Sfx3DPlaybackOptions options) =>
+            Task.FromResult(new Sfx3DPlaybackResult());
+        public Task<Sfx3DPlaybackResult> PlaySfx3DFollowAsync(
+            ResourceKey key,
+            Node3D target,
+            Vector3 localOffset,
+            Sfx3DPlaybackOptions options) =>
+            Task.FromResult(new Sfx3DPlaybackResult());
+        public int PrewarmSfx3DVoices(int targetVoiceCount) => 0;
+        public bool IsSfx3DPlaying(Sfx3DPlaybackHandle handle) => false;
+        public bool TryStopSfx3D(Sfx3DPlaybackHandle handle) => false;
+        public void StopAllSfx3D() { }
+        public bool IsSfxPlaying(SfxPlaybackHandle handle) => false;
+        public bool TryStopSfx(SfxPlaybackHandle handle) => false;
         public void StopAllSfx() { }
         public float GetVolume(AudioGroup group) => _volumes[group];
         public void SetVolume(AudioGroup group, float linearVolume) => _volumes[group] = linearVolume;

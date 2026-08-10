@@ -31,8 +31,13 @@ public sealed partial class SfxVoice : AudioStreamPlayer, IPoolable
         PlaybackFinished = null;
     }
 
-    internal void PlayStream(AudioStream stream)
+    internal void PlayStream(
+        AudioStream stream,
+        float volumeLinear,
+        float pitchScale)
     {
+        VolumeLinear = volumeLinear;
+        PitchScale = pitchScale;
         Stream = stream ?? throw new ArgumentNullException(nameof(stream));
         Play();
     }

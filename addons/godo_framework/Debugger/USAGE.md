@@ -24,7 +24,7 @@ Release 构建不会由 GoDoRuntime 创建 Debugger 节点；Debugger 不是业�
 - `性能`：顶部五张卡分别显示 FPS、Process/Physics 耗时、Godot 引擎内存和 .NET 托管堆当前值；下方显示最近 30 秒趋势，色块图例与折线颜色一一对应。折线左侧显示随最近样本范围变化的最大值、中间值和零点，右侧用对应颜色显示每条线的最新值；引擎监控表按内存、对象、渲染、2D/3D 物理和 Pipeline 分组。
 - `运行时 / Input`：以结构化仪表盘显示后端、采样状态、活动设备、能力、采样序号、完整 Context 栈及有效性，以及 Action 当前值和边沿状态。采样序号在每次成功采样后递增，失败时保持不变，后端重装或服务关闭后归零；Action 搜索匹配名称或值类型。
 - `运行时 / Scheduler`：以结构化仪表盘显示任务数量、三种时钟在 Process/Physics 的分布、最近派发、下次触发与累计失败/取消统计。
-- `运行时 / Audio`：显示 BGM 加载/播放状态、当前资源键、SFX 活跃声部与容量占用，以及 Master、BGM、SFX 三组线性音量。现有接口不能区分暂停与自然播放结束，因此有资源但未播放时统一显示“已加载 / 当前未播放”。
+- `运行时 / Audio`：通过 `BgmPlaybackState` 区分 BGM 加载、播放、暂停、Crossfade、自然结束与停止，显示当前已提交资源键、非空间与 3D SFX 各自的活跃/等待/已准备声部、容量、累计拒绝/抢占，3D 目标跟随数量/独立上限，以及 Master、BGM、SFX 三组线性音量。
 - `运行时 / DataTable`：显示已发布数据集、缓存表、当前加载与失败数量，并分层列出数据集、表类型、表级进度、运行时目录和最近加载/取消/失败/卸载结果。
 - `运行时 / UI`：显示 Scene 界面数量、View/Modal 栈深度、当前顶层界面，以及各层由底到顶的节点、资源 Key 和显示状态。
 - `运行时 / Procedure`：显示当前流程、进入/退出阶段、待处理请求、被首请求仲裁拒绝的目标与原因、上一个流程、最近成功和最近失败。
@@ -35,7 +35,7 @@ Release 构建不会由 GoDoRuntime 创建 Debugger 节点；Debugger 不是业�
 
 Input 搜索扫描完整 Action 快照，但列表最多显示前 32 个匹配项，并明确显示总数，避免异常后端布局制造过长排版。LogHub 保留最多 1000 条聚合历史，连续相同日志显示为带首次/最后时间的 `×次数` 条目；ErrorHub 摘要总容量为 16 条，控制台将两类记录按时间合并后每页最多显示 100 条匹配项。
 
-错误历史只保存时间、等级、模块和消息，不持有原始 Exception，避免调试面板延长异常对象及其引用图的生命周期。
+错误历史只保存时间、等级、模块、消息、上下文和有界根因摘要，不持有原始 Exception 或完整堆栈，避免调试面板延长异常对象及其引用图的生命周期。上下文和根因都参与控制台搜索。
 
 Input、Scheduler、Audio 未注册时分别显示明确的“未注册”降级状态并清空当前页旧数据。Input 与 Scheduler 已按接口注册、但当前实现不是框架内置实现时，显示“不支持 Debug 快照”，与服务缺失区分；Audio 页面只读取 `IAudioService` 的既有只读接口，不要求专用 Debug 快照。
 
@@ -80,7 +80,7 @@ Input、Scheduler、Audio 未注册时分别显示明确的“未注册”降级
 - GoDoRuntime 在完成内置服务注册后，通过 ResourceHub 加载 `DebuggerOverlay.tscn` 并添加为子节点。
 - Overlay 跟随 GoDoRuntime 常驻，不受主内容场景切换影响。
 - `_EnterTree()` 订阅 `ErrorHub.OnError`，`_ExitTree()` 对称解绑。
-- Services、EventChannel、InputService、SchedulerService、SceneService、DataTableService、UiService、ProcedureService 与 ResourceHub 只暴露 `internal + DEBUG` 的快照入口；Audio 页面直接读取现有 `IAudioService` 只读属性，不增加 public API。
+- Services、EventChannel、InputService、SchedulerService、SceneService、DataTableService、UiService、ProcedureService 与 ResourceHub 只暴露 `internal + DEBUG` 的快照入口；Audio 页面直接读取 `IAudioService` 的播放状态与突发准入统计，不维护第二套快照。
 - Debugger 内部按路径注册只读页面；当前不开放第三方 public 注册 API。
 - NodePool 是独立实例模块，首版不为调试面板增加全局池注册，因此不显示池状态。
 
@@ -115,4 +115,4 @@ Input、Scheduler、Audio 未注册时分别显示明确的“未注册”降级
 Verification/Automated/DebuggerOverlayRegression.tscn
 ```
 
-Windows Debug 回归覆盖默认折叠、点击展开、焦点策略、树状页面切换、Overview、System 环境分组、Performance 摘要/趋势/指标分组、Scene / Resources / DataTable / UI 结构化仪表盘、DataTable 加载中/发布/空集/卸载/失败及未注册降级、UI 三层栈顺序及未注册降级、Input 空布局、Input/Scheduler/Audio 未注册降级、Input/Scheduler/DataTable/UI 不支持 Debug 快照、Scheduler 旧数据清理、页面读取异常隔离与恢复、Scheduler 与 Audio 仪表盘、Services / Events 统计、搜索与选中详情、控制台空筛选结果、文件日志状态与链接、文件/翻页按钮对齐、普通日志与 ErrorHub 摘要时间混排、Warning/Error 分级着色、等级多选、1000 条历史搜索、分页、搜索/暂停/复制、布局重置和再次折叠；`ResourceHubRegression.tscn` 同时验证资源诊断的合并、统计，以及写入 33 条记录后固定保留最新 32 条的淘汰顺序。同一场景使用 Release 程序集运行时，验证 GoDoRuntime 不创建 Debugger 节点。非空 Input 快照由 `InputServiceRegression.tscn` 覆盖后端、设备、Frame、Action 状态及 Context 有效性。系统页在非 Windows 平台的返回值、性能曲线的真实波动、窗口拖动与缩放的视觉手感、播放中的 Audio 状态、文件管理器定位、非空 Input 仪表盘、移动端触摸、窄视口和真实设备显示仍需在目标平台手动验证。
+Windows Debug 回归覆盖默认折叠、点击展开、焦点策略、树状页面切换、Overview、System 环境分组、Performance 摘要/趋势/指标分组、Scene / Resources / DataTable / UI 结构化仪表盘、DataTable 加载中/发布/空集/卸载/失败及未注册降级、UI 三层栈顺序及未注册降级、Input 空布局、Input/Scheduler/Audio 未注册降级、Input/Scheduler/DataTable/UI 不支持 Debug 快照、Scheduler 旧数据清理、页面读取异常隔离与恢复、Scheduler 与 Audio 仪表盘、Services / Events 统计、搜索与选中详情、控制台空筛选结果、错误上下文与根因显示/搜索、文件日志状态与链接、文件/翻页按钮对齐、普通日志与 ErrorHub 摘要时间混排、Warning/Error 分级着色、等级多选、1000 条历史搜索、分页、搜索/暂停/复制、布局重置和再次折叠；`ResourceHubRegression.tscn` 同时验证资源诊断的合并、统计，以及写入 33 条记录后固定保留最新 32 条的淘汰顺序。同一场景使用 Release 程序集运行时，验证 GoDoRuntime 不创建 Debugger 节点。非空 Input 快照由 `InputServiceRegression.tscn` 覆盖后端、设备、Frame、Action 状态及 Context 有效性。系统页在非 Windows 平台的返回值、性能曲线的真实波动、窗口拖动与缩放的视觉手感、播放中的 Audio 状态、文件管理器定位、非空 Input 仪表盘、移动端触摸、窄视口和真实设备显示仍需在目标平台手动验证。

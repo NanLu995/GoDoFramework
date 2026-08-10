@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- AudioService 新增双播放器等功率 `CrossfadeBgmAsync`、淡出到静音的 `FadeOutBgmAsync`、过渡请求 latest-request-wins 取消语义和结构化 `BgmPlaybackState`；SFX 新增 ResourceHub 资源准备、Voice 幂等预热、逐次参数、结构化准入结果、单路 Handle、同资源并发限制，以及覆盖活动与待加载请求的优先级抢占，并新增独立容量、预热、Handle、最大距离、静态世界坐标和受独立预算约束的固定物理帧 Node3D 跟随 3D SFX 线路，现有 BGM 与 bool SFX 播放入口保持兼容。
+
 ## 0.4.0
 
 - 新增统一 `SchedulerService`，支持一次性与重复调度、取消、独立暂停、剩余时间查询和可取消 `DelayAsync`。

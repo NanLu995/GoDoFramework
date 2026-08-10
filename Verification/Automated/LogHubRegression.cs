@@ -25,6 +25,7 @@ public sealed partial class LogHubRegression : Node
             Run("模块绑定与错误委托", VerifyChannelAndErrorDelegation);
             Run("控制台输出", VerifyConsoleOutput);
             Run("滚动文件与退出刷新", VerifyRollingFileAndShutdownFlush);
+            Run("文件日志异常链", VerifyExceptionChainFileOutput);
             Run("文件日志运行中刷新", VerifyPeriodicFileFlush);
             Run("多实例日志文件回退", VerifyOccupiedLogFileFallback);
             Run("文件日志队列满", VerifyFileQueueCapacity);
@@ -239,6 +240,47 @@ public sealed partial class LogHubRegression : Node
         finally
         {
             writer?.Dispose();
+            DeleteArtifactPath(directory);
+        }
+    }
+
+    private static void VerifyExceptionChainFileOutput()
+    {
+        string directory = CreateArtifactPath("exception-chain");
+        try
+        {
+            using (var writer = new RollingFileLogWriter(
+                directory,
+                maxFileBytes: 64 * 1024,
+                archiveCount: 1,
+                queueCapacity: 4))
+            {
+                var exception = new InvalidOperationException(
+                    "outer failure",
+                    new FileNotFoundException("manifest missing"));
+                var report = new ErrorReport
+                {
+                    Level = ErrorLevel.Error,
+                    Module = "LogHubRegression",
+                    Message = exception.Message,
+                    Context = "Boot",
+                    Exception = exception,
+                    Timestamp = DateTime.UtcNow,
+                    StackTrace = exception.StackTrace,
+                };
+                writer.Report(in report);
+            }
+
+            string path = Path.Combine(directory, RollingFileLogWriter.CurrentFileName);
+            string content = File.ReadAllText(path);
+            Assert(content.Contains("Cause=FileNotFoundException: manifest missing", StringComparison.Ordinal),
+                "文件日志没有写出根因摘要");
+            Assert(content.Contains("Exception=System.InvalidOperationException: outer failure", StringComparison.Ordinal) &&
+                content.Contains("System.IO.FileNotFoundException: manifest missing", StringComparison.Ordinal),
+                "文件日志没有写出完整异常链");
+        }
+        finally
+        {
             DeleteArtifactPath(directory);
         }
     }

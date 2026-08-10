@@ -9,6 +9,7 @@ public sealed partial class Boot : Node
 {
     public override async void _Ready()
     {
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         Demo3DFlowCoordinator.EnsureInstalled(GetTree());
         try
         {

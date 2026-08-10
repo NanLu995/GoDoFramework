@@ -15,11 +15,11 @@
     "error-hub": {
       "contract": "addons/godo_framework/Core/ErrorHub/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖 LogHub 便捷入口、等级选择、异常边界、事件生命周期、自定义 Reporter、后台队列与错误风暴；仍等待远程上报隐私、离线缓存和平台合规专项指南。",
+      "reason": "功能指南已覆盖 LogHub 便捷入口、等级选择、异常边界、异常链输出策略、事件生命周期、自定义 Reporter、后台队列与错误风暴；仍等待远程上报隐私、离线缓存和平台合规专项指南。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:b50270a0d38d6e0ff17bedc31a3d76499bae847b6e824fdaf18f5fbe83e96178"
+      "reviewed_contract_hash": "sha256:8700ed561834193496f6220087c426908661489d2c888aab14e360907b0358c5"
     },
     "event-channel": {
       "contract": "addons/godo_framework/Core/EventChannel/USAGE.md",
@@ -35,11 +35,11 @@
     "log-hub": {
       "contract": "addons/godo_framework/Core/LogHub/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖模块绑定通道、统一等级入口、Debug/Info 选择、线程与 Release 行为、滚动文件、失败降级及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
+      "reason": "功能指南已覆盖模块绑定通道、统一等级入口、Debug/Info 选择、线程与 Release 行为、滚动文件异常链、失败降级及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:60d056bd06dfe274c47f4d1e5f6fd00ef643211ccd2f6c15b7f5358b51d90c5c"
+      "reviewed_contract_hash": "sha256:5aa911b131c96d8d5a61796d96c27378c66d92e786cdad88db949a9c27e4d823"
     },
     "services": {
       "contract": "addons/godo_framework/Core/Services/USAGE.md",
@@ -53,11 +53,11 @@
     "debugger": {
       "contract": "addons/godo_framework/Debugger/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖自动加载、折叠与展开、卡片式概览、System 环境、Performance 低频趋势与分组指标、结构化 Input、Scheduler、Audio、Scene、Resources、DataTable、UI、Services 与 Events 检查器、树状导航、布局操作、控制台交互、刷新和历史容量及 Release 边界；仍等待各页面的深度排障示例。",
+        "reason": "功能指南已覆盖自动加载、折叠与展开、卡片式概览、System 环境、Performance 低频趋势与分组指标、结构化 Input、Scheduler、含 Crossfade 状态以及非空间/3D SFX 独立容量、已准备数量、目标跟随预算和突发准入统计的 Audio、Scene、Resources、DataTable、UI、Services 与 Events 检查器、树状导航、布局操作、控制台错误上下文与根因、刷新和历史容量及 Release 边界；仍等待各页面的深度排障示例。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:868ab4c76d05eaf93132bb69439b13bfb9e06874f5b31fbc57a0bdc85a61aa29"
+        "reviewed_contract_hash": "sha256:73a2cf9d7f1be7adcd98f9536cf5aa44633ee983032332ff5e4a4da61a6fdedd"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
@@ -81,14 +81,14 @@
     "audio": {
       "contract": "addons/godo_framework/Runtime/Audio/USAGE.md",
       "status": "documented",
-      "reason": "教程和功能指南已覆盖流程 BGM、暂停恢复、加载取消、按钮 SFX、并发容量、循环音效边界、分组音量、设置持久化、非关键失败和 Debugger 只读诊断；仍等待淡入淡出、混音与空间音频未来能力。",
+        "reason": "教程和功能指南已覆盖立即切换 BGM、可取消等功率 Crossfade、淡出到静音、过渡请求 latest-request-wins、结构化播放状态、暂停恢复、加载取消、按钮 SFX、资源准备、非空间/3D Voice 独立预热、逐次音量/音高、静态世界坐标、Node3D 跟随及独立硬预算、固定物理帧与空闲停更、目标失效、最大距离与衰减、结构化准入结果、独立 Handle、同资源限制、优先级抢占、并发容量、循环音效边界、分组音量、设置持久化、非关键失败和 Debugger 只读诊断；仍等待多轨混音、播放列表与 AudioStreamPlayer2D 能力。",
       "manual_pages": [
         "getting-started/add-audio.md",
         "getting-started/save-progress-and-settings.md",
         "guides/ui-and-audio/index.md",
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:4789d9719c7c269309d767f75edb3ad0a4d3e897794d2f7fa5515ccd39f9e630"
+        "reviewed_contract_hash": "sha256:39f64e0fcf696e90b3b626159e7e0498d8d8ff9d1bff5ffa46da991148790da9"
     },
     "camera": {
       "contract": "addons/godo_framework/Runtime/Camera/USAGE.md",

@@ -21,6 +21,7 @@ public sealed partial class ErrorHubRegression : Node
         {
             Run("最低等级过滤", VerifyMinimumLevel);
             Run("结构化异常报告", VerifyStructuredExceptionReport);
+            Run("嵌套与聚合异常诊断", VerifyExceptionDiagnostics);
             Run("Reporter 引用去重与移除", VerifyReporterLifecycle);
             Run("OnError 监听者异常隔离", VerifyListenerIsolation);
             Run("Reporter 异常隔离", VerifyReporterIsolation);
@@ -28,9 +29,9 @@ public sealed partial class ErrorHubRegression : Node
             Run("Fatal 只上报不退出", VerifyFatalDoesNotQuit);
 #if DEBUG
             Run("后台队列满汇总", VerifyBackgroundQueueOverflow);
-            GD.Print($"[ErrorHubRegression] PASS ({_passed}/8)");
+            GD.Print($"[ErrorHubRegression] PASS ({_passed}/9)");
 #else
-            GD.Print($"[ErrorHubRegression] PASS ({_passed}/7)");
+            GD.Print($"[ErrorHubRegression] PASS ({_passed}/8)");
 #endif
             GetTree().Quit(0);
         }
@@ -120,6 +121,48 @@ public sealed partial class ErrorHubRegression : Node
         {
             ErrorHub.RemoveReporter(reporter);
         }
+    }
+
+    private static void VerifyExceptionDiagnostics()
+    {
+        var nested = new InvalidOperationException(
+            "流程进入失败",
+            new ApplicationException(
+                "数据表加载失败",
+                new System.IO.FileNotFoundException("manifest missing")));
+        var report = new ErrorReport
+        {
+            Level = ErrorLevel.Error,
+            Module = "ErrorHubRegression",
+            Message = nested.Message,
+            Context = "Boot",
+            Exception = nested,
+            Timestamp = DateTime.UtcNow,
+            StackTrace = nested.StackTrace,
+        };
+
+        string releaseOutput = ErrorHub.FormatForConsole(in report, includeExceptionDetails: false);
+        Assert(releaseOutput.Contains("ApplicationException: 数据表加载失败", StringComparison.Ordinal),
+            "Release 控制台没有显示直接原因");
+        Assert(releaseOutput.Contains("FileNotFoundException: manifest missing", StringComparison.Ordinal),
+            "Release 控制台没有显示根因");
+        Assert(!releaseOutput.Contains("ExceptionChain:", StringComparison.Ordinal),
+            "Release 控制台泄露了完整异常链");
+
+        string debugOutput = ErrorHub.FormatForConsole(in report, includeExceptionDetails: true);
+        Assert(debugOutput.Contains("ExceptionChain:", StringComparison.Ordinal) &&
+            debugOutput.Contains("InvalidOperationException", StringComparison.Ordinal) &&
+            debugOutput.Contains("FileNotFoundException", StringComparison.Ordinal),
+            "Debug 控制台没有显示完整异常链");
+
+        var aggregate = new AggregateException(
+            "parallel failures",
+            new InvalidOperationException("first cause"),
+            new ArgumentException("second cause"));
+        string aggregateSummary = ExceptionDiagnostics.FormatCauseSummary(aggregate);
+        Assert(aggregateSummary.Contains("InvalidOperationException: first cause", StringComparison.Ordinal) &&
+            aggregateSummary.Contains("ArgumentException: second cause", StringComparison.Ordinal),
+            "聚合异常摘要遗漏了并行原因");
     }
 
     private static void VerifyListenerIsolation()

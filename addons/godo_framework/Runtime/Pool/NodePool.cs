@@ -64,6 +64,41 @@ public sealed class NodePool<T> : IDisposable where T : Node
         }
     }
 
+    internal int PrewarmTo(int targetCount)
+    {
+        VerifyThreadAccess();
+        ThrowIfDisposed();
+
+        if (targetCount < 0 || targetCount > _idleCapacity)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(targetCount),
+                $"预热目标必须在 0 到 {_idleCapacity} 之间。");
+        }
+
+        int createCount = targetCount - (_activeNodes.Count + _idleNodes.Count);
+        if (createCount <= 0)
+            return 0;
+
+        var createdNodes = new T[createCount];
+        int createdCount = 0;
+        try
+        {
+            for (; createdCount < createdNodes.Length; createdCount++)
+                createdNodes[createdCount] = CreateInstance();
+        }
+        catch
+        {
+            for (int i = 0; i < createdCount; i++)
+                FreeNode(createdNodes[i]);
+            throw;
+        }
+
+        for (int i = 0; i < createdNodes.Length; i++)
+            _idleNodes.Push(createdNodes[i]);
+        return createdNodes.Length;
+    }
+
     /// <summary>
     /// 激活一个节点并添加到指定父节点。
     /// </summary>
