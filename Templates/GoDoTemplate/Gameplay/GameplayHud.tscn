@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Gameplay/GameplayHud.cs" id="1_gameplay_hud"]
+[ext_resource type="Script" path="res://Ui/SafeAreaContainer.cs" id="2_safe_area"]
 
 [node name="GameplayHud" type="Control"]
 layout_mode = 3
@@ -11,10 +12,20 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_gameplay_hud")
-PauseButtonPath = NodePath("Margin/PauseButton")
-ExampleSaveButtonPath = NodePath("ExampleSaveMargin/ExampleSaveButton")
+PauseButtonPath = NodePath("SafeArea/Margin/PauseButton")
+ExampleSaveButtonPath = NodePath("SafeArea/ExampleSaveMargin/ExampleSaveButton")
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="SafeArea" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_safe_area")
+
+[node name="Margin" type="MarginContainer" parent="SafeArea"]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -25,11 +36,11 @@ offset_right = -20.0
 offset_bottom = 68.0
 grow_horizontal = 0
 
-[node name="PauseButton" type="Button" parent="Margin"]
+[node name="PauseButton" type="Button" parent="SafeArea/Margin"]
 layout_mode = 2
 text = "Pause"
 
-[node name="ExampleSaveMargin" type="MarginContainer" parent="."]
+[node name="ExampleSaveMargin" type="MarginContainer" parent="SafeArea"]
 layout_mode = 1
 anchors_preset = 2
 anchor_top = 1.0
@@ -40,6 +51,6 @@ offset_right = 220.0
 offset_bottom = -20.0
 grow_vertical = 0
 
-[node name="ExampleSaveButton" type="Button" parent="ExampleSaveMargin"]
+[node name="ExampleSaveButton" type="Button" parent="SafeArea/ExampleSaveMargin"]
 layout_mode = 2
 text = "Write Example Save"

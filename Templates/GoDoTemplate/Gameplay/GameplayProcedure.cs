@@ -14,11 +14,13 @@ namespace GoDoTemplate;
 /// </summary>
 internal sealed class GameplayProcedure : IProcedure
 {
-    private Control? _hud;
-    private Control? _pauseModal;
-    private Control? _confirmDialog;
+    private UiScope<GameplayHud>? _hud;
+    private UiScope<PauseModal>? _pauseModal;
+    private UiScope<SettingsView>? _settings;
+    private UiScope<ConfirmDialogModal>? _confirmDialog;
     private ProcedureContext? _context;
     private bool _pausedByProcedure;
+    private bool _pauseContextPushed;
 
     public string Name => "Gameplay";
 
@@ -27,25 +29,33 @@ internal sealed class GameplayProcedure : IProcedure
         _context = context;
         IUiService ui = context.GetService<IUiService>();
         context.RegisterCleanup(() => SetScenePaused(false));
-        context.RegisterCleanup(() => CloseHud(ui));
-        context.RegisterCleanup(() => ClosePauseModal(ui));
-        context.RegisterCleanup(() => CloseConfirmDialog(ui));
-        LoadingOverlay loading = ui.Open<LoadingOverlay>(StarterKeys.LoadingOverlay);
+        context.RegisterCleanup(() => PopPauseContext(context));
+        context.RegisterCleanup(() => ui.CloseAll(StarterKeys.ToastOverlay));
+        context.RegisterCleanup(CleanupHud);
+        context.RegisterCleanup(CleanupPauseModal);
+        context.RegisterCleanup(CleanupSettings);
+        context.RegisterCleanup(CleanupConfirmDialog);
+        UiScope<LoadingOverlay> loading = ui.OpenScoped<LoadingOverlay>(
+            StarterKeys.LoadingOverlay,
+            view => view.SetProgress(0f));
         try
         {
-            await context.GetService<ISceneService>().ChangeAsync(StarterKeys.GameplayScene);
+            await context.GetService<ISceneService>().ChangeAsync(
+                StarterKeys.GameplayScene,
+                loading.View.SetProgress,
+                context.LifetimeToken);
         }
         finally
         {
-            ui.TryClose(loading);
+            await UiTransitionCoordinator.TryCloseAsync(loading.View, loading.Dispose);
         }
 
         SetGameplayContext(context);
-        GameplayHud hud = ui.Open<GameplayHud>(StarterKeys.GameplayHud);
-        _hud = hud;
-        context.RegisterCleanup(() => ui.TryClose(hud));
+        _hud = ui.OpenScoped<GameplayHud>(StarterKeys.GameplayHud);
         context.Events.On<PauseSelectedEvent>(OnPauseSelected);
         context.Events.On<ResumeSelectedEvent>(OnResumeSelected);
+        context.Events.On<PauseSettingsSelectedEvent>(OnPauseSettingsSelected);
+        context.Events.On<SettingsCloseSelectedEvent>(OnSettingsCloseSelected);
         context.Events.On<ReturnToMainMenuSelectedEvent>(OnReturnToMainMenuSelected);
         context.Events.On<ConfirmAcceptedEvent>(OnConfirmAccepted);
         context.Events.On<ConfirmCancelledEvent>(OnConfirmCancelled);
@@ -62,22 +72,26 @@ internal sealed class GameplayProcedure : IProcedure
 
     private void OnPauseSelected(PauseSelectedEvent _)
     {
-        if (_context == null || GodotObject.IsInstanceValid(_pauseModal))
+        if (_context == null || _pauseModal != null || _settings != null)
             return;
 
         SetScenePaused(true);
         PushPauseContext();
         IUiService ui = _context.GetService<IUiService>();
-        PauseModal pauseModal = ui.Open<PauseModal>(StarterKeys.PauseModal);
-        _pauseModal = pauseModal;
+        _pauseModal = ui.OpenScoped<PauseModal>(StarterKeys.PauseModal);
     }
 
-    private void OnResumeSelected(ResumeSelectedEvent _)
+    private async void OnResumeSelected(ResumeSelectedEvent _)
     {
-        if (_context == null || !GodotObject.IsInstanceValid(_pauseModal))
+        ProcedureContext? context = _context;
+        UiScope<PauseModal>? pauseModal = _pauseModal;
+        if (context == null || pauseModal == null)
             return;
 
-        _context.GetService<IUiService>().TryClose(_pauseModal!);
+        bool closed = await UiTransitionCoordinator.TryCloseAsync(pauseModal.View, pauseModal.Dispose);
+        if (!closed || _context != context || _pauseModal != pauseModal)
+            return;
+
         _pauseModal = null;
         PopPauseContext();
         SetScenePaused(false);
@@ -85,32 +99,41 @@ internal sealed class GameplayProcedure : IProcedure
 
     private void OnReturnToMainMenuSelected(ReturnToMainMenuSelectedEvent _)
     {
-        if (_context == null || GodotObject.IsInstanceValid(_confirmDialog))
+        if (_context == null || _pauseModal == null || _confirmDialog != null)
             return;
 
         IUiService ui = _context.GetService<IUiService>();
-        ConfirmDialogModal confirmDialog = ui.Open<ConfirmDialogModal>(
+        _confirmDialog = ui.OpenScoped<ConfirmDialogModal>(
             StarterKeys.ConfirmDialog,
             dialog => dialog.SetMessage("Return to the main menu?"));
-        _confirmDialog = confirmDialog;
     }
 
-    private void OnConfirmAccepted(ConfirmAcceptedEvent _)
+    private async void OnConfirmAccepted(ConfirmAcceptedEvent _)
     {
-        if (_context == null || !GodotObject.IsInstanceValid(_confirmDialog))
+        ProcedureContext? context = _context;
+        UiScope<ConfirmDialogModal>? confirmDialog = _confirmDialog;
+        if (context == null || confirmDialog == null)
             return;
 
-        SetScenePaused(false);
-        _context.RequestChange<MainMenuProcedure>();
+        await UiTransitionCoordinator.TryCloseAsync(
+            confirmDialog.View,
+            () =>
+            {
+                SetScenePaused(false);
+                context.RequestChange<MainMenuProcedure>();
+            });
     }
 
-    private void OnConfirmCancelled(ConfirmCancelledEvent _)
+    private async void OnConfirmCancelled(ConfirmCancelledEvent _)
     {
-        if (_context == null || !GodotObject.IsInstanceValid(_confirmDialog))
+        ProcedureContext? context = _context;
+        UiScope<ConfirmDialogModal>? confirmDialog = _confirmDialog;
+        if (context == null || confirmDialog == null)
             return;
 
-        _context.GetService<IUiService>().TryClose(_confirmDialog!);
-        _confirmDialog = null;
+        bool closed = await UiTransitionCoordinator.TryCloseAsync(confirmDialog.View, confirmDialog.Dispose);
+        if (closed && _context == context && _confirmDialog == confirmDialog)
+            _confirmDialog = null;
     }
 
     private void OnBackSelected(BackSelectedEvent _)
@@ -118,13 +141,19 @@ internal sealed class GameplayProcedure : IProcedure
         if (_context == null)
             return;
 
-        if (GodotObject.IsInstanceValid(_confirmDialog))
+        if (_confirmDialog != null)
         {
             OnConfirmCancelled(default);
             return;
         }
 
-        if (GodotObject.IsInstanceValid(_pauseModal))
+        if (_settings != null)
+        {
+            OnSettingsCloseSelected(default);
+            return;
+        }
+
+        if (_pauseModal != null)
         {
             OnResumeSelected(default);
             return;
@@ -153,31 +182,64 @@ internal sealed class GameplayProcedure : IProcedure
 
     private static void ShowToast(IUiService ui, string message)
     {
-        ui.Open<ToastOverlay>(StarterKeys.ToastOverlay, toast => toast.Show(message));
+        int stackIndex = ui.GetOpenCount(StarterKeys.ToastOverlay);
+        ui.Open<ToastOverlay>(StarterKeys.ToastOverlay, toast => toast.Show(message, stackIndex));
     }
 
-    private void CloseConfirmDialog(IUiService ui)
+    private async void OnPauseSettingsSelected(PauseSettingsSelectedEvent _)
     {
-        Control? view = _confirmDialog;
-        _confirmDialog = null;
-        if (GodotObject.IsInstanceValid(view))
-            ui.TryClose(view!);
-    }
+        ProcedureContext? context = _context;
+        UiScope<PauseModal>? pauseModal = _pauseModal;
+        if (context == null || pauseModal == null || _confirmDialog != null || _settings != null)
+            return;
 
-    private void ClosePauseModal(IUiService ui)
-    {
-        Control? view = _pauseModal;
+        bool closed = await UiTransitionCoordinator.TryCloseAsync(pauseModal.View, pauseModal.Dispose);
+        if (!closed || _context != context || _pauseModal != pauseModal)
+            return;
+
         _pauseModal = null;
-        if (GodotObject.IsInstanceValid(view))
-            ui.TryClose(view!);
+        _settings = context.GetService<IUiService>().OpenScoped<SettingsView>(
+            StarterKeys.SettingsView,
+            view => view.Refresh());
     }
 
-    private void CloseHud(IUiService ui)
+    private async void OnSettingsCloseSelected(SettingsCloseSelectedEvent _)
     {
-        Control? view = _hud;
+        ProcedureContext? context = _context;
+        UiScope<SettingsView>? settings = _settings;
+        if (context == null || settings == null)
+            return;
+
+        bool closed = await UiTransitionCoordinator.TryCloseAsync(settings.View, settings.Dispose);
+        if (!closed || _context != context || _settings != settings)
+            return;
+
+        _settings = null;
+        _pauseModal = context.GetService<IUiService>().OpenScoped<PauseModal>(StarterKeys.PauseModal);
+    }
+
+    private void CleanupConfirmDialog()
+    {
+        _confirmDialog?.Dispose();
+        _confirmDialog = null;
+    }
+
+    private void CleanupSettings()
+    {
+        _settings?.Dispose();
+        _settings = null;
+    }
+
+    private void CleanupPauseModal()
+    {
+        _pauseModal?.Dispose();
+        _pauseModal = null;
+    }
+
+    private void CleanupHud()
+    {
+        _hud?.Dispose();
         _hud = null;
-        if (GodotObject.IsInstanceValid(view))
-            ui.TryClose(view!);
     }
 
     private void SetScenePaused(bool paused)
@@ -210,13 +272,22 @@ internal sealed class GameplayProcedure : IProcedure
 
     private void PushPauseContext()
     {
-        if (_context != null && StarterInput.IsReady(_context))
+        if (_context != null && !_pauseContextPushed && StarterInput.IsReady(_context))
+        {
             _context.GetService<IInputService>().PushContext(StarterInput.Pause);
+            _pauseContextPushed = true;
+        }
     }
 
-    private void PopPauseContext()
+    private void PopPauseContext() => PopPauseContext(_context);
+
+    private void PopPauseContext(ProcedureContext? context)
     {
-        if (_context != null && StarterInput.IsReady(_context))
-            _context.GetService<IInputService>().PopContext(StarterInput.Pause);
+        if (!_pauseContextPushed || context == null)
+            return;
+
+        if (StarterInput.IsReady(context))
+            context.GetService<IInputService>().PopContext(StarterInput.Pause);
+        _pauseContextPushed = false;
     }
 }

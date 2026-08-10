@@ -32,6 +32,14 @@ public sealed partial class SettingsView : Control
     private ISettingsService? _settings;
     private ILocalizationService? _localization;
     private bool _isRefreshing;
+    private bool _isInitialized;
+    private bool _controlsSubscribed;
+
+    public override void _EnterTree()
+    {
+        if (_isInitialized)
+            SubscribeControls();
+    }
 
     public override void _Ready()
     {
@@ -46,36 +54,15 @@ public sealed partial class SettingsView : Control
         _settings = Services.Get<ISettingsService>();
         _localization = Services.Get<ILocalizationService>();
 
-        _masterSlider.ValueChanged += OnMasterVolumeChanged;
-        _bgmSlider.ValueChanged += OnBgmVolumeChanged;
-        _sfxSlider.ValueChanged += OnSfxVolumeChanged;
-        _englishButton.Pressed += OnEnglishPressed;
-        _chineseButton.Pressed += OnChinesePressed;
-        _saveButton.Pressed += OnSavePressed;
-        _backButton.Pressed += OnBackPressed;
-        EventChannel.Bind<LocaleChangedEvent>(this, OnLocaleChanged);
+        _isInitialized = true;
+        SubscribeControls();
         Refresh();
+        _masterSlider.GrabFocus();
     }
 
     public override void _ExitTree()
     {
-        if (GodotObject.IsInstanceValid(_masterSlider))
-            _masterSlider!.ValueChanged -= OnMasterVolumeChanged;
-        if (GodotObject.IsInstanceValid(_bgmSlider))
-            _bgmSlider!.ValueChanged -= OnBgmVolumeChanged;
-        if (GodotObject.IsInstanceValid(_sfxSlider))
-            _sfxSlider!.ValueChanged -= OnSfxVolumeChanged;
-        if (GodotObject.IsInstanceValid(_englishButton))
-            _englishButton!.Pressed -= OnEnglishPressed;
-        if (GodotObject.IsInstanceValid(_chineseButton))
-            _chineseButton!.Pressed -= OnChinesePressed;
-        if (GodotObject.IsInstanceValid(_saveButton))
-            _saveButton!.Pressed -= OnSavePressed;
-        if (GodotObject.IsInstanceValid(_backButton))
-            _backButton!.Pressed -= OnBackPressed;
-
-        _settings = null;
-        _localization = null;
+        UnsubscribeControls();
     }
 
     /// <summary>从当前 Settings 快照刷新所有设置控件。</summary>
@@ -157,6 +144,44 @@ public sealed partial class SettingsView : Control
             StarterLog.Settings.Error(exception, "SetLocale");
             _statusLabel!.Text = _localization!.Translate("TEMPLATE.SETTINGS.LOCALE_FAILED");
         }
+    }
+
+    private void SubscribeControls()
+    {
+        if (_controlsSubscribed)
+            return;
+
+        _masterSlider!.ValueChanged += OnMasterVolumeChanged;
+        _bgmSlider!.ValueChanged += OnBgmVolumeChanged;
+        _sfxSlider!.ValueChanged += OnSfxVolumeChanged;
+        _englishButton!.Pressed += OnEnglishPressed;
+        _chineseButton!.Pressed += OnChinesePressed;
+        _saveButton!.Pressed += OnSavePressed;
+        _backButton!.Pressed += OnBackPressed;
+        EventChannel.Bind<LocaleChangedEvent>(this, OnLocaleChanged);
+        _controlsSubscribed = true;
+    }
+
+    private void UnsubscribeControls()
+    {
+        if (!_controlsSubscribed)
+            return;
+
+        if (GodotObject.IsInstanceValid(_masterSlider))
+            _masterSlider!.ValueChanged -= OnMasterVolumeChanged;
+        if (GodotObject.IsInstanceValid(_bgmSlider))
+            _bgmSlider!.ValueChanged -= OnBgmVolumeChanged;
+        if (GodotObject.IsInstanceValid(_sfxSlider))
+            _sfxSlider!.ValueChanged -= OnSfxVolumeChanged;
+        if (GodotObject.IsInstanceValid(_englishButton))
+            _englishButton!.Pressed -= OnEnglishPressed;
+        if (GodotObject.IsInstanceValid(_chineseButton))
+            _chineseButton!.Pressed -= OnChinesePressed;
+        if (GodotObject.IsInstanceValid(_saveButton))
+            _saveButton!.Pressed -= OnSavePressed;
+        if (GodotObject.IsInstanceValid(_backButton))
+            _backButton!.Pressed -= OnBackPressed;
+        _controlsSubscribed = false;
     }
 
     private T RequireNode<T>(NodePath path, string description)

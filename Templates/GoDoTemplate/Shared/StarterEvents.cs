@@ -19,6 +19,9 @@ internal readonly struct SettingsCloseSelectedEvent : IStarterEvent { }
 /// <summary>玩家请求打开暂停菜单。</summary>
 internal readonly struct PauseSelectedEvent : IStarterEvent { }
 
+/// <summary>玩家请求从暂停菜单打开设置界面。</summary>
+internal readonly struct PauseSettingsSelectedEvent : IStarterEvent { }
+
 /// <summary>玩家请求恢复游戏。</summary>
 internal readonly struct ResumeSelectedEvent : IStarterEvent { }
 

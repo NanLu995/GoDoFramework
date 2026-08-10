@@ -7,18 +7,26 @@ const ACTION_VALIDATE := "validate"
 const UI_CONFIG_SCRIPT_PATH := "res://addons/godo_framework/Runtime/UI/UiConfig.cs"
 const UI_CONFIG_ENTRY_SCRIPT_PATH := "res://addons/godo_framework/Runtime/UI/UiConfigEntry.cs"
 const NORMAL_COLOR := Color("#8BD49C")
+const WARNING_COLOR := Color("#F2C14E")
 const ERROR_COLOR := Color("#FF6B6B")
 
 var _plugin: EditorPlugin
 var _config_file_dialog: EditorFileDialog
+var _config_selector_dialog: ConfirmationDialog
+var _config_selector_label: Label
+var _config_selector_tree: Tree
+var _config_selector_manual_button: Button
 var _scene_file_dialog: EditorFileDialog
 var _manage_dialog: AcceptDialog
+var _managed_config_label: Label
 var _entries_tree: Tree
 var _search_input: LineEdit
 var _add_button: Button
 var _edit_button: Button
 var _remove_button: Button
 var _validate_button: Button
+var _locate_config_button: Button
+var _locate_scene_button: Button
 var _entry_dialog: ConfirmationDialog
 var _entry_id_input: LineEdit
 var _entry_locator_input: LineEdit
@@ -29,10 +37,12 @@ var _remove_dialog: ConfirmationDialog
 var _report_dialog: AcceptDialog
 var _report_label: RichTextLabel
 var _file_action := ""
+var _selector_action := ""
 var _managed_config_path := ""
 var _managed_entry_index := -1
 var _editing_entry_index := -1
 var _csharp_resource_load_error := ""
+var _file_system_dock
 
 
 func initialize(plugin: EditorPlugin) -> void:
@@ -55,15 +65,27 @@ func initialize(plugin: EditorPlugin) -> void:
 	_scene_file_dialog.file_selected.connect(_on_scene_file_selected)
 	editor_root.add_child(_scene_file_dialog)
 
+	_create_config_selector_dialog(editor_root)
 	_create_manage_dialog(editor_root)
 	_create_entry_dialog()
 	_create_remove_dialog()
 	_create_report_dialog(editor_root)
+	_file_system_dock = _plugin.get_editor_interface().get_file_system_dock()
+	if is_instance_valid(_file_system_dock):
+		_file_system_dock.file_removed.connect(_on_editor_file_removed)
+		_file_system_dock.files_moved.connect(_on_editor_files_moved)
 
 
 func dispose() -> void:
+	if is_instance_valid(_file_system_dock):
+		if _file_system_dock.file_removed.is_connected(_on_editor_file_removed):
+			_file_system_dock.file_removed.disconnect(_on_editor_file_removed)
+		if _file_system_dock.files_moved.is_connected(_on_editor_files_moved):
+			_file_system_dock.files_moved.disconnect(_on_editor_files_moved)
+	_file_system_dock = null
 	for dialog in [
 		_config_file_dialog,
+		_config_selector_dialog,
 		_scene_file_dialog,
 		_manage_dialog,
 		_entry_dialog,
@@ -72,6 +94,44 @@ func dispose() -> void:
 	]:
 		if is_instance_valid(dialog):
 			dialog.queue_free()
+
+
+func _create_config_selector_dialog(editor_root: Control) -> void:
+	_config_selector_dialog = ConfirmationDialog.new()
+	_config_selector_dialog.title = "选择 UI 配置"
+	_config_selector_dialog.ok_button_text = "打开"
+	_config_selector_dialog.cancel_button_text = "取消"
+	_config_selector_dialog.min_size = Vector2i(760, 460)
+	_config_selector_dialog.get_label().hide()
+
+	var content := VBoxContainer.new()
+	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	content.offset_left = 16
+	content.offset_top = 16
+	content.offset_right = -16
+	content.offset_bottom = -64
+	content.add_theme_constant_override("separation", 8)
+	_config_selector_dialog.add_child(content)
+
+	_config_selector_label = Label.new()
+	content.add_child(_config_selector_label)
+	_config_selector_tree = Tree.new()
+	_config_selector_tree.columns = 1
+	_config_selector_tree.column_titles_visible = true
+	_config_selector_tree.hide_root = true
+	_config_selector_tree.select_mode = Tree.SELECT_ROW
+	_config_selector_tree.set_column_title(0, "UiConfig Resource")
+	_config_selector_tree.item_selected.connect(_on_config_selector_item_selected)
+	_config_selector_tree.item_activated.connect(_on_config_selector_item_activated)
+	_config_selector_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(_config_selector_tree)
+
+	_config_selector_manual_button = Button.new()
+	_config_selector_manual_button.text = "手动选择其他配置..."
+	_config_selector_manual_button.pressed.connect(_on_config_selector_manual_pressed)
+	content.add_child(_config_selector_manual_button)
+	_config_selector_dialog.confirmed.connect(_on_config_selector_confirmed)
+	editor_root.add_child(_config_selector_dialog)
 
 
 func open_create_dialog() -> void:
@@ -96,6 +156,7 @@ func _create_manage_dialog(editor_root: Control) -> void:
 	_manage_dialog.title = "UI 配置管理"
 	_manage_dialog.ok_button_text = "关闭"
 	_manage_dialog.min_size = Vector2i(1080, 560)
+	_manage_dialog.exclusive = false
 	_manage_dialog.get_label().hide()
 
 	var content := VBoxContainer.new()
@@ -110,6 +171,22 @@ func _create_manage_dialog(editor_root: Control) -> void:
 	var toolbar := HBoxContainer.new()
 	toolbar.add_theme_constant_override("separation", 8)
 	content.add_child(toolbar)
+	var config_toolbar := HBoxContainer.new()
+	config_toolbar.add_theme_constant_override("separation", 8)
+	content.add_child(config_toolbar)
+	content.move_child(config_toolbar, 0)
+	_managed_config_label = Label.new()
+	_managed_config_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	config_toolbar.add_child(_managed_config_label)
+	_locate_config_button = Button.new()
+	_locate_config_button.text = "定位配置"
+	_locate_config_button.pressed.connect(_on_locate_config_pressed)
+	config_toolbar.add_child(_locate_config_button)
+	_locate_scene_button = Button.new()
+	_locate_scene_button.text = "定位场景"
+	_locate_scene_button.disabled = true
+	_locate_scene_button.pressed.connect(_on_locate_scene_pressed)
+	config_toolbar.add_child(_locate_scene_button)
 	var search_label := Label.new()
 	search_label.text = "Search"
 	toolbar.add_child(search_label)
@@ -183,7 +260,7 @@ func _create_entry_dialog() -> void:
 
 	content.add_child(_create_label("Id"))
 	_entry_id_input = LineEdit.new()
-	_entry_id_input.placeholder_text = "例如：main_menu"
+	_entry_id_input.placeholder_text = "例如：ui/main_menu"
 	_entry_id_input.select_all_on_focus = true
 	_entry_id_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(_entry_id_input)
@@ -275,25 +352,91 @@ func _open_config_selector(action: String, title: String) -> void:
 
 
 func _open_existing_config(action: String, title: String) -> void:
-	var config_paths := _find_ui_config_paths("res://")
+	var config_paths := _prepare_config_paths(_find_ui_config_paths("res://"))
 	var direct_path := _get_direct_config_path(config_paths)
 	if not direct_path.is_empty():
-		if action == ACTION_MANAGE:
-			call_deferred("_show_manager", direct_path)
-		else:
-			call_deferred("_show_validation_report", direct_path)
+		_dispatch_config_action(action, direct_path)
 		return
 
-	var selector_title := title
 	if config_paths.is_empty():
-		selector_title = "%s（未自动发现，可手动选择）" % title
-	else:
-		selector_title = "%s（发现 %d 份）" % [title, config_paths.size()]
-	_open_config_selector(action, selector_title)
+		_open_config_selector(action, "%s（未自动发现，可手动选择）" % title)
+		return
+	_show_config_selector(action, config_paths)
 
 
 func _get_direct_config_path(config_paths: PackedStringArray) -> String:
 	return config_paths[0] if config_paths.size() == 1 else ""
+
+
+func _prepare_config_paths(config_paths: PackedStringArray) -> PackedStringArray:
+	var unique_paths := {}
+	for path in config_paths:
+		var normalized_path := path.strip_edges()
+		if not normalized_path.is_empty():
+			unique_paths[normalized_path] = true
+	var prepared := PackedStringArray()
+	for path in unique_paths:
+		prepared.append(path)
+	prepared.sort()
+	return prepared
+
+
+func _show_config_selector(action: String, config_paths: PackedStringArray) -> void:
+	_selector_action = action
+	_config_selector_dialog.title = (
+		"选择要管理的 UI 配置"
+		if action == ACTION_MANAGE
+		else "选择要校验的 UI 配置")
+	_config_selector_dialog.ok_button_text = "管理" if action == ACTION_MANAGE else "校验"
+	_config_selector_label.text = "项目内发现 %d 份 UiConfig，请明确选择目标。" % config_paths.size()
+	_config_selector_tree.clear()
+	var root := _config_selector_tree.create_item()
+	for path in config_paths:
+		var item := _config_selector_tree.create_item(root)
+		item.set_text(0, path)
+		item.set_tooltip_text(0, path)
+		item.set_metadata(0, path)
+	_config_selector_dialog.get_ok_button().disabled = true
+	_config_selector_dialog.popup_centered(Vector2i(760, 460))
+
+
+func _on_config_selector_item_selected() -> void:
+	_config_selector_dialog.get_ok_button().disabled = (
+		_get_selected_config_path().is_empty())
+
+
+func _on_config_selector_item_activated() -> void:
+	var path := _get_selected_config_path()
+	if path.is_empty():
+		return
+	_config_selector_dialog.hide()
+	_dispatch_config_action(_selector_action, path)
+
+
+func _on_config_selector_confirmed() -> void:
+	var path := _get_selected_config_path()
+	if not path.is_empty():
+		_dispatch_config_action(_selector_action, path)
+
+
+func _on_config_selector_manual_pressed() -> void:
+	_config_selector_dialog.hide()
+	_open_config_selector(_selector_action, "手动选择 UI 配置")
+
+
+func _get_selected_config_path() -> String:
+	var item := _config_selector_tree.get_selected()
+	if item == null:
+		return ""
+	var path = item.get_metadata(0)
+	return str(path) if path != null else ""
+
+
+func _dispatch_config_action(action: String, path: String) -> void:
+	if action == ACTION_MANAGE:
+		call_deferred("_show_manager", path)
+	else:
+		call_deferred("_show_validation_report", path)
 
 
 func _entry_matches_filter(entry_id: String, locator: String, filter_text: String) -> bool:
@@ -307,7 +450,7 @@ func _entry_matches_filter(entry_id: String, locator: String, filter_text: Strin
 
 
 func _default_id_from_scene_path(path: String) -> String:
-	return path.get_file().get_basename()
+	return "ui/%s" % path.get_file().get_basename().to_snake_case()
 
 
 func _display_scene_path(locator: String) -> String:
@@ -318,10 +461,8 @@ func _on_config_file_selected(path: String) -> void:
 	match _file_action:
 		ACTION_CREATE:
 			_create_config(path)
-		ACTION_MANAGE:
-			call_deferred("_show_manager", path)
-		ACTION_VALIDATE:
-			call_deferred("_show_validation_report", path)
+		_:
+			_dispatch_config_action(_file_action, path)
 
 
 func _create_config(path: String) -> void:
@@ -349,13 +490,23 @@ func _show_manager(path: String) -> void:
 		_show_message(false, "打开失败", "UI 配置管理弹窗初始化失败，请重新启用 GoDo Framework 插件。")
 		return
 
-	var config := ResourceLoader.load(path)
+	if not ResourceLoader.exists(path):
+		_show_message(false, "打开失败", "UiConfig 资源已经删除或移动：\n%s" % path)
+		return
+	var config := ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
 	if not _is_ui_config(config):
 		_show_message(false, "打开失败", "请选择 UiConfig 资源：\n%s" % path)
 		return
 
 	_managed_config_path = path
 	_manage_dialog.title = "UI 配置管理 — %s" % path
+	_managed_config_label.text = "当前：%s    项目发现：%d 份" % [
+		path,
+		_find_ui_config_paths("res://").size(),
+	]
+	_locate_config_button.disabled = false
+	_add_button.disabled = false
+	_validate_button.disabled = false
 	_search_input.clear()
 	_render_entries(config)
 	_manage_dialog.popup_centered(Vector2i(1080, 560))
@@ -368,6 +519,9 @@ func _ensure_manage_dialog_ready() -> bool:
 		and is_instance_valid(_entries_tree)
 		and is_instance_valid(_edit_button)
 		and is_instance_valid(_remove_button)
+		and is_instance_valid(_managed_config_label)
+		and is_instance_valid(_locate_config_button)
+		and is_instance_valid(_locate_scene_button)
 		and is_instance_valid(_entry_reuse_input)
 	):
 		return true
@@ -384,6 +538,7 @@ func _ensure_manage_dialog_ready() -> bool:
 		is_instance_valid(_manage_dialog)
 		and is_instance_valid(_search_input)
 		and is_instance_valid(_entries_tree)
+		and is_instance_valid(_managed_config_label)
 		and is_instance_valid(_entry_reuse_input)
 	)
 
@@ -393,6 +548,7 @@ func _render_entries(config: Resource) -> void:
 	_managed_entry_index = -1
 	_edit_button.disabled = true
 	_remove_button.disabled = true
+	_locate_scene_button.disabled = true
 	var entries = _get_entries(config)
 	var root := _entries_tree.create_item()
 	if entries == null or entries.is_empty():
@@ -439,14 +595,21 @@ func _render_entries(config: Resource) -> void:
 				entries,
 				index)
 			if rejection.is_empty():
-				item.set_text(5, "Valid")
-				item.set_custom_color(5, NORMAL_COLOR)
-				item.set_tooltip_text(5, "配置有效")
+				var warning := _get_entry_warning_reason(locator, entries, index)
+				if warning.is_empty():
+					item.set_text(5, "Valid")
+					item.set_custom_color(5, NORMAL_COLOR)
+					item.set_tooltip_text(5, "配置有效")
+				else:
+					item.set_text(5, "Warning")
+					item.set_custom_color(5, WARNING_COLOR)
+					item.set_tooltip_text(5, warning)
 			else:
 				item.set_text(5, "Invalid")
 				item.set_custom_color(5, ERROR_COLOR)
 				item.set_tooltip_text(5, rejection)
 		item.set_metadata(0, index)
+		item.set_metadata(1, locator)
 	if visible_count == 0:
 		var empty_item := _entries_tree.create_item(root)
 		empty_item.set_text(0, "没有匹配的 UI 配置条目")
@@ -456,6 +619,9 @@ func _render_entries(config: Resource) -> void:
 
 func _on_search_changed(_text: String) -> void:
 	if _managed_config_path.is_empty():
+		return
+	if not ResourceLoader.exists(_managed_config_path):
+		_render_missing_managed_config(_managed_config_path)
 		return
 	var config := ResourceLoader.load(_managed_config_path)
 	if _is_ui_config(config):
@@ -469,11 +635,100 @@ func _on_entry_selected() -> void:
 	_managed_entry_index = int(item.get_metadata(0))
 	_edit_button.disabled = false
 	_remove_button.disabled = false
+	_locate_scene_button.disabled = _resolve_locator_path(str(item.get_metadata(1))).is_empty()
 
 
 func _on_entry_activated() -> void:
 	_on_entry_selected()
 	_on_edit_pressed()
+
+
+func _on_locate_config_pressed() -> void:
+	_locate_in_file_system(_managed_config_path)
+
+
+func _on_locate_scene_pressed() -> void:
+	var item := _entries_tree.get_selected()
+	if item == null:
+		return
+	_locate_in_file_system(_resolve_locator_path(str(item.get_metadata(1))))
+
+
+func _resolve_locator_path(locator: String) -> String:
+	var normalized_locator := locator.strip_edges()
+	if normalized_locator.is_empty() or not ResourceLoader.exists(normalized_locator):
+		return ""
+	if normalized_locator.begins_with("res://"):
+		return normalized_locator
+	var resource := ResourceLoader.load(normalized_locator)
+	return resource.resource_path if resource != null else ""
+
+
+func _locate_in_file_system(path: String) -> void:
+	if path.is_empty() or not ResourceLoader.exists(path):
+		_show_message(false, "定位失败", "资源已经删除或移动：\n%s" % path)
+		return
+	if not is_instance_valid(_file_system_dock):
+		_show_message(false, "定位失败", "Godot FileSystem Dock 当前不可用。")
+		return
+	_file_system_dock.navigate_to_path(path)
+
+
+func _on_editor_file_removed(path: String) -> void:
+	if not is_instance_valid(_manage_dialog) or not _manage_dialog.visible:
+		return
+	if path == _managed_config_path:
+		_render_missing_managed_config(path)
+		return
+	_refresh_managed_config_after_filesystem_change()
+
+
+func _on_editor_files_moved(old_path: String, new_path: String) -> void:
+	if not is_instance_valid(_manage_dialog) or not _manage_dialog.visible:
+		return
+	if old_path == _managed_config_path:
+		_managed_config_path = new_path
+	_refresh_managed_config_after_filesystem_change()
+
+
+func _refresh_managed_config_after_filesystem_change() -> void:
+	if _managed_config_path.is_empty() or not is_instance_valid(_manage_dialog):
+		return
+	if not ResourceLoader.exists(_managed_config_path):
+		_render_missing_managed_config(_managed_config_path)
+		return
+	var config := ResourceLoader.load(
+		_managed_config_path,
+		"",
+		ResourceLoader.CACHE_MODE_REPLACE)
+	if not _is_ui_config(config):
+		_render_missing_managed_config(_managed_config_path)
+		return
+	_manage_dialog.title = "UI 配置管理 — %s" % _managed_config_path
+	_managed_config_label.text = "当前：%s    项目发现：%d 份" % [
+		_managed_config_path,
+		_find_ui_config_paths("res://").size(),
+	]
+	_locate_config_button.disabled = false
+	_add_button.disabled = false
+	_validate_button.disabled = false
+	_render_entries(config)
+
+
+func _render_missing_managed_config(path: String) -> void:
+	_managed_config_label.text = "配置已删除或移动：%s" % path
+	_entries_tree.clear()
+	var root := _entries_tree.create_item()
+	var item := _entries_tree.create_item(root)
+	item.set_text(0, "配置资源已经不存在，请重新打开管理菜单选择配置。")
+	for column in range(6):
+		item.set_selectable(column, false)
+	_edit_button.disabled = true
+	_remove_button.disabled = true
+	_add_button.disabled = true
+	_validate_button.disabled = true
+	_locate_config_button.disabled = true
+	_locate_scene_button.disabled = true
 
 
 func _on_add_pressed() -> void:
@@ -612,18 +867,40 @@ func _on_validate_pressed() -> void:
 
 
 func _show_validation_report(path: String) -> void:
-	var config := ResourceLoader.load(path)
+	if not ResourceLoader.exists(path):
+		_show_message(false, "校验失败", "UiConfig 资源已经删除或移动：\n%s" % path)
+		return
+	var config := ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
 	if not _is_ui_config(config):
 		_show_message(false, "校验失败", "请选择 UiConfig 资源：\n%s" % path)
 		return
 	var errors := _validate_config(config)
-	if errors.is_empty():
+	var warnings := _validate_config_warnings(config)
+	if errors.is_empty() and warnings.is_empty():
 		_show_message(true, "校验通过", "配置包含 %d 个有效 UI 条目。\n%s" % [
 			_get_entries(config).size(),
 			path,
 		])
+	elif errors.is_empty():
+		_show_message(
+			true,
+			"校验通过（有警告）",
+			"配置包含 %d 个有效 UI 条目。\n%s\n\nWarning：\n%s" % [
+				_get_entries(config).size(),
+				path,
+				"\n".join(warnings),
+			],
+			WARNING_COLOR)
 	else:
-		_show_message(false, "校验失败", "%s\n\n%s" % [path, "\n".join(errors)])
+		var warning_text := (
+			"\n\nWarning：\n%s" % "\n".join(warnings)
+			if not warnings.is_empty()
+			else "")
+		_show_message(false, "校验失败", "%s\n\n%s%s" % [
+			path,
+			"\n".join(errors),
+			warning_text,
+		])
 
 
 func _validate_config(config: Resource) -> PackedStringArray:
@@ -648,6 +925,24 @@ func _validate_config(config: Resource) -> PackedStringArray:
 		if not rejection.is_empty():
 			errors.append("条目 %d：%s" % [index, rejection])
 	return errors
+
+
+func _validate_config_warnings(config: Resource) -> PackedStringArray:
+	var warnings := PackedStringArray()
+	var entries = _get_entries(config)
+	if entries == null:
+		return warnings
+	for index in range(entries.size()):
+		var entry = entries[index]
+		if entry == null:
+			continue
+		var warning := _get_entry_warning_reason(
+			_get_string(entry, "Locator", "locator"),
+			entries,
+			index)
+		if not warning.is_empty():
+			warnings.append("条目 %d：%s" % [index, warning])
+	return warnings
 
 
 func _get_entry_rejection_reason(
@@ -692,9 +987,35 @@ func _get_entry_rejection_reason(
 	return ""
 
 
+func _get_entry_warning_reason(locator: String, entries: Array, skip_index: int) -> String:
+	var normalized_locator := locator.strip_edges()
+	if normalized_locator.is_empty():
+		return ""
+	var other_ids := PackedStringArray()
+	for index in range(entries.size()):
+		if index == skip_index:
+			continue
+		var other = entries[index]
+		if (
+			other != null
+			and _get_string(other, "Locator", "locator").strip_edges() == normalized_locator
+		):
+			other_ids.append(_get_string(other, "Id", "id").strip_edges())
+	if other_ids.is_empty():
+		return ""
+	return "同一 Locator 被多个 Id 使用（%s）；这是允许的，请确认它们确实共享场景：%s" % [
+		", ".join(other_ids),
+		normalized_locator,
+	]
+
+
 func _load_managed_config(title: String) -> Resource:
 	if _managed_config_path.is_empty():
 		_show_message(false, title, "尚未选择 UiConfig。")
+		return null
+	if not ResourceLoader.exists(_managed_config_path):
+		_render_missing_managed_config(_managed_config_path)
+		_show_message(false, title, "当前 UiConfig 已经删除或移动：\n%s" % _managed_config_path)
 		return null
 	var config := ResourceLoader.load(_managed_config_path)
 	if not _is_ui_config(config):
@@ -704,6 +1025,7 @@ func _load_managed_config(title: String) -> Resource:
 
 
 func _save_managed_config(config: Resource, title: String) -> bool:
+	config.emit_changed()
 	var save_error := ResourceSaver.save(
 		config,
 		_managed_config_path,
@@ -715,6 +1037,7 @@ func _save_managed_config(config: Resource, title: String) -> bool:
 		])
 		return false
 	_refresh_editor_filesystem()
+	_plugin.get_editor_interface().edit_resource(config)
 	return true
 
 
@@ -752,11 +1075,18 @@ func _find_ui_config_paths(path: String) -> PackedStringArray:
 		if _is_ui_config(ResourceLoader.load(resource_path)):
 			config_paths.append(resource_path)
 	for directory_name in DirAccess.get_directories_at(path):
-		if directory_name.begins_with("."):
+		if _should_skip_ui_config_directory(path, directory_name):
 			continue
 		config_paths.append_array(
 			_find_ui_config_paths(path.path_join(directory_name)))
 	return config_paths
+
+
+func _should_skip_ui_config_directory(path: String, directory_name: String) -> bool:
+	if directory_name.begins_with("."):
+		return true
+	var directory_path := path.path_join(directory_name)
+	return FileAccess.file_exists(directory_path.path_join("project.godot"))
 
 
 func _get_entries(config: Resource):
@@ -822,18 +1152,28 @@ func _instance_mode_name(value: int) -> String:
 
 
 func _refresh_editor_filesystem() -> void:
+	if not is_instance_valid(_plugin):
+		return
 	var filesystem := _plugin.get_editor_interface().get_resource_filesystem()
 	if filesystem != null and not filesystem.is_scanning():
 		filesystem.scan()
 
 
-func _show_message(success: bool, title: String, message: String) -> void:
+func _show_message(
+	success: bool,
+	title: String,
+	message: String,
+	override_color: Color = Color(0, 0, 0, 0)) -> void:
 	if not is_instance_valid(_report_label):
 		return
 	_report_dialog.title = title
 	_report_label.clear()
 	_report_label.push_font_size(18)
-	_report_label.push_color(NORMAL_COLOR if success else ERROR_COLOR)
+	var title_color := (
+		override_color
+		if override_color.a > 0.0
+		else NORMAL_COLOR if success else ERROR_COLOR)
+	_report_label.push_color(title_color)
 	_report_label.add_text(title)
 	_report_label.pop()
 	_report_label.pop()

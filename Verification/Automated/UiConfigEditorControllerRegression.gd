@@ -29,6 +29,20 @@ func _initialize() -> void:
 		if not discovered_path.ends_with(".tres") and not discovered_path.ends_with(".res"):
 			_fail("UiConfig 资源发现返回了非 Resource 文件")
 			return
+	if not controller._should_skip_ui_config_directory(
+		"res://Templates",
+		"GoDoTemplate"):
+		_fail("UiConfig 资源发现没有识别嵌套 Godot 项目边界")
+		return
+	if controller._should_skip_ui_config_directory(
+		"res://Verification/Automated/Fixtures",
+		"UI"):
+		_fail("UiConfig 资源发现错误跳过了普通资源目录")
+		return
+	var root_configs: PackedStringArray = controller._find_ui_config_paths("res://")
+	if root_configs.has("res://Templates/GoDoTemplate/Ui/UiConfig.tres"):
+		_fail("UiConfig 资源发现进入了嵌套 GoDoTemplate 项目")
+		return
 	if not controller._get_direct_config_path(PackedStringArray()).is_empty():
 		_fail("零配置时错误地选择了直接打开目标")
 		return
@@ -39,6 +53,15 @@ func _initialize() -> void:
 	if not controller._get_direct_config_path(
 		PackedStringArray([VALID_CONFIG_PATH, "res://OtherUiConfig.tres"])).is_empty():
 		_fail("多配置时错误地选择了直接打开目标")
+		return
+	var prepared_paths: PackedStringArray = controller._prepare_config_paths(
+		PackedStringArray([
+			"res://ZUiConfig.tres",
+			VALID_CONFIG_PATH,
+			"res://ZUiConfig.tres",
+		]))
+	if prepared_paths != PackedStringArray([VALID_CONFIG_PATH, "res://ZUiConfig.tres"]):
+		_fail("多配置选择列表没有稳定排序并去重")
 		return
 	if not controller._entry_matches_filter(
 		"settings",
@@ -59,8 +82,20 @@ func _initialize() -> void:
 		_fail("搜索错误地匹配了无关条目")
 		return
 	if controller._default_id_from_scene_path(
-		"res://UI/MainMenu.tscn") != "MainMenu":
+		"res://UI/MainMenu.tscn") != "ui/main_menu":
 		_fail("选择场景后的默认 Id 不正确")
+		return
+	if controller._default_id_from_scene_path(
+		"res://UI/confirm-dialog.tscn") != "ui/confirm_dialog":
+		_fail("连字符场景名没有转换为 snake_case Id")
+		return
+	if controller._resolve_locator_path(
+		"res://Verification/Automated/Fixtures/UI/UiControlA.tscn") != (
+			"res://Verification/Automated/Fixtures/UI/UiControlA.tscn"):
+		_fail("有效 res:// Locator 没有解析为可定位路径")
+		return
+	if not controller._resolve_locator_path("res://UI/Missing.tscn").is_empty():
+		_fail("不存在的 Locator 错误返回了可定位路径")
 		return
 
 	var duplicate_reason: String = controller._get_entry_rejection_reason(
@@ -121,6 +156,35 @@ func _initialize() -> void:
 		-1)
 	if not multiple_reuse_reason.contains("只有 Single UI"):
 		_fail("Multiple UI 启用实例复用没有被编辑器拒绝")
+		return
+
+	var duplicate_locator_reason: String = controller._get_entry_rejection_reason(
+		"settings_alias",
+		"res://Verification/Automated/Fixtures/UI/UiControlA.tscn",
+		1,
+		0,
+		false,
+		entries,
+		-1)
+	if not duplicate_locator_reason.is_empty():
+		_fail("重复 Locator 被错误升级为保存错误：%s" % duplicate_locator_reason)
+		return
+	var duplicate_locator_warning: String = controller._get_entry_warning_reason(
+		"res://Verification/Automated/Fixtures/UI/UiControlA.tscn",
+		entries,
+		-1)
+	if not duplicate_locator_warning.contains("多个 Id"):
+		_fail("重复 Locator 没有产生明确警告")
+		return
+	if not controller._get_entry_warning_reason(
+		"res://Verification/Automated/Fixtures/UI/UiControlB.tscn",
+		entries,
+		1).is_empty():
+		_fail("唯一 Locator 被错误标记为 Warning")
+		return
+	var config_warnings: PackedStringArray = controller._validate_config_warnings(config)
+	if config_warnings.is_empty():
+		_fail("包含重复 Locator 的配置没有返回 Warning")
 		return
 
 	print("[UiConfigEditorControllerRegression] PASS")

@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://Ui/PauseModal.cs" id="1_pause"]
+[ext_resource type="Script" path="res://Ui/SafeAreaContainer.cs" id="2_safe_area"]
+[ext_resource type="Script" path="res://Ui/UiTransitionPlayer.cs" id="3_transition"]
 
 [node name="PauseModal" type="Control"]
 process_mode = 3
@@ -11,10 +13,21 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_pause")
-ResumeButtonPath = NodePath("Center/Panel/Margin/VBox/ResumeButton")
-ReturnButtonPath = NodePath("Center/Panel/Margin/VBox/ReturnButton")
+ResumeButtonPath = NodePath("SafeArea/Center/Panel/Margin/VBox/ResumeButton")
+SettingsButtonPath = NodePath("SafeArea/Center/Panel/Margin/VBox/SettingsButton")
+ReturnButtonPath = NodePath("SafeArea/Center/Panel/Margin/VBox/ReturnButton")
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="SafeArea" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_safe_area")
+
+[node name="Center" type="CenterContainer" parent="SafeArea"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -22,33 +35,42 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Panel" type="PanelContainer" parent="Center"]
+[node name="Panel" type="PanelContainer" parent="SafeArea/Center"]
 custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 
-[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+[node name="Margin" type="MarginContainer" parent="SafeArea/Center/Panel"]
 layout_mode = 2
 theme_override_constants/margin_left = 28
 theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 28
 theme_override_constants/margin_bottom = 24
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel/Margin"]
+[node name="VBox" type="VBoxContainer" parent="SafeArea/Center/Panel/Margin"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="Center/Panel/Margin/VBox"]
+[node name="Title" type="Label" parent="SafeArea/Center/Panel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "Paused"
 horizontal_alignment = 1
 
-[node name="ResumeButton" type="Button" parent="Center/Panel/Margin/VBox"]
+[node name="ResumeButton" type="Button" parent="SafeArea/Center/Panel/Margin/VBox"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Resume"
 
-[node name="ReturnButton" type="Button" parent="Center/Panel/Margin/VBox"]
+[node name="SettingsButton" type="Button" parent="SafeArea/Center/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "Settings"
+
+[node name="ReturnButton" type="Button" parent="SafeArea/Center/Panel/Margin/VBox"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Return to Main Menu"
+
+[node name="Transition" type="Node" parent="."]
+script = ExtResource("3_transition")
+TargetPath = NodePath("../SafeArea/Center/Panel")

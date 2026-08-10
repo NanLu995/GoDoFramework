@@ -29,6 +29,7 @@ public sealed partial class MainMenuView : Control
 
         _startButton.Pressed += OnStartPressed;
         _settingsButton.Pressed += OnSettingsPressed;
+        _startButton.GrabFocus();
     }
 
     public override void _ExitTree()

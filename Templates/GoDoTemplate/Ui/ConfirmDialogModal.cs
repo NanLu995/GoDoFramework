@@ -37,6 +37,7 @@ public sealed partial class ConfirmDialogModal : Control
         _messageLabel.Text = _message;
         _confirmButton.Pressed += OnConfirmPressed;
         _cancelButton.Pressed += OnCancelPressed;
+        _cancelButton.GrabFocus();
     }
 
     public override void _ExitTree()
