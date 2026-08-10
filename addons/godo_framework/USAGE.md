@@ -10,7 +10,7 @@ EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其�
 
 ## 打包与迁移边界
 
-框架的唯一分发单元是 `addons/godo_framework/` 目录。发布 ZIP 保留其中的运行与编辑器资源，排除 Markdown 文档；也不包含当前仓库的 Demo、测试脚本、`.godot/`、`bin/`、`obj/`、根目录 `.csproj`、解决方案文件或 `project.godot`。使用说明以 GitHub 仓库中的对应文档为准。
+核心框架的分发单元是排除 `Integrations/` 的 `addons/godo_framework/` 目录。核心 ZIP 保留运行时、编辑器资源与 DataTable 编译前端，排除 Markdown 文档；GUIDE Input 与 Phantom Camera 适配以独立 ZIP 保留原路径，按需叠加到已安装的核心目录。发布物不包含当前仓库的 Demo、测试脚本、`.godot/`、`bin/`、`obj/`、根目录 `.csproj`、解决方案文件或 `project.godot`。使用说明以 GitHub 仓库中的对应文档为准。
 
 框架不接管目标项目配置：不会创建或修改 `.csproj`、解决方案、输入映射、导出预设和业务场景，也不会在启用插件时自动写入 Autoload。目标项目仍负责自身的 Godot/.NET 版本、程序集名称、构建和导出配置。
 

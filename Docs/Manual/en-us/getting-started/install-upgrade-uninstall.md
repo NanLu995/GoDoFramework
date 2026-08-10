@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/install-upgrade-uninstall.md
-translation_source_hash: sha256:e281914044a206f7d6c7baf62ab4de2a656e6d96ac3ff7f5f8058a4f8d9f9f0e
+translation_source_hash: sha256:3f09ce1f195ce2b7525c88c2f62d9ea52c800d2030239ca500e297ad9983cdd2
 ---
 
 # Install, Upgrade, and Uninstall the Framework
@@ -28,9 +28,9 @@ Copy the versioned package directory to:
 res://addons/godo_framework/
 ```
 
-Do not select only the Runtime subdirectories that currently appear useful. Core, editor setup, and modules form a defined package boundary; partial copying makes health checks, compilation, and future upgrades inconsistent.
+Use the complete core ZIP instead of selecting only Runtime subdirectories that currently appear useful. The core package already excludes all `Integrations/`; Core, editor setup, and core modules remain an indivisible package boundary. Partial copying makes health checks, compilation, and future upgrades inconsistent.
 
-Optional integrations still need their own dependencies, such as GUIDE or Phantom Camera. Finish core setup first, then follow the relevant guide:
+GUIDE Input and Phantom Camera adapters are separate overlay packages and still require their respective third-party dependencies. Finish core setup first, then install the dependency and overlay the required integration package at the project root by following the relevant guide:
 
 - [Input and the GUIDE backend](../guides/input/index.md)
 - [Main cameras and Phantom Camera](../guides/camera/index.md)

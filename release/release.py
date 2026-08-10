@@ -15,10 +15,21 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 ADDON_ROOT = REPOSITORY_ROOT / "addons" / "godo_framework"
+INTEGRATIONS_ROOT = ADDON_ROOT / "Integrations"
 PLUGIN_CONFIG = ADDON_ROOT / "plugin.cfg"
 DIST_ROOT = Path(__file__).resolve().parent / "dist"
 INCLUDED_SUFFIXES = {".cfg", ".cs", ".gd", ".py", ".tscn", ".uid"}
 EXCLUDED_NAMES = {".DS_Store", "Thumbs.db"}
+PACKAGE_ROOTS = {
+    "core": ADDON_ROOT,
+    "guide-input": INTEGRATIONS_ROOT / "GuideInput",
+    "phantom-camera": INTEGRATIONS_ROOT / "PhantomCamera",
+}
+PACKAGE_ARCHIVE_NAMES = {
+    "core": "GoDoFramework-v{version}.zip",
+    "guide-input": "GoDoFramework-GuideInput-v{version}.zip",
+    "phantom-camera": "GoDoFramework-PhantomCamera-v{version}.zip",
+}
 
 
 def read_plugin_metadata() -> tuple[str, str, str]:
@@ -43,23 +54,38 @@ def read_plugin_metadata() -> tuple[str, str, str]:
     return values
 
 
-def collect_release_files() -> list[Path]:
+def collect_release_files(package: str) -> list[Path]:
+    package_root = PACKAGE_ROOTS.get(package)
+    if package_root is None:
+        raise RuntimeError(f"未知发布包：{package}")
+    if not package_root.is_dir():
+        raise RuntimeError(f"发布包目录不存在：{package_root}")
+
     files = [
         path
-        for path in ADDON_ROOT.rglob("*")
+        for path in package_root.rglob("*")
         if path.is_file()
         and path.suffix.lower() in INCLUDED_SUFFIXES
         and path.name not in EXCLUDED_NAMES
+        and (package != "core" or not path.is_relative_to(INTEGRATIONS_ROOT))
     ]
     if not files:
-        raise RuntimeError("发布包没有可打包文件。")
+        raise RuntimeError(f"{package} 发布包没有可打包文件。")
     return sorted(files)
 
 
-def build_archive(version: str) -> Path:
-    DIST_ROOT.mkdir(parents=True, exist_ok=True)
-    archive_path = DIST_ROOT / f"GoDoFramework-v{version}.zip"
-    files = collect_release_files()
+def build_archive(
+    version: str,
+    package: str = "core",
+    output_root: Path = DIST_ROOT,
+) -> Path:
+    archive_name = PACKAGE_ARCHIVE_NAMES.get(package)
+    if archive_name is None:
+        raise RuntimeError(f"未知发布包：{package}")
+
+    output_root.mkdir(parents=True, exist_ok=True)
+    archive_path = output_root / archive_name.format(version=version)
+    files = collect_release_files(package)
 
     with zipfile.ZipFile(
         archive_path,
@@ -78,12 +104,19 @@ def build_archive(version: str) -> Path:
         if any(Path(name).suffix.lower() not in INCLUDED_SUFFIXES for name in archive.namelist()):
             raise RuntimeError("ZIP 中包含不在发布白名单内的文件。")
 
-    print(f"已生成：{archive_path}")
-    print(f"文件数：{len(files)}")
+    print(f"已生成 [{package}]：{archive_path}")
+    print(f"文件数 [{package}]：{len(files)}")
     return archive_path
 
 
-def publish_release(version: str, archive_path: Path) -> None:
+def build_archives(version: str, output_root: Path = DIST_ROOT) -> list[Path]:
+    return [
+        build_archive(version, package, output_root)
+        for package in PACKAGE_ROOTS
+    ]
+
+
+def publish_release(version: str, archive_paths: list[Path]) -> None:
     gh_path = shutil.which("gh")
     if gh_path is None:
         raise RuntimeError("未找到 GitHub CLI（gh）；请先安装并执行 gh auth login。")
@@ -94,7 +127,7 @@ def publish_release(version: str, archive_path: Path) -> None:
         "release",
         "create",
         tag,
-        str(archive_path),
+        *(str(archive_path) for archive_path in archive_paths),
         "--title",
         tag,
         "--generate-notes",
@@ -133,12 +166,12 @@ def main() -> int:
             f"发布版本 {version} 与 plugin.cfg 版本 {plugin_version} 不一致。"
         )
 
-    archive_path = build_archive(version)
+    archive_paths = build_archives(version)
     print(f"GoDoFramework：{plugin_version}")
     print(f"Godot 已验证范围：{minimum_version}～{tested_version}")
     print(f"更高的 Godot {tested_version.split('.')[0]}.x 版本需要项目回归验证。")
     if arguments.publish:
-        publish_release(version, archive_path)
+        publish_release(version, archive_paths)
     return 0
 
 

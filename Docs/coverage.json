@@ -10,7 +10,7 @@
         "getting-started/install-upgrade-uninstall.md",
         "guides/resources-and-scenes/index.md"
       ],
-      "reviewed_contract_hash": "sha256:6b8c07dec802cc39045204debcc2d2dd13db8ea5a6411605c02d75f5a4c886a4"
+      "reviewed_contract_hash": "sha256:fd89bde286369be89d7f59e341c8370093e803642c3e13fc3bf51a2c309a0436"
     },
     "error-hub": {
       "contract": "addons/godo_framework/Core/ErrorHub/USAGE.md",

@@ -23,9 +23,9 @@ GoDoFramework 的分发单元是完整的 `addons/godo_framework/` 目录。编�
 res://addons/godo_framework/
 ```
 
-不要只挑选当前看起来会使用的 Runtime 子目录。Core、编辑器安装助手和模块之间存在明确的发布边界；拆分复制会让健康检查、编译或后续升级失去一致性。
+使用完整核心 ZIP，不要只挑选当前看起来会使用的 Runtime 子目录。核心包已经排除全部 `Integrations/`；Core、编辑器安装助手和核心模块之间仍是不可拆分的发布边界，局部复制会让健康检查、编译或后续升级失去一致性。
 
-可选第三方集成仍需要它自己的依赖，例如 GUIDE 或 Phantom Camera。先完成核心框架安装，再按对应功能指南安装可选后端：
+GUIDE Input 与 Phantom Camera 适配分别使用独立叠加包，并仍需要各自第三方依赖。先完成核心框架安装，再按对应功能指南安装依赖并把所需集成包叠加到项目根目录：
 
 - [输入系统与 GUIDE 后端](../guides/input/index.md)
 - [主镜头与 Phantom Camera](../guides/camera/index.md)
