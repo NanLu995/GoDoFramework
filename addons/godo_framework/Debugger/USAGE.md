@@ -12,7 +12,7 @@ Release 构建不会由 GoDoRuntime 创建 Debugger 节点；Debugger 不是业�
 
 - 默认折叠，外框和紧凑按钮按 FPS 文本宽度自适应，最小宽度按 `FPS: 60` 计算，只显示 FPS；文字使用 1px 同色描边，最近 Warning/Error 仅通过文字颜色按最高严重度提示，具体数量在概览中查看。
 - 点击或触摸健康状态按钮展开或收起诊断窗口。
-- 展开后使用树状导航；高频使用的 `Console` 放在 `Performance` 下方，之后再按 `Runtime/Input`、`Runtime/Scheduler`、`Runtime/Audio`、`Runtime/Scene`、`Runtime/Resources`、`Runtime/DataTable`、`Runtime/UI`、`Runtime/Procedure`、`Framework/Services`、`Framework/Events` 路径组织。
+- 展开后使用树状导航；高频使用的 `Console` 放在 `Performance` 下方，之后再按 `Runtime/Input`、`Runtime/Scheduler`、`Runtime/Audio`、`Runtime/Scene`、`Runtime/Resources`、`Runtime/Pool`、`Runtime/DataTable`、`Runtime/UI`、`Runtime/Procedure`、`Framework/Services`、`Framework/Events` 路径组织。
 - 拖动标题栏可移动面板，拖动右下角“拖动调整大小 ↘”可缩放整个 Debugger；“重置”恢复默认位置与尺寸，移动和缩放结果始终限制在当前视口内。
 - 健康状态按钮、树状导航、内容区和普通操作按钮不取得键盘或手柄焦点；Input、Services、Events 与控制台搜索框仅在鼠标点击后取得焦点，提交搜索或离开对应页面时释放焦点。
 - 页面切换时立即刷新；保持展开时每 0.25 秒刷新当前页面。
@@ -44,6 +44,7 @@ Input、Scheduler、Audio 未注册时分别显示明确的“未注册”降级
 - `运行时 / Scene` 使用与其他运行时页面一致的状态卡和详情表格，显示当前 `SceneTree.CurrentScene` 的名称、资源路径、节点总数、切换状态和进度。节点数只在 Scene 页面按实际引擎时间以一秒间隔重算，不在折叠状态或其他页面遍历场景树。
 - 框架内置 `SceneService` 额外提供仅 Debug 的内部快照：正在加载的 `ResourceKey`、最近一次切换目标和结果。未注册时显示“未注册”；已注册但非框架内置实现时仍显示接口可提供的状态与进度，并明确标记“不支持 Debug 快照”。
 - `运行时 / Resources` 使用统计卡和双表格显示当前异步加载的 key、类型、状态、进度和合并请求数，以及同步/异步、合并、成功和失败的累计统计。活动请求按 key 稳定排序并最多显示前 32 条，避免异常并发量制造无界布局。
+- `运行时 / Pool` 显示当前已登记 NodePool 的节点类型、空闲数、活动数和空闲容量，并给出合计。它只观察仍存活的 Debug 注册，不控制 Pool 生命周期，也不保留历史。
 - ResourceHub 在 Debug 构建中保留最近 32 条完成或失败的请求历史，页面以最新优先顺序显示 8 条。记录只在请求完成或失败时更新，合并请求数随对应操作的最终记录保存；Release 不保留该历史或统计。
 - 框架内置 `DataTableService` 在 Debug 构建中提供当前加载进度、已发布数据集与缓存表的内部快照。数据集列表最多显示 32 个数据集和 64 张表；超过限制时显示省略行，避免业务 Schema 异常膨胀布局。
 - DataTable 最近结果固定保留 16 条，页面按最新优先显示 8 条，覆盖加载成功、取消、失败和卸载。失败记录只保存最多 512 个字符的消息，不持有原始 Exception；未注册和非内置实现分别显示“未注册”与“不支持 Debug 快照”。Release 不维护这些快照、计数或历史。
@@ -82,7 +83,7 @@ Input、Scheduler、Audio 未注册时分别显示明确的“未注册”降级
 - `_EnterTree()` 订阅 `ErrorHub.OnError`，`_ExitTree()` 对称解绑。
 - Services、EventChannel、InputService、SchedulerService、SceneService、DataTableService、UiService、ProcedureService 与 ResourceHub 只暴露 `internal + DEBUG` 的快照入口；Audio 页面直接读取 `IAudioService` 的播放状态与突发准入统计，不维护第二套快照。
 - Debugger 内部按路径注册只读页面；当前不开放第三方 public 注册 API。
-- NodePool 是独立实例模块，首版不为调试面板增加全局池注册，因此不显示池状态。
+- NodePool 在 Debug 构建以弱引用登记仍存活实例；`运行时 / Pool` 页面按需显示节点类型、空闲数、活动数和空闲容量。登记不控制 Pool 生命周期，`Dispose()` 后立即注销，Release 不包含该机制。
 
 ## 失败语义
 
@@ -95,7 +96,7 @@ Input、Scheduler、Audio 未注册时分别显示明确的“未注册”降级
 
 - 折叠时只刷新 FPS 与最近错误计数，继续收集 Warning 以上摘要，不创建模块快照。
 - 展开且未暂停时只生成当前页面所需的低频快照；控制台通过日志与错误摘要版本号跳过内容未变化的刷新，不重复复制历史、构建文本或更新 RichTextLabel。文件日志状态只读取原子计数与已缓存字符串，不读取磁盘。筛选和搜索扫描有界的 1000 条聚合历史，但 RichTextLabel 每次最多排版 100 条普通日志。滚到底部统一延迟到 GUI 完成本轮文本布局后执行，并合并同一轮的重复请求；滚动条变化信号也只安排一次延迟状态检查，不在原生回调内更新布局；不监听 RichTextLabel 的尺寸信号，避免滚动与重排形成反馈环。暂停停止新日志触发的自动刷新与滚动；切换页面、翻页、点击“最新日志”或提交搜索仍会按用户操作立即刷新。
-- Input、Services 与 Events 的小型数组分配仅存在于 Debug 构建；Input 的 Frame 状态可独立更新，Context / Action 及 Services / Events 快照未变化时不重建列表。System 的静态环境信息只读取一次，选中页面时只刷新少量动态窗口状态。Performance 只在选中页面时读取固定数量的引擎监控，趋势使用预分配环形数组和绘图点数组，指标表只更新已有行。Audio 页面每次只读取常量数量的属性并更新既有 Label，不创建历史或集合。ResourceHub 的活动请求数组只在 Resources 页面刷新时创建；历史采用固定 32 条队列，页面只排版前 32 条活动请求和最新 8 条历史。DataTable 通过 Debug 版本号跳过状态未变化的快照与 Tree 重建，历史固定为 16 条，页面最多排版 32 个数据集、64 张表和最新 8 条结果。UI 页面仅在被选中时复制当前受管理界面列表，不保留历史，并最多排版顶部 64 项；其资源 Key 映射只存在于 Debug 构建。Scene 节点数采用无集合分配的子节点遍历，并限制为该页每秒一次。页面定义和导航树只在 Overlay 初始化时创建。
+- Input、Services 与 Events 的小型数组分配仅存在于 Debug 构建；Input 的 Frame 状态可独立更新，Context / Action 及 Services / Events 快照未变化时不重建列表。System 的静态环境信息只读取一次，选中页面时只刷新少量动态窗口状态。Performance 只在选中页面时读取固定数量的引擎监控，趋势使用预分配环形数组和绘图点数组，指标表只更新已有行。Audio 页面每次只读取常量数量的属性并更新既有 Label，不创建历史或集合。ResourceHub 的活动请求数组只在 Resources 页面刷新时创建；历史采用固定 32 条队列，页面只排版前 32 条活动请求和最新 8 条历史。Pool 页面仅在选中时遍历 Debug-only 弱引用登记并创建当前池条目，不保留历史。DataTable 通过 Debug 版本号跳过状态未变化的快照与 Tree 重建，历史固定为 16 条，页面最多排版 32 个数据集、64 张表和最新 8 条结果。UI 页面仅在被选中时复制当前受管理界面列表，不保留历史，并最多排版顶部 64 项；其资源 Key 映射只存在于 Debug 构建。Scene 节点数采用无集合分配的子节点遍历，并限制为该页每秒一次。页面定义和导航树只在 Overlay 初始化时创建。
 - 不应把面板刷新频率提高到每帧，也不应在此实现完整性能分析器。
 
 ## 常见误用

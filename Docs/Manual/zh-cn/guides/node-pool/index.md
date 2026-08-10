@@ -177,6 +177,8 @@ LogHub.Debug(
     context: $"active={_projectiles.ActiveCount} idle={_projectiles.IdleCount}");
 ```
 
+Debug 构建也可打开 GoDo Debugger 的 **运行时 / Pool** 页面，同时查看所有仍存活 Pool 的节点类型、空闲数、活动数和空闲容量。该页面只读且不保留历史；`Dispose()` 后 Pool 会立即消失，Release 不包含这项诊断。
+
 以常见峰值作为预热参考，以可接受的内存占用设置空闲容量。活动数量超过 `idleCapacity` 并不会拒绝生成；只是这些额外节点归还时不会进入缓存。
 
 如果峰值极少出现，不必按最大峰值永久保留全部节点。反之，如果 Idle 经常归零并且实例化仍造成明显卡顿，再逐步提高预热或容量并重新测量。

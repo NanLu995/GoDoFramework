@@ -161,6 +161,13 @@ public sealed partial class DebuggerOverlayRegression : Node
             Tree resourcesActiveTree = resourcesDashboard.GetNode<Tree>("ActiveList");
             Label resourcesHistoryStatus = resourcesDashboard.GetNode<Label>("HistoryStatus");
             Tree resourcesHistoryTree = resourcesDashboard.GetNode<Tree>("HistoryList");
+            VBoxContainer poolDashboard =
+                overlay.GetNode<VBoxContainer>("Panel/Margin/VBox/Body/Page/PoolDashboard");
+            Label poolRegistered = poolDashboard.GetNode<Label>("Summary/RegisteredCard/Content/Value");
+            Label poolIdle = poolDashboard.GetNode<Label>("Summary/IdleCard/Content/Value");
+            Label poolActive = poolDashboard.GetNode<Label>("Summary/ActiveCard/Content/Value");
+            Label poolStatus = poolDashboard.GetNode<Label>("Status");
+            Tree poolTree = poolDashboard.GetNode<Tree>("PoolList");
             VBoxContainer dataTableDashboard =
                 overlay.GetNode<VBoxContainer>("Panel/Margin/VBox/Body/Page/DataTableDashboard");
             Label dataTableLoaded =
@@ -437,10 +444,11 @@ public sealed partial class DebuggerOverlayRegression : Node
                 firstPerformanceMetric.GetTextAlignment(3) == HorizontalAlignment.Left,
                 "Performance 指标、数值和说明没有按规则对齐");
 
-            Assert(runtime.GetChildCount() == 9, "运行时二级页面错误");
+            Assert(runtime.GetChildCount() == 10, "运行时二级页面错误");
             TreeItem scenePage = runtime.GetFirstChild().GetNext().GetNext().GetNext();
             TreeItem resourcesPage = scenePage.GetNext();
-            TreeItem dataTablePage = resourcesPage.GetNext();
+            TreeItem poolPage = resourcesPage.GetNext();
+            TreeItem dataTablePage = poolPage.GetNext();
             TreeItem uiPage = dataTablePage.GetNext();
             TreeItem procedurePage = uiPage.GetNext();
             TreeItem flowPage = procedurePage.GetNext();
@@ -469,6 +477,16 @@ public sealed partial class DebuggerOverlayRegression : Node
                 resourcesHistoryStatus.Text.StartsWith("最近请求 ", StringComparison.Ordinal) &&
                 resourcesHistoryTree.GetRoot() is not null,
                 "Resources 结构化诊断页没有完整显示请求统计与历史");
+            SelectNavigationItem(navigation, poolPage);
+            Assert(title.Text == "Pool" &&
+                poolDashboard.Visible &&
+                !debuggerLabel.Visible &&
+                int.TryParse(poolRegistered.Text, out int registeredPoolCount) && registeredPoolCount > 0 &&
+                int.TryParse(poolIdle.Text, out _) &&
+                int.TryParse(poolActive.Text, out _) &&
+                poolStatus.Text.Contains("Debug 注册", StringComparison.Ordinal) &&
+                poolTree.GetRoot()?.GetChildCount() == registeredPoolCount,
+                "Pool 结构化诊断页没有完整渲染登记池汇总");
             SelectNavigationItem(navigation, dataTablePage);
             Assert(title.Text == "DataTable" &&
                 dataTableDashboard.Visible &&

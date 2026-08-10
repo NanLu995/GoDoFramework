@@ -53,11 +53,11 @@
     "debugger": {
       "contract": "addons/godo_framework/Debugger/USAGE.md",
       "status": "documented",
-        "reason": "功能指南已覆盖自动加载、折叠与展开、卡片式概览、System 环境、Performance 低频趋势与分组指标、结构化 Input、Scheduler、含 Crossfade 状态以及非空间/3D SFX 独立容量、已准备数量、目标跟随预算和突发准入统计的 Audio、Scene、Resources、DataTable、UI、Services 与 Events 检查器、树状导航、布局操作、控制台错误上下文与根因、刷新和历史容量及 Release 边界；仍等待各页面的深度排障示例。",
+        "reason": "功能指南已覆盖自动加载、折叠与展开、卡片式概览、System 环境、Performance 低频趋势与分组指标、结构化 Input、Scheduler、含 Crossfade 状态以及非空间/3D SFX 独立容量、已准备数量、目标跟随预算和突发准入统计的 Audio、Scene、Resources、Debug-only 弱引用 Pool、DataTable、UI、Services 与 Events 检查器、树状导航、布局操作、控制台错误上下文与根因、刷新和历史容量及 Release 边界；仍等待各页面的深度排障示例。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-        "reviewed_contract_hash": "sha256:73a2cf9d7f1be7adcd98f9536cf5aa44633ee983032332ff5e4a4da61a6fdedd"
+        "reviewed_contract_hash": "sha256:45c9f4b0b01ed10430a0509c36c858605e56657a9bd9ecafdfce18d3c91af643"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
@@ -132,11 +132,11 @@
     "pool": {
       "contract": "addons/godo_framework/Runtime/Pool/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖适用边界、IPoolable 重置、预热容量、租借归还、信号与异步清理、失败隔离、Clear/Dispose 和调优；仍等待真实性能测量案例与复杂粒子节点验收指南。",
+      "reason": "功能指南已覆盖适用边界、IPoolable 重置、预热容量、租借归还、信号与异步清理、失败隔离、Clear/Dispose、Debug-only Pool 诊断和调优；仍等待真实性能测量案例与复杂粒子节点验收指南。",
       "manual_pages": [
         "guides/node-pool/index.md"
       ],
-      "reviewed_contract_hash": "sha256:eef4244e7c395376c6de84a342e8891e55dd4387035f1e88010aeab10ae5f4be"
+      "reviewed_contract_hash": "sha256:819bdf3f68dadb81fb5582648ef7be84289a50db6783c14aa6ffe301e9309128"
     },
     "procedure": {
       "contract": "addons/godo_framework/Runtime/Procedure/USAGE.md",

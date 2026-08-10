@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:196d24bf000f4b9dd4ddb71d5118329be6e584635296d61ae05f94dda76426ca
+translation_source_hash: sha256:519e6b19de01e37fbe1252bf2ccc9a2d6ff77643c0c4356480e55782fa24cca5
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
@@ -157,7 +157,7 @@ Before connecting a remote platform, the game project must define user consent, 
 After enabling the `GoDoRuntime.tscn` Autoload, Debug builds automatically show a compact health button with no shortcut configuration.
 
 - Collapsed mode shows only FPS. Warning or Error activity changes the text color according to the highest severity; inspect the Overview for exact counts.
-- Click it to open a card-based runtime overview, then use the navigation tree to inspect the structured System, Performance, Services, Events, Input, Scheduler, Audio, Scene, Resources, DataTable, and UI dashboards, plus the Console page.
+- Click it to open a card-based runtime overview, then use the navigation tree to inspect the structured System, Performance, Services, Events, Input, Scheduler, Audio, Scene, Resources, Pool, DataTable, and UI dashboards, plus the Console page.
 - Drag the title bar to move the window, drag the lower-right Resize Debugger handle to resize the entire panel, or click Reset to restore the default layout.
 - The current page refreshes every 0.25 seconds while expanded; collapsed mode creates no module snapshots.
 - The panel is read-only and cannot modify services or game data.
@@ -178,6 +178,8 @@ The Audio page uses structured state to distinguish BGM loading, playback, pause
 The Scene page uses status cards for the current scene, node count, transition state, and progress. Its detail table shows the resource key currently loading and the most recent transition target and result. Node counting runs once per second only while this page is selected. Missing SceneService registration and custom implementations without a Debug snapshot are shown as explicit degraded states.
 
 The Resources page uses summary cards for active loads, synchronous/asynchronous requests, same-key merges, and success/failure totals. Its active-request table is stably sorted by resource key and renders at most 32 entries. ResourceHub retains 32 recent requests in memory, while the page displays the newest eight first. These values describe ResourceHub requests and bounded history, not the global Godot cache or a persistent resource log.
+
+The Pool page shows every live NodePool's type, idle count, active count, and idle capacity, plus totals across registered pools. It observes Pools through Debug-only weak references; it never creates, closes, or returns Nodes for you. A Pool disappears immediately after `Dispose()`. If active counts do not fall, inspect ownership, return paths, and scene shutdown order first.
 
 The DataTable page reports published data sets, cached tables, active loads, and cumulative failures. Expand a data-set row to inspect table IDs and actual cached types; loading rows show table-level progress and the runtime directory. Recent results cover successful loads, cancellation, failure, and unload operations. The page renders at most 32 data sets and 64 tables, retains 16 results, and displays the newest eight. This diagnostic state exists only in Debug builds and adds no Release history.
 

@@ -37,8 +37,11 @@ public sealed partial class NodePoolRegression : Node
             Run("Release 回调异常清理", VerifyReleaseCallbackFailure);
             Run("外部 QueueFree 清理", VerifyExternalQueueFree);
             Run("Dispose 拒绝回调重入", VerifyDisposeReentrancy);
+#if DEBUG
+            Run("Debug 登记与注销", VerifyDebugRegistration);
+#endif
 
-            GD.Print($"[NodePoolRegression] PASS ({_passed}/12)");
+            GD.Print($"[NodePoolRegression] PASS ({_passed}/{_passed})");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -248,6 +251,36 @@ public sealed partial class NodePoolRegression : Node
         AssertEqual(0, pool.ActiveCount, "Dispose 回调重入后残留活动节点");
         AssertEqual(0, pool.IdleCount, "Dispose 回调重入后残留空闲节点");
     }
+
+#if DEBUG
+    private void VerifyDebugRegistration()
+    {
+        var pool = new NodePool<PoolRegressionNode>(TestNodeScene, initialSize: 1, idleCapacity: 3);
+        PoolRegressionNode active = pool.Acquire(this);
+        NodePoolDebugEntry? entry = FindDebugEntry();
+        Assert(entry.HasValue, "NodePool 没有登记 Debug 快照");
+        NodePoolDebugEntry debugEntry = entry.GetValueOrDefault();
+        AssertEqual(0, debugEntry.IdleCount, "Debug 快照空闲数量错误");
+        AssertEqual(1, debugEntry.ActiveCount, "Debug 快照活动数量错误");
+        AssertEqual(3, debugEntry.IdleCapacity, "Debug 快照空闲容量错误");
+
+        pool.Release(active);
+        pool.Dispose();
+        Assert(!FindDebugEntry().HasValue, "Dispose 后 NodePool 没有注销 Debug 快照");
+    }
+
+    private static NodePoolDebugEntry? FindDebugEntry()
+    {
+        NodePoolDebugEntry[] entries = NodePoolDebugRegistry.GetSnapshot();
+        for (int index = 0; index < entries.Length; index++)
+        {
+            if (entries[index].NodeTypeName == nameof(PoolRegressionNode))
+                return entries[index];
+        }
+
+        return null;
+    }
+#endif
 
     private static void Assert(bool condition, string message)
     {

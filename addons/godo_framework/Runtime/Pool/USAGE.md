@@ -61,6 +61,7 @@ bool released = pool.Release(projectile);
 - 预热会立即实例化节点，避免首轮峰值，但会增加启动时间和常驻对象数量。
 - Release 后节点离开场景树，依赖 `_ExitTree()` 的逻辑会执行；复用时也会再次 `_EnterTree()`。
 - Pool 不支持多线程、纯 C# 对象、自动字段重置或复杂淘汰策略。
+- 仅 Debug 构建会以弱引用登记仍存活的 Pool，供 GoDo Debugger 的 `运行时 / Pool` 页面按需读取类型、空闲数、活动数和空闲容量；Release 不包含登记、快照或额外运行时分配。`Dispose()` 后会立即从该页面移除。
 
 ## 自动回归验证
 

@@ -197,6 +197,12 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private Tree? _resourcesActiveTree;
     private Label? _resourcesHistoryStatus;
     private Tree? _resourcesHistoryTree;
+    private Control? _poolDashboard;
+    private Label? _poolRegisteredValue;
+    private Label? _poolIdleValue;
+    private Label? _poolActiveValue;
+    private Label? _poolStatus;
+    private Tree? _poolTree;
     private Control? _dataTableDashboard;
     private Label? _dataTableLoadedValue;
     private Label? _dataTableTablesValue;
@@ -333,6 +339,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     [Export] public NodePath ResourcesDashboardPath { get; set; } = null!;
     /// <summary>DataTable 仪表盘根节点路径。</summary>
     [Export] public NodePath DataTableDashboardPath { get; set; } = null!;
+    /// <summary>NodePool 仪表盘根节点路径。</summary>
+    [Export] public NodePath PoolDashboardPath { get; set; } = null!;
     /// <summary>UI 仪表盘根节点路径。</summary>
     [Export] public NodePath UiDashboardPath { get; set; } = null!;
     /// <summary>Procedure 仪表盘根节点路径。</summary>
@@ -394,6 +402,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _audioDashboard = GetNodeOrNull<Control>(AudioDashboardPath);
         _sceneDashboard = GetNodeOrNull<Control>(SceneDashboardPath);
         _resourcesDashboard = GetNodeOrNull<Control>(ResourcesDashboardPath);
+        _poolDashboard = GetNodeOrNull<Control>(PoolDashboardPath);
         _dataTableDashboard = GetNodeOrNull<Control>(DataTableDashboardPath);
         _uiDashboard = GetNodeOrNull<Control>(UiDashboardPath);
         _procedureDashboard = GetNodeOrNull<Control>(ProcedureDashboardPath);
@@ -430,6 +439,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             !IsInstanceValid(_audioDashboard) ||
             !IsInstanceValid(_sceneDashboard) ||
             !IsInstanceValid(_resourcesDashboard) ||
+            !IsInstanceValid(_poolDashboard) ||
             !IsInstanceValid(_dataTableDashboard) ||
             !IsInstanceValid(_uiDashboard) ||
             !IsInstanceValid(_procedureDashboard) ||
@@ -464,6 +474,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         CacheAudioNodes();
         CacheSceneNodes();
         CacheResourcesNodes();
+        CachePoolNodes();
         CacheDataTableNodes();
         CacheUiNodes();
         CacheProcedureNodes();
@@ -1598,6 +1609,34 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             : throw new InvalidOperationException($"DebuggerResources 场景缺少节点：{path}");
     }
 
+    private void CachePoolNodes()
+    {
+        _poolRegisteredValue = GetPoolNode<Label>("Summary/RegisteredCard/Content/Value");
+        _poolIdleValue = GetPoolNode<Label>("Summary/IdleCard/Content/Value");
+        _poolActiveValue = GetPoolNode<Label>("Summary/ActiveCard/Content/Value");
+        _poolStatus = GetPoolNode<Label>("Status");
+        _poolTree = GetPoolNode<Tree>("PoolList");
+        _poolTree.SetColumnTitle(0, "节点类型");
+        _poolTree.SetColumnTitle(1, "空闲");
+        _poolTree.SetColumnTitle(2, "活动");
+        _poolTree.SetColumnTitle(3, "空闲容量");
+        _poolTree.SetColumnExpand(0, true);
+        for (int column = 1; column < 4; column++)
+        {
+            _poolTree.SetColumnTitleAlignment(column, HorizontalAlignment.Center);
+            _poolTree.SetColumnExpand(column, false);
+            _poolTree.SetColumnCustomMinimumWidth(column, 68);
+        }
+    }
+
+    private T GetPoolNode<T>(string path) where T : Node
+    {
+        T? node = _poolDashboard!.GetNodeOrNull<T>(path);
+        return IsInstanceValid(node)
+            ? node
+            : throw new InvalidOperationException($"DebuggerPool 场景缺少节点：{path}");
+    }
+
     private void CacheDataTableNodes()
     {
         _dataTableLoadedValue =
@@ -1805,6 +1844,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         RegisterPage("Runtime/Audio", "运行时", "Audio", RefreshAudioDashboard);
         RegisterPage("Runtime/Scene", "运行时", "Scene", RefreshScenePage);
         RegisterPage("Runtime/Resources", "运行时", "Resources", RefreshResourcesPage);
+        RegisterPage("Runtime/Pool", "运行时", "Pool", RefreshPoolPage);
         RegisterPage("Runtime/DataTable", "运行时", "DataTable", RefreshDataTablePage);
         RegisterPage("Runtime/UI", "运行时", "UI", RefreshUiPage);
         RegisterPage("Runtime/Procedure", "运行时", "Procedure", RefreshProcedurePage);
@@ -1932,6 +1972,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             _sceneDashboard.Visible = page.IsScene && !showReadFailure;
         if (IsInstanceValid(_resourcesDashboard))
             _resourcesDashboard.Visible = page.IsResources && !showReadFailure;
+        if (IsInstanceValid(_poolDashboard))
+            _poolDashboard.Visible = page.IsPool && !showReadFailure;
         if (IsInstanceValid(_dataTableDashboard))
             _dataTableDashboard.Visible = page.IsDataTable && !showReadFailure;
         if (IsInstanceValid(_uiDashboard))
@@ -1954,6 +1996,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
                 !page.IsAudio &&
                 !page.IsScene &&
                 !page.IsResources &&
+                !page.IsPool &&
                 !page.IsDataTable &&
                 !page.IsUi &&
                 !page.IsProcedure &&
@@ -3005,6 +3048,43 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         ResourceDebugActiveEntry left,
         ResourceDebugActiveEntry right) =>
         string.CompareOrdinal(left.Key.Value, right.Key.Value);
+
+    private void RefreshPoolPage()
+    {
+        NodePoolDebugEntry[] entries = NodePoolDebugRegistry.GetSnapshot();
+        if (!IsInstanceValid(_poolRegisteredValue) ||
+            !IsInstanceValid(_poolIdleValue) ||
+            !IsInstanceValid(_poolActiveValue) ||
+            !IsInstanceValid(_poolStatus) ||
+            !IsInstanceValid(_poolTree))
+            return;
+
+        int idleCount = 0;
+        int activeCount = 0;
+        _poolTree.Clear();
+        TreeItem root = _poolTree.CreateItem();
+        for (int index = 0; index < entries.Length; index++)
+        {
+            NodePoolDebugEntry entry = entries[index];
+            idleCount += entry.IdleCount;
+            activeCount += entry.ActiveCount;
+            TreeItem item = _poolTree.CreateItem(root);
+            item.SetText(0, entry.NodeTypeName);
+            item.SetText(1, entry.IdleCount.ToString(CultureInfo.InvariantCulture));
+            item.SetText(2, entry.ActiveCount.ToString(CultureInfo.InvariantCulture));
+            item.SetText(3, entry.IdleCapacity.ToString(CultureInfo.InvariantCulture));
+            item.SetTooltipText(0, entry.NodeTypeName);
+            for (int column = 1; column < 4; column++)
+                item.SetTextAlignment(column, HorizontalAlignment.Center);
+        }
+
+        _poolRegisteredValue.Text = entries.Length.ToString(CultureInfo.InvariantCulture);
+        _poolIdleValue.Text = idleCount.ToString(CultureInfo.InvariantCulture);
+        _poolActiveValue.Text = activeCount.ToString(CultureInfo.InvariantCulture);
+        _poolStatus.Text = entries.Length == 0
+            ? "当前没有已登记的 NodePool。"
+            : "仅显示仍存活的 Debug 注册；Dispose 后立即移除。";
+    }
 
     private void RefreshDataTablePage()
     {
@@ -4437,6 +4517,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         public bool IsAudio => string.Equals(Path, "Runtime/Audio", StringComparison.Ordinal);
         public bool IsScene => string.Equals(Path, "Runtime/Scene", StringComparison.Ordinal);
         public bool IsResources => string.Equals(Path, "Runtime/Resources", StringComparison.Ordinal);
+        public bool IsPool => string.Equals(Path, "Runtime/Pool", StringComparison.Ordinal);
         public bool IsDataTable => string.Equals(Path, "Runtime/DataTable", StringComparison.Ordinal);
         public bool IsUi => string.Equals(Path, "Runtime/UI", StringComparison.Ordinal);
         public bool IsProcedure =>

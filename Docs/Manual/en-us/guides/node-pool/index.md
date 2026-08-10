@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/node-pool/index.md
-translation_source_hash: sha256:e367a7e605f914a2dd36cfa655558f7f7319496aa755003a870bdf831556e9e6
+translation_source_hash: sha256:b981a71f91841259f4704eed9c0330245efd3ffd90a9efc9fe56f8d2c3007f1a
 ---
 
 # Reuse High-Frequency Objects with NodePool
@@ -181,6 +181,8 @@ LogHub.Debug(
     "Game.Pool",
     context: $"active={_projectiles.ActiveCount} idle={_projectiles.IdleCount}");
 ```
+
+In a Debug build, **Runtime / Pool** in the GoDo Debugger also shows every live Pool's Node type, idle count, active count, and idle capacity. The page is read-only and retains no history; a Pool disappears immediately after `Dispose()`, and Release builds do not include this diagnostic.
 
 Use the common peak as a prewarm reference and choose idle capacity according to acceptable memory cost. Active count may exceed `idleCapacity`; those extra Nodes are simply not cached when returned.
 

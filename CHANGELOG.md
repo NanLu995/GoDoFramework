@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.5.0
+
+- Procedure、Scene 与 UI 增强顶层流程协作：补齐可取消异步切换、失败恢复、阶段化异常、诊断快照与关闭清理，并由 Demo3D 展示启动、主菜单、加载、进入游戏、暂停和返回菜单的完整流程。
+- UI 完善 Scene、View、Modal、Overlay 四层管理，以及同步/异步打开、查询、指定或批量关闭、`CloseTo`、焦点恢复、可选 Single 实例复用和编辑器配置工具；GoDoTemplate 增加可复用的 Starter UI 示例与回归验证。
+- 新增 DataTable 运行时服务、生成工具、编辑器工作流、导出校验和示例数据，并强化格式校验、加载诊断与峰值内存控制。
+- 完善 Input、Localization、Settings、Debugger 与滚动日志能力，统一日志等级入口和模块通道，并补齐运行时诊断面板、输入提示、重绑定及本地化示例。
+- 加固框架异常边界：Procedure、Scene、Resource、Pool、Audio、Camera 与 Runtime 初始化/关闭路径补齐取消、恢复和半初始化状态清理。
+- 建立中英文用户手册、API Reference 检查和文档覆盖追踪，并增加 Godot 版本升级工具与只读本地 AI Worker。
+- 发布包拆分为无第三方依赖的核心包、GuideInput 集成包和 PhantomCamera 集成包；三个压缩包均保留 `addons/godo_framework` 安装路径。
+
 - AudioService 新增双播放器等功率 `CrossfadeBgmAsync`、淡出到静音的 `FadeOutBgmAsync`、过渡请求 latest-request-wins 取消语义和结构化 `BgmPlaybackState`；SFX 新增 ResourceHub 资源准备、Voice 幂等预热、逐次参数、结构化准入结果、单路 Handle、同资源并发限制，以及覆盖活动与待加载请求的优先级抢占，并新增独立容量、预热、Handle、最大距离、静态世界坐标和受独立预算约束的固定物理帧 Node3D 跟随 3D SFX 线路，现有 BGM 与 bool SFX 播放入口保持兼容。
 
 ## 0.4.0

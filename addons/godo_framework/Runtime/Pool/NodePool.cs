@@ -16,7 +16,11 @@ namespace GoDo;
 /// </para>
 /// </summary>
 /// <typeparam name="T">PackedScene 根节点的 C# 类型。</typeparam>
-public sealed class NodePool<T> : IDisposable where T : Node
+public sealed class NodePool<T> : IDisposable
+#if DEBUG
+    , INodePoolDebugSource
+#endif
+    where T : Node
 {
     private readonly PackedScene _scene;
     private readonly Stack<T> _idleNodes;
@@ -62,6 +66,10 @@ public sealed class NodePool<T> : IDisposable where T : Node
             FreeIdleNodes();
             throw;
         }
+
+#if DEBUG
+        NodePoolDebugRegistry.Register(this);
+#endif
     }
 
     internal int PrewarmTo(int targetCount)
@@ -251,6 +259,9 @@ public sealed class NodePool<T> : IDisposable where T : Node
 
         VerifyThreadAccess();
         _disposed = true;
+#if DEBUG
+        NodePoolDebugRegistry.Unregister(this);
+#endif
         FreeIdleNodes();
 
         if (_activeNodes.Count > 0)
@@ -349,4 +360,15 @@ public sealed class NodePool<T> : IDisposable where T : Node
     {
         MainThreadGuard.VerifyAccess();
     }
+
+#if DEBUG
+    NodePoolDebugEntry INodePoolDebugSource.GetDebugEntry()
+    {
+        return new NodePoolDebugEntry(
+            typeof(T).Name,
+            _idleNodes.Count,
+            _activeNodes.Count,
+            _idleCapacity);
+    }
+#endif
 }
