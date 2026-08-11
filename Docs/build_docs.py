@@ -649,6 +649,7 @@ def run_docfx(locale: str, warnings_as_errors: bool) -> None:
         "run",
         "docfx",
         "--",
+        "build",
         str(WORK_ROOT / locale / "docfx.json"),
     ]
     if warnings_as_errors:
@@ -686,6 +687,80 @@ def load_coverage_entries(
         for entry_id, entry in entries.items()
         if isinstance(entry_id, str) and isinstance(entry, dict)
     }
+
+
+API_TOC_GROUPS = {
+    "error-hub": "Core",
+    "event-channel": "Core",
+    "log-hub": "Core",
+    "services": "Core",
+    "debugger": "Diagnostics",
+    "procedure": "Runtime / Procedure",
+    "scene": "Runtime / Scene",
+    "ui": "Runtime / UI",
+    "audio": "Runtime / Audio",
+    "input": "Runtime / Input",
+    "camera": "Runtime / Camera",
+    "resources": "Runtime / Resources",
+    "config": "Runtime / Config",
+    "data-table-runtime": "Runtime / DataTable",
+    "save": "Runtime / Save",
+    "settings": "Runtime / Settings",
+    "localization": "Runtime / Localization",
+    "scheduler": "Runtime / Scheduler",
+    "pool": "Runtime / Pool",
+    "guide-input": "Integrations / GUIDE Input",
+    "phantom-camera": "Integrations / Phantom Camera",
+    "data-table": "Tools / DataTable",
+    "framework-setup": "Editor setup",
+}
+
+
+def write_api_toc(locale: str) -> None:
+    """Group API types by their registered framework module instead of namespace."""
+    api_root = WORK_ROOT / locale / "api"
+    coverage_entries = load_coverage_entries()
+    groups: dict[str, list[tuple[str, str]]] = {}
+    unknown: list[str] = []
+
+    for api_file in sorted(api_root.glob("*.yml")):
+        text = api_file.read_text(encoding="utf-8")
+        uid_match = re.search(r"(?m)^\s*-\s+uid:\s+(.+?)\s*$", text)
+        name_match = re.search(r"(?m)^\s+name:\s+(.+?)\s*$", text)
+        source = extract_api_source(text)
+        if uid_match is None or name_match is None or source is None:
+            continue
+        owner = find_api_reference_owner(source, coverage_entries)
+        if owner is None:
+            unknown.append(uid_match.group(1).strip("\"'"))
+            continue
+        entry_id, _ = owner
+        group = API_TOC_GROUPS.get(entry_id)
+        if group is None:
+            unknown.append(uid_match.group(1).strip("\"'"))
+            continue
+        groups.setdefault(group, []).append((
+            uid_match.group(1).strip("\"'"),
+            name_match.group(1).strip("\"'"),
+        ))
+
+    if unknown:
+        raise RuntimeError(
+            "API TOC 存在未分组公开类型：" + ", ".join(sorted(unknown))
+        )
+
+    if not groups:
+        raise RuntimeError("API TOC 未生成任何模块分组。")
+
+    lines = ["### YamlMime:TableOfContent", "items:"]
+    for group, items in groups.items():
+        lines.append(f"- name: {yaml_string(group)}")
+        lines.append("  items:")
+        for uid, name in items:
+            lines.append(f"  - uid: {yaml_string(uid)}")
+            lines.append(f"    name: {yaml_string(name)}")
+    lines.append("memberLayout: SamePage")
+    (api_root / "toc.yml").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def find_api_reference_owner(
@@ -1085,8 +1160,11 @@ def validate_site() -> None:
 def build_sites(warnings_as_errors: bool) -> None:
     restore_tools_and_project()
     for locale in LOCALES:
-        run_docfx(locale, warnings_as_errors)
+        run_docfx_metadata(locale, warnings_as_errors)
+        write_api_toc(locale)
     validate_api_reference()
+    for locale in LOCALES:
+        run_docfx(locale, warnings_as_errors)
     write_root_landing()
     inject_language_switches()
     validate_site()
