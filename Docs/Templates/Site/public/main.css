@@ -15,6 +15,35 @@ article {
   text-rendering: optimizeLegibility;
 }
 
+/* Bootstrap's default pink inline-code color is too strong for long technical pages. */
+:root {
+  --bs-code-color: #0f6177;
+}
+
+/* Keep both inline code and highlighted literals away from Bootstrap's pink/red accents. */
+article :not(pre) > code {
+  color: #0f6177 !important;
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-section,
+.hljs-attribute,
+.hljs-literal,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-addition,
+.hljs-attr {
+  color: #6b5d2e;
+}
+
+[data-bs-theme=dark] .hljs-string,
+[data-bs-theme=dark] .hljs-meta .hljs-string,
+[data-bs-theme=dark] .hljs-attr {
+  color: #c8b875;
+}
+
 body {
   font-size: 1rem;
   line-height: 1.72;
@@ -123,6 +152,50 @@ body:not([data-yaml-mime="ManagedReference"]) #toc li:has(> a[href*="/api/"]) {
 .godo-doc-card span {
   color: var(--bs-secondary-color);
   line-height: 1.55;
+}
+
+/* Capability guides use short vertical cards instead of wide comparison tables. */
+.godo-capability-list {
+  display: grid;
+  gap: .7rem;
+  margin: 1rem 0 1.4rem;
+}
+
+.godo-capability-list > section {
+  padding: .85rem 1rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: .55rem;
+  background: color-mix(in srgb, var(--bs-body-bg) 96%, var(--bs-tertiary-bg));
+}
+
+.godo-capability-list h4 {
+  margin: 0 0 .35rem;
+  font-size: .96rem;
+}
+
+.godo-capability-list p {
+  margin: .2rem 0;
+}
+
+/* A capability card has one copyable call area, independent of its prose layout. */
+.godo-capability-call {
+  margin: .55rem 0 0;
+  padding: .55rem .7rem;
+  overflow-x: auto;
+  border: 1px solid var(--bs-border-color);
+  border-radius: .35rem;
+  background: color-mix(in srgb, var(--bs-body-bg) 90%, var(--bs-tertiary-bg));
+  color: #0f6177;
+  font-family: var(--bs-font-monospace);
+  font-size: .875em;
+  line-height: 1.55;
+}
+
+.godo-capability-call code {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
 }
 
 /* DocFX enables browser-wide view transitions by default; documentation links should switch immediately. */
