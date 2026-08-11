@@ -21,6 +21,13 @@ settings.Save();
 
 设置方法立即更新内存并应用到运行时，但不会自动写盘，避免滑块拖动时频繁保存。
 
+## 生命周期与线程
+
+- SettingsService 由 GoDoRuntime 创建并注册；业务层通过 `ISettingsService` 获取，不自行构造第二个长期实例。
+- `LoadAndApply`、`Save`、`ResetToDefaults` 和所有 `Set*` 方法只能在 Godot 主线程调用。它们会同步访问 Audio、Localization、DisplayServer 或 SaveService，不应包进 `Task.Run`。
+- `Current` 是不可变快照，但只在设置成功应用后替换；不支持的平台能力返回 `Unsupported` 并保持对应快照字段不变。
+- 启动时应在首个依赖玩家设置的流程之前调用一次 `LoadAndApply`；退出前是否额外保存由业务的“应用/确定”策略决定，服务不会自动保存尚未确认的修改。
+
 ## 平台能力
 
 ```csharp

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 namespace GoDo;
 
 /// <summary>由可选输入适配包实现的低层后端边界；游戏业务不直接使用。</summary>
+/// <remarks>初始化、Context 应用、每帧采样与关闭均由 InputService 在 Godot 主线程调用。</remarks>
 public interface IInputBackend
 {
     /// <summary>后端支持的可选能力。</summary>
@@ -22,9 +23,11 @@ public interface IInputBackend
     void Initialize();
 
     /// <summary>原子应用按优先级从低到高排列的有效 Context；失败时保持原映射不变。</summary>
+    /// <param name="contexts">InputService 已解析出的最终有效 Context 集合。</param>
     void ApplyContexts(ReadOnlySpan<InputContextId> contexts);
 
     /// <summary>按 <see cref="Actions"/> 的固定顺序写满样本缓冲区。</summary>
+    /// <param name="destination">长度与 <see cref="Actions"/> 数量相同、由 InputService 预分配的目标缓冲区。</param>
     void Sample(Span<InputActionSample> destination);
 
     /// <summary>释放后端状态和订阅；必须允许重复调用。</summary>

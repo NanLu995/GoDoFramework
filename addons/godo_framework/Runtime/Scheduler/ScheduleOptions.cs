@@ -29,6 +29,14 @@ public readonly struct ScheduleOptions
     public Node? Owner { get; }
 
     /// <summary>创建调度选项。</summary>
+    /// <param name="clock">任务使用的时间推进语义。</param>
+    /// <param name="phase">任务回调或等待完成所在的 Godot 主线程阶段。</param>
+    /// <param name="owner">
+    /// 可选场景 Owner；创建任务时必须仍然有效且已进入场景树，退出树后关联任务自动取消。
+    /// </param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="clock"/> 或 <paramref name="phase"/> 不是已定义的枚举值。
+    /// </exception>
     public ScheduleOptions(
         ScheduleClock clock = ScheduleClock.GameTime,
         SchedulePhase phase = SchedulePhase.Process,

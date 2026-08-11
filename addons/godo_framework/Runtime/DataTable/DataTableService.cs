@@ -213,7 +213,11 @@ public sealed partial class DataTableService : Node, IDataTableService
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>判断指定数据集是否已经完整加载并发布。</summary>
+    /// <param name="dataSetId">生成描述声明的精确数据集 ID；不能为 <see langword="null"/>、空字符串或空白。</param>
+    /// <returns>数据集已完整加载并发布时为 <see langword="true"/>；尚未加载、正在加载、加载失败、取消或已经卸载时为 <see langword="false"/>。</returns>
+    /// <exception cref="ArgumentException"><paramref name="dataSetId"/> 为 <see langword="null"/>、空字符串或空白。</exception>
+    /// <exception cref="InvalidOperationException">不在 Godot 主线程调用。</exception>
     public bool IsLoaded(string dataSetId)
     {
         MainThreadGuard.VerifyAccess();

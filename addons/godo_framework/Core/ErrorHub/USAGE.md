@@ -120,6 +120,8 @@ ErrorHub.RemoveReporter(reporter);
 - 队列满时会丢弃报告并在主线程汇总警告；后台 Fatal 还会同步写入降级控制台。
 - 应控制错误风暴源头，不能把有界队列当作无限日志缓冲。
 
+上述后台队列以 GoDoRuntime 已经进入场景树并记录主线程为前提。初始化之前调用 ErrorHub 会在调用线程同步分发，不提供启动前的后台线程安全保证；启动阶段的后台工作应等 Runtime 就绪后再上报，或先由调用方保存结果并回到主线程处理。
+
 GoDoRuntime 默认注册本地滚动文件 Reporter，将 Warning、Error 与 Fatal 写入 `user://logs`。其磁盘 I/O 使用独立的 2048 条有界后台队列；文件写入失败不会递归调用 ErrorHub，运行时只输出一次降级警告。
 
 ## GoDoRuntime 兜底

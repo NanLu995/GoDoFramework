@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/scheduler/index.md
-translation_source_hash: sha256:ca8e8a27814b4596391d7dac7155f86aa3c047205e3d7f81551ce0cc92ff912c
+translation_source_hash: sha256:612803d996d6efbc556b2147ef16f1511208ec461030429cc6f88733cc0bcc22
 ---
 
 # Schedule Delays, Repeating Tasks, and Async Waits
@@ -50,6 +50,8 @@ scheduler.Schedule(
     CloseNotification,
     ScheduleOptions.RealTime);
 ```
+
+Observable result: `Schedule` returns a valid handle immediately but does not invoke the callback in the current call stack. The callback runs only after the selected clock and phase become due. Because this example uses `RealTime`, it still closes the notification after about three seconds while SceneTree is paused.
 
 `RealTime` means unaffected by TimeScale and SceneTree pause. It does not mean background execution; callbacks still run on Godot's main thread.
 
@@ -173,13 +175,22 @@ In a Debug build, open **Runtime / Scheduler** in the GoDo Debugger to inspect:
 
 Snapshots are generated at low frequency only while the page is visible and are not Release API. If task count keeps growing, inspect ownerless repeating work, undisposed Procedure tokens, and cross-scene waits that are created without cancellation.
 
-## Parameters and shutdown
+## Parameters, failures, and shutdown
 
-- A delay must be finite and at least zero seconds.
-- A repeating interval must be finite and greater than zero.
-- Every public API is main-thread only; only CancellationToken triggering may originate in the background.
-- GoDoRuntime shutdown cancels every task and completes unfinished `DelayAsync` calls as cancelled.
-- New tasks are rejected after framework shutdown.
+| Input or state | Observable result |
+|---|---|
+| A delay is not finite and at least zero seconds | Throws `ArgumentOutOfRangeException` |
+| A repeating interval is not finite and greater than zero | Throws `ArgumentOutOfRangeException` |
+| The callback is null | Throws `ArgumentNullException` |
+| The Owner is no longer valid | Throws `ArgumentException`; no task is created |
+| The Owner is valid but not inside the scene tree | Throws `InvalidOperationException`; no task is created |
+| Clock or Phase is not a defined enum value | The `ScheduleOptions` constructor throws `ArgumentOutOfRangeException` |
+| A public API is called off Godot's main thread, or the service is unavailable or has left the tree | Throws `InvalidOperationException` |
+| A handle is invalid, completed, or incompatible with the requested operation | `Cancel`, `Pause`, and `Resume` return `false`; the remaining-time query returns `false` and zero seconds |
+| The Owner exits, the Token is cancelled, or GoDoRuntime shuts down | An unfinished `DelayAsync` becomes cancelled; awaiting it follows normal cancellation flow and throws `OperationCanceledException` |
+| A callback throws | ErrorHub reports it; a one-shot ends, a repeating task is cancelled, and other due work continues |
+
+Every public API is main-thread only; only CancellationToken triggering may originate in the background. Framework shutdown cancels all tasks and rejects new ones.
 
 ## Common failures
 

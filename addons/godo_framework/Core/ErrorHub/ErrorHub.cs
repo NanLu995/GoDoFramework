@@ -14,6 +14,10 @@ namespace GoDo;
 /// 框架内所有模块通过此类上报错误，不直接调用 <c>GD.PrintErr</c>。
 /// 外部可通过 <see cref="AddReporter"/> 挂载自定义上报逻辑（Sentry、自建服务器等）。
 /// </para>
+/// <para>
+/// GoDoRuntime 初始化后，主线程报告同步分发，后台线程报告先进入有界队列并在后续主线程帧分发。
+/// 初始化前不会执行线程切换，调用方不得从后台线程上报。
+/// </para>
 /// <example>
 /// <code>
 /// // 框架模块内部使用
@@ -76,7 +80,7 @@ public static class ErrorHub
     /// 注册一个自定义上报器。同一实例（按引用比较）不会被重复添加，
     /// 与上报器自身是否重写 <see cref="object.Equals(object)"/> 无关。
     /// </summary>
-    /// <param name="reporter">实现 <see cref="IErrorReporter"/> 的上报器。</param>
+    /// <param name="reporter">实现 <see cref="IErrorReporter"/> 的上报器；为 <see langword="null"/> 时忽略。</param>
     public static void AddReporter(IErrorReporter reporter)
     {
         if (reporter == null) return;
@@ -96,6 +100,7 @@ public static class ErrorHub
     /// <summary>
     /// 移除一个已注册的上报器（按引用比较）。
     /// </summary>
+    /// <param name="reporter">注册时使用的同一个上报器实例；未注册或为 <see langword="null"/> 时忽略。</param>
     public static void RemoveReporter(IErrorReporter reporter)
     {
         if (reporter == null) return;
@@ -118,8 +123,8 @@ public static class ErrorHub
     /// <summary>
     /// 上报一个带异常的错误（等级 <see cref="ErrorLevel.Error"/>）。
     /// </summary>
-    /// <param name="exception">原始异常对象。</param>
-    /// <param name="module">来源模块名称，如 "EventChannel"。</param>
+    /// <param name="exception">原始异常对象；为 <see langword="null"/> 时忽略本次上报。</param>
+    /// <param name="module">来源模块名称，如 "EventChannel"；为 <see langword="null"/> 时记录为 "Unknown"。</param>
     /// <param name="context">可选上下文描述，如方法名、节点路径。</param>
     public static void Report(
         Exception exception,
@@ -141,9 +146,10 @@ public static class ErrorHub
     /// 上报一条指定等级的消息（无关联异常）。
     /// </summary>
     /// <param name="level">错误等级。</param>
-    /// <param name="message">人类可读的描述。</param>
-    /// <param name="module">来源模块名称。</param>
+    /// <param name="message">人类可读的描述；为 <see langword="null"/> 时记录为空字符串。</param>
+    /// <param name="module">来源模块名称；为 <see langword="null"/> 时记录为 "Unknown"。</param>
     /// <param name="context">可选上下文。</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="level"/> 不是已定义的 <see cref="ErrorLevel"/> 值。</exception>
     public static void Report(
         ErrorLevel level,
         string message,
@@ -160,12 +166,18 @@ public static class ErrorHub
     /// <summary>
     /// 上报一条 <see cref="ErrorLevel.Warning"/> 级别消息的便捷方法。
     /// </summary>
+    /// <param name="message">人类可读的描述；为 <see langword="null"/> 时记录为空字符串。</param>
+    /// <param name="module">来源模块名称；为 <see langword="null"/> 时记录为 "Unknown"。</param>
+    /// <param name="context">可选的操作、资源或节点上下文。</param>
     public static void Warn(string message, string module, string? context = null)
         => Report(ErrorLevel.Warning, message, module, context);
 
     /// <summary>
-    /// 上报一条 <see cref="ErrorLevel.Fatal"/> 级别消息。
+    /// 上报一条 <see cref="ErrorLevel.Fatal"/> 级别消息。此方法只记录严重性，不会主动终止游戏。
     /// </summary>
+    /// <param name="message">人类可读的描述；为 <see langword="null"/> 时记录为空字符串。</param>
+    /// <param name="module">来源模块名称；为 <see langword="null"/> 时记录为 "Unknown"。</param>
+    /// <param name="context">可选的操作、资源或节点上下文。</param>
     public static void Fatal(string message, string module, string? context = null)
         => Report(ErrorLevel.Fatal, message, module, context);
 
@@ -173,6 +185,9 @@ public static class ErrorHub
     /// 上报一条带异常的 <see cref="ErrorLevel.Fatal"/> 消息。
     /// Fatal 仅表示最高严重等级，不会主动终止游戏；是否退出由调用方决定。
     /// </summary>
+    /// <param name="exception">要保留的原始异常；为 <see langword="null"/> 时忽略本次上报。</param>
+    /// <param name="module">来源模块名称；为 <see langword="null"/> 时记录为 "Unknown"。</param>
+    /// <param name="context">可选的操作、资源或节点上下文。</param>
     public static void Fatal(Exception exception, string module, string? context = null)
     {
         if (exception == null) return;

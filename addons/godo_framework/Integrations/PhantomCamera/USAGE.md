@@ -10,11 +10,11 @@
 
 1. 安装第三方 Phantom Camera；本适配包当前按 0.11 验证。
 2. 确认框架包包含 `addons/godo_framework/Integrations/PhantomCamera/`。
-3. 启用唯一的 `GoDo Framework` 插件，打开顶部 `GoDo → Phantom Camera 设置...`。
+3. 启用唯一的 `GoDo Framework` 插件，打开顶部 `GoDo → 幻影相机配置 (Phantom Camera Settings)...`。
 4. 检查文件与版本，并在明确确认后启用第三方 Phantom Camera。
 5. 编译并完成回归后，在业务场景中使用运行时 Rig 或预设。
 
-本适配包通过 `godo_editor_extension.cfg` 接入统一 GoDo 菜单，不提供 `plugin.cfg`，因此不会成为第二个 Godot EditorPlugin。设置窗口只在首次打开时创建；健康状态下启用按钮禁用。只有第三方 Phantom Camera 自身需要启用。
+本适配包通过 `godo_editor_extension.cfg` 接入统一 GoDo 菜单，不提供 `plugin.cfg`，因此不会成为第二个 Godot EditorPlugin。设置窗口只在首次打开时创建。自动启用按钮仅在第三方与适配文件完整、版本恰为 0.11 且第三方插件尚未启用时可用；确认后只调用 Godot 编辑器启用第三方插件，不修改场景、运行时配置或第三方源码。成功时窗口显示“已正确配置”并禁用启用按钮；启用失败时显示失败提示，应检查编辑器输出。只有第三方 Phantom Camera 自身需要启用。
 
 ## 第三人称 Rig 预设
 

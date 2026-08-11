@@ -6,7 +6,7 @@ using Godot;
 
 namespace GoDo;
 
-/// <summary>复用 Godot TranslationServer 的项目本地化查询与语言切换服务。</summary>
+/// <summary>复用 Godot TranslationServer 的项目本地化查询与语言切换服务；TranslationServer 操作仅限 Godot 主线程。</summary>
 public sealed class LocalizationService : ILocalizationService
 {
     private const string DefaultLocaleSetting = "internationalization/locale/fallback";
@@ -17,6 +17,7 @@ public sealed class LocalizationService : ILocalizationService
     private string _currentLocale;
 
     /// <summary>创建并应用项目配置的默认 Locale。</summary>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     public LocalizationService()
     {
         MainThreadGuard.VerifyAccess();
@@ -46,14 +47,22 @@ public sealed class LocalizationService : ILocalizationService
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>判断 Locale 是否可由当前项目使用。</summary>
+    /// <param name="locale">要规范化并匹配默认语言或已加载翻译的 Locale；空白值视为不支持。</param>
+    /// <returns>Locale 是默认语言或能由已加载翻译进行非精确匹配时为 <see langword="true"/>；否则为 <see langword="false"/>。</returns>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     public bool IsLocaleSupported(string locale)
     {
         MainThreadGuard.VerifyAccess();
         return !string.IsNullOrWhiteSpace(locale) && CanResolveLocale(StandardizeLocale(locale));
     }
 
-    /// <inheritdoc />
+    /// <summary>查询当前 Locale 下的翻译。</summary>
+    /// <param name="key">非空白的稳定翻译键。</param>
+    /// <param name="context">可选翻译上下文；<see langword="null"/> 按无上下文查询。</param>
+    /// <returns>当前 Locale 对应的翻译；缺失时沿用 Godot 行为返回源键。</returns>
+    /// <exception cref="ArgumentException"><paramref name="key"/> 为空或仅包含空白字符。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     public string Translate(string key, string? context = null)
     {
         MainThreadGuard.VerifyAccess();
@@ -61,7 +70,14 @@ public sealed class LocalizationService : ILocalizationService
         return TranslationServer.Translate(new StringName(key), ToStringName(context)).ToString();
     }
 
-    /// <inheritdoc />
+    /// <summary>查询当前 Locale 下与数量对应的复数翻译。</summary>
+    /// <param name="singularKey">非空白的单数翻译键。</param>
+    /// <param name="pluralKey">非空白的复数翻译键。</param>
+    /// <param name="count">交给 Godot 复数规则选择形式的数量。</param>
+    /// <param name="context">可选翻译上下文；<see langword="null"/> 按无上下文查询。</param>
+    /// <returns>当前 Locale 和数量对应的翻译；缺失时沿用 Godot 的源键回退行为。</returns>
+    /// <exception cref="ArgumentException"><paramref name="singularKey"/> 或 <paramref name="pluralKey"/> 为空或仅包含空白字符。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     public string TranslatePlural(string singularKey, string pluralKey, int count, string? context = null)
     {
         MainThreadGuard.VerifyAccess();

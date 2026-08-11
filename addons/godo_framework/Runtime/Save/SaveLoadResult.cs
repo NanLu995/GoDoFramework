@@ -5,6 +5,7 @@ using System;
 namespace GoDo;
 
 /// <summary>带来源、业务版本和保存时间的读取结果。</summary>
+/// <typeparam name="T">解码后的业务存档模型类型。</typeparam>
 public readonly struct SaveLoadResult<T>
 {
     private readonly T? _value;
@@ -21,7 +22,8 @@ public readonly struct SaveLoadResult<T>
     /// <summary>文件记录的 UTC 保存时间；NotFound 时为 null。</summary>
     public DateTimeOffset? SavedAtUtc { get; }
 
-    /// <summary>解码后的业务值；NotFound 时访问会抛出异常。</summary>
+    /// <summary>解码后的业务值。</summary>
+    /// <exception cref="InvalidOperationException"><see cref="Status"/> 为 <see cref="SaveLoadStatus.NotFound"/>。</exception>
     public T Value => HasValue
         ? _value!
         : throw new InvalidOperationException("NotFound 结果不包含存档值。");

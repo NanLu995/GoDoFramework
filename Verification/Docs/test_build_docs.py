@@ -40,6 +40,8 @@ class CoverageValidationTests(unittest.TestCase):
             "contract": "addons/godo_framework/Runtime/Sample/USAGE.md",
             "status": "pending",
             "reason": "等待用户手册。",
+            "api_reference_status": "pending",
+            "api_reference_reason": "等待 API Reference 审计。",
             "reviewed_contract_hash": f"sha256:{digest}",
         }
 
@@ -76,6 +78,89 @@ class CoverageValidationTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "中文用户手册不存在"):
             self.validate()
+
+    def test_rejects_missing_api_reference_status(self) -> None:
+        entry = self.pending_entry()
+        del entry["api_reference_status"]
+        self.write_coverage({"sample": entry})
+
+        with self.assertRaisesRegex(RuntimeError, "api_reference_status"):
+            self.validate()
+
+    def test_rejects_pending_api_reference_without_reason(self) -> None:
+        entry = self.pending_entry()
+        del entry["api_reference_reason"]
+        self.write_coverage({"sample": entry})
+
+        with self.assertRaisesRegex(RuntimeError, "api_reference_reason"):
+            self.validate()
+
+
+class ApiReferenceAuditTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.api_root = Path(self.temporary_directory.name)
+        self.coverage_entry = {
+            "contract": "addons/godo_framework/Runtime/Sample/USAGE.md",
+            "api_reference_status": "pending",
+        }
+
+    def tearDown(self) -> None:
+        self.temporary_directory.cleanup()
+
+    def write_api(self, uid: str = "GoDo.Sample.TryRead(System.String)") -> None:
+        (self.api_root / "GoDo.Sample.yml").write_text(
+            f"""items:
+- uid: {uid}
+  type: Method
+  source:
+    remote:
+      path: addons/godo_framework/Runtime/Sample/Sample.cs
+  summary: 尝试读取值。
+  syntax:
+    content: public bool TryRead(string key)
+    parameters:
+    - id: key
+      type: System.String
+    return:
+      type: System.Boolean
+""",
+            encoding="utf-8",
+        )
+
+    def collect(self) -> list[build_docs.ApiReferenceIssue]:
+        issues, _ = build_docs.collect_api_reference_issues(
+            self.api_root,
+            {"sample": self.coverage_entry},
+        )
+        return issues
+
+    def test_pending_module_reports_details_without_blocking(self) -> None:
+        self.write_api()
+
+        issues = self.collect()
+
+        self.assertEqual(
+            {"missing-param", "missing-returns"},
+            {issue.rule for issue in issues},
+        )
+        self.assertEqual([], build_docs.blocking_api_reference_issues(issues))
+
+    def test_verified_module_blocks_on_missing_details(self) -> None:
+        self.coverage_entry["api_reference_status"] = "verified"
+        self.write_api()
+
+        issues = self.collect()
+
+        self.assertEqual(issues, build_docs.blocking_api_reference_issues(issues))
+
+    def test_generated_godot_name_type_is_always_blocking(self) -> None:
+        self.write_api("GoDo.Sample.MethodName")
+
+        issues = self.collect()
+
+        self.assertEqual(["generated-godot-api"], [issue.rule for issue in issues])
+        self.assertEqual(issues, build_docs.blocking_api_reference_issues(issues))
 
 
 class NavigationValidationTests(unittest.TestCase):

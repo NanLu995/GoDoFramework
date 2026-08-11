@@ -17,7 +17,11 @@ public static class ResourceRegistry
     /// <summary>当前已加载的语义 ID 数量，主要用于测试与诊断。</summary>
     public static int Count => _map.Count;
 
-    /// <summary>清空并从给定清单重新加载映射表。</summary>
+    /// <summary>清空现有映射，再按清单顺序加载语义 ID。</summary>
+    /// <param name="manifest">要加载的资源清单。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="manifest"/> 为 <see langword="null"/>。</exception>
+    /// <exception cref="ArgumentException">清单中的非空条目包含无效资源定位串。</exception>
+    /// <remarks>空 ID 和 null 条目会记录 Warning 并跳过；重复 ID 记录 Warning 并以后者覆盖前者。</remarks>
     public static void Load(ResourceManifest manifest)
     {
         ArgumentNullException.ThrowIfNull(manifest);
@@ -27,7 +31,10 @@ public static class ResourceRegistry
         _loaded = true;
     }
 
-    /// <summary>清空并按顺序合并加载多个清单；重复 ID 以后者覆盖前者。</summary>
+    /// <summary>清空现有映射，再按枚举顺序合并多个清单；重复 ID 以后者覆盖前者。</summary>
+    /// <param name="manifests">按覆盖优先级从低到高排列的资源清单序列。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="manifests"/> 为 <see langword="null"/>。</exception>
+    /// <exception cref="ArgumentException">序列包含 null 清单，或清单中的非空条目包含无效资源定位串。</exception>
     public static void LoadMerge(IEnumerable<ResourceManifest> manifests)
     {
         ArgumentNullException.ThrowIfNull(manifests);
@@ -44,7 +51,12 @@ public static class ResourceRegistry
         _loaded = true;
     }
 
-    /// <summary>按语义 ID 获取资源键；未加载或找不到 ID 时抛出异常。</summary>
+    /// <summary>按语义 ID 获取必需资源的键。</summary>
+    /// <param name="id">区分大小写的业务语义 ID。</param>
+    /// <returns>当前注册表中与 <paramref name="id"/> 对应的资源键。</returns>
+    /// <exception cref="InvalidOperationException">尚未调用 <see cref="Load"/> 或 <see cref="LoadMerge"/>。</exception>
+    /// <exception cref="KeyNotFoundException">注册表中不存在指定 ID。</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> 为 <see langword="null"/>。</exception>
     public static ResourceKey GetKey(string id)
     {
         if (!_loaded)
@@ -56,7 +68,11 @@ public static class ResourceRegistry
         return key;
     }
 
-    /// <summary>按语义 ID 尝试获取资源键；未加载或找不到 ID 时返回 false。</summary>
+    /// <summary>按语义 ID 尝试获取可选资源的键；未加载或找不到 ID 时不抛出缺失异常。</summary>
+    /// <param name="id">区分大小写的业务语义 ID。</param>
+    /// <param name="key">成功时为匹配的资源键；失败时为默认的无效资源键。</param>
+    /// <returns>注册表已加载且包含指定 ID 时为 <see langword="true"/>；否则为 <see langword="false"/>。</returns>
+    /// <exception cref="ArgumentNullException">注册表已加载且 <paramref name="id"/> 为 <see langword="null"/>。</exception>
     public static bool TryGetKey(string id, out ResourceKey key)
     {
         if (!_loaded)

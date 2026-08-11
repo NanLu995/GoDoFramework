@@ -64,6 +64,30 @@ if (Services.TryGet<ILocalizationService>(out ILocalizationService? localization
 
 不要用 `TryGet` 静默隐藏本应存在的核心服务。框架服务由 GoDoRuntime 注册和清理，业务代码通常不调用 `Register` 或 `Unregister`。
 
+## 扩展：注册项目自己的长期服务
+
+只有框架启动层或测试装配代码需要直接注册服务。服务必须按接口注册，而且注册者必须拥有比所有调用者更长的生命周期：
+
+```csharp
+IGameSessionService session = new GameSessionService();
+Services.Register<IGameSessionService>(session);
+
+// 后续查询会得到同一个实例。
+IGameSessionService current = Services.Get<IGameSessionService>();
+GD.Print(ReferenceEquals(session, current)); // True
+```
+
+同一接口重复注册会抛出 `InvalidOperationException`，按具体类型注册会抛出 `ArgumentException`；注册表不会隐式替换已有实例。测试需要临时替换时，应先用原实例注销，结束后恢复原注册，避免污染后续用例。
+
+注销必须传入注册时的同一个实例：
+
+```csharp
+bool removed = Services.Unregister<IGameSessionService>(session);
+GD.Print(removed); // True
+```
+
+接口未注册或实例不匹配时，`Unregister` 返回 `false`，不会移除现有服务。Services 只保存引用，不会调用 `Dispose()` 或释放 Godot 对象；创建服务的启动层仍负责停止任务、断开订阅和释放资源。短生命周期场景不得承担这种注册职责。
+
 ## 什么时候使用 EventChannel
 
 EventChannel 适合已经发生、无需返回值、可能有多个观察者的事实，例如：
@@ -152,7 +176,7 @@ public sealed class SessionObserver : IDisposable
 }
 ```
 
-保存 Scope，并在所有者生命周期结束时 `Dispose()`。不要创建临时 Scope 后丢失引用；`Once` 在事件永远不发生时也不会自动消失，仍需要生命周期所有者。
+保存 Scope，并在所有者生命周期结束时 `Dispose()`。不要创建临时 Scope 后丢失引用；`Once` 会在调用回调前标记移除，即使回调抛错也不会再次执行，但事件永远不发生时仍需要生命周期所有者负责清理。
 
 直接使用 `EventChannel.On` 时，必须保存具名委托并通过 `Off` 对称移除。Node 通常应优先使用 `Bind`。
 
@@ -164,9 +188,9 @@ EventChannel.Bind<PlayerDiedEvent>(hudNode, OnHud, priority: 0);
 ```
 
 - `priority` 越小越先执行；相同优先级保持注册顺序。
-- `Once` 在成功派发一次后移除。
+- `Once` 在调用回调前标记移除，同类型重入不会再次执行。
 - 同一个委托不会重复注册，不要依赖重复绑定获得多次回调。
-- 派发期间新增或移除监听会延迟到最外层派发结束后提交。
+- 派发期间新增监听会延迟到最外层派发结束后生效；`Off` 会立即跳过本轮尚未执行的目标回调，底层列表变更仍延迟提交。
 - 同类型事件可以重入派发，但复杂重入很难推理，应尽量保持事件处理简单。
 - 单个监听者抛出异常会交给 ErrorHub，不阻断后续监听者。
 

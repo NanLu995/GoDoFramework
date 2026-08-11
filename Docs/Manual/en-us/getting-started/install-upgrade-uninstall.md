@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/install-upgrade-uninstall.md
-translation_source_hash: sha256:3f09ce1f195ce2b7525c88c2f62d9ea52c800d2030239ca500e297ad9983cdd2
+translation_source_hash: sha256:613894608edee6bec0db5b66591e36cf272ecb8a09372697bc7580488de660a1
 ---
 
 # Install, Upgrade, and Uninstall the Framework
@@ -93,6 +93,8 @@ Path: res://addons/godo_framework/Core/GoDoRuntime.tscn
 ```
 
 It rechecks actual state before installation and reads project configuration again afterward. A correct existing installation is not written twice.
+
+On success, the message area shows `GoDoRuntime 安装成功。` (installation succeeded) and the window status changes to `已正确安装` (installed correctly). If it shows `安装调用已完成，但复查未通过` (the call completed but rechecking failed), do not add another Autoload manually. Keep the current check results, inspect the Godot editor output for project-configuration or write errors, fix them, then select **重新检查**.
 
 Do not manually add another Runtime under **Project Settings → Globals/Autoload**. If another Autoload owns the name, or another name points to the same Runtime scene, the plugin reports the conflict without overwriting or deleting it.
 
@@ -192,6 +194,8 @@ For complete removal:
 6. Delete the complete `addons/godo_framework/` directory.
 7. Remove or migrate every `GoDo.*`, generated-code, and optional-integration reference in game code.
 8. Reopen and build, then clean remaining configuration owned by the game project.
+
+After a successful removal, the message area shows `GoDoRuntime Autoload 已卸载，框架文件未删除。` If it shows `卸载调用已完成，但复查未通过` (the call completed but rechecking failed), keep the framework directory and inspect the checks and editor output. Disable the plugin and delete the directory only after the exact Autoload entry is gone.
 
 The uninstall button removes only an Autoload named `GoDoRuntime` that points exactly to the framework Runtime scene. It refuses when the path differs, another name owns the same path, or project configuration cannot be read, preventing accidental deletion of unrelated settings.
 

@@ -95,9 +95,8 @@ projectile.Launch(direction * speed);
 ## 4. 使用结束后归还
 
 ```csharp
-bool released = _projectiles.Release(projectile);
-if (!released)
-    ErrorHub.Warn("Projectile was already released.", "Game.Projectile");
+if (!_projectiles.Release(projectile))
+    return; // Pool 已通过 ErrorHub 报告；不要重复记录同一失败。
 ```
 
 归还顺序是：
@@ -107,7 +106,7 @@ if (!released)
 3. 从场景树移除。
 4. 空闲区未满则缓存，否则释放节点。
 
-活动节点属于它的 Pool。不要对它直接 `QueueFree()`，也不要交给另一个 Pool 归还。重复归还或归还外部节点会返回 `false`，并由 ErrorHub 发出 Warning。
+活动节点属于它的 Pool。不要对它直接 `QueueFree()`，也不要交给另一个 Pool 归还。重复归还或归还外部节点会返回 `false`，并由 ErrorHub 发出 Warning；调用方可以停止后续成功路径，但不应再次上报同一失败。
 
 推荐让 Projectile 在命中或超时后通知管理器归还，或持有一个明确的释放回调；不要让节点在不知道所属 Pool 的情况下自行 `QueueFree()`。
 

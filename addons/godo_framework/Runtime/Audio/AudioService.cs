@@ -153,7 +153,9 @@ public sealed partial class AudioService : Node, IAudioService
             SetPhysicsProcess);
     }
 
-    /// <inheritdoc />
+    /// <summary>在固定物理更新阶段同步仍有效的 3D 跟随音效位置。</summary>
+    /// <param name="delta">Godot 提供的物理帧间隔；当前位置同步不直接使用此值。</param>
+    /// <remarks>没有活动跟随 Voice 时，控制器会关闭此节点的物理更新。</remarks>
     public override void _PhysicsProcess(double delta)
     {
         _sfx3D?.PhysicsUpdateFollowingVoices();

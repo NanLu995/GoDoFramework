@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/resources-and-scenes/index.md
-translation_source_hash: sha256:d6e7569ce2072fbefa57eacf9b34418905635e14e5e0e84ca115539a05cf709c
+translation_source_hash: sha256:e61be1e82173968ba3653ba030c9b239fa77fdab87a806d80643fb3943b9beb5
 ---
 
 # Manage Resource Manifests, Async Loading, and Scene Changes
@@ -151,6 +151,7 @@ After success, `Progress` remains at 1. A load, instantiation, attachment, or li
 
 - Missing, mismatched, or failed Resource: `ResourceLoadException`.
 - Scene load, instantiation, or attachment failure: `SceneChangeException`, retaining the target Key.
+- The caller cancels its `CancellationToken` before commit: `OperationCanceledException` is thrown directly and the old scene remains active. Once synchronous commit begins, that token no longer rolls back the new scene.
 - SceneService leaves the tree or shuts down: an uncommitted change ends immediately with a SceneChangeException whose direct inner exception is `OperationCanceledException`; ResourceHub's shared underlying load may still finish.
 - ResourceHub shutdown: unfinished waiters receive `OperationCanceledException`; Godot's underlying load may still finish.
 

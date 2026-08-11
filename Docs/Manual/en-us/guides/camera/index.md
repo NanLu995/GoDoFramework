@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/camera/index.md
-translation_source_hash: sha256:e692da1dce1d778c8cfe1db1737a01fc1e4e3fd6d4c455a5d401c4f82e8d4fe0
+translation_source_hash: sha256:81397c01f0bcd484ac4a61a0bb092c5fbb7281a2b6dbd625cc8a609d2b96e233
 ---
 
 # Configure, Switch, and Restore the Main Camera
@@ -36,10 +36,12 @@ addons/godo_framework/Integrations/PhantomCamera/
 Enable the single **GoDo Framework** plugin, then open:
 
 ```text
-GoDo → Phantom Camera Setup...
+GoDo → 幻影相机配置 (Phantom Camera Settings)...
 ```
 
-The setup window checks the third-party plugin files and version. The adapter is currently verified against Phantom Camera 0.11. A different version is not automatically unusable, but an upgrade requires a fresh build and validation in a real camera scene. Only the third-party Phantom Camera plugin is enabled in Godot's plugin list; the GoDo adapter is not a second EditorPlugin.
+The setup window checks the third-party and adapter files, the third-party version, and its enabled state. The adapter is currently verified against Phantom Camera 0.11. The Enable Phantom Camera button is available only when all required files exist, the version is exactly 0.11, and the third-party plugin is still disabled. Confirmation only enables the installed third-party plugin; it does not modify scenes, runtime configuration, or third-party source.
+
+Observable result: when all three checks pass, the window reports Correctly Configured and disables the enable button. If it reports Needs Attention, follow the hint to restore missing files, use the verified version, or inspect the editor output. A different version is not automatically unusable, but an upgrade requires a fresh build, automated regression, and validation in a real camera scene. Only the third-party Phantom Camera plugin is enabled in Godot's plugin list; the GoDo adapter is not a second EditorPlugin.
 
 ## 2. Add the third-person Rig to a scene
 
@@ -97,6 +99,8 @@ Activate after the Gameplay scene has loaded and its Rig has entered the tree:
 ICameraService cameras = context.GetService<ICameraService>();
 cameras.ActivatePrimary(GameCameraIds.Gameplay);
 ```
+
+Observable result: after a successful call, `ActivePrimary` equals `GameCameraIds.Gameplay`, the target Pcam uses `ActivePriority`, and the previous primary Rig uses `InactivePriority`. A backend read or write failure does not return normally: it throws `CameraOperationException` and preserves or rolls back the current camera according to the failed switch stage.
 
 Switch when a cutscene starts:
 

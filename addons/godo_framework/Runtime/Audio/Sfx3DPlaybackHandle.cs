@@ -33,12 +33,18 @@ public readonly struct Sfx3DPlaybackHandle : IEquatable<Sfx3DPlaybackHandle>
     public override int GetHashCode() => Value.GetHashCode();
 
     /// <summary>比较两个句柄是否指向同一次 3D 播放。</summary>
+    /// <param name="left">左侧 3D 播放句柄。</param>
+    /// <param name="right">右侧 3D 播放句柄。</param>
+    /// <returns>内部播放标识相同时为 <see langword="true"/>。</returns>
     public static bool operator ==(
         Sfx3DPlaybackHandle left,
         Sfx3DPlaybackHandle right) =>
         left.Equals(right);
 
     /// <summary>比较两个句柄是否不指向同一次 3D 播放。</summary>
+    /// <param name="left">左侧 3D 播放句柄。</param>
+    /// <param name="right">右侧 3D 播放句柄。</param>
+    /// <returns>内部播放标识不同时为 <see langword="true"/>。</returns>
     public static bool operator !=(
         Sfx3DPlaybackHandle left,
         Sfx3DPlaybackHandle right) =>

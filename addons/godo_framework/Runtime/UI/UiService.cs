@@ -75,7 +75,7 @@ public sealed partial class UiService : Node, IUiService
         _root = null;
     }
 
-    /// <summary>加载并校验按语义标识打开 UI 所需的目录。</summary>
+    /// <inheritdoc />
     public void LoadUiConfig(ResourceKey key)
     {
         VerifyReady();
@@ -109,7 +109,7 @@ public sealed partial class UiService : Node, IUiService
         _uiConfigLoaded = true;
     }
 
-    /// <summary>按已加载目录中的语义标识和默认层级打开 UI。</summary>
+    /// <inheritdoc />
     public Control Open(UiId id)
     {
         VerifyReady();
@@ -124,7 +124,7 @@ public sealed partial class UiService : Node, IUiService
         return RegisterConfiguredView(view, id, entry);
     }
 
-    /// <summary>按已加载配置中的语义标识打开强类型 UI，并在加入场景树前完成可选配置。</summary>
+    /// <inheritdoc />
     public TView Open<TView>(UiId id, Action<TView>? configure = null)
         where TView : Control
     {
@@ -140,7 +140,7 @@ public sealed partial class UiService : Node, IUiService
         return RegisterConfiguredView(view, id, entry);
     }
 
-    /// <summary>按已加载配置中的语义标识异步加载并打开强类型 UI。</summary>
+    /// <inheritdoc />
     public Task<TView> OpenAsync<TView>(
         UiId id,
         Action<TView>? configure = null,
@@ -179,7 +179,7 @@ public sealed partial class UiService : Node, IUiService
             cancellation);
     }
 
-    /// <summary>在指定层打开 UI 界面。</summary>
+    /// <inheritdoc />
     public Control Open(ResourceKey key, UiLayer layer)
     {
         VerifyReady();
@@ -191,7 +191,7 @@ public sealed partial class UiService : Node, IUiService
         return view;
     }
 
-    /// <summary>在指定层打开强类型 UI，并在加入场景树前完成可选配置。</summary>
+    /// <inheritdoc />
     public TView Open<TView>(ResourceKey key, UiLayer layer, Action<TView>? configure = null)
         where TView : Control
     {
@@ -204,7 +204,7 @@ public sealed partial class UiService : Node, IUiService
         return view;
     }
 
-    /// <summary>异步加载并在指定层打开强类型 UI。</summary>
+    /// <inheritdoc />
     public Task<TView> OpenAsync<TView>(
         ResourceKey key,
         UiLayer layer,
@@ -678,7 +678,7 @@ public sealed partial class UiService : Node, IUiService
         }
     }
 
-    /// <summary>判断指定已注册标识是否存在打开实例。</summary>
+    /// <inheritdoc />
     public bool IsOpen(UiId id)
     {
         MainThreadGuard.VerifyAccess();
@@ -688,7 +688,7 @@ public sealed partial class UiService : Node, IUiService
         return HasOpenInstance(id);
     }
 
-    /// <summary>获取指定已注册标识当前打开的实例数量。</summary>
+    /// <inheritdoc />
     public int GetOpenCount(UiId id)
     {
         MainThreadGuard.VerifyAccess();
@@ -706,7 +706,7 @@ public sealed partial class UiService : Node, IUiService
         return count;
     }
 
-    /// <summary>判断指定已注册标识是否存在尚未完成的异步打开请求。</summary>
+    /// <inheritdoc />
     public bool IsOpening(UiId id)
     {
         MainThreadGuard.VerifyAccess();
@@ -715,7 +715,7 @@ public sealed partial class UiService : Node, IUiService
         return _openingCancellations.ContainsKey(id);
     }
 
-    /// <summary>获取指定已注册标识当前尚未完成的异步打开请求数量。</summary>
+    /// <inheritdoc />
     public int GetOpeningCount(UiId id)
     {
         MainThreadGuard.VerifyAccess();
@@ -728,7 +728,7 @@ public sealed partial class UiService : Node, IUiService
             : 0;
     }
 
-    /// <summary>取消指定已注册标识的全部未完成异步打开请求。</summary>
+    /// <inheritdoc />
     public int CancelOpenRequests(UiId id)
     {
         MainThreadGuard.VerifyAccess();
@@ -737,7 +737,7 @@ public sealed partial class UiService : Node, IUiService
         return CancelOpenRequestsCore(id);
     }
 
-    /// <summary>取消指定 UI 层的全部未完成异步打开请求。</summary>
+    /// <inheritdoc />
     public int CancelOpenRequests(UiLayer layer)
     {
         MainThreadGuard.VerifyAccess();
@@ -764,7 +764,7 @@ public sealed partial class UiService : Node, IUiService
         return canceled;
     }
 
-    /// <summary>判断指定已注册标识是否存在已关闭且可复用的缓存实例。</summary>
+    /// <inheritdoc />
     public bool HasCachedInstance(UiId id)
     {
         MainThreadGuard.VerifyAccess();
@@ -782,7 +782,7 @@ public sealed partial class UiService : Node, IUiService
         return false;
     }
 
-    /// <summary>清理指定已注册标识的缓存实例；打开中和加载中的实例不受影响。</summary>
+    /// <inheritdoc />
     public bool ClearCachedInstance(UiId id)
     {
         MainThreadGuard.VerifyAccess();
@@ -798,7 +798,7 @@ public sealed partial class UiService : Node, IUiService
         return true;
     }
 
-    /// <summary>清理全部已关闭且可复用的缓存实例；打开中和加载中的实例不受影响。</summary>
+    /// <inheritdoc />
     public int ClearCachedInstances()
     {
         MainThreadGuard.VerifyAccess();
@@ -806,7 +806,7 @@ public sealed partial class UiService : Node, IUiService
         return ClearCachedInstancesCore();
     }
 
-    /// <summary>尝试获取指定已注册标识最上层的实例。</summary>
+    /// <inheritdoc />
     public bool TryGetTop(UiId id, out Control? view)
     {
         MainThreadGuard.VerifyAccess();
@@ -818,7 +818,7 @@ public sealed partial class UiService : Node, IUiService
         return view is not null;
     }
 
-    /// <summary>尝试获取指定已注册标识最上层的强类型实例。</summary>
+    /// <inheritdoc />
     public bool TryGetTop<TView>(UiId id, out TView? view)
         where TView : Control
     {
@@ -839,7 +839,7 @@ public sealed partial class UiService : Node, IUiService
             $"UI 根节点类型不匹配，期望 {typeof(TView).FullName}，实际 {openView.GetType().FullName}：{id.Value}");
     }
 
-    /// <summary>尝试获取指定 UI 层最上层或最后打开的实例。</summary>
+    /// <inheritdoc />
     public bool TryGetTop(UiLayer layer, out Control? view)
     {
         MainThreadGuard.VerifyAccess();
@@ -857,7 +857,7 @@ public sealed partial class UiService : Node, IUiService
         return view is not null;
     }
 
-    /// <summary>关闭由本服务管理的界面。</summary>
+    /// <inheritdoc />
     public void Close(Control view)
     {
         MainThreadGuard.VerifyAccess();
@@ -871,7 +871,7 @@ public sealed partial class UiService : Node, IUiService
             throw new InvalidOperationException("目标 UI 不受服务管理。");
     }
 
-    /// <summary>尝试关闭指定受管理实例。</summary>
+    /// <inheritdoc />
     public bool TryClose(Control view)
     {
         MainThreadGuard.VerifyAccess();
@@ -881,7 +881,7 @@ public sealed partial class UiService : Node, IUiService
         return IsInstanceValid(view) && TryCloseManaged(view);
     }
 
-    /// <summary>尝试关闭指定标识最上层的实例。</summary>
+    /// <inheritdoc />
     public bool TryClose(UiId id)
     {
         MainThreadGuard.VerifyAccess();
@@ -893,7 +893,7 @@ public sealed partial class UiService : Node, IUiService
         return view is not null && TryCloseManaged(view);
     }
 
-    /// <summary>关闭指定标识的全部实例。</summary>
+    /// <inheritdoc />
     public int CloseAll(UiId id)
     {
         MainThreadGuard.VerifyAccess();
@@ -941,7 +941,7 @@ public sealed partial class UiService : Node, IUiService
         return closed;
     }
 
-    /// <summary>关闭指定层的全部实例。</summary>
+    /// <inheritdoc />
     public int CloseAll(UiLayer layer)
     {
         MainThreadGuard.VerifyAccess();
@@ -950,7 +950,7 @@ public sealed partial class UiService : Node, IUiService
         return CloseAllLayer(layer);
     }
 
-    /// <summary>保留指定实例并关闭其显示层级之上的全部受管理 UI。</summary>
+    /// <inheritdoc />
     public int CloseTo(Control view)
     {
         MainThreadGuard.VerifyAccess();
@@ -963,7 +963,7 @@ public sealed partial class UiService : Node, IUiService
         return CloseToManaged(view);
     }
 
-    /// <summary>保留指定标识最上层的实例并关闭其显示层级之上的全部受管理 UI。</summary>
+    /// <inheritdoc />
     public int CloseTo(UiId id)
     {
         MainThreadGuard.VerifyAccess();
@@ -978,7 +978,7 @@ public sealed partial class UiService : Node, IUiService
         return CloseToManaged(view);
     }
 
-    /// <summary>优先关闭顶部模态，其次返回前一个 View；没有可返回界面时返回 false。</summary>
+    /// <inheritdoc />
     public bool TryGoBack()
     {
         MainThreadGuard.VerifyAccess();

@@ -139,7 +139,7 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py generate `
   --schema DataTables/Base/.datatable.schema.json
 ```
 
-成功返回退出码 0，数据、Schema、路径或 I/O 错误返回 1。工具会在全部校验通过后再提交文件；失败不会覆盖上一次成功生成的产物。内容没有变化的 C# 文件不会重写，避免无意义的 Godot/.NET 重编译。
+成功返回退出码 0，并分别输出 `[DataTableCompiler] CHECK PASS` 或 `[DataTableCompiler] GENERATE PASS: <输出目录>`；数据、Schema、路径或 I/O 错误返回 1，并以 `[DataTableCompiler] FAIL` 标记失败。工具会在全部校验通过后再提交文件；失败不会覆盖上一次成功生成的产物。内容没有变化的 C# 文件不会重写，避免无意义的 Godot/.NET 重编译。
 
 生成物包括：
 
@@ -176,7 +176,9 @@ if (BaseDataTables.Items.TryGet("health_potion", out ItemRow potion))
     GD.Print(potion.MaxStack);
 ```
 
-`data_set_id` 的最后一段决定生成门面和默认目录：`game.base` 对应 `BaseDataTables` 与 `res://DataTables/Base/Runtime`。加载全部成功后才发布数据；失败或取消不会留下半加载表。重复加载复用现有表，`BaseDataTables.Unload()` 可释放 Service 持有的引用。需要加载业务已经挂载到其他位置的同结构数据时，使用 `LoadFromAsync(runtimeDirectory)`。
+`data_set_id` 的最后一段决定生成门面和默认目录：`game.base` 对应 `BaseDataTables` 与 `res://DataTables/Base/Runtime`。首个进度回调为 `0/N`，之后每完成一张表报告一次，最终为 `N/N` 且 `Ratio == 1`；回调发生在 Godot 主线程。完整发布前 `BaseDataTables.IsLoaded` 始终为 `false`，读取 `Items` 等生成表属性会失败。成功后从同一目录重复加载会立即复用现有表实例，不再调用进度回调。
+
+取消只在表边界生效并抛出 `OperationCanceledException`；Manifest 或表文件失败抛出 `DataTableLoadException`。两者都不会发布半加载数据，Service 也不会先向 ErrorHub 重复上报，业务边界应只处理一次并决定重试、降级或退出。加载过程中调用 `Unload()` 会失败；完整加载后 `BaseDataTables.Unload()` 只释放 Service 持有的引用。需要加载业务已经挂载到其他位置的同结构数据时，先卸载当前数据集，再使用 `LoadFromAsync(runtimeDirectory)`。
 
 生成类型当前是程序集内部类型，供同一 Godot C# 项目直接使用。业务决定何时加载 Base、DLC 等数据集以及失败后的重试或降级；框架不负责下载、PCK 挂载、热更新和版本选择。
 
@@ -189,7 +191,7 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py verify-generated 
   --schema DataTables/Base/.datatable.schema.json
 ```
 
-该命令在内存中构建期望结果，并只读比较现有生成目录。缺失、额外或内容过期都会返回 1；不会写临时文件、删除额外文件或改变时间戳。适合在提交前和 CI 中执行。
+该命令在内存中构建期望结果，并只读比较现有生成目录。完全一致时输出 `[DataTableCompiler] VERIFY GENERATED PASS` 并返回 0；缺失、额外或内容过期都会返回 1 并列出差异。它不会写临时文件、删除额外文件或改变时间戳，适合在提交前和 CI 中执行。
 
 单表生成：
 
@@ -211,6 +213,8 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py compare-manifests
   --server DataTables/Base/Runtime/manifest.server.json
 ```
 
+兼容时会输出 `[DataTableCompiler] MANIFEST COMPATIBLE: ...` 并返回 0；Manifest 无效或共享数据不一致时返回 1，并列出拒绝原因。
+
 正式发布不要只点击 Godot 导出。当前支持的 Godot 4.x EditorExportPlugin 无法可靠中止错误导出；升级引擎后也应重新验证该限制。正式流程应使用包装脚本先执行只读门禁，再启动 Godot：
 
 ```powershell
@@ -221,6 +225,8 @@ python addons/godo_framework/Tools/DataTable/godo_datatable_export.py `
   --output Builds/Windows/Game.exe `
   --mode release
 ```
+
+包装脚本会逐个显示正在校验的 Schema。任一生成物校验失败时，它会明确输出“校验失败，未启动 Godot 导出”、返回 1，且不会创建导出目标；全部通过后才输出“校验通过，开始 ... 导出”并启动 Godot。Godot 启动后，包装脚本原样返回 Godot 的退出码，因此仍应把非零结果视为导出失败。
 
 普通 preset 选择 Client；带 `dedicated_server` feature tag 的 preset 选择 Server。Release 与 Debug 包都只映射目标 `.gdtb` 和 `manifest.json`；`.datatable.schema.json`、`.datafiles` 和诊断文件不进入包。
 

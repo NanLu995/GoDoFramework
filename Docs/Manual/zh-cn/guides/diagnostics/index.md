@@ -31,6 +31,13 @@ Log.Debug("资源已命中缓存", context: "item=sword");
 [模块] [等级] (可选上下文) 消息
 ```
 
+上面的两次调用分别产生：
+
+```text
+[Game.Inventory] [INFO] 进入主菜单流程
+[Game.Inventory] [DEBUG] (item=sword) 资源已命中缓存
+```
+
 模块名应稳定，例如 `Game.Boot`、`Game.Save`、`Game.Inventory`。`LogHub.For` 返回不分配托管对象的只读值类型，适合在一个类型中绑定一次模块名并重复使用。一次性日志仍可调用 `LogHub.Info(message, module)`。消息说明发生了什么，`context` 放槽位、资源 ID 或流程名等定位信息。不要把等级和模块再次拼进消息。
 
 Debug 用于详细排障，Info 只用于启动完成、流程切换、场景提交等低频正常里程碑。两者都只能从 Godot 主线程调用，并带有 `Conditional("DEBUG")`：Release 构建会在调用点移除，连参数表达式也不会求值。因此不要依赖日志参数中的函数产生副作用。
@@ -152,11 +159,13 @@ Reporter 在错误分发调用栈上同步执行，因此禁止 `.Wait()`、`.Re
 启用 `GoDoRuntime.tscn` Autoload 后，Debug 构建会自动出现紧凑状态按钮，不需要配置快捷键。
 
 - 折叠状态只显示 FPS；出现 Warning 或 Error 时文字会按最高严重度变色，具体数量在概览中查看。
-- 点击后先看到卡片式运行概览，也可通过左侧树状导航查看 System、Performance、Services、Events、Input、Scheduler、Audio、Scene、Resources、Pool、DataTable、UI 等结构化仪表盘和 Console 页面。
+- 点击后先看到卡片式运行概览，也可通过左侧树状导航查看 System、Performance、Services、Events、Input、Scheduler、Audio、Scene、Resources、Pool、DataTable、UI、Procedure、Flow 等结构化仪表盘和 Console 页面。
 - 拖动标题栏可移动窗口，拖动右下角“拖动调整大小 ↘”可调整整个 Debugger 尺寸；位置或尺寸不合适时点击“重置”。
 - 展开时每 0.25 秒刷新当前页面；折叠时不会创建模块快照。
 - 面板只读，不允许修改服务或游戏数据。
 - Release 构建不会创建 Debugger，业务逻辑不能依赖它。
+
+页面显示“未注册”表示对应服务当前不存在；“不支持 Debug 快照”表示接口已经注册，但使用的不是提供该诊断快照的框架内置实现。某个页面读取状态时发生异常，只会把该页临时替换为包含页面名、异常类型和消息的失败提示，其他页面仍可使用；后续读取成功时该页会自动恢复。遇到这三种状态时应先检查服务注册和实现类型，不要把临时诊断失败误判为整个框架停止运行。
 
 Services 页面展示注册接口和当前实现类型的对应关系。可按接口或实现的短名称、完整类型名搜索，选择一项后会在底部显示完整的“接口 → 实现”关系。该页面只读，不会返回服务实例，也不能替换注册。
 
@@ -196,6 +205,8 @@ GoDoRuntime 会优先把日志写到 `user://logs/godo_framework.log`。如果�
 
 LogHub 的 Debug / Info 仅允许主线程。LogHub 的 Warn / Error / Fatal 与直接调用 ErrorHub 一样可以从后台线程调用，但报告会先进入最多 1024 条的有界队列，再由 GoDoRuntime 每帧最多分发 256 条；监听者与 Reporter 仍在主线程运行。
 
+这个后台队列只在 GoDoRuntime 已进入场景树并记录主线程后生效。初始化之前调用 ErrorHub 会在调用线程同步分发，不提供启动前的后台线程安全保证；启动任务应等 Runtime 就绪后再上报，或先保存失败结果并回到主线程处理。
+
 队列满时报告会被丢弃，并在主线程汇总为 Warning。后台 Fatal 还会同步写入降级控制台。遇到大量重复错误时，应修复或限流源头，不能把 ErrorHub 当作无限队列。
 
 ## 常见错误
@@ -207,5 +218,7 @@ LogHub 的 Debug / Info 仅允许主线程。LogHub 的 Warn / Error / Fatal 与
 - 上报错误时游戏卡顿：Reporter 在同步写文件、等待锁或请求网络。
 - `Fatal` 后游戏仍运行：Fatal 不负责退出，业务边界必须显式采取行动。
 - Debugger 在导出版本消失：Release 默认不创建它，这是设计行为。
+- 页面显示“未注册”或“不支持 Debug 快照”：前者检查服务是否完成注册，后者确认是否替换成了自定义实现；这不是同一种故障。
+- 单个页面显示读取失败：根据提示中的异常类型和消息修复该模块或快照读取；无需重启 Debugger，下一次读取成功后会自动恢复。
 
 精确接口可查询 <xref:GoDo.LogHub>、<xref:GoDo.LogChannel>、<xref:GoDo.ErrorHub>、<xref:GoDo.ErrorReport>、<xref:GoDo.ErrorLevel> 和 <xref:GoDo.IErrorReporter>。

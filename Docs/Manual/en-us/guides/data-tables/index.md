@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/data-tables/index.md
-translation_source_hash: sha256:d4cb612308e811dc3da02fc8aed1ec4b17e6e0a75fe8a6118d262f7247a94562
+translation_source_hash: sha256:12a8cf30760e5540ff18c4268633aba0e3623f16e2a8ee592e287e1beba46a10
 ---
 
 # Generate Validated Data Tables from CSV
@@ -144,7 +144,7 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py generate `
   --schema DataTables/Base/.datatable.schema.json
 ```
 
-Success returns exit code 0; data diagnostics, Schema, path, and I/O errors return 1. Files are committed only after all validation succeeds. A failure does not overwrite the last successful output. Unchanged C# is not rewritten, avoiding unnecessary Godot/.NET rebuilds.
+Success returns exit code 0 and prints either `[DataTableCompiler] CHECK PASS` or `[DataTableCompiler] GENERATE PASS: <output-directory>`. Data diagnostics, Schema, path, and I/O errors return 1 and mark the failure with `[DataTableCompiler] FAIL`. Files are committed only after all validation succeeds. A failure does not overwrite the last successful output. Unchanged C# is not rewritten, avoiding unnecessary Godot/.NET rebuilds.
 
 Generated artifacts include:
 
@@ -181,7 +181,9 @@ if (BaseDataTables.Items.TryGet("health_potion", out ItemRow potion))
     GD.Print(potion.MaxStack);
 ```
 
-The final segment of `data_set_id` determines the generated facade and default directory: `game.base` maps to `BaseDataTables` and `res://DataTables/Base/Runtime`. Tables become visible only after the whole dataset succeeds. Failure or cancellation leaves no partially loaded dataset. Repeated loads reuse existing tables, and `BaseDataTables.Unload()` releases references held by the Service. Use `LoadFromAsync(runtimeDirectory)` after business code mounts compatible data elsewhere.
+The final segment of `data_set_id` determines the generated facade and default directory: `game.base` maps to `BaseDataTables` and `res://DataTables/Base/Runtime`. The first progress callback is `0/N`; another callback follows each completed table, ending at `N/N` with `Ratio == 1`. Callbacks run on the Godot main thread. Until the complete dataset is published, `BaseDataTables.IsLoaded` remains `false` and generated table properties such as `Items` fail. Loading the same directory again after success returns immediately, reuses the existing table instances, and does not report progress again.
+
+Cancellation is observed only between tables and throws `OperationCanceledException`; a Manifest or table-file failure throws `DataTableLoadException`. Neither publishes a partial dataset, and the Service does not also report the exception through ErrorHub. Handle it once at the game boundary and choose retry, fallback, or exit. `Unload()` fails while loading; after publication, `BaseDataTables.Unload()` releases only the references held by the Service. To load compatible data mounted elsewhere, unload the current dataset first, then call `LoadFromAsync(runtimeDirectory)`.
 
 Generated types remain assembly-internal for direct use in the same Godot C# project. Business code chooses when to load Base or DLC datasets and how to retry or degrade. The framework does not download, mount PCKs, perform hot updates, or select business versions.
 
@@ -194,7 +196,7 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py verify-generated 
   --schema DataTables/Base/.datatable.schema.json
 ```
 
-This builds expected output in memory and compares the existing generated directory read-only. Missing, extra, or stale content returns 1. It does not write temporary files, delete extras, or change timestamps. Use it before commits and in CI.
+This builds expected output in memory and compares the existing generated directory read-only. An exact match prints `[DataTableCompiler] VERIFY GENERATED PASS` and returns 0; missing, extra, or stale content returns 1 and lists the differences. It does not write temporary files, delete extras, or change timestamps. Use it before commits and in CI.
 
 Generate one table:
 
@@ -216,6 +218,8 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py compare-manifests
   --server DataTables/Base/Runtime/manifest.server.json
 ```
 
+A compatible pair prints `[DataTableCompiler] MANIFEST COMPATIBLE: ...` and returns 0. Invalid Manifests or mismatched shared data return 1 and list the rejection reasons.
+
 Do not rely on clicking Godot Export for a formal release. The supported Godot 4.x EditorExportPlugin cannot reliably abort a bad export; revalidate this limitation after an engine upgrade. Use the wrapper to run the read-only gate before launching Godot:
 
 ```powershell
@@ -226,6 +230,8 @@ python addons/godo_framework/Tools/DataTable/godo_datatable_export.py `
   --output Builds/Windows/Game.exe `
   --mode release
 ```
+
+The wrapper prints each Schema as it is checked. If any generated output fails verification, it explicitly reports that Godot export was not started, returns 1, and does not create the export target. Only after every Schema passes does it announce the export and launch Godot. Once Godot starts, the wrapper passes through Godot's exit code, so a nonzero result remains an export failure.
 
 A normal preset selects Client; a preset with the `dedicated_server` feature tag selects Server. Release and Debug both map only target `.gdtb` files and `manifest.json`; `.datatable.schema.json`, `.datafiles`, and diagnostics do not enter the package.
 

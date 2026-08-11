@@ -12,6 +12,10 @@ public readonly struct InputActionDescriptor
     public InputActionValueType ValueType { get; }
 
     /// <summary>创建 Action 描述。</summary>
+    /// <param name="actionId">后端公开的非默认语义 Action ID。</param>
+    /// <param name="valueType">后端在整个安装生命周期内保持不变的输出类型。</param>
+    /// <exception cref="ArgumentException"><paramref name="actionId"/> 是默认 ID。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="valueType"/> 未定义。</exception>
     public InputActionDescriptor(InputActionId actionId, InputActionValueType valueType)
     {
         if (actionId.IsEmpty)

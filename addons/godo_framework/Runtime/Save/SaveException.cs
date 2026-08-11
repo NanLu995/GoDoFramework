@@ -14,6 +14,10 @@ public sealed class SaveException : Exception
     public SaveOperation Operation { get; }
 
     /// <summary>创建存档异常。</summary>
+    /// <param name="slot">发生失败的槽位；构造器原样保存，不验证其有效性。</param>
+    /// <param name="operation">发生失败的服务操作。</param>
+    /// <param name="message">面向开发者的错误描述。</param>
+    /// <param name="innerException">触发本异常的底层 I/O、校验或 Codec 异常。</param>
     public SaveException(
         SaveSlot slot,
         SaveOperation operation,

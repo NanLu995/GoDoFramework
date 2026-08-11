@@ -12,6 +12,8 @@ public readonly struct InputActionSample
     public bool Pressed { get; }
 
     /// <summary>创建 Action 样本。</summary>
+    /// <param name="value">Action 的原始三分量值；具体使用的分量由固定 Action 类型决定。</param>
+    /// <param name="pressed">Action 当前是否处于按下或触发状态。</param>
     public InputActionSample(Vector3 value, bool pressed)
     {
         Value = value;

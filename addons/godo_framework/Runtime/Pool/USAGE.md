@@ -71,7 +71,7 @@ bool released = pool.Release(projectile);
 & $env:GODOT_PATH --headless --path . Verification/Automated/NodePoolRegression.tscn
 ```
 
-当前 runner 已通过 `dotnet build` 编译，并在项目声明的 Godot Mono Headless 版本中完成 12/12 项验证；成功退出码为 0，失败退出码为 1。测试节点只存在于 `Verification/Automated/`，不进入框架发布包。
+当前 runner 已通过 `dotnet build` 编译，并在项目声明的 Godot Mono Headless 版本中完成 13/13 项验证；成功退出码为 0，失败退出码为 1。测试节点只存在于 `Verification/Automated/`，不进入框架发布包。
 
 ## 常见误用
 

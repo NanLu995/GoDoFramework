@@ -32,11 +32,17 @@ public readonly struct SfxPlaybackHandle : IEquatable<SfxPlaybackHandle>
     /// <inheritdoc />
     public override int GetHashCode() => Value.GetHashCode();
 
-    /// <summary>比较两个句柄是否指向同一次播放。</summary>
+    /// <summary>比较两个句柄是否指向同一次非空间 SFX 播放。</summary>
+    /// <param name="left">左侧播放句柄。</param>
+    /// <param name="right">右侧播放句柄。</param>
+    /// <returns>内部播放标识相同时为 <see langword="true"/>。</returns>
     public static bool operator ==(SfxPlaybackHandle left, SfxPlaybackHandle right) =>
         left.Equals(right);
 
-    /// <summary>比较两个句柄是否不指向同一次播放。</summary>
+    /// <summary>比较两个句柄是否不指向同一次非空间 SFX 播放。</summary>
+    /// <param name="left">左侧播放句柄。</param>
+    /// <param name="right">右侧播放句柄。</param>
+    /// <returns>内部播放标识不同时为 <see langword="true"/>。</returns>
     public static bool operator !=(SfxPlaybackHandle left, SfxPlaybackHandle right) =>
         !left.Equals(right);
 }

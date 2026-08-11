@@ -53,7 +53,7 @@ public sealed class ProcedureContext
     /// 获取随当前 Procedure 激活自动释放的事件作用域。
     /// <para>Enter 失败、正常 Exit 完成或 ProcedureService 关闭时会自动注销其中的监听。</para>
     /// </summary>
-    /// <exception cref="InvalidOperationException">当前 Procedure 激活已经结束。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程、GoDoRuntime 尚未初始化，或当前 Procedure 激活已经结束。</exception>
     public EventScope Events
     {
         get
@@ -65,9 +65,16 @@ public sealed class ProcedureContext
     }
 
     /// <summary>获取已注册的长期框架服务。</summary>
+    /// <typeparam name="TService">注册时使用的服务接口类型。</typeparam>
+    /// <returns>该接口当前注册的同一个长期服务实例。</returns>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程、GoDoRuntime 尚未初始化，或服务接口尚未注册。</exception>
     public TService GetService<TService>() where TService : class => Services.Get<TService>();
 
     /// <summary>尝试获取已注册的长期框架服务。</summary>
+    /// <typeparam name="TService">注册时使用的服务接口类型。</typeparam>
+    /// <param name="service">找到时为当前注册实例；缺失时为 <see langword="null"/>。</param>
+    /// <returns>找到服务时为 <see langword="true"/>；否则为 <see langword="false"/>。</returns>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     public bool TryGetService<TService>(out TService? service) where TService : class =>
         Services.TryGet(out service);
 
@@ -80,7 +87,7 @@ public sealed class ProcedureContext
     /// </summary>
     /// <param name="cleanup">必须在 Godot 主线程快速完成的清理动作。</param>
     /// <exception cref="ArgumentNullException"><paramref name="cleanup"/> 为 null。</exception>
-    /// <exception cref="InvalidOperationException">当前 Procedure 激活已经结束。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程、GoDoRuntime 尚未初始化，或当前 Procedure 激活已经结束。</exception>
     public void RegisterCleanup(Action cleanup)
     {
         MainThreadGuard.VerifyAccess();
@@ -99,7 +106,7 @@ public sealed class ProcedureContext
     /// </summary>
     /// <param name="disposable">随当前 Procedure 激活结束而释放的资源。</param>
     /// <exception cref="ArgumentNullException"><paramref name="disposable"/> 为 null。</exception>
-    /// <exception cref="InvalidOperationException">当前 Procedure 激活已经结束。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程、GoDoRuntime 尚未初始化，或当前 Procedure 激活已经结束。</exception>
     public void RegisterCleanup(IDisposable disposable)
     {
         MainThreadGuard.VerifyAccess();
@@ -115,12 +122,17 @@ public sealed class ProcedureContext
     /// 后续请求不会覆盖已经接受的目标；需要判断是否登记成功时使用 <see cref="TryRequestChange(IProcedure)"/>。
     /// </para>
     /// </summary>
+    /// <param name="next">要在安全边界后进入的目标流程实例。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="next"/> 为 <see langword="null"/>。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程、GoDoRuntime 尚未初始化，或当前激活已经结束。</exception>
     public void RequestChange(IProcedure next)
     {
         _ = TryRequestChange(next);
     }
 
-    /// <summary>在验证 Godot 主线程后创建并请求进入无参构造的目标流程。</summary>
+    /// <summary>在验证 Godot 主线程后创建并请求进入无参构造的目标流程；目标构造函数异常原样传播。</summary>
+    /// <typeparam name="TProcedure">具有公开无参构造函数的目标流程类型。</typeparam>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程、GoDoRuntime 尚未初始化，或当前激活已经结束。</exception>
     public void RequestChange<TProcedure>() where TProcedure : IProcedure, new()
     {
         MainThreadGuard.VerifyAccess();
@@ -138,7 +150,7 @@ public sealed class ProcedureContext
     /// <param name="next">要进入的目标流程。</param>
     /// <returns>成功登记返回 true；当前激活已经登记请求或服务已有待处理请求时返回 false。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="next"/> 为 null。</exception>
-    /// <exception cref="InvalidOperationException">当前 Procedure 激活已经结束。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程、GoDoRuntime 尚未初始化，或当前 Procedure 激活已经结束。</exception>
     public bool TryRequestChange(IProcedure next)
     {
         MainThreadGuard.VerifyAccess();
@@ -162,7 +174,7 @@ public sealed class ProcedureContext
     /// <summary>创建无参目标流程，并尝试登记在当前流程切换安全结束后进入。</summary>
     /// <typeparam name="TProcedure">具有无参构造函数的目标流程类型。</typeparam>
     /// <returns>成功登记返回 true；当前激活已经登记请求或服务已有待处理请求时返回 false。</returns>
-    /// <exception cref="InvalidOperationException">当前 Procedure 激活已经结束。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程、GoDoRuntime 尚未初始化，或当前 Procedure 激活已经结束。</exception>
     public bool TryRequestChange<TProcedure>() where TProcedure : IProcedure, new()
     {
         MainThreadGuard.VerifyAccess();

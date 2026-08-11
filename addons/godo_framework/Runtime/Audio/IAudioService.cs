@@ -7,7 +7,11 @@ using Godot;
 
 namespace GoDo;
 
-/// <summary>面向业务层的背景音乐与音效服务。</summary>
+/// <summary>面向业务层的背景音乐、非空间音效、3D 空间音效与 Audio Bus 音量服务。</summary>
+/// <remarks>
+/// 所有成员都必须从 GoDoRuntime 记录的 Godot 主线程调用，并且只在服务位于场景树且完成初始化后有效。
+/// 异步任务的延续由调用方正常等待；不要使用 <see cref="Task.Wait()"/> 或 <see cref="Task{TResult}.Result"/> 阻塞主线程。
+/// </remarks>
 public interface IAudioService
 {
     /// <summary>当前背景音乐资源；未设置时为 null。</summary>
@@ -69,6 +73,10 @@ public interface IAudioService
     /// </summary>
     /// <param name="key">AudioStream 资源键。</param>
     /// <param name="restart">同一资源正在播放时是否从头重新播放。</param>
+    /// <returns>在目标音乐完成加载并提交为当前播放后完成的任务；同一音乐且不重播时直接完成。</returns>
+    /// <exception cref="InvalidOperationException">已有 BGM 请求正在执行，服务未就绪，或调用线程错误。</exception>
+    /// <exception cref="OperationCanceledException">Stop、服务退出或请求生命周期使等待失效。</exception>
+    /// <exception cref="AudioPlaybackException">资源加载或播放准备失败。</exception>
     Task PlayBgmAsync(ResourceKey key, bool restart = false);
 
     /// <summary>
@@ -81,6 +89,7 @@ public interface IAudioService
     /// <param name="key">目标 AudioStream 资源键。</param>
     /// <param name="durationSeconds">交叉淡化时长（秒），必须为有限且大于零的值。</param>
     /// <param name="cancellationToken">调用方取消标记；取消不会中止 ResourceHub 中可能共享的底层加载。</param>
+    /// <returns>在无需切换时直接完成，否则在目标加载并完成交叉淡化后完成的任务。</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="durationSeconds"/> 不是有限正数。</exception>
     /// <exception cref="OperationCanceledException">调用方取消、更新请求取代本请求，或服务退出场景树。</exception>
     /// <exception cref="AudioPlaybackException">资源加载或播放准备失败。</exception>
@@ -98,6 +107,7 @@ public interface IAudioService
     /// </summary>
     /// <param name="durationSeconds">淡出时长（秒），必须为有限且大于零的值。</param>
     /// <param name="cancellationToken">调用方取消标记。</param>
+    /// <returns>在没有当前音乐时直接完成，否则在两路播放器停止且当前资源清空后完成的任务。</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="durationSeconds"/> 不是有限正数。</exception>
     /// <exception cref="OperationCanceledException">调用方取消、更新请求取代本请求，或服务退出场景树。</exception>
     Task FadeOutBgmAsync(
@@ -117,6 +127,13 @@ public interface IAudioService
     /// 异步加载并播放一次音效。达到并发上限时返回 false，不抢占正在播放的音效。
     /// StopAll 后旧请求以取消结束，且不再占用新请求的逻辑容量。
     /// </summary>
+    /// <param name="key">要播放的 AudioStream 资源键。</param>
+    /// <returns>
+    /// 音效成功开始播放时为 <see langword="true"/>；容量拒绝或加载完成前被更高优先级请求取代时为
+    /// <see langword="false"/>。
+    /// </returns>
+    /// <exception cref="OperationCanceledException">StopAllSfx 或服务退出时请求仍在加载。</exception>
+    /// <exception cref="AudioPlaybackException">资源加载或播放准备失败。</exception>
     Task<bool> PlaySfxAsync(ResourceKey key);
 
     /// <summary>
@@ -126,6 +143,10 @@ public interface IAudioService
     /// <param name="key">AudioStream 资源键。</param>
     /// <param name="volumeLinear">本次播放的线性音量，必须为 0 到 1 之间的有限值。</param>
     /// <param name="pitchScale">本次播放的音高与速度倍率，必须为有限正数。</param>
+    /// <returns>
+    /// 音效成功开始播放时为 <see langword="true"/>；容量拒绝或加载完成前被更高优先级请求取代时为
+    /// <see langword="false"/>。
+    /// </returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="volumeLinear"/> 或 <paramref name="pitchScale"/> 无效。</exception>
     Task<bool> PlaySfxAsync(
         ResourceKey key,
@@ -151,6 +172,7 @@ public interface IAudioService
     /// </summary>
     /// <param name="key">要准备的 AudioStream 资源键。</param>
     /// <param name="cancellationToken">只取消本次等待；底层共享加载可能仍会完成。</param>
+    /// <returns>在资源由 ResourceHub 加载并通过 AudioStream 类型检查后完成的任务。</returns>
     /// <exception cref="OperationCanceledException">调用方取消或 AudioService 退出。</exception>
     /// <exception cref="AudioPlaybackException">资源加载或类型校验失败。</exception>
     Task PrepareSfxAsync(
@@ -211,27 +233,43 @@ public interface IAudioService
     /// <exception cref="ArgumentOutOfRangeException">目标超出有效范围。</exception>
     int PrewarmSfx3DVoices(int targetVoiceCount);
 
-    /// <summary>查询句柄对应的 3D SFX 是否仍处于活动播放状态；无效或过期句柄返回 false。</summary>
+    /// <summary>查询句柄对应的 3D SFX 是否仍处于活动播放状态。</summary>
+    /// <param name="handle">成功播放 3D SFX 时取得的句柄。</param>
+    /// <returns>句柄仍属于当前活动播放时为 <see langword="true"/>；无效、过期或属于其他播放时为 <see langword="false"/>。</returns>
     bool IsSfx3DPlaying(Sfx3DPlaybackHandle handle);
 
-    /// <summary>停止并回收句柄对应的活动 3D SFX；无效、过期或尚未开始的句柄返回 false。</summary>
+    /// <summary>尝试停止并回收句柄对应的活动 3D SFX。</summary>
+    /// <param name="handle">要停止的 3D SFX 播放句柄。</param>
+    /// <returns>找到并停止活动播放时为 <see langword="true"/>；无效、过期或尚未开始时为 <see langword="false"/>。</returns>
     bool TryStopSfx3D(Sfx3DPlaybackHandle handle);
 
     /// <summary>停止并回收全部活动 3D 音效，同时释放其待加载请求预占的逻辑容量。</summary>
     void StopAllSfx3D();
 
-    /// <summary>查询句柄对应的 SFX 是否仍处于活动播放状态；无效或过期句柄返回 false。</summary>
+    /// <summary>查询句柄对应的非空间 SFX 是否仍处于活动播放状态。</summary>
+    /// <param name="handle">成功播放非空间 SFX 时取得的句柄。</param>
+    /// <returns>句柄仍属于当前活动播放时为 <see langword="true"/>；无效、过期或属于其他播放时为 <see langword="false"/>。</returns>
     bool IsSfxPlaying(SfxPlaybackHandle handle);
 
-    /// <summary>停止并回收句柄对应的活动 SFX；无效、过期或尚未开始的句柄返回 false。</summary>
+    /// <summary>尝试停止并回收句柄对应的活动非空间 SFX。</summary>
+    /// <param name="handle">要停止的非空间 SFX 播放句柄。</param>
+    /// <returns>找到并停止活动播放时为 <see langword="true"/>；无效、过期或尚未开始时为 <see langword="false"/>。</returns>
     bool TryStopSfx(SfxPlaybackHandle handle);
 
     /// <summary>停止并回收全部活动音效，同时释放待加载请求预占的逻辑容量。</summary>
     void StopAllSfx();
 
-    /// <summary>获取指定分组的线性音量，范围为 0 到 1。</summary>
+    /// <summary>获取指定 Audio Bus 分组的线性音量。</summary>
+    /// <param name="group">Master、BGM 或 SFX 分组。</param>
+    /// <returns>Godot AudioServer 当前保存的线性音量；框架设置入口使用 0 到 1 的范围。</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="group"/> 不是已定义分组。</exception>
+    /// <exception cref="InvalidOperationException">对应 Audio Bus 不存在，服务未就绪，或调用线程错误。</exception>
     float GetVolume(AudioGroup group);
 
-    /// <summary>设置指定分组的线性音量，范围为 0 到 1。</summary>
+    /// <summary>设置指定 Audio Bus 分组的线性音量。</summary>
+    /// <param name="group">Master、BGM 或 SFX 分组。</param>
+    /// <param name="linearVolume">0 到 1 之间的有限线性音量。</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="group"/> 未定义，或 <paramref name="linearVolume"/> 超出范围。</exception>
+    /// <exception cref="InvalidOperationException">对应 Audio Bus 不存在，服务未就绪，或调用线程错误。</exception>
     void SetVolume(AudioGroup group, float linearVolume);
 }

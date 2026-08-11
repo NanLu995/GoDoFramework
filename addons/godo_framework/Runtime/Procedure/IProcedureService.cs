@@ -31,11 +31,20 @@ public interface IProcedureService
     /// 退出当前流程并进入目标流程。
     /// <para>切换失败或服务关闭时抛出 <see cref="ProcedureChangeException"/>；服务关闭导致的失败以 <see cref="System.OperationCanceledException"/> 作为内部异常。</para>
     /// </summary>
+    /// <param name="next">要创建新激活并进入的目标流程实例。</param>
+    /// <returns>退出、清理和进入序列全部完成后结束的任务。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="next"/> 为 <see langword="null"/>。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
+    /// <exception cref="ProcedureChangeException">请求被并发切换拒绝，或退出、清理、进入和服务关闭取消中的任一阶段失败。</exception>
     Task ChangeAsync(IProcedure next);
 
     /// <summary>
     /// 在验证 Godot 主线程后创建并进入无参构造的目标流程。
-    /// <para>失败语义与 <see cref="ChangeAsync(IProcedure)"/> 相同。</para>
+    /// <para>目标构造函数异常原样传播；构造成功后的失败语义与 <see cref="ChangeAsync(IProcedure)"/> 相同。</para>
     /// </summary>
+    /// <typeparam name="TProcedure">具有公开无参构造函数的目标流程类型。</typeparam>
+    /// <returns>目标构造完成后，由 <see cref="ChangeAsync(IProcedure)"/> 返回的切换任务。</returns>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
+    /// <exception cref="ProcedureChangeException">请求被并发切换拒绝，或退出、清理、进入和服务关闭取消中的任一阶段失败。</exception>
     Task ChangeAsync<TProcedure>() where TProcedure : IProcedure, new();
 }

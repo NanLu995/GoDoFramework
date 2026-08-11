@@ -23,9 +23,10 @@ namespace GoDo
         // ── 公开 API ──────────────────────────────
 
         /// <summary>
-        /// 广播一个事件给所有监听者。
-        /// 即使某个 handler 抛出异常，其余 handler 仍会继续执行。
+        /// 按优先级同步广播一个事件。监听者异常会报告给 ErrorHub，不会阻断后续监听者或从本方法抛出。
         /// </summary>
+        /// <typeparam name="T">实现 <see cref="IEventMessage"/> 的值类型消息。</typeparam>
+        /// <param name="evt">要传递给当前监听者的事件值。</param>
         public static void Emit<T>(T evt) where T : struct, IEventMessage
         {
             // P1: 缓存 typeof(T)，避免重复调用
@@ -37,14 +38,19 @@ namespace GoDo
         }
 
         /// <summary>
-        /// 广播一个不携带数据的事件给所有监听者。
+        /// 按优先级同步广播一个使用默认值、不携带数据的事件。
         /// </summary>
+        /// <typeparam name="T">实现 <see cref="IEventMessage"/> 且可使用默认值表示事件的值类型消息。</typeparam>
         public static void Emit<T>() where T : struct, IEventMessage => Emit(new T());
 
         /// <summary>
         /// 持续监听某类事件。
-        /// priority 越小越先执行，默认 0。
+        /// 相同委托的重复注册会被忽略并通过 ErrorHub 发出警告。
         /// </summary>
+        /// <typeparam name="T">要监听的值类型消息。</typeparam>
+        /// <param name="handler">同步接收事件的回调。</param>
+        /// <param name="priority">执行优先级；数值越小越先执行，相同值保持注册顺序。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="handler"/> 为 <see langword="null"/>。</exception>
         public static void On<T>(Action<T> handler, int priority = 0)
             where T : struct, IEventMessage
         {
@@ -53,8 +59,11 @@ namespace GoDo
         }
 
         /// <summary>
-        /// 监听一次，触发后自动移除。
+        /// 监听一次。回调执行前即标记移除，因此同类型重入或回调抛出异常都不会导致再次执行。
         /// </summary>
+        /// <typeparam name="T">要监听的值类型消息。</typeparam>
+        /// <param name="handler">同步接收首个事件的回调。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="handler"/> 为 <see langword="null"/>。</exception>
         public static void Once<T>(Action<T> handler)
             where T : struct, IEventMessage
         {
@@ -63,8 +72,10 @@ namespace GoDo
         }
 
         /// <summary>
-        /// 手动取消监听。
+        /// 手动取消监听。回调未注册或参数为 <see langword="null"/> 时不执行任何操作。
         /// </summary>
+        /// <typeparam name="T">要停止监听的值类型消息。</typeparam>
+        /// <param name="handler">注册时使用的同一个委托；为 <see langword="null"/> 时忽略。</param>
         public static void Off<T>(Action<T> handler)
             where T : struct, IEventMessage
         {
@@ -75,8 +86,13 @@ namespace GoDo
 
         /// <summary>
         /// 将监听绑定到节点生命周期。
-        /// 节点退出场景树时自动解绑，无需手动 Off。
+        /// 节点退出场景树时自动解绑；节点尚未进入场景树时只报告警告，不注册监听。
         /// </summary>
+        /// <typeparam name="T">要监听的值类型消息。</typeparam>
+        /// <param name="node">拥有监听生命周期且当前已经进入场景树的节点。</param>
+        /// <param name="handler">同步接收事件的回调。</param>
+        /// <param name="priority">执行优先级；数值越小越先执行，相同值保持注册顺序。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="node"/> 或 <paramref name="handler"/> 为 <see langword="null"/>。</exception>
         public static void Bind<T>(Node node, Action<T> handler, int priority = 0)
             where T : struct, IEventMessage
         {

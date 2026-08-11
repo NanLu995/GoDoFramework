@@ -13,6 +13,9 @@ public readonly record struct LocalizationLocale
     public bool IsDefault { get; }
 
     /// <summary>创建一个可用 Locale 描述。</summary>
+    /// <param name="code">要原样保存的 Locale 代码；构造器不会执行规范化或有效性校验。</param>
+    /// <param name="displayName">要原样保存的用户可读名称。</param>
+    /// <param name="isDefault">该项是否代表项目默认 Locale。</param>
     public LocalizationLocale(string code, string displayName, bool isDefault)
     {
         Code = code;

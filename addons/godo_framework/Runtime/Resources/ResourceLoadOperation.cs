@@ -7,7 +7,12 @@ using GodotArray = Godot.Collections.Array;
 
 namespace GoDo;
 
-/// <summary>一个由 ResourceHub 驱动的异步资源加载操作。</summary>
+/// <summary>一个由 ResourceHub 在 Godot 主线程轮询并发布结果的异步资源加载操作。</summary>
+/// <typeparam name="T">完成时返回的 Godot <see cref="Resource"/> 类型。</typeparam>
+/// <remarks>
+/// 调用方通过 <see cref="Completion"/> 等待结果，不应自行轮询 Godot 的线程化加载 API。
+/// ResourceHub 关闭时，未完成操作以 <see cref="OperationCanceledException"/> 结束；底层 Godot 请求可能仍会完成。
+/// </remarks>
 public sealed class ResourceLoadOperation<T> where T : Resource
 {
     private readonly TaskCompletionSource<T> _completionSource = new();

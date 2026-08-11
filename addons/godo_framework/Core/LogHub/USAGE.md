@@ -100,7 +100,7 @@ LogHub 的 Warning、Error 与 Fatal 只是便捷入口，产生的仍是同一�
 
 - 已通过 Debug 与 ExportRelease 的 `dotnet build`。
 - 已在 Windows Godot Debug 运行时手动验证控制台输出、Debugger 最近日志展示，以及主场景切换后的持续可见性。
-- 已在 Windows 当前项目声明的 Godot Mono Headless 版本完成 `LogHubRegression` 12/12 项验证；运行时需允许 Godot 写入 AppData 与 `user://` 目录。
+- 当前 `LogHubRegression` 的 Debug runner 包含 13 项验证，全部通过时输出 `[LogHubRegression] PASS (13)`；运行时需允许 Godot 写入 AppData 与 `user://` 目录。
 
 ## 常见误用
 

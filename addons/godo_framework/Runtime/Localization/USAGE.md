@@ -30,6 +30,8 @@ settings.Save();
 ## 失败语义与生命周期
 
 - 空白或不在项目已加载语言集合内的 Locale 由 Settings 抛出 `ArgumentException`；当前设置不变。
+- `IsLocaleSupported` 对空白值返回 false；其他值先由 Godot 规范化，再以非精确模式匹配默认 Locale 或已加载翻译。
+- 成功切换到不同的规范 Locale 后才发送 `LocaleChangedEvent`；重复设置同一规范 Locale 不发送事件。
 - 空翻译键抛出 `ArgumentException`。
 - 缺失翻译键沿用 Godot 行为，返回源键，不抛异常也不在查询热路径记录日志。
 - 服务由 GoDoRuntime 在 UI 前创建并注册；所有公开 API 限制于 Godot 主线程。

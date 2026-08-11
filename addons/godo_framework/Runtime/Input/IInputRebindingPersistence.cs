@@ -4,6 +4,7 @@ namespace GoDo;
 public interface IInputRebindingPersistence
 {
     /// <summary>加载并应用已保存绑定；不存在配置时应用默认绑定。</summary>
+    /// <returns>区分已加载、使用默认值和从备份恢复的结果状态。</returns>
     InputBindingLoadStatus LoadAndApply();
 
     /// <summary>保存当前绑定；失败时保持当前运行时绑定不变并抛出异常。</summary>

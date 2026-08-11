@@ -21,6 +21,10 @@ public readonly struct CameraId : IEquatable<CameraId>
     }
 
     /// <summary>从非空、无首尾空白的业务语义字符串创建镜头 ID。</summary>
+    /// <param name="value">区分大小写且不包含首尾空白的业务语义 ID。</param>
+    /// <returns>包含原始字符串的镜头 ID。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> 为 <see langword="null"/>。</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> 为空、仅含空白或包含首尾空白。</exception>
     public static CameraId Create(string value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value);
@@ -44,9 +48,15 @@ public readonly struct CameraId : IEquatable<CameraId>
     /// <inheritdoc />
     public override string ToString() => Value;
 
-    /// <summary>比较两个镜头 ID 是否相等。</summary>
+    /// <summary>使用区分大小写的序号比较判断两个镜头 ID 是否相等。</summary>
+    /// <param name="left">左侧镜头 ID。</param>
+    /// <param name="right">右侧镜头 ID。</param>
+    /// <returns>两个 ID 的原始值完全相同时为 <see langword="true"/>。</returns>
     public static bool operator ==(CameraId left, CameraId right) => left.Equals(right);
 
-    /// <summary>比较两个镜头 ID 是否不相等。</summary>
+    /// <summary>使用区分大小写的序号比较判断两个镜头 ID 是否不相等。</summary>
+    /// <param name="left">左侧镜头 ID。</param>
+    /// <param name="right">右侧镜头 ID。</param>
+    /// <returns>两个 ID 的原始值不同时为 <see langword="true"/>。</returns>
     public static bool operator !=(CameraId left, CameraId right) => !left.Equals(right);
 }

@@ -52,12 +52,33 @@ await scheduler.DelayAsync(1.0, ScheduleOptions.RealTime, cancellation.Token);
 
 业务代码不要自行实例化 `SchedulerService`，也不要在业务场景重复注册服务。
 
+### 调度与等待
+
+| 成员 | 输入契约 | 返回与可观察结果 |
+|---|---|---|
+| `Schedule(delaySeconds, callback, options)` | 延迟有限且不小于 0；callback 非 null | 返回有效 `ScheduleHandle`；回调最早在下一次所选阶段执行，任务执行后结束 |
+| `ScheduleRepeating(intervalSeconds, callback, options)` | 间隔有限且大于 0；callback 非 null | 返回有效句柄；首次执行也等待一个完整间隔，卡帧遗漏周期合并为一次 |
+| `ScheduleRepeating(initialDelaySeconds, intervalSeconds, callback, options)` | 初始延迟有限且不小于 0；间隔有限且大于 0 | 返回有效句柄；首次执行使用独立延迟，后续使用固定间隔 |
+| `DelayAsync(delaySeconds, options, cancellationToken)` | 延迟有限且不小于 0 | 到期时在所选主线程阶段完成；Token、Owner 或框架关闭会使 Task 取消 |
+
+### 句柄操作
+
+| 成员 | 成功结果 | 不成功结果 |
+|---|---|---|
+| `Cancel(handle)` | 取消活动或独立暂停任务并返回 `true` | 无效、已结束或已取消时返回 `false` |
+| `Pause(handle)` | 保存任务自身时钟中的剩余时间并返回 `true` | 无效、已结束、已经暂停或当前状态不允许时返回 `false` |
+| `Resume(handle)` | 从保存的剩余时间恢复并返回 `true` | 不是独立暂停任务时返回 `false` |
+| `IsScheduled(handle)` | 活动、派发中或独立暂停时返回 `true` | Scheduler 已不再管理该句柄时返回 `false` |
+| `TryGetRemainingSeconds(handle, out remainingSeconds)` | 返回 `true` 和不小于 0 的剩余秒数；派发中为 0 | 句柄不存在时返回 `false`，输出 0 |
+
 ## 失败语义与生命周期
 
-- 非有限或负延迟抛参数异常，重复间隔必须大于 0。
+- 非有限或负延迟抛 `ArgumentOutOfRangeException`；重复间隔还必须大于 0。`ScheduleOptions` 的 Clock 或 Phase 不是已定义枚举值时也抛同类异常。
+- callback 为 null 时抛 `ArgumentNullException`。
+- Owner 已失效时抛 `ArgumentException`；Owner 有效但尚未进入场景树时抛 `InvalidOperationException`。Owner 在创建任务时校验，而不是在构造 `ScheduleOptions` 时校验。
 - 0 秒任务最早在下一次对应 Scheduler 更新执行，不同步重入。
-- public 服务 API 限制在 GoDo 主线程。
-- Owner 必须有效且已经进入场景树，否则拒绝创建关联任务。
+- public 服务 API 限制在 GoDo 主线程；框架未记录主线程、从错误线程调用或服务不在场景树时抛 `InvalidOperationException`。
+- Scheduler 已永久关闭但节点仍在树内时，继续创建任务或等待会抛 `ObjectDisposedException`；查询或修改已清空的句柄返回 `false`。节点退出树后调用则先因服务生命周期无效抛 `InvalidOperationException`。
 - 同一 Owner 只建立一次退出树监听；任务自然结束或显式取消后会解除不再需要的绑定。
 - Owner 退出、显式取消与框架关闭会取消关联异步等待。
 - callback 异常由 ErrorHub 隔离；重复任务发生异常后取消。

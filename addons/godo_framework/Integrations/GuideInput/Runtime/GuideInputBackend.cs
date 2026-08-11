@@ -63,14 +63,23 @@ public sealed class GuideInputBackend :
     /// <inheritdoc />
     public IReadOnlyList<InputContextId> Contexts => _contextIds;
 
-    /// <summary>创建使用固定 Profile 的 GUIDE 后端。</summary>
+    /// <summary>创建使用固定 Profile、但不提供绑定持久化能力的 GUIDE 后端。</summary>
+    /// <param name="profile">声明语义 Action、Context 和可重绑定槽位的固定映射；内容在 <see cref="Initialize"/> 时校验。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="profile"/> 为 <see langword="null"/>。</exception>
     public GuideInputBackend(GuideInputProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
         _profile = profile;
     }
 
-    /// <summary>创建使用固定 Profile 与可靠绑定存储的 GUIDE 后端。</summary>
+    /// <summary>创建使用固定 Profile，并通过 SaveService 提供绑定持久化能力的 GUIDE 后端。</summary>
+    /// <param name="profile">声明语义 Action、Context 和可重绑定槽位的固定映射；内容在 <see cref="Initialize"/> 时校验。</param>
+    /// <param name="saveService">负责可靠读写绑定数据的存档服务。</param>
+    /// <param name="persistenceSlot">保存当前本地玩家绑定数据的有效槽位。</param>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="profile"/> 或 <paramref name="saveService"/> 为 <see langword="null"/>。
+    /// </exception>
+    /// <exception cref="ArgumentException"><paramref name="persistenceSlot"/> 是默认的无效槽位。</exception>
     public GuideInputBackend(
         GuideInputProfile profile,
         ISaveService saveService,
@@ -114,7 +123,14 @@ public sealed class GuideInputBackend :
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>以给定顺序把 GoDo Context 集合事务式应用到 GUIDE Mapping Context。</summary>
+    /// <param name="contexts">本次应启用的 Context ID；每个 ID 都必须存在于初始化时解析的 Profile。</param>
+    /// <exception cref="InvalidOperationException">后端尚未初始化，或集合包含未知 Context。</exception>
+    /// <exception cref="AggregateException">GUIDE 应用新集合失败，并且恢复此前集合也失败；此时底层映射状态不可确认。</exception>
+    /// <remarks>
+    /// 必须从 Godot 主线程调用。所有 ID 会在写入 GUIDE 前解析；应用失败但回滚成功时重新抛出原始 GUIDE 异常，
+    /// 并保留此前记录的活动 Context。
+    /// </remarks>
     public void ApplyContexts(ReadOnlySpan<InputContextId> contexts)
     {
         VerifyInitialized();
@@ -153,7 +169,11 @@ public sealed class GuideInputBackend :
         _activeContexts.AddRange(proposed);
     }
 
-    /// <inheritdoc />
+    /// <summary>把 GUIDE 信号更新的当前 Action 缓存复制到调用方提供的采样缓冲区。</summary>
+    /// <param name="destination">长度必须与 <see cref="Actions"/> 数量完全一致的目标缓冲区。</param>
+    /// <exception cref="InvalidOperationException">后端尚未初始化。</exception>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> 长度与 Action 数量不一致。</exception>
+    /// <remarks>此方法不分配集合；InputService 在 Godot 主线程的采样阶段调用它。</remarks>
     public void Sample(Span<InputActionSample> destination)
     {
         VerifyInitialized();

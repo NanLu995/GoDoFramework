@@ -44,7 +44,15 @@ public static class ResourceHub
         _initialized = true;
     }
 
-    /// <summary>同步加载并验证资源类型。</summary>
+    /// <summary>从 Godot 资源系统同步加载资源，并验证实际资源可赋值给请求类型。</summary>
+    /// <typeparam name="T">期望的 Godot <see cref="Resource"/> 类型。</typeparam>
+    /// <param name="key">已经初始化的 <see cref="ResourceKey"/>。</param>
+    /// <returns>加载完成且通过类型检查的资源实例。</returns>
+    /// <exception cref="InvalidOperationException">
+    /// 当前调用不在 Godot 主线程、ResourceHub 尚未初始化，或同一资源正在异步加载。
+    /// </exception>
+    /// <exception cref="ArgumentException"><paramref name="key"/> 未初始化。</exception>
+    /// <exception cref="ResourceLoadException">资源不存在、Godot 加载失败或实际类型不匹配。</exception>
     public static T Load<T>(ResourceKey key) where T : Resource
     {
         VerifyReady();
@@ -92,6 +100,22 @@ public static class ResourceHub
     /// <summary>
     /// 启动线程化加载。同一 ResourceKey 与资源类型的并发请求返回同一个操作实例。
     /// </summary>
+    /// <typeparam name="T">期望的 Godot <see cref="Resource"/> 类型。</typeparam>
+    /// <param name="key">已经初始化的 <see cref="ResourceKey"/>。</param>
+    /// <returns>
+    /// 可观察进度并等待结果的操作；相同键和类型的未完成请求会返回同一实例。
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// 当前调用不在 Godot 主线程，或 ResourceHub 尚未初始化。
+    /// </exception>
+    /// <exception cref="ArgumentException"><paramref name="key"/> 未初始化。</exception>
+    /// <exception cref="ResourceLoadException">
+    /// 资源不存在、同一键正在按另一类型加载，或 Godot 拒绝启动线程化加载。
+    /// </exception>
+    /// <remarks>
+    /// GoDoRuntime 在主线程逐帧轮询并发布完成结果。操作使用 Godot 的
+    /// <see cref="ResourceLoader.CacheMode.Reuse"/>，ResourceHub 不维护第二套资源缓存。
+    /// </remarks>
     public static ResourceLoadOperation<T> LoadAsync<T>(ResourceKey key) where T : Resource
     {
         VerifyReady();

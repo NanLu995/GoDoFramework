@@ -21,6 +21,8 @@ public readonly struct UiId : IEquatable<UiId>
     }
 
     /// <summary>创建并验证一个区分大小写的 UI 标识。</summary>
+    /// <param name="value">待验证的业务语义文本；创建前会移除首尾空白。</param>
+    /// <returns>包含去除首尾空白后文本的 UI 标识。</returns>
     /// <exception cref="ArgumentException">标识为 null、空字符串或仅包含空白。</exception>
     public static UiId Create(string value)
     {
@@ -31,6 +33,8 @@ public readonly struct UiId : IEquatable<UiId>
     }
 
     /// <summary>按区分大小写的标识文本比较。</summary>
+    /// <param name="other">要与当前标识比较的 UI 标识。</param>
+    /// <returns>两个规范化文本完全相同时为 <see langword="true"/>。</returns>
     public bool Equals(UiId other) =>
         string.Equals(_value, other._value, StringComparison.Ordinal);
 
@@ -45,8 +49,14 @@ public readonly struct UiId : IEquatable<UiId>
     public override string ToString() => Value;
 
     /// <summary>判断两个 UI 标识是否相同。</summary>
+    /// <param name="left">左侧 UI 标识。</param>
+    /// <param name="right">右侧 UI 标识。</param>
+    /// <returns>两个标识相同时为 <see langword="true"/>。</returns>
     public static bool operator ==(UiId left, UiId right) => left.Equals(right);
 
     /// <summary>判断两个 UI 标识是否不同。</summary>
+    /// <param name="left">左侧 UI 标识。</param>
+    /// <param name="right">右侧 UI 标识。</param>
+    /// <returns>两个标识不同时为 <see langword="true"/>。</returns>
     public static bool operator !=(UiId left, UiId right) => !left.Equals(right);
 }

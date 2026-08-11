@@ -26,7 +26,12 @@ public readonly struct ResourceKey : IEquatable<ResourceKey>
         _value = value;
     }
 
-    /// <summary>创建并验证一个资源键。</summary>
+    /// <summary>创建并验证一个 <c>res://</c> 路径键或 <c>uid://</c> UID 键。</summary>
+    /// <param name="path">待验证的定位串；首尾空白会被移除，路径中的反斜杠会转换为正斜杠。</param>
+    /// <returns>包含规范化定位串的资源键。</returns>
+    /// <exception cref="ArgumentException">
+    /// 定位串为空、前缀不受支持、没有指向具体资源，或包含重复分隔符、当前目录段或父目录跳转。
+    /// </exception>
     public static ResourceKey Create(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -62,16 +67,29 @@ public readonly struct ResourceKey : IEquatable<ResourceKey>
         return new ResourceKey(normalizedPath);
     }
 
-    /// <summary>创建并验证一个 <c>res://</c> 路径资源键。</summary>
+    /// <summary>
+    /// 通过路径语义入口创建资源键；当前行为与 <see cref="Create(string)"/> 相同，不额外限制定位串前缀。
+    /// </summary>
+    /// <param name="resPath">待验证的资源定位串，通常为 <c>res://</c> 路径。</param>
+    /// <returns>经过 <see cref="Create(string)"/> 验证和规范化的资源键。</returns>
+    /// <exception cref="ArgumentException">定位串不符合 <see cref="Create(string)"/> 的规则。</exception>
     public static ResourceKey FromPath(string resPath) => Create(resPath);
 
-    /// <summary>创建并验证一个 <c>uid://</c> 资源键。</summary>
+    /// <summary>
+    /// 通过 UID 语义入口创建资源键；当前行为与 <see cref="Create(string)"/> 相同，不额外限制定位串前缀。
+    /// </summary>
+    /// <param name="uidText">待验证的资源定位串，通常为包含非空标识的 <c>uid://</c> 字符串。</param>
+    /// <returns>经过 <see cref="Create(string)"/> 验证的资源键。</returns>
+    /// <exception cref="ArgumentException">定位串不符合 <see cref="Create(string)"/> 的规则。</exception>
     public static ResourceKey FromUid(string uidText) => Create(uidText);
 
     /// <summary>
     /// 尝试将 <c>res://</c> 路径解析为 Godot UID 资源键。
     /// <para>找不到 UID 时返回原始路径形式的资源键。</para>
     /// </summary>
+    /// <param name="resPath">待查询 Godot 资源 UID 表的规范化 <c>res://</c> 资源路径。</param>
+    /// <returns>找到 UID 时返回 UID 键，否则返回经过验证的原始路径键。</returns>
+    /// <exception cref="ArgumentException"><paramref name="resPath"/> 不符合资源键规则。</exception>
     public static ResourceKey ResolveUid(string resPath)
     {
         ResourceKey pathKey = FromPath(resPath);
@@ -90,7 +108,9 @@ public readonly struct ResourceKey : IEquatable<ResourceKey>
         return new ResourceKey(uidText);
     }
 
-    /// <summary>按规范化后的区分大小写路径比较。</summary>
+    /// <summary>按规范化后的定位串执行区分大小写的比较。</summary>
+    /// <param name="other">要与当前键比较的资源键。</param>
+    /// <returns>两个键的定位串完全相同时为 <see langword="true"/>；否则为 <see langword="false"/>。</returns>
     public bool Equals(ResourceKey other) =>
         string.Equals(_value, other._value, StringComparison.Ordinal);
 
@@ -104,9 +124,15 @@ public readonly struct ResourceKey : IEquatable<ResourceKey>
     /// <inheritdoc/>
     public override string ToString() => Value;
 
-    /// <summary>判断两个资源键是否相同。</summary>
+    /// <summary>判断两个资源键的定位串是否完全相同。</summary>
+    /// <param name="left">左侧资源键。</param>
+    /// <param name="right">右侧资源键。</param>
+    /// <returns>两个键相同时为 <see langword="true"/>。</returns>
     public static bool operator ==(ResourceKey left, ResourceKey right) => left.Equals(right);
 
-    /// <summary>判断两个资源键是否不同。</summary>
+    /// <summary>判断两个资源键的定位串是否不同。</summary>
+    /// <param name="left">左侧资源键。</param>
+    /// <param name="right">右侧资源键。</param>
+    /// <returns>两个键不同时为 <see langword="true"/>。</returns>
     public static bool operator !=(ResourceKey left, ResourceKey right) => !left.Equals(right);
 }

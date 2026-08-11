@@ -57,6 +57,10 @@ HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 FENCE_PATTERN = re.compile(r"^\s*```(.*)$")
 FRONT_MATTER_BOUNDARY = "---"
 LANGUAGE_SWITCH_MARKER = "<!-- godo-language-switch -->"
+GODOT_GENERATED_API_PATTERN = re.compile(
+    r"\.(?:MethodName|PropertyName|SignalName)(?:\.|$)"
+)
+API_REFERENCE_STATUSES = {"pending", "verified"}
 
 
 @dataclass(frozen=True)
@@ -68,6 +72,16 @@ class Page:
     destination: Path
     group: str
     translation_source: Path | None = None
+
+
+@dataclass(frozen=True)
+class ApiReferenceIssue:
+    entry_id: str
+    status: str
+    source: str
+    uid: str
+    rule: str
+    detail: str
 
 
 def configure_console_encoding() -> None:
@@ -82,9 +96,18 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "command",
-        choices=("lint", "prepare", "check", "build", "serve", "clean"),
+        choices=(
+            "lint",
+            "api-audit",
+            "prepare",
+            "check",
+            "build",
+            "serve",
+            "clean",
+        ),
         help=(
-            "lint 只检查 Markdown 与翻译状态；prepare 生成 DocFX 工作区；"
+            "lint 只检查 Markdown 与翻译状态；api-audit 只生成并审计 API metadata；"
+            "prepare 生成 DocFX 工作区；"
             "check 将 DocFX 警告视为错误；build 生成站点；"
             "serve 生成并启动本地预览；clean 删除文档生成物。"
         ),
@@ -301,6 +324,8 @@ def validate_coverage(
         status = entry.get("status")
         reason = entry.get("reason")
         reviewed_hash = entry.get("reviewed_contract_hash")
+        api_reference_status = entry.get("api_reference_status")
+        api_reference_reason = entry.get("api_reference_reason")
         if not isinstance(contract, str):
             errors.append(f"{entry_id}：缺少 contract")
             continue
@@ -315,6 +340,16 @@ def validate_coverage(
             not isinstance(reason, str) or not reason.strip()
         ):
             errors.append(f"{entry_id}：{status} 条目必须说明 reason")
+        if api_reference_status not in API_REFERENCE_STATUSES:
+            errors.append(
+                f"{entry_id}：api_reference_status 必须是 "
+                f"{', '.join(sorted(API_REFERENCE_STATUSES))}"
+            )
+        if api_reference_status == "pending" and (
+            not isinstance(api_reference_reason, str)
+            or not api_reference_reason.strip()
+        ):
+            errors.append(f"{entry_id}：API Reference 待审计条目必须说明 api_reference_reason")
 
         contract_path = repository_root / contract
         if contract not in actual_contracts:
@@ -548,6 +583,8 @@ def write_docfx_config(locale: str, locale_work_root: Path) -> None:
     )
     (locale_work_root / "filterConfig.yml").write_text(
         "apiRules:\n"
+        "- exclude:\n"
+        "    uidRegex: '\\.(MethodName|PropertyName|SignalName)($|\\.)'\n"
         "- include:\n"
         "    uidRegex: ^GoDo($|\\.)\n"
         "- exclude:\n"
@@ -619,21 +656,237 @@ def run_docfx(locale: str, warnings_as_errors: bool) -> None:
     run(arguments)
 
 
-def validate_api_reference() -> None:
-    """Reject generated GoDo API items that lost their XML summary."""
-    api_root = WORK_ROOT / "zh-cn" / "api"
-    errors: list[str] = []
+def run_docfx_metadata(locale: str, warnings_as_errors: bool) -> None:
+    arguments = [
+        "dotnet",
+        "tool",
+        "run",
+        "docfx",
+        "--",
+        "metadata",
+        str(WORK_ROOT / locale / "docfx.json"),
+    ]
+    if warnings_as_errors:
+        arguments.append("--warningsAsErrors")
+    run(arguments)
+
+
+def load_coverage_entries(
+    coverage_path: Path = COVERAGE_PATH,
+) -> dict[str, dict[str, object]]:
+    try:
+        coverage = json.loads(coverage_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exception:
+        raise RuntimeError(f"无法读取文档覆盖清单 {coverage_path}：{exception}") from exception
+    entries = coverage.get("entries")
+    if not isinstance(entries, dict):
+        raise RuntimeError("coverage.json 缺少 entries")
+    return {
+        entry_id: entry
+        for entry_id, entry in entries.items()
+        if isinstance(entry_id, str) and isinstance(entry, dict)
+    }
+
+
+def find_api_reference_owner(
+    source: str,
+    coverage_entries: dict[str, dict[str, object]],
+) -> tuple[str, dict[str, object]] | None:
+    candidates: list[tuple[int, str, dict[str, object]]] = []
+    for entry_id, entry in coverage_entries.items():
+        contract = entry.get("contract")
+        if not isinstance(contract, str):
+            continue
+        source_root = Path(contract).parent.as_posix().rstrip("/") + "/"
+        if source.startswith(source_root):
+            candidates.append((len(source_root), entry_id, entry))
+    if not candidates:
+        return None
+    _, entry_id, entry = max(candidates, key=lambda candidate: candidate[0])
+    return entry_id, entry
+
+
+def extract_api_source(block: str) -> str | None:
+    for match in re.finditer(r"(?m)^\s+path:\s+(.+?)\s*$", block):
+        value = match.group(1).strip().strip("\"'").replace("\\", "/")
+        marker = "addons/godo_framework/"
+        marker_index = value.find(marker)
+        if marker_index >= 0:
+            return value[marker_index:]
+    return None
+
+
+def described_syntax_ids(syntax: str, section_name: str) -> list[tuple[str, bool]]:
+    section_match = re.search(
+        rf"(?ms)^    {re.escape(section_name)}:\s*\n(.*?)(?=^    [A-Za-z][A-Za-z0-9.]*:|\Z)",
+        syntax,
+    )
+    if section_match is None:
+        return []
+    section = section_match.group(1)
+    matches = list(re.finditer(r"(?m)^    - id:\s+(.+?)\s*$", section))
+    result: list[tuple[str, bool]] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(section)
+        item = section[match.start():end]
+        has_description = re.search(r"(?m)^      description:\s*\S", item) is not None
+        result.append((match.group(1).strip("\"'"), has_description))
+    return result
+
+
+def collect_api_reference_issues(
+    api_root: Path,
+    coverage_entries: dict[str, dict[str, object]],
+) -> tuple[list[ApiReferenceIssue], int]:
+    issues: list[ApiReferenceIssue] = []
     own_items = 0
     for api_file in api_root.glob("*.yml"):
         text = api_file.read_text(encoding="utf-8")
         items_section = text.split("references:", maxsplit=1)[0]
         for block in items_section.split("- uid: ")[1:]:
-            if "addons/godo_framework/" not in block:
+            uid = block.splitlines()[0].strip()
+            source = extract_api_source(block)
+            if source is None:
                 continue
             own_items += 1
-            uid = block.splitlines()[0].strip()
+            owner = find_api_reference_owner(source, coverage_entries)
+            if owner is None:
+                issues.append(ApiReferenceIssue(
+                    "<unregistered>",
+                    "verified",
+                    source,
+                    uid,
+                    "missing-owner",
+                    "API 源文件没有对应的 USAGE.md coverage 条目。",
+                ))
+                continue
+            entry_id, entry = owner
+            status_value = entry.get("api_reference_status")
+            status = status_value if isinstance(status_value, str) else "verified"
+
+            if GODOT_GENERATED_API_PATTERN.search(uid):
+                issues.append(ApiReferenceIssue(
+                    entry_id,
+                    status,
+                    source,
+                    uid,
+                    "generated-godot-api",
+                    "Godot 生成的名称辅助类型不应进入公开 API Reference。",
+                ))
+                continue
             if "\n  summary: " not in block:
-                errors.append(f"{api_file.name}: {uid} 缺少 XML <summary>")
+                issues.append(ApiReferenceIssue(
+                    entry_id,
+                    status,
+                    source,
+                    uid,
+                    "missing-summary",
+                    "缺少 XML <summary>。",
+                ))
+
+            syntax_marker = "\n  syntax:\n"
+            if syntax_marker not in block:
+                continue
+            syntax = block.split(syntax_marker, maxsplit=1)[1]
+            for parameter_id, documented in described_syntax_ids(syntax, "parameters"):
+                if not documented:
+                    issues.append(ApiReferenceIssue(
+                        entry_id,
+                        status,
+                        source,
+                        uid,
+                        "missing-param",
+                        f"参数 {parameter_id} 缺少 XML <param> 说明。",
+                    ))
+            for type_parameter_id, documented in described_syntax_ids(
+                syntax, "typeParameters"
+            ):
+                if not documented:
+                    issues.append(ApiReferenceIssue(
+                        entry_id,
+                        status,
+                        source,
+                        uid,
+                        "missing-typeparam",
+                        f"泛型参数 {type_parameter_id} 缺少 XML <typeparam> 说明。",
+                    ))
+
+            item_type_match = re.search(r"(?m)^  type:\s+(.+?)\s*$", block)
+            item_type = item_type_match.group(1).strip() if item_type_match else ""
+            return_match = re.search(
+                r"(?ms)^    return:\s*\n(.*?)(?=^    [A-Za-z][A-Za-z0-9.]*:|\Z)",
+                syntax,
+            )
+            if item_type in {"Method", "Delegate"} and return_match is not None:
+                return_block = return_match.group(1)
+                return_type_match = re.search(
+                    r"(?m)^      type:\s+(.+?)\s*$", return_block
+                )
+                return_type = (
+                    return_type_match.group(1).strip()
+                    if return_type_match is not None
+                    else ""
+                )
+                has_return_description = (
+                    re.search(
+                        r"(?m)^      description:\s*\S",
+                        return_block,
+                    )
+                    is not None
+                )
+                if return_type not in {"", "System.Void"} and not has_return_description:
+                    issues.append(ApiReferenceIssue(
+                        entry_id,
+                        status,
+                        source,
+                        uid,
+                        "missing-returns",
+                        "非 void 成员缺少 XML <returns> 说明。",
+                    ))
+    return issues, own_items
+
+
+def write_api_audit_report(issues: list[ApiReferenceIssue]) -> Path:
+    report_path = ARTIFACT_ROOT / "api-audit.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "issues": [
+            {
+                "entry": issue.entry_id,
+                "status": issue.status,
+                "source": issue.source,
+                "uid": issue.uid,
+                "rule": issue.rule,
+                "detail": issue.detail,
+            }
+            for issue in issues
+        ]
+    }
+    report_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return report_path
+
+
+def blocking_api_reference_issues(
+    issues: list[ApiReferenceIssue],
+) -> list[ApiReferenceIssue]:
+    always_blocking_rules = {"missing-summary", "missing-owner", "generated-godot-api"}
+    return [
+        issue
+        for issue in issues
+        if issue.rule in always_blocking_rules or issue.status == "verified"
+    ]
+
+
+def validate_api_reference() -> None:
+    """Audit generated GoDo API items and enforce verified module quality."""
+    api_root = WORK_ROOT / "zh-cn" / "api"
+    coverage_entries = load_coverage_entries()
+    issues, own_items = collect_api_reference_issues(api_root, coverage_entries)
+    report_path = write_api_audit_report(issues)
+    errors = blocking_api_reference_issues(issues)
 
     required_items = (
         "GoDo.GuideInput.GuideInputBackendInstaller.yml",
@@ -641,12 +894,26 @@ def validate_api_reference() -> None:
     )
     for filename in required_items:
         if not (api_root / filename).is_file():
-            errors.append(f"可选集成 API 未生成：{filename}")
+            errors.append(ApiReferenceIssue(
+                "<generation>",
+                "verified",
+                filename,
+                filename,
+                "missing-required-api",
+                "可选集成 API 未生成。",
+            ))
 
     if errors:
-        details = "\n".join(f"- {error}" for error in errors)
+        details = "\n".join(
+            f"- [{error.entry_id}/{error.rule}] {error.uid}: {error.detail}"
+            for error in errors
+        )
         raise RuntimeError(f"API Reference 校验失败：\n{details}")
-    print(f"[API] PASS ({own_items} GoDo items)")
+    pending_count = sum(1 for issue in issues if issue.status == "pending")
+    print(
+        f"[API] PASS ({own_items} GoDo items, {pending_count} pending issues)"
+    )
+    print(f"[API] 审计报告：{report_path}")
 
 
 def write_root_landing() -> None:
@@ -842,6 +1109,11 @@ def main() -> int:
         clear_site=arguments.command in ("check", "build", "serve"),
     )
     if arguments.command == "prepare":
+        return 0
+    if arguments.command == "api-audit":
+        restore_tools_and_project()
+        run_docfx_metadata("zh-cn", warnings_as_errors=False)
+        validate_api_reference()
         return 0
 
     build_sites(warnings_as_errors=arguments.command == "check")

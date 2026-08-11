@@ -9,7 +9,11 @@ using Godot;
 
 namespace GoDo;
 
-/// <summary>Debug 构建中的紧凑只读框架状态面板。</summary>
+/// <summary>由 GoDoRuntime 在 Debug 构建中自动创建的紧凑只读框架状态面板。</summary>
+/// <remarks>
+/// 该节点不是业务 Service，也不提供运行时修改能力。业务代码不应自行实例化或依赖它；
+/// GoDoRuntime 在 Release 构建中不会创建该节点，手动实例化的 Release 版本也会立即排队释放。
+/// </remarks>
 public sealed partial class DebuggerOverlay : CanvasLayer
 {
 #if DEBUG
@@ -376,13 +380,14 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     /// <summary>窗口右下角缩放手柄节点路径。</summary>
     [Export] public NodePath ResizeGripPath { get; set; } = null!;
 
-    /// <inheritdoc />
+    /// <summary>订阅 ErrorHub 的错误摘要事件。</summary>
     public override void _EnterTree()
     {
         ErrorHub.OnError += OnErrorReported;
     }
 
-    /// <inheritdoc />
+    /// <summary>验证场景引用、缓存控件并初始化只读页面与交互。</summary>
+    /// <exception cref="InvalidOperationException">Debugger 场景缺少必要的导出节点引用。</exception>
     public override void _Ready()
     {
         _panel = GetNodeOrNull<PanelContainer>(PanelPath);
@@ -518,7 +523,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         ApplyExpandedState();
     }
 
-    /// <inheritdoc />
+    /// <summary>按固定低频间隔刷新健康状态和当前展开页面。</summary>
+    /// <param name="delta">Godot 提供的当前普通帧间隔秒数。</param>
     public override void _Process(double delta)
     {
         _refreshElapsed += delta;
@@ -532,7 +538,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             RefreshDebugger();
     }
 
-    /// <inheritdoc />
+    /// <summary>解除 ErrorHub、控件和输入事件订阅并停止诊断采样。</summary>
     public override void _ExitTree()
     {
         ErrorHub.OnError -= OnErrorReported;
@@ -4572,6 +4578,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         }
     }
 #else
+    /// <summary>Release 构建不提供运行时 Debugger，因此节点就绪后立即排队释放。</summary>
     public override void _Ready()
     {
         QueueFree();

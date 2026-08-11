@@ -22,6 +22,10 @@ public readonly struct SaveSlot : IEquatable<SaveSlot>
     }
 
     /// <summary>创建仅包含 ASCII 字母、数字、下划线或连字符的槽位。</summary>
+    /// <param name="value">1–64 个字符的槽位名称。</param>
+    /// <returns>经过验证、可交给 SaveService 的槽位标识。</returns>
+    /// <exception cref="ArgumentException"><paramref name="value"/> 为空白或包含不允许的字符。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> 超过 64 个字符。</exception>
     public static SaveSlot Create(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -64,8 +68,14 @@ public readonly struct SaveSlot : IEquatable<SaveSlot>
     public override string ToString() => Value;
 
     /// <summary>判断两个槽位是否相等。</summary>
+    /// <param name="left">左侧槽位。</param>
+    /// <param name="right">右侧槽位。</param>
+    /// <returns>两个槽位名称按序号比较相同时为 <see langword="true"/>。</returns>
     public static bool operator ==(SaveSlot left, SaveSlot right) => left.Equals(right);
 
     /// <summary>判断两个槽位是否不相等。</summary>
+    /// <param name="left">左侧槽位。</param>
+    /// <param name="right">右侧槽位。</param>
+    /// <returns>两个槽位名称按序号比较不同时为 <see langword="true"/>。</returns>
     public static bool operator !=(SaveSlot left, SaveSlot right) => !left.Equals(right);
 }

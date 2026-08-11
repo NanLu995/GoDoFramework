@@ -2,7 +2,9 @@ using Godot;
 
 namespace GoDo;
 
-/// <summary>面向业务层的跨平台用户设置服务。</summary>
+/// <summary>
+/// 面向业务层的跨平台用户设置服务。加载、保存、重置及所有设置方法只能在 GoDoRuntime 所在的 Godot 主线程调用。
+/// </summary>
 public interface ISettingsService
 {
     /// <summary>当前实际采用的平台配置。</summary>
@@ -21,49 +23,66 @@ public interface ISettingsService
 
     /// <summary>从固定设置槽位读取并立即应用；不存在时应用默认值。</summary>
     /// <returns>设置数据的实际来源。</returns>
+    /// <exception cref="System.ArgumentException">读取值或默认 Locale 未被项目支持。</exception>
+    /// <exception cref="System.InvalidOperationException">当前不在 Godot 主线程、GoDoRuntime 尚未初始化，或平台能力声明与应用结果矛盾。</exception>
     /// <exception cref="SaveException">设置读取、容器校验或解码失败。</exception>
     SettingsLoadStatus LoadAndApply();
 
     /// <summary>把当前内存快照写入固定设置槽位。</summary>
+    /// <exception cref="System.InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     /// <exception cref="SaveException">设置编码或写入失败。</exception>
     void Save();
 
     /// <summary>立即应用默认值但不自动写盘。</summary>
+    /// <exception cref="System.ArgumentException">默认 Locale 未被项目支持。</exception>
+    /// <exception cref="System.InvalidOperationException">当前不在 Godot 主线程、GoDoRuntime 尚未初始化，或平台能力声明与应用结果矛盾。</exception>
     void ResetToDefaults();
 
     /// <summary>立即设置 Master 线性音量。</summary>
     /// <param name="linearVolume">0 到 1 的有限值。</param>
+    /// <returns>值成功应用到运行时并写入当前快照后返回 <see cref="SettingsApplyResult.Applied"/>。</returns>
     /// <exception cref="System.ArgumentOutOfRangeException">音量不是 0 到 1 的有限值。</exception>
+    /// <exception cref="System.InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     SettingsApplyResult SetMasterVolume(float linearVolume);
 
     /// <summary>立即设置 BGM 线性音量。</summary>
     /// <param name="linearVolume">0 到 1 的有限值。</param>
+    /// <returns>值成功应用到运行时并写入当前快照后返回 <see cref="SettingsApplyResult.Applied"/>。</returns>
     /// <exception cref="System.ArgumentOutOfRangeException">音量不是 0 到 1 的有限值。</exception>
+    /// <exception cref="System.InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     SettingsApplyResult SetBgmVolume(float linearVolume);
 
     /// <summary>立即设置 SFX 线性音量。</summary>
     /// <param name="linearVolume">0 到 1 的有限值。</param>
+    /// <returns>值成功应用到运行时并写入当前快照后返回 <see cref="SettingsApplyResult.Applied"/>。</returns>
     /// <exception cref="System.ArgumentOutOfRangeException">音量不是 0 到 1 的有限值。</exception>
+    /// <exception cref="System.InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     SettingsApplyResult SetSfxVolume(float linearVolume);
 
     /// <summary>立即设置当前 Locale。</summary>
     /// <param name="locale">项目已加载翻译资源对应的 Locale 标识。</param>
     /// <returns>始终返回 Applied；不支持的 Locale 会抛出异常。</returns>
     /// <exception cref="System.ArgumentException">Locale 为空、仅包含空白字符或未被项目支持。</exception>
+    /// <exception cref="System.InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     SettingsApplyResult SetLocale(string locale);
 
     /// <summary>立即设置桌面窗口模式。</summary>
+    /// <param name="mode">要应用的已定义窗口模式。</param>
     /// <returns>平台支持时为 Applied，否则为 Unsupported。</returns>
     /// <exception cref="System.ArgumentOutOfRangeException">窗口模式不是已定义值。</exception>
+    /// <exception cref="System.InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     SettingsApplyResult SetWindowMode(SettingsWindowMode mode);
 
     /// <summary>立即设置桌面窗口分辨率。</summary>
     /// <param name="resolution">宽高均为正数的窗口尺寸。</param>
     /// <returns>平台支持时为 Applied，否则为 Unsupported。</returns>
     /// <exception cref="System.ArgumentOutOfRangeException">宽或高不是正数。</exception>
+    /// <exception cref="System.InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     SettingsApplyResult SetResolution(Vector2I resolution);
 
     /// <summary>立即启用或禁用垂直同步。</summary>
+    /// <param name="enabled">为 <see langword="true"/> 时启用垂直同步，否则禁用。</param>
     /// <returns>平台支持时为 Applied，否则为 Unsupported。</returns>
+    /// <exception cref="System.InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     SettingsApplyResult SetVSync(bool enabled);
 }

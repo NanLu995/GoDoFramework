@@ -177,7 +177,11 @@ public sealed class NodePool<T> : IDisposable
     /// <summary>
     /// 释放一个由本池激活的节点，使其进入空闲区或销毁。
     /// </summary>
+    /// <param name="node">由本池 <see cref="Acquire"/> 且尚未成功释放的活动节点。</param>
     /// <returns>成功释放返回 true；节点不属于本池或已经释放时返回 false。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="node"/> 为 <see langword="null"/>。</exception>
+    /// <exception cref="InvalidOperationException">不在 Godot 主线程调用，或节点的 <see cref="IPoolable.OnRelease"/> 回调失败。</exception>
+    /// <exception cref="ObjectDisposedException">Pool 已关闭。</exception>
     public bool Release(T node)
     {
         VerifyThreadAccess();

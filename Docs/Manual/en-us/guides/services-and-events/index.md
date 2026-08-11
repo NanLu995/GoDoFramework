@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/services-and-events/index.md
-translation_source_hash: sha256:3aba4800f218ec4a31517fe802c48b09cdca6e956be7ef1e47505128d7208d5c
+translation_source_hash: sha256:f3c7c0b49bc16b1349dcfa5f617e36d8c5a9aabbb220fc22f1eb4cfdf6cb498e
 ---
 
 # Get Long-Lived Services and Publish Game Events
@@ -68,6 +68,30 @@ if (Services.TryGet<ILocalizationService>(out ILocalizationService? localization
 ```
 
 Do not use `TryGet` to silently hide a missing core service. GoDoRuntime registers and clears framework services; game code normally does not call `Register` or `Unregister`.
+
+## Extension: register a project-owned long-lived service
+
+Only framework bootstrap or test-composition code should register a service directly. Register it through an interface, and ensure that its owner outlives every caller:
+
+```csharp
+IGameSessionService session = new GameSessionService();
+Services.Register<IGameSessionService>(session);
+
+// Later lookups return the same instance.
+IGameSessionService current = Services.Get<IGameSessionService>();
+GD.Print(ReferenceEquals(session, current)); // True
+```
+
+Registering the same interface twice throws `InvalidOperationException`, while registering a concrete type throws `ArgumentException`. The registry never replaces an existing instance implicitly. A test that temporarily substitutes a service should unregister the original instance first and restore it afterward so later tests are not contaminated.
+
+Unregistration requires the exact instance that was registered:
+
+```csharp
+bool removed = Services.Unregister<IGameSessionService>(session);
+GD.Print(removed); // True
+```
+
+`Unregister` returns `false` and preserves the current registration when the interface is absent or the instance differs. Services only retains a reference; it does not call `Dispose()` or free a Godot object. The bootstrap owner remains responsible for stopping tasks, disconnecting subscriptions, and releasing resources. A short-lived scene must not own this registration.
 
 ## When to use EventChannel
 
@@ -157,7 +181,7 @@ public sealed class SessionObserver : IDisposable
 }
 ```
 
-Retain the Scope and call `Dispose()` when its owner ends. Do not create a temporary Scope and lose its reference. A `Once` subscription also remains forever if its event never occurs, so it still needs a lifetime owner.
+Retain the Scope and call `Dispose()` when its owner ends. Do not create a temporary Scope and lose its reference. `Once` marks itself for removal before invoking the callback, so even a callback exception cannot make it run again; it still needs a lifetime owner when the event never occurs.
 
 Direct `EventChannel.On` usage requires a retained named delegate and a matching `Off`. Nodes should normally use `Bind` instead.
 
@@ -169,9 +193,9 @@ EventChannel.Bind<PlayerDiedEvent>(hudNode, OnHud, priority: 0);
 ```
 
 - A lower `priority` runs first; equal priorities preserve registration order.
-- `Once` removes itself after one successful dispatch.
+- `Once` marks itself for removal before invoking the callback, so same-type reentrancy cannot run it again.
 - The same delegate is not registered twice; do not depend on duplicate binding for repeated callbacks.
-- Additions and removals during dispatch are committed after the outermost dispatch ends.
+- A listener added during dispatch takes effect after the outermost dispatch ends. `Off` immediately skips a target that has not run in the current dispatch, while the underlying list change is still committed later.
 - The same event type can be emitted reentrantly, but complex reentrancy is hard to reason about and should be avoided.
 - One listener throwing is reported to ErrorHub and does not block later listeners.
 

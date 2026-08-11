@@ -40,6 +40,7 @@ public readonly struct ErrorReport
     /// <summary>
     /// 返回适合日志输出的单行摘要字符串。
     /// </summary>
+    /// <returns>包含模块、等级、可选上下文和消息，但不包含时间、异常对象或调用栈的单行文本。</returns>
     public override string ToString()
     {
         var ctx = string.IsNullOrEmpty(Context) ? string.Empty : $" | ctx={Context}";

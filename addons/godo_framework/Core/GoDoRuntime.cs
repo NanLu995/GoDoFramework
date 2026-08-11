@@ -185,6 +185,7 @@ public sealed partial class GoDoRuntime : Node
     }
 
     /// <inheritdoc />
+    /// <param name="delta">Godot 传入的当前 Process 帧间隔秒数；本实现不读取该值。</param>
     public override void _Process(double delta)
     {
         ResourceHub.Update();

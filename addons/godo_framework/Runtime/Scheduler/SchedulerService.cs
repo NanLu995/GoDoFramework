@@ -8,6 +8,10 @@ using Godot;
 namespace GoDo;
 
 /// <summary>在 Godot 主线程中推进游戏、非缩放游戏与真实时间任务的长期调度服务。</summary>
+/// <remarks>
+/// GoDoRuntime 创建并注册此长期节点。业务代码应通过 <see cref="ISchedulerService"/> 使用它，
+/// 不应自行实例化、挂载或重复注册。
+/// </remarks>
 public sealed partial class SchedulerService : Node, ISchedulerService
 {
     private const double MicrosecondsToSeconds = 1d / 1_000_000d;
@@ -18,13 +22,13 @@ public sealed partial class SchedulerService : Node, ISchedulerService
     private bool _processDispatchLimitWasHit;
     private bool _physicsDispatchLimitWasHit;
 
-    /// <summary>创建尚未进入场景树的调度服务节点。</summary>
+    /// <summary>创建尚未进入场景树的调度服务节点；仅供 GoDoRuntime 组装框架。</summary>
     public SchedulerService()
     {
         _core = new SchedulerCore(OnCallbackError);
     }
 
-    /// <inheritdoc />
+    /// <summary>由 Godot 在节点入树时设置常驻处理模式并初始化真实时间采样。</summary>
     public override void _EnterTree()
     {
         ProcessMode = ProcessModeEnum.Always;
@@ -33,7 +37,8 @@ public sealed partial class SchedulerService : Node, ISchedulerService
         _lastPhysicsTicksUsec = ticksUsec;
     }
 
-    /// <inheritdoc />
+    /// <summary>由 Godot 在普通帧阶段推进 Process 调度队列。</summary>
+    /// <param name="delta">受 <see cref="Engine.TimeScale"/> 影响的当前普通帧间隔秒数。</param>
     public override void _Process(double delta)
     {
         Advance(
@@ -43,7 +48,8 @@ public sealed partial class SchedulerService : Node, ISchedulerService
             ref _processDispatchLimitWasHit);
     }
 
-    /// <inheritdoc />
+    /// <summary>由 Godot 在物理帧阶段推进 Physics 调度队列。</summary>
+    /// <param name="delta">受 <see cref="Engine.TimeScale"/> 影响的当前物理帧间隔秒数。</param>
     public override void _PhysicsProcess(double delta)
     {
         Advance(
@@ -53,7 +59,7 @@ public sealed partial class SchedulerService : Node, ISchedulerService
             ref _physicsDispatchLimitWasHit);
     }
 
-    /// <inheritdoc />
+    /// <summary>由 Godot 在节点退出树时永久关闭当前服务并取消全部任务。</summary>
     public override void _ExitTree()
     {
         _core.Shutdown();

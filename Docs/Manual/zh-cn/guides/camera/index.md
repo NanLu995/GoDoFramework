@@ -31,10 +31,12 @@ addons/godo_framework/Integrations/PhantomCamera/
 启用唯一的 **GoDo Framework** 插件，然后打开：
 
 ```text
-GoDo → Phantom Camera 设置...
+GoDo → 幻影相机配置 (Phantom Camera Settings)...
 ```
 
-设置窗口会检查第三方插件文件与版本。当前适配器按 Phantom Camera 0.11 验证；版本不一致不代表一定不可用，但升级后必须重新编译并验证真实镜头场景。只有第三方 Phantom Camera 需要在 Godot 插件列表中启用，GoDo 适配包不是第二个 EditorPlugin。
+设置窗口会检查第三方与适配文件、第三方版本和启用状态。当前适配器按 Phantom Camera 0.11 验证；只有文件完整、版本恰为 0.11 且第三方插件尚未启用时，“启用 Phantom Camera...”按钮才可用。确认后只启用已安装的第三方插件，不修改场景、运行时配置或第三方源码。
+
+可观察结果：三个检查项都正常时，窗口显示“已正确配置”并禁用启用按钮。如果显示“需要处理”，按提示补齐文件、使用已验证版本或检查编辑器输出；版本不一致不代表一定不可用，但升级后必须重新编译、运行自动回归并验证真实镜头场景。只有第三方 Phantom Camera 需要在 Godot 插件列表中启用，GoDo 适配包不是第二个 EditorPlugin。
 
 ## 2. 把第三人称 Rig 放入场景
 
@@ -92,6 +94,8 @@ Gameplay 场景加载完成、Rig 已进入场景树后再激活：
 ICameraService cameras = context.GetService<ICameraService>();
 cameras.ActivatePrimary(GameCameraIds.Gameplay);
 ```
+
+可观察结果：调用成功后，`ActivePrimary` 等于 `GameCameraIds.Gameplay`，目标 Pcam 的优先级变为 `ActivePriority`；此前主 Rig 的优先级变为 `InactivePriority`。如果后端读写失败，调用不会正常返回，而是抛出 `CameraOperationException` 并按切换阶段保留或回滚当前镜头。
 
 过场开始时切换：
 

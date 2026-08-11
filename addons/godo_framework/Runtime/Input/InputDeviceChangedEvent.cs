@@ -10,6 +10,8 @@ public readonly struct InputDeviceChangedEvent : IEventMessage
     public InputDeviceKind Current { get; }
 
     /// <summary>创建一个设备类别变化事实。</summary>
+    /// <param name="previous">变化前的设备类别。</param>
+    /// <param name="current">变化后的设备类别。</param>
     public InputDeviceChangedEvent(InputDeviceKind previous, InputDeviceKind current)
     {
         Previous = previous;

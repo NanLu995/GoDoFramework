@@ -46,6 +46,8 @@ scheduler.Schedule(
     ScheduleOptions.RealTime);
 ```
 
+可观察结果：`Schedule` 立即返回有效句柄，但不会在当前调用栈执行 callback；到达所选时钟和阶段后才执行。上例使用 `RealTime`，因此即使 SceneTree 暂停，约 3 秒后仍会关闭提示。
+
 `RealTime` 表示不受 TimeScale 和 SceneTree 暂停影响，不表示在后台线程运行；回调仍在 Godot 主线程执行。
 
 ## 2. 让任务跟随场景 Node
@@ -168,13 +170,22 @@ Debug 构建展开 GoDo Debugger 的 **运行时 / Scheduler** 页面，可以�
 
 快照只在页面查看时低频生成，不属于 Release API。如果任务数量持续增长，优先检查无 Owner 的重复任务、未释放的 Procedure Token 和只创建不取消的跨场景等待。
 
-## 参数和关闭行为
+## 参数、失败和关闭行为
 
-- 延迟必须是有限且不小于 0 的秒数。
-- 重复间隔必须是有限且大于 0 的秒数。
-- 所有 public API 只能从 Godot 主线程调用，只有 CancellationToken 的触发可以来自后台。
-- GoDoRuntime 关闭时取消所有任务，未完成的 `DelayAsync` 以取消结束。
-- 框架关闭后拒绝创建新任务。
+| 输入或状态 | 可观察结果 |
+|---|---|
+| 延迟不是有限且不小于 0 的秒数 | 抛 `ArgumentOutOfRangeException` |
+| 重复间隔不是有限且大于 0 的秒数 | 抛 `ArgumentOutOfRangeException` |
+| callback 为 null | 抛 `ArgumentNullException` |
+| Owner 已失效 | 抛 `ArgumentException`，不创建任务 |
+| Owner 有效但尚未进入场景树 | 抛 `InvalidOperationException`，不创建任务 |
+| Clock 或 Phase 不是已定义的枚举值 | 构造 `ScheduleOptions` 时抛 `ArgumentOutOfRangeException` |
+| 从非 Godot 主线程调用 public API，或服务尚未可用/已经退出树 | 抛 `InvalidOperationException` |
+| 句柄无效、已结束或状态不匹配 | `Cancel`、`Pause`、`Resume` 返回 `false`；查询返回 `false` 和 0 秒 |
+| Owner 退出、Token 取消或 GoDoRuntime 关闭 | 未完成的 `DelayAsync` 进入取消状态；`await` 时按普通取消流程抛 `OperationCanceledException` |
+| callback 抛异常 | ErrorHub 上报；一次性任务结束，重复任务取消，其他到期任务继续派发 |
+
+所有 public API 只能从 Godot 主线程调用，只有 CancellationToken 的触发可以来自后台。框架关闭会取消全部任务，并拒绝创建新任务。
 
 ## 常见错误
 

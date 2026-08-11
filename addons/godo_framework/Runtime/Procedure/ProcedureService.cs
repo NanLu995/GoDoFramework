@@ -45,7 +45,12 @@ public sealed class ProcedureService : IProcedureService
     /// <inheritdoc />
     public bool IsChanging { get; private set; }
 
-    /// <inheritdoc />
+    /// <summary>退出当前流程、清理其激活资源并进入目标流程。</summary>
+    /// <param name="next">要创建新激活并进入的目标流程实例。</param>
+    /// <returns>退出、清理和进入序列全部完成后结束的任务。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="next"/> 为 <see langword="null"/>。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
+    /// <exception cref="ProcedureChangeException">请求被并发切换拒绝，或退出、清理、进入和服务关闭取消中的任一阶段失败。</exception>
     public async Task ChangeAsync(IProcedure next)
     {
         MainThreadGuard.VerifyAccess();
@@ -66,7 +71,11 @@ public sealed class ProcedureService : IProcedureService
         await ChangeSequenceAsync(next, lifecycleVersion);
     }
 
-    /// <inheritdoc />
+    /// <summary>在验证 Godot 主线程后创建并进入无参构造的目标流程；目标构造函数异常原样传播。</summary>
+    /// <typeparam name="TProcedure">具有公开无参构造函数的目标流程类型。</typeparam>
+    /// <returns>目标构造完成后，由 <see cref="ChangeAsync(IProcedure)"/> 返回的切换任务。</returns>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
+    /// <exception cref="ProcedureChangeException">请求被并发切换拒绝，或退出、清理、进入和服务关闭取消中的任一阶段失败。</exception>
     public Task ChangeAsync<TProcedure>() where TProcedure : IProcedure, new()
     {
         MainThreadGuard.VerifyAccess();

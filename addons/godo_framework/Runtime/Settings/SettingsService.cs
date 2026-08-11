@@ -5,7 +5,7 @@ using Godot;
 
 namespace GoDo;
 
-/// <summary>管理跨平台用户设置的应用与持久化。</summary>
+/// <summary>管理跨平台用户设置的应用与持久化；所有改变运行时或磁盘状态的方法只能在 Godot 主线程调用。</summary>
 public sealed class SettingsService : ISettingsService
 {
     private const string SettingsSlotName = "godo-settings";
@@ -113,15 +113,27 @@ public sealed class SettingsService : ISettingsService
         ApplySnapshot(new SettingsSnapshot());
     }
 
-    /// <inheritdoc/>
+    /// <summary>立即设置 Master 线性音量。</summary>
+    /// <param name="linearVolume">0 到 1 的有限值。</param>
+    /// <returns>值成功应用到运行时并写入当前快照后返回 <see cref="SettingsApplyResult.Applied"/>。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">音量不是 0 到 1 的有限值。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     public SettingsApplyResult SetMasterVolume(float linearVolume) =>
         SetVolume(AudioGroup.Master, linearVolume);
 
-    /// <inheritdoc/>
+    /// <summary>立即设置 BGM 线性音量。</summary>
+    /// <param name="linearVolume">0 到 1 的有限值。</param>
+    /// <returns>值成功应用到运行时并写入当前快照后返回 <see cref="SettingsApplyResult.Applied"/>。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">音量不是 0 到 1 的有限值。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     public SettingsApplyResult SetBgmVolume(float linearVolume) =>
         SetVolume(AudioGroup.Bgm, linearVolume);
 
-    /// <inheritdoc/>
+    /// <summary>立即设置 SFX 线性音量。</summary>
+    /// <param name="linearVolume">0 到 1 的有限值。</param>
+    /// <returns>值成功应用到运行时并写入当前快照后返回 <see cref="SettingsApplyResult.Applied"/>。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">音量不是 0 到 1 的有限值。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     public SettingsApplyResult SetSfxVolume(float linearVolume) =>
         SetVolume(AudioGroup.Sfx, linearVolume);
 
@@ -135,7 +147,11 @@ public sealed class SettingsService : ISettingsService
         return SettingsApplyResult.Applied;
     }
 
-    /// <inheritdoc/>
+    /// <summary>立即设置桌面窗口模式。</summary>
+    /// <param name="mode">要应用的已定义窗口模式。</param>
+    /// <returns>平台支持时为 <see cref="SettingsApplyResult.Applied"/>，否则为 <see cref="SettingsApplyResult.Unsupported"/>。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">窗口模式不是已定义值。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     public SettingsApplyResult SetWindowMode(SettingsWindowMode mode)
     {
         MainThreadGuard.VerifyAccess();
@@ -157,7 +173,10 @@ public sealed class SettingsService : ISettingsService
         return result;
     }
 
-    /// <inheritdoc/>
+    /// <summary>立即启用或禁用垂直同步。</summary>
+    /// <param name="enabled">为 <see langword="true"/> 时启用垂直同步，否则禁用。</param>
+    /// <returns>平台支持时为 <see cref="SettingsApplyResult.Applied"/>，否则为 <see cref="SettingsApplyResult.Unsupported"/>。</returns>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     public SettingsApplyResult SetVSync(bool enabled)
     {
         MainThreadGuard.VerifyAccess();

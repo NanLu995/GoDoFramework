@@ -146,6 +146,7 @@ public override void _Process(double delta)
 
 - 资源缺失、类型错误或加载失败：`ResourceLoadException`。
 - 场景加载、实例化或挂载失败：`SceneChangeException`，其中保存目标 Key。
+- 调用方在提交前取消 `CancellationToken`：直接抛出 `OperationCanceledException`，旧场景保持不变；一旦开始同步提交，新场景不会再因该令牌回滚。
 - SceneService 离树或框架关闭：未提交切换立即以直接包含 `OperationCanceledException` 的 SceneChangeException 结束；ResourceHub 的共享底层加载可能继续完成。
 - ResourceHub 关闭：未完成操作的等待方收到 `OperationCanceledException`；Godot 底层加载可能继续结束。
 

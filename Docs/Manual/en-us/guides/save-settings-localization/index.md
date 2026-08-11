@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/save-settings-localization/index.md
-translation_source_hash: sha256:7faea189b7b31deb713bff660b9430684ae73ed341396f08c142ac67a2781a37
+translation_source_hash: sha256:99fb26f1fbea4a9e47f6c242f496081736d94c6543b59ea71a6874ee5f616285
 ---
 
 # Design Multi-Slot Saves, Cross-Platform Settings, and Localization
@@ -35,7 +35,7 @@ switch (result.Status)
 }
 ```
 
-NotFound is a normal result. Deleting a slot removes its main, backup, and temporary files and returns `false` when none exist. Require player confirmation first.
+NotFound is a normal result. `Exists` checks only whether a main file or backup exists; it does not prove that either is readable, so use `Load` as the authority. Deleting a slot attempts its main, backup, and temporary files and returns `false` when none exist. Require player confirmation first. If some files cannot be removed, `Delete` throws `SaveException` without restoring files already deleted; recheck the slot before deciding whether to retry or notify the player.
 
 ## 2. Let the Codec migrate versions
 
@@ -99,6 +99,8 @@ settings.Save(); // when the player applies or confirms
 ```
 
 Preview slider movement immediately, then Save on release or confirmation to avoid frequent disk writes. `ResetToDefaults()` also requires explicit Save for persistence.
+
+Call `LoadAndApply`, `Save`, `ResetToDefaults`, and every `Set*` method only on Godot's main thread. They synchronously touch audio, localization, window, or save state and must not be wrapped in `Task.Run`. Load once before the first Procedure that depends on player settings, then save only at an explicit Apply or Confirm boundary.
 
 ## 6. Build settings UI from platform capabilities
 

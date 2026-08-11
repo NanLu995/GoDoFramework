@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:519e6b19de01e37fbe1252bf2ccc9a2d6ff77643c0c4356480e55782fa24cca5
+translation_source_hash: sha256:4e934ce2e303a815f2afb85996ef71b3fe737aa98c252b1a837c7755d4013bb8
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
@@ -34,6 +34,13 @@ The console format is:
 
 ```text
 [module] [level] (optional context) message
+```
+
+The two calls above produce:
+
+```text
+[Game.Inventory] [INFO] Entered the main-menu flow.
+[Game.Inventory] [DEBUG] (item=sword) Resource cache hit.
 ```
 
 Use stable module names such as `Game.Boot`, `Game.Save`, and `Game.Inventory`. `LogHub.For` returns a readonly value type without a managed allocation, so a type can bind its module once and reuse it. One-off logs can still call `LogHub.Info(message, module)`. The message says what happened; `context` carries a slot, resource ID, flow name, or similar locator. Do not repeat the level and module inside the message.
@@ -157,11 +164,13 @@ Before connecting a remote platform, the game project must define user consent, 
 After enabling the `GoDoRuntime.tscn` Autoload, Debug builds automatically show a compact health button with no shortcut configuration.
 
 - Collapsed mode shows only FPS. Warning or Error activity changes the text color according to the highest severity; inspect the Overview for exact counts.
-- Click it to open a card-based runtime overview, then use the navigation tree to inspect the structured System, Performance, Services, Events, Input, Scheduler, Audio, Scene, Resources, Pool, DataTable, and UI dashboards, plus the Console page.
+- Click it to open a card-based runtime overview, then use the navigation tree to inspect the structured System, Performance, Services, Events, Input, Scheduler, Audio, Scene, Resources, Pool, DataTable, UI, Procedure, and Flow dashboards, plus the Console page.
 - Drag the title bar to move the window, drag the lower-right Resize Debugger handle to resize the entire panel, or click Reset to restore the default layout.
 - The current page refreshes every 0.25 seconds while expanded; collapsed mode creates no module snapshots.
 - The panel is read-only and cannot modify services or game data.
 - Release builds do not create it, so game logic must never depend on it.
+
+An Unregistered page means the corresponding service is absent. Snapshot Not Supported means the interface is registered but its implementation is not the built-in framework type that exposes that diagnostic snapshot. If reading one page throws, only that page is temporarily replaced by a failure notice containing the page name, exception type, and message; other pages remain available, and the failed page recovers automatically after a successful read. Check service registration and implementation type first instead of treating any of these states as a complete framework failure.
 
 The Services page maps each registered service contract to its current implementation type. Search matches short and fully qualified names for both sides, and selecting a row displays the complete contract-to-implementation relationship below the list. The page is read-only: it neither returns service instances nor replaces registrations.
 
@@ -201,6 +210,8 @@ Disk writes run through a bounded background queue and do not block error dispat
 
 LogHub Debug and Info are main-thread only. LogHub Warn, Error, and Fatal follow the same threading rules as direct ErrorHub calls: background-thread reports enter a bounded queue of at most 1,024 entries. GoDoRuntime dispatches at most 256 per frame, and listeners and Reporters still run on the main thread.
 
+That queue becomes active only after GoDoRuntime enters the scene tree and records the main thread. Before initialization, ErrorHub dispatches synchronously on the calling thread and provides no background-thread safety. Startup work should wait until the Runtime is ready before reporting, or retain the failure and handle it after returning to the main thread.
+
 When the queue fills, reports are dropped and summarized as a Warning on the main thread. A background Fatal also writes synchronously to the fallback console. Fix or rate-limit a repeated source instead of treating ErrorHub as an unbounded queue.
 
 ## Common failures
@@ -212,5 +223,7 @@ When the queue fills, reports are dropped and summarized as a Warning on the mai
 - Reporting freezes the game: a Reporter is writing synchronously, waiting on a lock, or calling the network.
 - The game continues after Fatal: Fatal does not terminate; the game boundary must act explicitly.
 - The Debugger disappears from an exported build: Release does not create it by design.
+- A page says Unregistered or Snapshot Not Supported: check service registration for the former and whether a custom implementation replaced the built-in one for the latter; they are different conditions.
+- One page reports a read failure: use its exception type and message to fix that module or snapshot read. The page recovers after the next successful read, so the Debugger does not need to be restarted.
 
 For exact members, see <xref:GoDo.LogHub>, <xref:GoDo.LogChannel>, <xref:GoDo.ErrorHub>, <xref:GoDo.ErrorReport>, <xref:GoDo.ErrorLevel>, and <xref:GoDo.IErrorReporter>.

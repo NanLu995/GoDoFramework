@@ -41,7 +41,12 @@ public static class LogHub
         return new LogChannel(module);
     }
 
-    /// <summary>输出开发期细节日志。</summary>
+    /// <summary>输出开发期细节日志；Release 构建会移除调用点且不计算参数表达式。</summary>
+    /// <param name="message">可读的细节诊断；不能为 <see langword="null"/>、空字符串或空白。</param>
+    /// <param name="module">稳定的来源模块名称；不能为 <see langword="null"/>、空字符串或空白。</param>
+    /// <param name="context">可选的定位上下文；没有时为 <see langword="null"/>。</param>
+    /// <exception cref="ArgumentException">Debug 构建中，<paramref name="message"/> 或 <paramref name="module"/> 为 <see langword="null"/>、空字符串或空白。</exception>
+    /// <exception cref="InvalidOperationException">Debug 构建中，不在 Godot 主线程调用。</exception>
     [Conditional("DEBUG")]
     public static void Debug(string message, string module, string? context = null)
     {
@@ -50,7 +55,12 @@ public static class LogHub
 #endif
     }
 
-    /// <summary>输出开发期的正常流程日志。</summary>
+    /// <summary>输出开发期的低频正常流程里程碑；Release 构建会移除调用点且不计算参数表达式。</summary>
+    /// <param name="message">可读的正常流程描述；不能为 <see langword="null"/>、空字符串或空白。</param>
+    /// <param name="module">稳定的来源模块名称；不能为 <see langword="null"/>、空字符串或空白。</param>
+    /// <param name="context">可选的定位上下文；没有时为 <see langword="null"/>。</param>
+    /// <exception cref="ArgumentException">Debug 构建中，<paramref name="message"/> 或 <paramref name="module"/> 为 <see langword="null"/>、空字符串或空白。</exception>
+    /// <exception cref="InvalidOperationException">Debug 构建中，不在 Godot 主线程调用。</exception>
     [Conditional("DEBUG")]
     public static void Info(string message, string module, string? context = null)
     {

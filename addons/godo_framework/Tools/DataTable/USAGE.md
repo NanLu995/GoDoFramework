@@ -57,6 +57,8 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py verify-generated 
 python addons/godo_framework/Tools/DataTable/godo_datatable.py compare-manifests --client DataTables/Base/Runtime/manifest.client.json --server DataTables/DlcWeapons/Runtime/manifest.server.json
 ```
 
+命令成功时会输出可供人工或 CI 识别的完成标记：`check` 为 `[DataTableCompiler] CHECK PASS`，`generate` 为 `[DataTableCompiler] GENERATE PASS: <输出目录>`，`verify-generated` 为 `[DataTableCompiler] VERIFY GENERATED PASS`，`compare-manifests` 为 `[DataTableCompiler] MANIFEST COMPATIBLE: ...`。失败会以 `[DataTableCompiler] FAIL` 开头，并在适用时先列出数据诊断。
+
 `--table` 只用于 `generate`，值必须是 Schema 中精确的数据表 ID；`check` 与 `verify-generated` 始终检查全部数据表。
 
 `check` 只判断源数据能否成功编译，不要求已有生成产物。`verify-generated` 先执行同样的全量校验和内存构建，再只读比较运行时 Manifest、必要的目标 Manifest、全部 `.gdtb` 和聚合 C#；缺失、额外或内容过期均返回退出码 `1`。
@@ -117,7 +119,7 @@ python addons/godo_framework/Tools/DataTable/godo_datatable_export.py `
   --mode release
 ```
 
-`--mode` 可取 `release`、`debug` 或 `pack`，分别调用 Godot 的 `--export-release`、`--export-debug` 与 `--export-pack`。默认递归扫描 `<project>/DataTables/**/*.datatable.schema.json`；可重复传入 `--schema` 指定 Schema。包装脚本只负责编排本地命令，不修改 `export_presets.cfg`，并原样返回 Godot 的非零退出码。
+`--mode` 可取 `release`、`debug` 或 `pack`，分别调用 Godot 的 `--export-release`、`--export-debug` 与 `--export-pack`。默认递归扫描 `<project>/DataTables/**/*.datatable.schema.json`；可重复传入 `--schema` 指定 Schema。包装脚本逐个输出正在校验的 Schema；任一项失败时输出“校验失败，未启动 Godot 导出”并返回 `1`，全部通过后输出“校验通过，开始 ... 导出”再启动 Godot。Godot 一旦启动，脚本原样返回其退出码。包装脚本只负责编排本地命令，不修改 `export_presets.cfg`。
 
 ## 失败语义与写入边界
 

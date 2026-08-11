@@ -15,12 +15,14 @@ namespace GoDo;
 /// 首次打开界面的默认焦点由业务在 Open 返回或 OpenAsync 完成后显式设置。
 /// </para>
 /// </summary>
+/// <remarks>所有成员都必须从 GoDoRuntime 记录的 Godot 主线程调用；打开、查询和关闭不属于每帧热路径。</remarks>
 public interface IUiService
 {
     /// <summary>
     /// 通过 ResourceHub 加载并校验 UI 目录。
     /// <para>存在任何已打开的受管理 UI 时拒绝替换目录。</para>
     /// </summary>
+    /// <param name="key">指向 <see cref="UiConfig"/> 资源的有效资源键。</param>
     /// <exception cref="ResourceLoadException">目录资源不存在、加载失败或类型不匹配。</exception>
     /// <exception cref="ConfigValidationException">目录内容未通过完整性校验。</exception>
     /// <exception cref="System.InvalidOperationException">存在已打开的受管理 UI。</exception>
@@ -30,6 +32,8 @@ public interface IUiService
     /// 按已加载目录中的语义标识和默认层级打开 UI。
     /// <para>目录未加载、标识未注册或 Single 界面已经打开时抛出异常。</para>
     /// </summary>
+    /// <param name="id">目录中已注册的非默认 UI 标识。</param>
+    /// <returns>已实例化、挂载并登记到配置层的 Control 根节点。</returns>
     /// <exception cref="System.ArgumentException">标识未初始化。</exception>
     /// <exception cref="System.InvalidOperationException">目录未加载或 Single 界面已经打开。</exception>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">目录中不存在该标识。</exception>
@@ -116,24 +120,32 @@ public interface IUiService
         where TView : Control;
 
     /// <summary>判断指定已注册标识是否存在打开实例。</summary>
+    /// <param name="id">目录中已注册的 UI 标识。</param>
+    /// <returns>至少存在一个仍有效的打开实例时为 <see langword="true"/>。</returns>
     /// <exception cref="System.ArgumentException">标识未初始化。</exception>
     /// <exception cref="System.InvalidOperationException">UiConfig 尚未加载。</exception>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">UiConfig 中不存在该标识。</exception>
     bool IsOpen(UiId id);
 
     /// <summary>获取指定已注册标识当前打开的实例数量。</summary>
+    /// <param name="id">目录中已注册的 UI 标识。</param>
+    /// <returns>清理失效登记后的当前打开实例数。</returns>
     /// <exception cref="System.ArgumentException">标识未初始化。</exception>
     /// <exception cref="System.InvalidOperationException">UiConfig 尚未加载。</exception>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">UiConfig 中不存在该标识。</exception>
     int GetOpenCount(UiId id);
 
     /// <summary>判断指定已注册标识是否存在尚未完成的异步打开请求。</summary>
+    /// <param name="id">目录中已注册的 UI 标识。</param>
+    /// <returns>至少存在一项未完成请求时为 <see langword="true"/>。</returns>
     /// <exception cref="ArgumentException">标识未初始化。</exception>
     /// <exception cref="InvalidOperationException">UiConfig 尚未加载。</exception>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">UiConfig 中不存在该标识。</exception>
     bool IsOpening(UiId id);
 
     /// <summary>获取指定已注册标识当前尚未完成的异步打开请求数量。</summary>
+    /// <param name="id">目录中已注册的 UI 标识。</param>
+    /// <returns>当前仍登记的异步打开请求数。</returns>
     /// <exception cref="ArgumentException">标识未初始化。</exception>
     /// <exception cref="InvalidOperationException">UiConfig 尚未加载。</exception>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">UiConfig 中不存在该标识。</exception>
@@ -143,6 +155,8 @@ public interface IUiService
     /// 取消指定已注册标识的全部未完成异步打开请求，并返回本次实际发出取消的请求数。
     /// <para>取消只阻止对应请求继续实例化和挂载 UI，不会中止 ResourceHub 中可能共享的底层资源加载。</para>
     /// </summary>
+    /// <param name="id">目录中已注册的 UI 标识。</param>
+    /// <returns>本次首次发出取消信号的请求数量；已取消或已完成的请求不重复计数。</returns>
     /// <exception cref="ArgumentException">标识未初始化。</exception>
     /// <exception cref="InvalidOperationException">UiConfig 尚未加载。</exception>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">UiConfig 中不存在该标识。</exception>
@@ -152,16 +166,21 @@ public interface IUiService
     /// 取消指定 UI 层的全部未完成异步打开请求，并返回本次实际发出取消的请求数。
     /// <para>取消只阻止对应请求继续实例化和挂载 UI，不会中止 ResourceHub 中可能共享的底层资源加载。</para>
     /// </summary>
+    /// <param name="layer">要取消未完成请求的 UI 层。</param>
+    /// <returns>该层本次首次发出取消信号的配置打开与直接打开请求总数。</returns>
     /// <exception cref="ArgumentOutOfRangeException">层值未知。</exception>
     int CancelOpenRequests(UiLayer layer);
 
     /// <summary>判断指定已注册标识是否存在已关闭且可复用的缓存实例。</summary>
+    /// <param name="id">目录中已注册的 UI 标识。</param>
+    /// <returns>缓存登记仍指向有效且未进入删除队列的节点时为 <see langword="true"/>。</returns>
     /// <exception cref="ArgumentException">标识未初始化。</exception>
     /// <exception cref="InvalidOperationException">UiConfig 尚未加载。</exception>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">UiConfig 中不存在该标识。</exception>
     bool HasCachedInstance(UiId id);
 
     /// <summary>清理指定已注册标识的缓存实例；打开中和加载中的实例不受影响。</summary>
+    /// <param name="id">目录中已注册的 UI 标识。</param>
     /// <returns>存在缓存登记并已清理时返回 true，否则返回 false。</returns>
     /// <exception cref="ArgumentException">标识未初始化。</exception>
     /// <exception cref="InvalidOperationException">UiConfig 尚未加载。</exception>
@@ -174,6 +193,9 @@ public interface IUiService
     int ClearCachedInstances();
 
     /// <summary>尝试获取指定已注册标识最上层的实例。</summary>
+    /// <param name="id">目录中已注册的 UI 标识。</param>
+    /// <param name="view">成功时为显示顺序最上层的匹配实例；没有打开实例时为 <see langword="null"/>。</param>
+    /// <returns>找到打开实例时为 <see langword="true"/>。</returns>
     /// <exception cref="System.ArgumentException">标识未初始化。</exception>
     /// <exception cref="System.InvalidOperationException">UiConfig 尚未加载。</exception>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">UiConfig 中不存在该标识。</exception>
@@ -192,37 +214,51 @@ public interface IUiService
         where TView : Control;
 
     /// <summary>尝试获取指定 UI 层最上层或最后打开的实例。</summary>
+    /// <param name="layer">要查询的 UI 层。</param>
+    /// <param name="view">成功时为该层最上层或最后打开的实例；该层为空时为 <see langword="null"/>。</param>
+    /// <returns>该层存在打开实例时为 <see langword="true"/>。</returns>
     /// <exception cref="System.ArgumentOutOfRangeException">层值未知。</exception>
     bool TryGetTop(UiLayer layer, out Control? view);
 
-    /// <summary>关闭指定受管理界面；目标无效或不受管理时抛出异常。</summary>
+    /// <summary>关闭指定受管理界面；目标无效、不受管理或不符合顶部顺序时抛出异常。</summary>
+    /// <param name="view">要关闭的受管理 Control 实例。</param>
     /// <exception cref="System.ArgumentNullException">目标为 null。</exception>
     /// <exception cref="System.InvalidOperationException">目标已经释放或不受服务管理。</exception>
     void Close(Control view);
 
-    /// <summary>尝试关闭指定受管理实例；目标已经释放或不受管理时返回 false。</summary>
+    /// <summary>尝试关闭指定受管理实例；目标已经释放、不受管理或当前不可按顺序关闭时返回 false。</summary>
+    /// <param name="view">要尝试关闭的 Control 实例。</param>
+    /// <returns>找到并完整关闭受管理实例时为 <see langword="true"/>。</returns>
     /// <exception cref="System.ArgumentNullException">目标为 null。</exception>
     bool TryClose(Control view);
 
-    /// <summary>尝试关闭指定标识最上层的实例；该标识没有打开时返回 false。</summary>
+    /// <summary>尝试关闭指定标识最上层的实例；该标识没有打开或当前不可按顺序关闭时返回 false。</summary>
+    /// <param name="id">目录中已注册的 UI 标识。</param>
+    /// <returns>找到并完整关闭匹配实例时为 <see langword="true"/>。</returns>
     /// <exception cref="System.ArgumentException">标识未初始化。</exception>
     /// <exception cref="System.InvalidOperationException">UiConfig 尚未加载。</exception>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">UiConfig 中不存在该标识。</exception>
     bool TryClose(UiId id);
 
     /// <summary>关闭指定标识的全部实例，并返回实际关闭数量。</summary>
+    /// <param name="id">目录中已注册的 UI 标识。</param>
+    /// <returns>本次按安全顺序关闭的匹配实例数。</returns>
     /// <exception cref="System.ArgumentException">标识未初始化。</exception>
     /// <exception cref="System.InvalidOperationException">UiConfig 尚未加载。</exception>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">UiConfig 中不存在该标识。</exception>
     int CloseAll(UiId id);
 
     /// <summary>关闭指定 UI 层的全部实例，并返回实际关闭数量。</summary>
+    /// <param name="layer">要清空的 UI 层。</param>
+    /// <returns>本次关闭的有效受管理实例数。</returns>
     /// <exception cref="System.ArgumentOutOfRangeException">层值未知。</exception>
     int CloseAll(UiLayer layer);
 
     /// <summary>
     /// 保留指定实例并关闭其显示层级之上的全部受管理 UI，返回实际关闭数量。
     /// </summary>
+    /// <param name="view">要保留的有效受管理实例。</param>
+    /// <returns>本次关闭的更高显示层级实例数，不包含保留目标。</returns>
     /// <exception cref="System.ArgumentNullException">目标为 null。</exception>
     /// <exception cref="System.InvalidOperationException">目标已经释放或不受服务管理。</exception>
     int CloseTo(Control view);
@@ -230,11 +266,14 @@ public interface IUiService
     /// <summary>
     /// 保留指定标识最上层的实例并关闭其显示层级之上的全部受管理 UI，返回实际关闭数量。
     /// </summary>
+    /// <param name="id">目录中已注册且当前至少打开一个实例的 UI 标识。</param>
+    /// <returns>本次关闭的更高显示层级实例数，不包含保留目标。</returns>
     /// <exception cref="System.ArgumentException">标识未初始化。</exception>
     /// <exception cref="System.InvalidOperationException">UiConfig 尚未加载或该标识没有打开实例。</exception>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">UiConfig 中不存在该标识。</exception>
     int CloseTo(UiId id);
 
-    /// <summary>优先关闭顶部模态，其次返回前一个 View；没有可返回界面时返回 false。</summary>
+    /// <summary>优先关闭顶部 Modal，其次关闭顶部 View；Scene 与 Overlay 不参与返回。</summary>
+    /// <returns>成功关闭一个 Modal 或 View 时为 <see langword="true"/>；没有可返回界面时为 <see langword="false"/>。</returns>
     bool TryGoBack();
 }

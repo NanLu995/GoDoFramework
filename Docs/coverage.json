@@ -4,12 +4,13 @@
     "framework-setup": {
       "contract": "addons/godo_framework/USAGE.md",
       "status": "documented",
-      "reason": "快速开始、安装和资源指南已覆盖完整复制、C# 准备、健康检查、Runtime 安装、可选集成、升级回滚、安全卸载及资源清单编辑器工作流；仍等待正式版本包验收。",
+      "reason": "快速开始、安装和资源指南已覆盖完整复制、C# 准备、健康检查、Runtime 安装及可观察结果、复查失败排查、可选集成、升级回滚、安全卸载及资源清单编辑器工作流；仍等待正式版本包验收。",
       "manual_pages": [
         "getting-started/index.md",
         "getting-started/install-upgrade-uninstall.md",
         "guides/resources-and-scenes/index.md"
       ],
+      "api_reference_status": "verified",
       "reviewed_contract_hash": "sha256:fd89bde286369be89d7f59e341c8370093e803642c3e13fc3bf51a2c309a0436"
     },
     "error-hub": {
@@ -19,7 +20,8 @@
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:8700ed561834193496f6220087c426908661489d2c888aab14e360907b0358c5"
+      "api_reference_status": "verified",
+      "reviewed_contract_hash": "sha256:1ee247b917394d5a90660d9dd03f7fca6b5e1c8156608b411655954303861759"
     },
     "event-channel": {
       "contract": "addons/godo_framework/Core/EventChannel/USAGE.md",
@@ -30,34 +32,38 @@
         "getting-started/localize-game-text.md",
         "guides/services-and-events/index.md"
       ],
-      "reviewed_contract_hash": "sha256:45a5bd863728d807af9728315452e3d87c6cc76c366cf9ec112a41cbf24b22b1"
+      "api_reference_status": "verified",
+      "reviewed_contract_hash": "sha256:e12c9c272e72a2ff7b1e1f757b5c20c4ac04a88ca9044736a14c3131196ffa0a"
     },
     "log-hub": {
       "contract": "addons/godo_framework/Core/LogHub/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖模块绑定通道、统一等级入口、Debug/Info 选择、线程与 Release 行为、滚动文件异常链、失败降级及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
+      "reason": "功能指南已覆盖模块绑定通道、统一等级入口与可观察输出、Debug/Info 选择、线程与 Release 行为、滚动文件异常链、失败降级及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-      "reviewed_contract_hash": "sha256:5aa911b131c96d8d5a61796d96c27378c66d92e786cdad88db949a9c27e4d823"
+      "api_reference_status": "verified",
+      "reviewed_contract_hash": "sha256:68f5b2eb97e281b83ab32741f64be71d9c6d0e66ee1a40e0ff4a0574da3d87bd"
     },
     "services": {
       "contract": "addons/godo_framework/Core/Services/USAGE.md",
       "status": "documented",
-      "reason": "当前用户用法已覆盖；自定义长期服务的注册与替换属于框架扩展者的 API Reference 范围。",
+      "reason": "任务指南已覆盖业务侧获取必需/可选服务、自定义长期服务注册与同实例注销、失败语义、所有权与主线程边界，并与 Signal、EventChannel 的适用场景区分。",
       "manual_pages": [
         "guides/services-and-events/index.md"
       ],
+      "api_reference_status": "verified",
       "reviewed_contract_hash": "sha256:da48e586814585f4fcc98c885afe5ee7c1a43942bb55806d5701116ac0bd79c0"
     },
     "debugger": {
       "contract": "addons/godo_framework/Debugger/USAGE.md",
       "status": "documented",
-        "reason": "功能指南已覆盖自动加载、折叠与展开、卡片式概览、System 环境、Performance 低频趋势与分组指标、结构化 Input、Scheduler、含 Crossfade 状态以及非空间/3D SFX 独立容量、已准备数量、目标跟随预算和突发准入统计的 Audio、Scene、Resources、Debug-only 弱引用 Pool、DataTable、UI、Services 与 Events 检查器、树状导航、布局操作、控制台错误上下文与根因、刷新和历史容量及 Release 边界；仍等待各页面的深度排障示例。",
+      "reason": "功能指南已覆盖自动加载、只读与 Release 边界、System、Performance、各运行时模块、Procedure/Flow、Services、Events、Console、降级状态和单页失败恢复；仍等待目标平台显示与各页面的深度排障示例。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
-        "reviewed_contract_hash": "sha256:45c9f4b0b01ed10430a0509c36c858605e56657a9bd9ecafdfce18d3c91af643"
+      "api_reference_status": "verified",
+      "reviewed_contract_hash": "sha256:45c9f4b0b01ed10430a0509c36c858605e56657a9bd9ecafdfce18d3c91af643"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
@@ -67,16 +73,18 @@
         "guides/input/index.md",
         "guides/input-rebinding/index.md"
       ],
+      "api_reference_status": "verified",
       "reviewed_contract_hash": "sha256:78b34ff85b71c22fdcf611ce7a15925fa0466c07b522c6b97a613623365bbe55"
     },
     "phantom-camera": {
       "contract": "addons/godo_framework/Integrations/PhantomCamera/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖安装检查、第三人称预设、优先级映射、切换恢复、自定义 Rig 与常见排错；鼠标环绕属于游戏业务，插件升级仍需项目验收。",
+      "reason": "功能指南已覆盖实际菜单入口、安装检查与启用结果、第三人称预设、优先级映射、切换恢复、自定义 Rig 与常见排错；鼠标环绕属于游戏业务，插件升级仍需项目验收。",
       "manual_pages": [
         "guides/camera/index.md"
       ],
-      "reviewed_contract_hash": "sha256:9686cc1fc4cbefc7f9602966c227eae871fd68149f6c59168dae0be569f3076e"
+      "api_reference_status": "verified",
+      "reviewed_contract_hash": "sha256:f6e14b2503c4080091009d8d705bb680f69d1d9df78e12795bb1ccc2f3b2a591"
     },
     "audio": {
       "contract": "addons/godo_framework/Runtime/Audio/USAGE.md",
@@ -88,6 +96,7 @@
         "guides/ui-and-audio/index.md",
         "guides/diagnostics/index.md"
       ],
+      "api_reference_status": "verified",
         "reviewed_contract_hash": "sha256:39f64e0fcf696e90b3b626159e7e0498d8d8ff9d1bff5ffa46da991148790da9"
     },
     "camera": {
@@ -97,6 +106,7 @@
       "manual_pages": [
         "guides/camera/index.md"
       ],
+      "api_reference_status": "verified",
       "reviewed_contract_hash": "sha256:b70bddbab2691321a440f79fe589b68a8f823e4468eeceda94b624cdcb524cbc"
     },
     "config": {
@@ -106,6 +116,7 @@
       "manual_pages": [
         "guides/configuration/index.md"
       ],
+      "api_reference_status": "verified",
       "reviewed_contract_hash": "sha256:03f4f0786316c75d85cfbc97c59efd3f2b41484cb07ef1fc7a837936815bc4cb"
     },
     "input": {
@@ -117,6 +128,7 @@
         "guides/input-rebinding/index.md",
         "guides/diagnostics/index.md"
       ],
+      "api_reference_status": "verified",
       "reviewed_contract_hash": "sha256:2420b72db73319b32656e5194dbe7037e354135c3cccae569a7ca28309cf1fa1"
     },
     "localization": {
@@ -127,16 +139,18 @@
         "getting-started/localize-game-text.md",
         "guides/save-settings-localization/index.md"
       ],
-      "reviewed_contract_hash": "sha256:8525f7e941c24d19754c5c4a0a008ad0f45867cf746a4ae77af214ab705cf752"
+      "api_reference_status": "verified",
+      "reviewed_contract_hash": "sha256:621af8c564cdc3290aa95b05397fe3d784f5e4032fc8c6546a66b5388c68bd19"
     },
     "pool": {
       "contract": "addons/godo_framework/Runtime/Pool/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖适用边界、IPoolable 重置、预热容量、租借归还、信号与异步清理、失败隔离、Clear/Dispose、Debug-only Pool 诊断和调优；仍等待真实性能测量案例与复杂粒子节点验收指南。",
+      "reason": "功能指南已覆盖适用边界、IPoolable 重置、预热容量、租借归还、失败后避免重复上报、信号与异步清理、失败隔离、Clear/Dispose、Debug-only Pool 诊断和调优；仍等待真实性能测量案例与复杂粒子节点验收指南。",
       "manual_pages": [
         "guides/node-pool/index.md"
       ],
-      "reviewed_contract_hash": "sha256:819bdf3f68dadb81fb5582648ef7be84289a50db6783c14aa6ffe301e9309128"
+      "api_reference_status": "verified",
+      "reviewed_contract_hash": "sha256:59ffe81cf7569cdd4871ad7f79a4a74f79f5c9ae67e3c36d265875c5c0af2a7d"
     },
     "procedure": {
       "contract": "addons/godo_framework/Runtime/Procedure/USAGE.md",
@@ -152,6 +166,7 @@
         "guides/input/index.md",
         "guides/procedure-recovery/index.md"
       ],
+      "api_reference_status": "verified",
       "reviewed_contract_hash": "sha256:71463c8f8cea25f6d9b59ca5ea2eaccbb7516bd7f837ae3b1b956d2087881dd7"
     },
     "resources": {
@@ -165,6 +180,7 @@
         "getting-started/add-audio.md",
         "guides/resources-and-scenes/index.md"
       ],
+      "api_reference_status": "verified",
       "reviewed_contract_hash": "sha256:a6521e5fdb423be4004eb6c5042a316849f8c47b0d46e14fa7086b7d8fa3c395"
     },
     "save": {
@@ -175,17 +191,19 @@
         "getting-started/save-progress-and-settings.md",
         "guides/save-settings-localization/index.md"
       ],
-      "reviewed_contract_hash": "sha256:00cc6c1384ac098950d62615eaf349946176a0273fc75cde149cd5c75cff6bc7"
+      "api_reference_status": "verified",
+      "reviewed_contract_hash": "sha256:8c1e120474e58097d55ec8cb93ce1e1f2f8464ff8224d0265fc89c95919326cc"
     },
     "scene": {
       "contract": "addons/godo_framework/Runtime/Scene/USAGE.md",
       "status": "documented",
-      "reason": "教程和功能指南已覆盖基本切换、进度 UI、并发拒绝、失败保留、取消和旧场景释放约束；仍等待过渡动画与统一错误场景未来能力。",
+      "reason": "教程和功能指南已覆盖基本切换、进度 UI、并发拒绝、失败保留、调用方取消与生命周期取消的差异、提交边界和旧场景释放约束；仍等待过渡动画与统一错误场景未来能力。",
       "manual_pages": [
         "getting-started/first-scene.md",
         "getting-started/switch-procedures.md",
         "guides/resources-and-scenes/index.md"
       ],
+      "api_reference_status": "verified",
       "reviewed_contract_hash": "sha256:2af1039978a121284ed3c307aa4076e3bdb1daffc16566fda97ec19a1966f0ab"
     },
     "scheduler": {
@@ -195,7 +213,8 @@
       "manual_pages": [
         "guides/scheduler/index.md"
       ],
-      "reviewed_contract_hash": "sha256:23ac5b2d8fea8960866d4dd820cc5ed1b9d01c2d00f1c4ffb3c0dfafbb1e5fef"
+      "api_reference_status": "verified",
+      "reviewed_contract_hash": "sha256:c545af0802eb420763eb0052d8abd3b64969366e375881822ca8528426012add"
     },
     "settings": {
       "contract": "addons/godo_framework/Runtime/Settings/USAGE.md",
@@ -206,7 +225,8 @@
         "getting-started/localize-game-text.md",
         "guides/save-settings-localization/index.md"
       ],
-      "reviewed_contract_hash": "sha256:dbbcd7b74a2201f169b7d755914f0e176951150c92b1d77ce7b36239d885793d"
+      "api_reference_status": "verified",
+      "reviewed_contract_hash": "sha256:d3ca64b5b45af2ba95532ec961b7d3d28ce5f008b91840c38bef32037053b514"
     },
     "ui": {
       "contract": "addons/godo_framework/Runtime/UI/USAGE.md",
@@ -219,25 +239,28 @@
         "guides/ui-and-audio/index.md",
         "guides/diagnostics/index.md"
       ],
+      "api_reference_status": "verified",
       "reviewed_contract_hash": "sha256:fa53bc34abdb38d6fa7120ef0ed6986bfcff6311a24f3cdf37a6fb13294d9669"
     },
     "data-table-runtime": {
       "contract": "addons/godo_framework/Runtime/DataTable/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖业务显式加载、生成门面、表级进度、事务发布、重复加载、取消、失败、卸载、Client/Server 子集、更新边界及 Debugger 只读诊断；移动端、AOT 和完整 ExportRelease 仍待正式验收。",
+      "reason": "功能指南已覆盖业务显式加载、生成门面、表级可观察进度、事务发布前后的 IsLoaded 状态、重复加载、取消与单次错误处理、卸载、Client/Server 子集、更新边界及 Debugger 只读诊断；移动端、AOT 和完整 ExportRelease 仍待正式验收。",
       "manual_pages": [
         "guides/data-tables/index.md"
       ],
+      "api_reference_status": "verified",
       "reviewed_contract_hash": "sha256:cfac6d16b84f0fadbdc07c81ede2202bb0a58aa0eab54e3fe24bf7e1fc9588c8"
     },
     "data-table": {
       "contract": "addons/godo_framework/Tools/DataTable/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖单一 Schema、.datafiles、可视化维护、CSV 排除与缺失状态、只读检查、事务生成、生成代码读取、过期校验、单表限制、Client/Server 隔离和可靠导出门禁；该工具仍为实验状态，等待格式与生成 API 稳定及跨平台正式发布验收。",
+      "reason": "功能指南已覆盖单一 Schema、.datafiles、可视化维护、CSV 排除与缺失状态、只读检查、事务生成、可观察完成标记、过期校验、单表限制、Client/Server 隔离和发布门禁的分阶段失败处理；该工具仍为实验状态，等待格式与生成 API 稳定及跨平台正式发布验收。",
       "manual_pages": [
         "guides/data-tables/index.md"
       ],
-      "reviewed_contract_hash": "sha256:3c9990139af887e4c2e60d4cdf2901408567ffdf608ac47a695b8d28827f1349"
+      "api_reference_status": "verified",
+      "reviewed_contract_hash": "sha256:95b221b25378de1e3d1a0f4a581005eb4bee5770593330d495f79e47a45a3394"
     }
   }
 }

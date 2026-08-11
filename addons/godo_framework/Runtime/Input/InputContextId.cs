@@ -21,6 +21,10 @@ public readonly struct InputContextId : IEquatable<InputContextId>
     }
 
     /// <summary>从非空、无首尾空白的业务语义字符串创建 Context ID。</summary>
+    /// <param name="value">区分大小写且不包含首尾空白的业务语义值。</param>
+    /// <returns>包含原始字符串的 Context ID。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> 为 <see langword="null"/>。</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> 为空、仅含空白或包含首尾空白。</exception>
     public static InputContextId Create(string value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value);
@@ -45,8 +49,14 @@ public readonly struct InputContextId : IEquatable<InputContextId>
     public override string ToString() => Value;
 
     /// <summary>比较两个 Context ID 是否相等。</summary>
+    /// <param name="left">左侧 Context ID。</param>
+    /// <param name="right">右侧 Context ID。</param>
+    /// <returns>两个原始值按区分大小写的序号比较相同时为 <see langword="true"/>。</returns>
     public static bool operator ==(InputContextId left, InputContextId right) => left.Equals(right);
 
     /// <summary>比较两个 Context ID 是否不相等。</summary>
+    /// <param name="left">左侧 Context ID。</param>
+    /// <param name="right">右侧 Context ID。</param>
+    /// <returns>两个原始值不同时为 <see langword="true"/>。</returns>
     public static bool operator !=(InputContextId left, InputContextId right) => !left.Equals(right);
 }

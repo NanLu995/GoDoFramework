@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/node-pool/index.md
-translation_source_hash: sha256:b981a71f91841259f4704eed9c0330245efd3ffd90a9efc9fe56f8d2c3007f1a
+translation_source_hash: sha256:f461b94e8f6b25f4dd6f1820f844f598172fbdd8f285568758887e3e53049c25
 ---
 
 # Reuse High-Frequency Objects with NodePool
@@ -100,9 +100,8 @@ Keep generic reset work in `OnAcquire()` and pass this launch's parameters throu
 ## 4. Release after use
 
 ```csharp
-bool released = _projectiles.Release(projectile);
-if (!released)
-    ErrorHub.Warn("Projectile was already released.", "Game.Projectile");
+if (!_projectiles.Release(projectile))
+    return; // Pool already reported through ErrorHub; do not log the same failure twice.
 ```
 
 Release performs these steps:
@@ -112,7 +111,7 @@ Release performs these steps:
 3. Remove it from the scene tree.
 4. Cache it if idle capacity allows, otherwise free it.
 
-An active Node belongs to its Pool. Do not call `QueueFree()` on it and do not return it to another Pool. Releasing an external or already released Node returns `false` and emits an ErrorHub Warning.
+An active Node belongs to its Pool. Do not call `QueueFree()` on it and do not return it to another Pool. Releasing an external or already released Node returns `false` and emits an ErrorHub Warning. The caller may stop its success path, but should not report the same failure again.
 
 Prefer having a Projectile notify its manager when it hits or expires, or give it an explicit release callback. A Node that does not know its owning Pool should not free itself.
 

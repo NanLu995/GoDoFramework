@@ -6,7 +6,8 @@ using System.Collections.Generic;
 namespace GoDo;
 
 /// <summary>
-/// 面向业务层的长期服务注册表。仅保存显式注册的服务接口，不负责自动构造或依赖注入。
+/// 面向业务层的长期服务注册表。仅保存显式注册的服务接口，不负责自动构造、依赖注入或释放服务实例。
+/// 所有成员只能在 GoDoRuntime 所在的 Godot 主线程调用。
 /// </summary>
 public static class Services
 {
@@ -15,6 +16,11 @@ public static class Services
     /// <summary>
     /// 注册一个服务接口。相同接口不能重复注册。
     /// </summary>
+    /// <typeparam name="TService">用于查询服务的接口类型；不能是具体类型。</typeparam>
+    /// <param name="service">要保存的长期服务实例。注册表只持有引用，不负责释放实例。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> 为 <see langword="null"/>。</exception>
+    /// <exception cref="ArgumentException"><typeparamref name="TService"/> 不是接口。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，GoDoRuntime 尚未初始化，或相同接口已经注册。</exception>
     public static void Register<TService>(TService service) where TService : class
     {
         MainThreadGuard.VerifyAccess();
@@ -31,6 +37,9 @@ public static class Services
     /// <summary>
     /// 获取已注册的服务；缺失时明确抛出异常。
     /// </summary>
+    /// <typeparam name="TService">注册时使用的服务接口类型。</typeparam>
+    /// <returns>该接口当前注册的同一个服务实例。</returns>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程、GoDoRuntime 尚未初始化，或该接口尚未注册。</exception>
     public static TService Get<TService>() where TService : class
     {
         MainThreadGuard.VerifyAccess();
@@ -44,6 +53,10 @@ public static class Services
     /// <summary>
     /// 尝试获取已注册的服务。
     /// </summary>
+    /// <typeparam name="TService">注册时使用的服务接口类型。</typeparam>
+    /// <param name="service">找到时为当前注册实例；缺失时为 <see langword="null"/>。</param>
+    /// <returns>找到注册实例时为 <see langword="true"/>；否则为 <see langword="false"/>。</returns>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     public static bool TryGet<TService>(out TService? service) where TService : class
     {
         MainThreadGuard.VerifyAccess();
@@ -61,6 +74,11 @@ public static class Services
     /// <summary>
     /// 仅当当前注册实例与调用方提供的实例相同时注销服务。
     /// </summary>
+    /// <typeparam name="TService">注册时使用的服务接口类型。</typeparam>
+    /// <param name="service">预期正在注册的同一个服务实例。</param>
+    /// <returns>成功移除匹配实例时为 <see langword="true"/>；接口未注册或实例不匹配时为 <see langword="false"/>。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> 为 <see langword="null"/>。</exception>
+    /// <exception cref="InvalidOperationException">当前不在 Godot 主线程，或 GoDoRuntime 尚未初始化。</exception>
     public static bool Unregister<TService>(TService service) where TService : class
     {
         MainThreadGuard.VerifyAccess();

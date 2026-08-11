@@ -32,8 +32,14 @@ public readonly struct ScheduleHandle : IEquatable<ScheduleHandle>
     public override string ToString() => IsValid ? _value.ToString() : "Invalid";
 
     /// <summary>比较两个调度句柄是否相等。</summary>
+    /// <param name="left">左侧调度句柄。</param>
+    /// <param name="right">右侧调度句柄。</param>
+    /// <returns>两个句柄表示同一内部值时为 true；否则为 false。</returns>
     public static bool operator ==(ScheduleHandle left, ScheduleHandle right) => left.Equals(right);
 
     /// <summary>比较两个调度句柄是否不相等。</summary>
+    /// <param name="left">左侧调度句柄。</param>
+    /// <param name="right">右侧调度句柄。</param>
+    /// <returns>两个句柄表示不同内部值时为 true；否则为 false。</returns>
     public static bool operator !=(ScheduleHandle left, ScheduleHandle right) => !left.Equals(right);
 }

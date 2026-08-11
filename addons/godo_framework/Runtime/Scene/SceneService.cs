@@ -52,7 +52,9 @@ public sealed partial class SceneService : Node, ISceneService
     /// <summary>
     /// 异步加载并替换当前主场景。加载或实例化失败时保留旧场景。
     /// </summary>
-    /// <exception cref="InvalidOperationException">服务未进入场景树，或已有切换正在执行。</exception>
+    /// <param name="key">目标 <see cref="PackedScene"/> 的资源键。</param>
+    /// <returns>成功挂入场景树并成为 <see cref="SceneTree.CurrentScene"/> 的新场景节点。</returns>
+    /// <exception cref="InvalidOperationException">不在 Godot 主线程调用、服务未进入场景树、服务位于当前主场景内部，或已有切换正在执行。</exception>
     /// <exception cref="SceneChangeException">
     /// 加载、实例化或挂载目标场景失败，或服务离树导致切换取消；
     /// 生命周期取消时 <see cref="Exception.InnerException"/> 为 <see cref="OperationCanceledException"/>。
@@ -63,7 +65,11 @@ public sealed partial class SceneService : Node, ISceneService
     /// <summary>
     /// 异步加载并替换当前主场景，同时报告该次请求的加载进度并允许调用方在提交前取消。
     /// </summary>
-    /// <exception cref="InvalidOperationException">服务未进入场景树，或已有切换正在执行。</exception>
+    /// <param name="key">目标 <see cref="PackedScene"/> 的资源键。</param>
+    /// <param name="onProgress">可选的请求级加载进度回调，值范围为 0 到 1，并在 Godot 主线程调用。</param>
+    /// <param name="cancellationToken">只在提交新场景前取消当前等待的调用方令牌。</param>
+    /// <returns>成功挂入场景树并成为 <see cref="SceneTree.CurrentScene"/> 的新场景节点。</returns>
+    /// <exception cref="InvalidOperationException">不在 Godot 主线程调用、服务未进入场景树、服务位于当前主场景内部，或已有切换正在执行。</exception>
     /// <exception cref="OperationCanceledException">调用方在场景提交前取消请求。</exception>
     /// <exception cref="SceneChangeException">
     /// 加载、实例化或挂载目标场景失败，或服务离树导致切换取消；

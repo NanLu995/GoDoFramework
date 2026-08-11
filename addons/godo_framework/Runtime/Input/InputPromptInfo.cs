@@ -24,6 +24,15 @@ public readonly struct InputPromptInfo
     public bool IsBound { get; }
 
     /// <summary>创建输入提示信息。</summary>
+    /// <param name="bindingId">产生提示的非默认绑定槽位 ID。</param>
+    /// <param name="contextId">提示所属的非默认 Context ID。</param>
+    /// <param name="actionId">提示对应的非默认 Action ID。</param>
+    /// <param name="device">提示对应的已定义非 Unknown 设备类别。</param>
+    /// <param name="displayText">已绑定时的非空文本，或未绑定时的空字符串。</param>
+    /// <param name="isBound">槽位当前是否存在有效绑定。</param>
+    /// <exception cref="ArgumentException">任一 ID 为默认值，或文本与 <paramref name="isBound"/> 状态不一致。</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="displayText"/> 为 null。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="device"/> 未定义或为 Unknown。</exception>
     public InputPromptInfo(
         InputBindingId bindingId,
         InputContextId contextId,

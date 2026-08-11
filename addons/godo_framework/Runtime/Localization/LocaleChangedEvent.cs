@@ -10,6 +10,8 @@ public readonly struct LocaleChangedEvent : IEventMessage
     public string CurrentLocale { get; }
 
     /// <summary>创建一个语言变更事实事件。</summary>
+    /// <param name="previousLocale">切换前的 Locale；构造器原样保存，不执行规范化。</param>
+    /// <param name="currentLocale">切换后的 Locale；构造器原样保存，不执行规范化。</param>
     public LocaleChangedEvent(string previousLocale, string currentLocale)
     {
         PreviousLocale = previousLocale;
