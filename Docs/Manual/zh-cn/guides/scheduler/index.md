@@ -198,3 +198,16 @@ Debug 构建展开 GoDo Debugger 的 **运行时 / Scheduler** 页面，可以�
 - Release 中无法读取调试快照：Scheduler 快照仅供 Debugger 的 Debug 构建使用。
 
 精确接口可查询 <xref:GoDo.ISchedulerService>、<xref:GoDo.ScheduleOptions>、<xref:GoDo.ScheduleClock>、<xref:GoDo.SchedulePhase> 和 <xref:GoDo.ScheduleHandle>。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>安排一次或重复回调</h4><p>明确时钟、派发阶段和 Owner 生命周期。</p><pre class="godo-capability-call"><code>ScheduleHandle once = scheduler.Schedule(delay, callback, options);
+ScheduleHandle repeating = scheduler.ScheduleRepeating(initialDelay, interval, callback, options);</code></pre></section>
+<section><h4>异步等待</h4><p>用于可取消流程；Owner、Token 或框架退出都会取消等待。</p><pre class="godo-capability-call"><code>await scheduler.DelayAsync(delay, options, cancellationToken);</code></pre></section>
+<section><h4>控制任务</h4><p>过期或状态不匹配的句柄返回 false。</p><pre class="godo-capability-call"><code>scheduler.Pause(handle);
+scheduler.Resume(handle);
+scheduler.Cancel(handle);</code></pre></section>
+<section><h4>查询任务</h4><p>检查是否仍在调度，并读取所属时钟的剩余时间。</p><pre class="godo-capability-call"><code>scheduler.IsScheduled(handle)
+scheduler.TryGetRemainingSeconds(handle, out double seconds)</code></pre></section>
+</div>

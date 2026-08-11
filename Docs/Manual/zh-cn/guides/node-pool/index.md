@@ -193,3 +193,15 @@ Debug 构建也可打开 GoDo Debugger 的 **运行时 / Pool** 页面，同时�
 - 为所有 Node 建池后代码更复杂：没有性能证据时应恢复简单 Instantiate/QueueFree。
 
 精确接口可查询 <xref:GoDo.NodePool%601> 和 <xref:GoDo.IPoolable>。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>创建并预热池</h4><p>构造时验证场景根类型并创建指定空闲数量。</p><pre class="godo-capability-call"><code>var pool = new NodePool&lt;Projectile&gt;(scene, initialSize: 20, idleCapacity: 100);</code></pre></section>
+<section><h4>租借与归还</h4><p>租借后配置本次业务数据；归还失败时不要重复上报。</p><pre class="godo-capability-call"><code>Projectile item = pool.Acquire(parent);
+bool released = pool.Release(item);</code></pre></section>
+<section><h4>观察容量</h4><p>用活动/空闲数量调优，不把空闲容量误认为活动上限。</p><pre class="godo-capability-call"><code>pool.ActiveCount
+pool.IdleCount</code></pre></section>
+<section><h4>清缓存与关闭</h4><p>Clear 只释放空闲项；Dispose 结束整个池的生命周期。</p><pre class="godo-capability-call"><code>pool.Clear();
+pool.Dispose();</code></pre></section>
+</div>

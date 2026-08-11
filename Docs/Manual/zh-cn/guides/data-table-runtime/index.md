@@ -15,3 +15,14 @@
 - 运行时服务不负责从 CSV 生成代码或资源。
 
 从 CSV 到运行时加载的端到端流程见[DataTable 工作流](../data-tables/index.md)。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>事务性加载表集</h4><p>可选择 Client/Server 子集、观察表级进度并取消等待。</p><pre class="godo-capability-call"><code>await tables.LoadAsync(definition, subset, OnProgress, cancellationToken);</code></pre></section>
+<section><h4>检查表集提交状态</h4><p>只有全部解析并发布成功后才返回 true。</p><pre class="godo-capability-call"><code>bool loaded = tables.IsLoaded(setId);</code></pre></section>
+<section><h4>获取强类型生成表</h4><p>表集未加载、表名不存在或类型不匹配都会明确失败。</p><pre class="godo-capability-call"><code>ItemTable items = tables.GetTable&lt;ItemTable&gt;(setId, "Item");</code></pre></section>
+<section><h4>卸载表集</h4><p>释放已发布快照；业务不能继续持有并假设服务仍管理旧表。</p><pre class="godo-capability-call"><code>bool unloaded = tables.Unload(setId);</code></pre></section>
+</div>
+
+精确加载结果、取消和异常见 [IDataTableService API](xref:GoDo.IDataTableService)。

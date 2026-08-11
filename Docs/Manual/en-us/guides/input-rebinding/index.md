@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/input-rebinding/index.md
-translation_source_hash: sha256:892aeab2b31a6dc647d45c817959cd49e2b8fceb9c99b6fb772673a8a546649d
+translation_source_hash: sha256:2b2e7821f4be15f026bb48ffb0f9825e0122315440e48f6a5dcadf7546f8c076
 ---
 
 # Build a runtime input-rebinding screen
@@ -175,3 +175,19 @@ The GUIDE backend returns fallback text in stable order. The game UI owns glyphs
 - Loading reports corrupt data: handle `RecoveredFromBackup` or `SaveException` without deleting a healthy backup.
 
 For exact signatures, see <xref:GoDo.IInputRebinding>, <xref:GoDo.IInputRebindingPersistence>, <xref:GoDo.IInputPromptQuery>, <xref:GoDo.InputBindingInfo>, and <xref:GoDo.InputBindingCandidate>.
+
+## Capability map
+
+<div class="godo-capability-list">
+<section><h4>Read bindings and capture state</h4><pre class="godo-capability-call"><code>rebinding.IsCapturing
+rebinding.GetBindings(contextId)
+rebinding.GetBinding(bindingId)</code></pre></section>
+<section><h4>Capture or cancel an input candidate</h4><pre class="godo-capability-call"><code>InputBindingCandidate candidate = await rebinding.CaptureAsync(bindingId);
+rebinding.CancelCapture();</code></pre></section>
+<section><h4>Find conflicts and apply</h4><p>Apply does not choose the UI's conflict policy.</p><pre class="godo-capability-call"><code>var conflicts = rebinding.FindConflicts(bindingId, candidate);
+rebinding.Apply(bindingId, candidate);
+rebinding.RestoreDefault(bindingId);</code></pre></section>
+<section><h4>Load, save, and query prompts</h4><pre class="godo-capability-call"><code>persistence.LoadAndApply();
+persistence.Save();
+var prompts = promptQuery.GetPrompts(contextId, actionId, input.ActiveDevice);</code></pre></section>
+</div>

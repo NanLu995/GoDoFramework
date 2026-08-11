@@ -17,3 +17,15 @@
 - ResourceHub 不提供第二套引用计数或缓存策略；Godot 自身管理已加载 Resource 的生命周期。
 
 需要资源清单、进度、异步加载和主场景切换一起工作的完整示例，阅读[资源与场景工作流](../resources-and-scenes/index.md)。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>创建资源键</h4><p>从规范的 <code>res://</code> 路径或 <code>uid://</code> 标识创建稳定定位。</p><pre class="godo-capability-call"><code>ResourceKey key = ResourceKey.FromPath("res://Scenes/Main.tscn");</code></pre></section>
+<section><h4>同步加载</h4><p>资源已准备好且调用点允许同步等待时使用；类型不匹配会失败。</p><pre class="godo-capability-call"><code>PackedScene scene = ResourceHub.Load&lt;PackedScene&gt;(key);</code></pre></section>
+<section><h4>异步加载</h4><p>在加载流程中取得可等待操作，并读取进度、状态或结果。</p><pre class="godo-capability-call"><code>ResourceLoadOperation&lt;PackedScene&gt; operation = ResourceHub.LoadAsync&lt;PackedScene&gt;(key);
+PackedScene scene = await operation.Completion;</code></pre></section>
+<section><h4>观察活动操作</h4><p>用于调试与加载界面诊断，不应成为每帧业务控制条件。</p><pre class="godo-capability-call"><code>int loadingCount = ResourceHub.ActiveOperationCount;</code></pre></section>
+</div>
+
+ResourceHub 不返回 <code>null</code> 表示失败，也不维护第二套缓存或引用计数。完整签名见 [ResourceHub API](xref:GoDo.ResourceHub)。

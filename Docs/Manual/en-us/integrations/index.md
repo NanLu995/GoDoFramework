@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/integrations/index.md
-translation_source_hash: sha256:7f8bc80dfea13aa1b98a1cfc65e92a0b206f2be134ac41fb8a7390802cd7ef3e
+translation_source_hash: sha256:084d5ffdc0362b588e4c5b8bff78ad9e98410cec0ed9e842ce04e6f0a701d3ad
 ---
 
 # Integrations and extensions
@@ -25,3 +25,17 @@ Without Phantom Camera, derive an adapter from `CameraRig` for the project's cho
 2. Confirm that Godot recognizes the plugin, resources, and node types before installing the corresponding GoDo backend.
 3. Validate both Debug and target export platforms; an editor-ready third-party plugin is not necessarily export-ready.
 4. After upgrading either side, revalidate the smallest input or camera scene and consult [Troubleshooting](../troubleshooting/index.md).
+
+## Integration capability map
+
+<div class="godo-capability-list">
+<section><h4>Install the GUIDE Input backend</h4><p>Configure its Profile and persistence slot; game code continues to depend on IInputService.</p><pre class="godo-capability-call"><code>installer.Profile = inputProfile;
+installer.PersistenceSlot = "input-bindings";</code></pre></section>
+<section><h4>Use GUIDE extension capabilities</h4><p>Feature-detect rebinding, persistence, and prompt queries.</p><pre class="godo-capability-call"><code>input.TryGetRebinding(out IInputRebinding rebinding);
+input.TryGetPromptQuery(out IInputPromptQuery prompts);</code></pre></section>
+<section><h4>Configure a Phantom Camera Rig</h4><p>Set its backend and active/inactive priorities; CameraService switches it by CameraId.</p><pre class="godo-capability-call"><code>rig.PhantomCameraNode = pcam;
+rig.ActivePriority = 20;
+rig.InactivePriority = 0;</code></pre></section>
+</div>
+
+See the [GuideInputBackendInstaller API](xref:GoDo.GuideInput.GuideInputBackendInstaller) and [PhantomCameraRig API](xref:GoDo.PhantomCameraRig).

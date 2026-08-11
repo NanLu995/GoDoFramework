@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/procedure-recovery/index.md
-translation_source_hash: sha256:2909d098e443fed2b3fb6344e6dd7a317751e052f0db9b0a0219386a727cec86
+translation_source_hash: sha256:5f4e9203ec1780870a2114b246459d379a64d50485ef295e702b55b2305fc9ef
 ---
 
 # Organize Procedure Changes, Cleanup, and Failure Recovery
@@ -173,3 +173,14 @@ A long-lived game coordinator may subscribe to `IProcedureService.RequestedChang
 - Procedure becomes a giant controller: move concrete gameplay into services and scene Nodes.
 
 For exact members, see <xref:GoDo.IProcedure>, <xref:GoDo.IProcedureService>, <xref:GoDo.ProcedureContext>, <xref:GoDo.ProcedureChangePhase>, and <xref:GoDo.ProcedureChangeException>.
+
+## Capability map
+
+<div class="godo-capability-list">
+<section><h4>Read current flow and change state</h4><pre class="godo-capability-call"><code>procedures.Current
+procedures.IsChanging</code></pre></section>
+<section><h4>Change directly or construct the target</h4><pre class="godo-capability-call"><code>await procedures.ChangeAsync(nextProcedure);
+await procedures.ChangeAsync&lt;GameplayProcedure&gt;();</code></pre></section>
+<section><h4>Request a change from inside a Procedure</h4><p>Avoid re-entering ChangeAsync from Enter/Exit.</p><pre class="godo-capability-call"><code>context.RequestChange(nextProcedure);</code></pre></section>
+<section><h4>Observe requested-change failure</h4><pre class="godo-capability-call"><code>procedures.RequestedChangeFailed += OnRequestedChangeFailed;</code></pre></section>
+</div>

@@ -18,3 +18,14 @@ await scenes.ChangeAsync(GameScenes.Gameplay);
 - 需要显示进度或允许取消时使用带进度回调和取消标记的重载；一旦开始提交新场景，取消不会回滚提交。
 
 资源清单、加载进度与场景切换的完整工作流见[资源与场景工作流](../resources-and-scenes/index.md)。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>切换主场景</h4><p>加载、实例化并提交新的 <code>SceneTree.CurrentScene</code>。</p><pre class="godo-capability-call"><code>Node scene = await scenes.ChangeAsync(sceneKey);</code></pre></section>
+<section><h4>观察加载进度与取消等待</h4><p>为加载界面提供 0–1 进度；取消只在提交前生效。</p><pre class="godo-capability-call"><code>Node scene = await scenes.ChangeAsync(sceneKey, OnProgress, cancellationToken);</code></pre></section>
+<section><h4>查询切换状态</h4><p>用于禁用重复入口和显示加载状态，不用于轮询驱动业务。</p><pre class="godo-capability-call"><code>scenes.IsChanging
+scenes.Progress</code></pre></section>
+</div>
+
+所有调用都必须在 Godot 主线程执行。完整签名和失败边界见 [ISceneService API](xref:GoDo.ISceneService)。

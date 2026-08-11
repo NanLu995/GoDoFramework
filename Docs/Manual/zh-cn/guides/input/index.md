@@ -223,3 +223,19 @@ if (input.ActiveDevice != InputDeviceKind.Unknown &&
 - 输入执行两次：业务又直接读取 GUIDE Action，绕过了 GoDo 快照。
 
 精确接口可查询 <xref:GoDo.IInputService>、<xref:GoDo.InputFrame>、<xref:GoDo.InputContextMode>、<xref:GoDo.InputOperationException> 和 <xref:GoDo.GuideInput.GuideInputProfile>。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>读取就绪、帧、设备与后端能力</h4><p>只在当前帧消费 Frame，不跨帧保存快照。</p><pre class="godo-capability-call"><code>input.IsReady
+input.Frame
+input.ActiveDevice
+input.Capabilities</code></pre></section>
+<section><h4>设置基础 Context</h4><p>切换长期玩法输入集合。</p><pre class="godo-capability-call"><code>input.SetBaseContext(GameInputContexts.Gameplay);</code></pre></section>
+<section><h4>压入、弹出与查询 Context</h4><p>菜单和 Modal 使用严格配对的临时输入层。</p><pre class="godo-capability-call"><code>input.PushContext(GameInputContexts.Menu, InputContextMode.Exclusive);
+input.IsContextActive(GameInputContexts.Menu);
+input.PopContext(GameInputContexts.Menu);</code></pre></section>
+<section><h4>获取可选输入扩展</h4><p>按后端能力取得改键、持久化和提示查询接口。</p><pre class="godo-capability-call"><code>input.TryGetRebinding(out IInputRebinding rebinding)
+input.TryGetRebindingPersistence(out IInputRebindingPersistence persistence)
+input.TryGetPromptQuery(out IInputPromptQuery prompts)</code></pre></section>
+</div>

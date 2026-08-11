@@ -172,3 +172,11 @@ Godot 可能先让新场景进入树，再在帧末释放旧场景。CameraServi
 - 镜头能切换但跟随/避障异常：这是 Phantom Camera 配置或业务环绕逻辑，不是 CameraService 的切换职责。
 
 精确接口可查询 <xref:GoDo.ICameraService>、<xref:GoDo.CameraId>、<xref:GoDo.CameraRig>、<xref:GoDo.CameraOperationException> 和 <xref:GoDo.PhantomCameraRig>。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>读取当前主镜头</h4><p>取得业务层已提交的语义镜头 ID。</p><pre class="godo-capability-call"><code>CameraId? active = cameras.ActivePrimary;</code></pre></section>
+<section><h4>激活主镜头</h4><p>按稳定 ID 原子切换到已注册 Rig。</p><pre class="godo-capability-call"><code>cameras.ActivatePrimary(GameCameraIds.Gameplay);</code></pre></section>
+<section><h4>恢复上一镜头</h4><p>结束嵌套临时镜头；无有效历史时返回 false。</p><pre class="godo-capability-call"><code>bool restored = cameras.RestorePreviousPrimary();</code></pre></section>
+</div>

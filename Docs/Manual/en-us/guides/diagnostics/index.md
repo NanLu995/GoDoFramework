@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:4e934ce2e303a815f2afb85996ef71b3fe737aa98c252b1a837c7755d4013bb8
+translation_source_hash: sha256:a52084a2ead6ee310488ef90b9d35879e1703f16f3825d4bbee0300e6662f793
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
@@ -227,3 +227,18 @@ When the queue fills, reports are dropped and summarized as a Warning on the mai
 - One page reports a read failure: use its exception type and message to fix that module or snapshot read. The page recovers after the next successful read, so the Debugger does not need to be restarted.
 
 For exact members, see <xref:GoDo.LogHub>, <xref:GoDo.LogChannel>, <xref:GoDo.ErrorHub>, <xref:GoDo.ErrorReport>, <xref:GoDo.ErrorLevel>, and <xref:GoDo.IErrorReporter>.
+
+## Capability map
+
+<div class="godo-capability-list">
+<section><h4>Log by stable channel and level</h4><pre class="godo-capability-call"><code>LogChannel log = LogHub.For("Game.Combat");
+LogHub.Info("Battle started", "Game.Combat");
+LogHub.Error(exception, "Game.Combat", context);</code></pre></section>
+<section><h4>Report recoverable and fatal errors</h4><pre class="godo-capability-call"><code>ErrorHub.Warn(message, source, context);
+ErrorHub.Report(exception, source, context);
+ErrorHub.Fatal(exception, source, context);</code></pre></section>
+<section><h4>Observe errors and extend reporters</h4><pre class="godo-capability-call"><code>ErrorHub.OnError += OnError;
+ErrorHub.AddReporter(reporter);
+ErrorHub.RemoveReporter(reporter);</code></pre></section>
+<section><h4>Set the minimum dispatched error level</h4><pre class="godo-capability-call"><code>ErrorHub.MinLevel = ErrorLevel.Warning;</code></pre></section>
+</div>

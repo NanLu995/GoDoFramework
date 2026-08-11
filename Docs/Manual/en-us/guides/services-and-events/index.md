@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/services-and-events/index.md
-translation_source_hash: sha256:f3c7c0b49bc16b1349dcfa5f617e36d8c5a9aabbb220fc22f1eb4cfdf6cb498e
+translation_source_hash: sha256:7bd50a0010d1a6dfd412b4a8b7e277138fde946222982ea44ca975fc480f2e61
 ---
 
 # Get Long-Lived Services and Publish Game Events
@@ -224,3 +224,18 @@ Do not convert every method call into a global event merely to appear decoupled.
 - A background task emits directly: EventChannel is main-thread only; return to the main-thread boundary first.
 
 For exact members, see <xref:GoDo.Services>, <xref:GoDo.IEventMessage>, <xref:GoDo.EventChannel>, and <xref:GoDo.EventScope>.
+
+## Capability map
+
+<div class="godo-capability-list">
+<section><h4>Register, resolve, and unregister services</h4><pre class="godo-capability-call"><code>Services.Register&lt;IMyService&gt;(service);
+IMyService required = Services.Get&lt;IMyService&gt;();
+Services.TryGet&lt;IMyService&gt;(out IMyService optional);
+Services.Unregister&lt;IMyService&gt;(service);</code></pre></section>
+<section><h4>Emit synchronous business events</h4><pre class="godo-capability-call"><code>EventChannel.Emit&lt;GamePausedEvent&gt;();
+EventChannel.Emit(new ScoreChangedEvent(score));</code></pre></section>
+<section><h4>Subscribe, subscribe once, and remove</h4><pre class="godo-capability-call"><code>EventChannel.On&lt;ScoreChangedEvent&gt;(OnScoreChanged, priority: 10);
+EventChannel.Once&lt;GameReadyEvent&gt;(OnReady);
+EventChannel.Off&lt;ScoreChangedEvent&gt;(OnScoreChanged);</code></pre></section>
+<section><h4>Bind to Node lifetime</h4><pre class="godo-capability-call"><code>EventChannel.Bind&lt;ScoreChangedEvent&gt;(this, OnScoreChanged);</code></pre></section>
+</div>

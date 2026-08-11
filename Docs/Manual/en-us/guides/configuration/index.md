@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/configuration/index.md
-translation_source_hash: sha256:d2856808856ffad052ce542a261d365c835b6ed7da2b5e30323b5ee2b54dca71
+translation_source_hash: sha256:f3f5fa335393decac7fcc449b6b9d0a5370ec94d45e98be7d7c43c830c379a47
 ---
 
 # Create, Validate, and Query Typed Configuration
@@ -219,3 +219,16 @@ Removing or renaming a stable ID is a game-data compatibility change. ConfigHub 
 - Per-frame allocation appears: ConfigTable is rebuilt on a hot path instead of being cached during initialization.
 
 For exact members, see <xref:GoDo.ConfigHub>, <xref:GoDo.IConfigResource>, <xref:GoDo.ConfigTable%602>, and <xref:GoDo.ConfigValidationException>.
+
+## Capability map
+
+<div class="godo-capability-list">
+<section><h4>Load and validate configuration</h4><p>Run business validation immediately after ResourceHub type checks.</p><pre class="godo-capability-call"><code>EnemyCatalog catalog = ConfigHub.Load&lt;EnemyCatalog&gt;(catalogKey);</code></pre></section>
+<section><h4>Define content validation</h4><p>Check required values, ranges, relationships, and stable IDs without mutating the resource.</p><pre class="godo-capability-call"><code>public void Validate()
+{
+    // Throw with actionable content context.
+}</code></pre></section>
+<section><h4>Build a read-only lookup</h4><p>Build once during initialization; use Get for required and TryGet for optional entries.</p><pre class="godo-capability-call"><code>var table = new ConfigTable&lt;string, EnemyDefinition&gt;(entries, item =&gt; item.Id);
+EnemyDefinition required = table.Get("boss");
+bool found = table.TryGet("optional", out EnemyDefinition? value);</code></pre></section>
+</div>

@@ -222,3 +222,18 @@ LogHub 的 Debug / Info 仅允许主线程。LogHub 的 Warn / Error / Fatal 与
 - 单个页面显示读取失败：根据提示中的异常类型和消息修复该模块或快照读取；无需重启 Debugger，下一次读取成功后会自动恢复。
 
 精确接口可查询 <xref:GoDo.LogHub>、<xref:GoDo.LogChannel>、<xref:GoDo.ErrorHub>、<xref:GoDo.ErrorReport>、<xref:GoDo.ErrorLevel> 和 <xref:GoDo.IErrorReporter>。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>按通道记录日志</h4><p>可绑定稳定通道，或直接选择 Debug/Info/Warn/Error/Fatal。</p><pre class="godo-capability-call"><code>LogChannel log = LogHub.For("Game.Combat");
+LogHub.Info("Battle started", "Game.Combat");
+LogHub.Error(exception, "Game.Combat", context);</code></pre></section>
+<section><h4>报告可处理错误与致命错误</h4><p>Fatal 只表达等级，不替业务退出游戏。</p><pre class="godo-capability-call"><code>ErrorHub.Warn(message, source, context);
+ErrorHub.Report(exception, source, context);
+ErrorHub.Fatal(exception, source, context);</code></pre></section>
+<section><h4>订阅错误与扩展 Reporter</h4><p>短生命周期监听要对称解绑；Reporter 不阻塞主线程。</p><pre class="godo-capability-call"><code>ErrorHub.OnError += OnError;
+ErrorHub.AddReporter(reporter);
+ErrorHub.RemoveReporter(reporter);</code></pre></section>
+<section><h4>过滤最低错误等级</h4><p>调整全局派发门槛，不替代模块日志等级。</p><pre class="godo-capability-call"><code>ErrorHub.MinLevel = ErrorLevel.Warning;</code></pre></section>
+</div>

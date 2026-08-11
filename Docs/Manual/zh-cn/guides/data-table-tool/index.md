@@ -16,3 +16,14 @@ DataTable 工具在 Godot 编辑器中维护 Schema、检查 CSV 并生成运行
 - 导出前确认生成物没有过期，并验证 Client/Server 隔离。
 
 工具操作、生成验证和运行时读取见[DataTable 工作流](../data-tables/index.md)。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>维护唯一 Schema</h4><p>声明表、列、类型、键、引用和 Client/Server 归属。</p></section>
+<section><h4>只读检查源数据</h4><p>在写入生成物前检查缺失 CSV、列类型、重复键和引用。</p></section>
+<section><h4>事务性生成</h4><p>全部表通过后再发布生成物和完成标记；失败不留下可被误用的半成品。</p></section>
+<section><h4>验证新鲜度与导出边界</h4><p>发布前检查 Schema/CSV 哈希、Client/Server 隔离和生成版本。</p></section>
+</div>
+
+DataTable 工具是编辑器工作流，不提供运行时调用入口；生成后的读取能力见 [IDataTableService API](xref:GoDo.IDataTableService)。

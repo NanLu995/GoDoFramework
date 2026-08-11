@@ -15,3 +15,29 @@
 - 打开、查询与关闭都必须在 Godot 主线程，且不属于每帧操作。
 
 层级、焦点、失败恢复和与音频协作的完整示例见[UI 与 Audio 工作流](../ui-and-audio/index.md)。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>加载语义 UI 配置</h4><p>使用 <code>UiId</code> 前加载并校验 <code>UiConfig</code>。</p><pre class="godo-capability-call"><code>ui.LoadUiConfig(configKey);</code></pre></section>
+<section><h4>同步或异步打开</h4><p>已加载资源可同步打开；需要进度与取消时使用异步泛型重载。</p><pre class="godo-capability-call"><code>SettingsView view = ui.Open&lt;SettingsView&gt;(UiIds.Settings);
+SettingsView view = await ui.OpenAsync&lt;SettingsView&gt;(UiIds.Settings, Configure, OnProgress, cancellationToken);</code></pre></section>
+<section><h4>按资源键直接打开</h4><p>小型项目可跳过语义配置，明确提供资源键和层级。</p><pre class="godo-capability-call"><code>Control view = ui.Open(viewKey, UiLayer.View);</code></pre></section>
+<section><h4>查询打开与加载状态</h4><p>区分已经挂载的实例和仍在加载的请求。</p><pre class="godo-capability-call"><code>ui.IsOpen(id)
+ui.GetOpenCount(id)
+ui.IsOpening(id)
+ui.GetOpeningCount(id)
+ui.TryGetTop(id, out Control view)</code></pre></section>
+<section><h4>取消请求与管理缓存</h4><p>可按 ID 或层级取消未提交请求，并检查或清理复用实例。</p><pre class="godo-capability-call"><code>ui.CancelOpenRequests(id);
+ui.HasCachedInstance(id);
+ui.ClearCachedInstance(id);
+ui.ClearCachedInstances();</code></pre></section>
+<section><h4>关闭、返回与作用域持有</h4><p>关闭一个、同 ID 全部、某层全部，或退回指定界面；作用域适合确保离开流程时清理。</p><pre class="godo-capability-call"><code>ui.TryClose(view);
+ui.CloseAll(id);
+ui.CloseAll(UiLayer.Modal);
+ui.CloseTo(id);
+ui.TryGoBack();
+using UiScope&lt;SettingsView&gt; scope = ui.OpenScoped&lt;SettingsView&gt;(id);</code></pre></section>
+</div>
+
+打开、查询、取消和关闭必须在 Godot 主线程执行。精确重载、返回值与异常见 [IUiService API](xref:GoDo.IUiService)。

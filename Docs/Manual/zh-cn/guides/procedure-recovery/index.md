@@ -168,3 +168,14 @@ GoDoRuntime 关闭时，尚未完成的流程切换会以 `ProcedureChangeExcept
 - Procedure 变成巨大控制器：把具体玩法拆回业务服务和场景节点。
 
 精确接口可查询 <xref:GoDo.IProcedure>、<xref:GoDo.IProcedureService>、<xref:GoDo.ProcedureContext>、<xref:GoDo.ProcedureChangePhase> 和 <xref:GoDo.ProcedureChangeException>。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>读取当前流程与切换状态</h4><p>用于顶层协调和禁用重复入口。</p><pre class="godo-capability-call"><code>procedures.Current
+procedures.IsChanging</code></pre></section>
+<section><h4>直接切换或构造目标流程</h4><p>由顶层流程等待退出、进入和失败恢复。</p><pre class="godo-capability-call"><code>await procedures.ChangeAsync(nextProcedure);
+await procedures.ChangeAsync&lt;GameplayProcedure&gt;();</code></pre></section>
+<section><h4>从流程内部请求后续切换</h4><p>避免在 Enter/Exit 回调内重入 ChangeAsync。</p><pre class="godo-capability-call"><code>context.RequestChange(nextProcedure);</code></pre></section>
+<section><h4>观察请求切换失败</h4><p>统一处理无法由原请求方 await 的失败。</p><pre class="godo-capability-call"><code>procedures.RequestedChangeFailed += OnRequestedChangeFailed;</code></pre></section>
+</div>

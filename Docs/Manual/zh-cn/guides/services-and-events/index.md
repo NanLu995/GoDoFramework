@@ -219,3 +219,18 @@ EventChannel.Bind<PlayerDiedEvent>(hudNode, OnHud, priority: 0);
 - 后台任务直接 Emit：EventChannel 仅允许 Godot 主线程，先切回主线程边界。
 
 精确接口可查询 <xref:GoDo.Services>、<xref:GoDo.IEventMessage>、<xref:GoDo.EventChannel> 和 <xref:GoDo.EventScope>。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>注册、获取与注销长期服务</h4><p>Services 不拥有实例生命周期；注销必须使用同一实例。</p><pre class="godo-capability-call"><code>Services.Register&lt;IMyService&gt;(service);
+IMyService required = Services.Get&lt;IMyService&gt;();
+bool found = Services.TryGet&lt;IMyService&gt;(out IMyService optional);
+Services.Unregister&lt;IMyService&gt;(service);</code></pre></section>
+<section><h4>发送同步业务事件</h4><p>无载荷或强类型消息都在当前主线程调用栈派发。</p><pre class="godo-capability-call"><code>EventChannel.Emit&lt;GamePausedEvent&gt;();
+EventChannel.Emit(new ScoreChangedEvent(score));</code></pre></section>
+<section><h4>订阅、单次订阅与取消</h4><p>长期对象显式 On/Off；一次性等待使用 Once。</p><pre class="godo-capability-call"><code>EventChannel.On&lt;ScoreChangedEvent&gt;(OnScoreChanged, priority: 10);
+EventChannel.Once&lt;GameReadyEvent&gt;(OnReady);
+EventChannel.Off&lt;ScoreChangedEvent&gt;(OnScoreChanged);</code></pre></section>
+<section><h4>绑定 Node 生命周期</h4><p>Node 离树时自动解绑，适合场景对象。</p><pre class="godo-capability-call"><code>EventChannel.Bind&lt;ScoreChangedEvent&gt;(this, OnScoreChanged);</code></pre></section>
+</div>

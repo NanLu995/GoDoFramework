@@ -170,3 +170,19 @@ GUIDE 后端返回稳定顺序的回退文字。键帽图标、手柄品牌、�
 - 加载损坏配置：处理 RecoveredFromBackup 或 SaveException，不要删除健康备份。
 
 精确接口可查询 <xref:GoDo.IInputRebinding>、<xref:GoDo.IInputRebindingPersistence>、<xref:GoDo.IInputPromptQuery>、<xref:GoDo.InputBindingInfo> 和 <xref:GoDo.InputBindingCandidate>。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>读取绑定与捕获状态</h4><pre class="godo-capability-call"><code>rebinding.IsCapturing
+rebinding.GetBindings(contextId)
+rebinding.GetBinding(bindingId)</code></pre></section>
+<section><h4>捕获或取消候选输入</h4><pre class="godo-capability-call"><code>InputBindingCandidate candidate = await rebinding.CaptureAsync(bindingId);
+rebinding.CancelCapture();</code></pre></section>
+<section><h4>检查冲突并应用</h4><p>Apply 不替 UI 自动决定冲突处理策略。</p><pre class="godo-capability-call"><code>var conflicts = rebinding.FindConflicts(bindingId, candidate);
+rebinding.Apply(bindingId, candidate);
+rebinding.RestoreDefault(bindingId);</code></pre></section>
+<section><h4>加载、保存与显示提示</h4><pre class="godo-capability-call"><code>persistence.LoadAndApply();
+persistence.Save();
+var prompts = promptQuery.GetPrompts(contextId, actionId, input.ActiveDevice);</code></pre></section>
+</div>

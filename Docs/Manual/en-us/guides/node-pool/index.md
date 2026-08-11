@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/node-pool/index.md
-translation_source_hash: sha256:f461b94e8f6b25f4dd6f1820f844f598172fbdd8f285568758887e3e53049c25
+translation_source_hash: sha256:5c8cf74d80fa5ae9188f6dbd33a7824e865b361a7f8a28628b195dbfd624dbba
 ---
 
 # Reuse High-Frequency Objects with NodePool
@@ -198,3 +198,15 @@ If a rare peak is enormous, retaining the full maximum forever may be wasteful. 
 - Pooling every Node made code harder: without performance evidence, return to simple Instantiate/QueueFree.
 
 For exact members, see <xref:GoDo.NodePool%601> and <xref:GoDo.IPoolable>.
+
+## Capability map
+
+<div class="godo-capability-list">
+<section><h4>Create and prewarm a pool</h4><p>Validate the scene root type and create the initial idle capacity.</p><pre class="godo-capability-call"><code>var pool = new NodePool&lt;Projectile&gt;(scene, initialSize: 20, idleCapacity: 100);</code></pre></section>
+<section><h4>Acquire and release</h4><p>Configure per-use data after acquire; do not double-report a failed release.</p><pre class="godo-capability-call"><code>Projectile item = pool.Acquire(parent);
+bool released = pool.Release(item);</code></pre></section>
+<section><h4>Observe capacity</h4><p>Tune with active/idle counts; idle capacity is not an active limit.</p><pre class="godo-capability-call"><code>pool.ActiveCount
+pool.IdleCount</code></pre></section>
+<section><h4>Clear cache and shut down</h4><p>Clear releases idle items; Dispose ends the pool lifetime.</p><pre class="godo-capability-call"><code>pool.Clear();
+pool.Dispose();</code></pre></section>
+</div>

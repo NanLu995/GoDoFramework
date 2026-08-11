@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/camera/index.md
-translation_source_hash: sha256:81397c01f0bcd484ac4a61a0bb092c5fbb7281a2b6dbd625cc8a609d2b96e233
+translation_source_hash: sha256:7a6599cea4b7cb44d7e9ad2a1d5ea35a2c5abec74c732c8cb92c3331e503416b
 ---
 
 # Configure, Switch, and Restore the Main Camera
@@ -177,3 +177,11 @@ Use this order:
 - Switching works but follow or collision does not: investigate Phantom Camera configuration or game orbit code, not CameraService switching.
 
 For exact members, see <xref:GoDo.ICameraService>, <xref:GoDo.CameraId>, <xref:GoDo.CameraRig>, <xref:GoDo.CameraOperationException>, and <xref:GoDo.PhantomCameraRig>.
+
+## Capability map
+
+<div class="godo-capability-list">
+<section><h4>Read the active primary camera</h4><p>Get the semantic camera ID committed by the service.</p><pre class="godo-capability-call"><code>CameraId? active = cameras.ActivePrimary;</code></pre></section>
+<section><h4>Activate a primary camera</h4><p>Atomically switch to a registered Rig by stable ID.</p><pre class="godo-capability-call"><code>cameras.ActivatePrimary(GameCameraIds.Gameplay);</code></pre></section>
+<section><h4>Restore the previous camera</h4><p>End a nested temporary camera; returns false when no valid history remains.</p><pre class="godo-capability-call"><code>bool restored = cameras.RestorePreviousPrimary();</code></pre></section>
+</div>

@@ -214,3 +214,16 @@ ConfigTable 构建需要 O(n) 时间和 O(n) 索引内存，平均查询为 O(1)
 - 每帧出现分配：在热路径重复构造 ConfigTable，应在初始化阶段缓存。
 
 精确接口可查询 <xref:GoDo.ConfigHub>、<xref:GoDo.IConfigResource>、<xref:GoDo.ConfigTable%602> 和 <xref:GoDo.ConfigValidationException>。
+
+## 能力全景图
+
+<div class="godo-capability-list">
+<section><h4>加载并校验配置</h4><p>经 ResourceHub 类型检查后立即调用业务 <code>Validate()</code>。</p><pre class="godo-capability-call"><code>EnemyCatalog catalog = ConfigHub.Load&lt;EnemyCatalog&gt;(catalogKey);</code></pre></section>
+<section><h4>定义内容校验</h4><p>检查必填项、范围、关系和稳定 ID，不在校验中修改资源或上报两次。</p><pre class="godo-capability-call"><code>public void Validate()
+{
+    // Throw with actionable content context.
+}</code></pre></section>
+<section><h4>建立只读查询索引</h4><p>初始化时构建一次；必需项用 Get，可选项用 TryGet。</p><pre class="godo-capability-call"><code>var table = new ConfigTable&lt;string, EnemyDefinition&gt;(entries, item =&gt; item.Id);
+EnemyDefinition required = table.Get("boss");
+bool found = table.TryGet("optional", out EnemyDefinition? value);</code></pre></section>
+</div>

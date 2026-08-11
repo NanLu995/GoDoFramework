@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/scheduler/index.md
-translation_source_hash: sha256:612803d996d6efbc556b2147ef16f1511208ec461030429cc6f88733cc0bcc22
+translation_source_hash: sha256:02112e5e36c97e3c095995e9920957ef40dd8b9831cdac8c8f04d990b3f59138
 ---
 
 # Schedule Delays, Repeating Tasks, and Async Waits
@@ -203,3 +203,16 @@ Every public API is main-thread only; only CancellationToken triggering may orig
 - A Release build cannot read diagnostics: Scheduler snapshots exist only for Debugger in Debug builds.
 
 For exact members, see <xref:GoDo.ISchedulerService>, <xref:GoDo.ScheduleOptions>, <xref:GoDo.ScheduleClock>, <xref:GoDo.SchedulePhase>, and <xref:GoDo.ScheduleHandle>.
+
+## Capability map
+
+<div class="godo-capability-list">
+<section><h4>Schedule one-shot or repeating callbacks</h4><p>Choose clock, dispatch phase, and Owner lifetime explicitly.</p><pre class="godo-capability-call"><code>ScheduleHandle once = scheduler.Schedule(delay, callback, options);
+ScheduleHandle repeating = scheduler.ScheduleRepeating(initialDelay, interval, callback, options);</code></pre></section>
+<section><h4>Wait asynchronously</h4><p>Owner exit, token cancellation, or framework shutdown cancels the wait.</p><pre class="godo-capability-call"><code>await scheduler.DelayAsync(delay, options, cancellationToken);</code></pre></section>
+<section><h4>Control a task</h4><p>Expired or state-incompatible handles return false.</p><pre class="godo-capability-call"><code>scheduler.Pause(handle);
+scheduler.Resume(handle);
+scheduler.Cancel(handle);</code></pre></section>
+<section><h4>Inspect a task</h4><p>Check scheduling state and remaining time in its selected clock.</p><pre class="godo-capability-call"><code>scheduler.IsScheduled(handle)
+scheduler.TryGetRemainingSeconds(handle, out double seconds)</code></pre></section>
+</div>

@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/input/index.md
-translation_source_hash: sha256:bae88e40010d218c33ae81183b70a5a2fc30490dcdad04d7a0da754915b26521
+translation_source_hash: sha256:eb17a536037667c98a900d8dd414464d1945fd8ed818317cb1e13272fd9bec03
 ---
 
 # Read Semantic Input and Manage Contexts
@@ -228,3 +228,19 @@ Refresh prompts at low frequency after `InputDeviceChangedEvent` or `InputBindin
 - Duplicate input: game code also reads GUIDE Actions directly and bypasses the GoDo snapshot.
 
 For exact members, see <xref:GoDo.IInputService>, <xref:GoDo.InputFrame>, <xref:GoDo.InputContextMode>, <xref:GoDo.InputOperationException>, and <xref:GoDo.GuideInput.GuideInputProfile>.
+
+## Capability map
+
+<div class="godo-capability-list">
+<section><h4>Read readiness, frame, device, and capabilities</h4><p>Consume Frame only in its current frame.</p><pre class="godo-capability-call"><code>input.IsReady
+input.Frame
+input.ActiveDevice
+input.Capabilities</code></pre></section>
+<section><h4>Set the base Context</h4><pre class="godo-capability-call"><code>input.SetBaseContext(GameInputContexts.Gameplay);</code></pre></section>
+<section><h4>Push, pop, and query Contexts</h4><pre class="godo-capability-call"><code>input.PushContext(GameInputContexts.Menu, InputContextMode.Exclusive);
+input.IsContextActive(GameInputContexts.Menu);
+input.PopContext(GameInputContexts.Menu);</code></pre></section>
+<section><h4>Obtain optional input extensions</h4><pre class="godo-capability-call"><code>input.TryGetRebinding(out IInputRebinding rebinding)
+input.TryGetRebindingPersistence(out IInputRebindingPersistence persistence)
+input.TryGetPromptQuery(out IInputPromptQuery prompts)</code></pre></section>
+</div>

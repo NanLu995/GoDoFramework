@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/data-table-runtime/index.md
-translation_source_hash: sha256:2bb411b639109014f98500c4e888de2e6e0f8eebd0a0a7bc5953cf13d4c7e296
+translation_source_hash: sha256:d752e7891bf450316af8e7178b3cc8ce58e9910ab7f3b0f5390d2abc3cc5edf1
 ---
 
 # DataTable: load game data at runtime
@@ -10,3 +10,14 @@ translation_source_hash: sha256:2bb411b639109014f98500c4e888de2e6e0f8eebd0a0a7bc
 Loading, cancellation, unloading, duplicates, and concurrent requests have explicit state and transactional commit boundaries. Runtime code never generates from CSV.
 
 See the [DataTable workflow](../data-tables/index.md) for the end-to-end process.
+
+## Capability map
+
+<div class="godo-capability-list">
+<section><h4>Load a set transactionally</h4><p>Select a client/server subset, observe table progress, and cancel waiting.</p><pre class="godo-capability-call"><code>await tables.LoadAsync(definition, subset, OnProgress, cancellationToken);</code></pre></section>
+<section><h4>Check committed load state</h4><pre class="godo-capability-call"><code>bool loaded = tables.IsLoaded(setId);</code></pre></section>
+<section><h4>Get a generated typed table</h4><pre class="godo-capability-call"><code>ItemTable items = tables.GetTable&lt;ItemTable&gt;(setId, "Item");</code></pre></section>
+<section><h4>Unload a set</h4><pre class="godo-capability-call"><code>bool unloaded = tables.Unload(setId);</code></pre></section>
+</div>
+
+See the [IDataTableService API](xref:GoDo.IDataTableService) for exact cancellation and failure semantics.
