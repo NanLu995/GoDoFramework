@@ -114,6 +114,8 @@ func _load_descriptors(descriptors: Array[Dictionary], loaded_ids: Dictionary) -
 
 
 func _append_manifest_descriptors(root_path: String, descriptors: Array[Dictionary]) -> void:
+	if not DirAccess.dir_exists_absolute(root_path):
+		return
 	var package_names := Array(DirAccess.get_directories_at(root_path))
 	package_names.sort()
 	for package_name in package_names:

@@ -52,6 +52,10 @@ GoDoRuntime="*res://addons/godo_framework/Core/GoDoRuntime.tscn"
 
 project/assembly_name="GoDoCorePackageVerification"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godo_framework/plugin.cfg")
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
@@ -207,6 +211,30 @@ def create_project(project_root: Path) -> None:
 def verify(project_root: Path, godot_path: Path, timeout: int) -> None:
     print(f"[BUILD] {PROJECT_NAME}.csproj")
     run(["dotnet", "build", f"{PROJECT_NAME}.csproj", "--nologo"], project_root)
+
+    print("[EDITOR] GoDo EditorPlugin without optional integrations")
+    editor_output = run(
+        [
+            str(godot_path),
+            "--headless",
+            "--editor",
+            "--path",
+            str(project_root),
+            "--quit-after",
+            "3",
+        ],
+        project_root,
+        timeout,
+    )
+    missing_integrations_error = (
+        'Couldn\'t open directory at path '
+        '"res://addons/godo_framework/Integrations".'
+    )
+    if missing_integrations_error in editor_output:
+        raise RuntimeError(
+            "核心包启用 EditorPlugin 时尝试打开不存在的 Integrations 目录。\n"
+            f"{editor_output}"
+        )
 
     print("[RUN] CoreSmoke.tscn")
     output = run(

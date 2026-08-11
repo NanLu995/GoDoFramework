@@ -45,7 +45,7 @@ EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其�
 
 ### 可选编辑器扩展
 
-宿主只在插件进入树时扫描一次 `res://addons/`、`res://addons/godo_framework/Integrations/` 与 `res://addons/godo_framework/Tools/` 的一级子目录，并读取固定名称 `godo_editor_extension.cfg`；不递归扫描、不轮询，也不使用 `_Process()`。清单必须提供唯一 `id`、显示名、精确匹配的宿主 API 版本和位于同一包目录内的 GDScript。清单按 `menu_section`、`menu_order`、扩展 ID 分组和排序：`data_tables` 归入“数据表”，其他扩展归入“编辑器扩展”。单个扩展失败只记录到“编辑器扩展状态...”，不阻断核心菜单或其他扩展。
+宿主只在插件进入树时扫描一次 `res://addons/`、`res://addons/godo_framework/Integrations/` 与 `res://addons/godo_framework/Tools/` 的一级子目录，并读取固定名称 `godo_editor_extension.cfg`；未安装可选集成时，缺失的 `Integrations/` 目录会被静默忽略。扫描不递归、不轮询，也不使用 `_Process()`。清单必须提供唯一 `id`、显示名、精确匹配的宿主 API 版本和位于同一包目录内的 GDScript。清单按 `menu_section`、`menu_order`、扩展 ID 分组和排序：`data_tables` 归入“数据表”，其他扩展归入“编辑器扩展”。单个扩展失败只记录到“编辑器扩展状态...”，不阻断核心菜单或其他扩展。
 
 扩展加载只允许注册菜单和延迟创建编辑器窗口，不等于安装运行时依赖。插件启用、Autoload 等项目修改仍由对应扩展先只读检查、展示确认，再执行幂等修改。宿主退出时按相反顺序停用扩展并清理菜单、信号和窗口。扩展宿主与控制器不进入游戏生命周期，Release 不产生每帧调用或托管分配。
 
@@ -111,7 +111,7 @@ EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其�
 
 - 已在未创建 C# 解决方案、未编译的新建 .NET 项目中验证：复制框架后可直接启用插件并打开检查窗口。
 - `dotnet build GoDoFramework.sln`：验证运行时代码可编译。
-- `python Verification/Package/verify_core_package.py --godot <GodotMonoConsole>`：在临时干净项目中只复制 `addons/godo_framework/`，验证核心包不依赖可选适配包或第三方插件。
+- `python Verification/Package/verify_core_package.py --godot <GodotMonoConsole>`：在临时干净项目中只复制 `addons/godo_framework/`，启用 EditorPlugin 后验证缺失可选集成目录不会报错，并验证核心运行时不依赖可选适配包或第三方插件。
 - 已在当前项目验证：启用插件后检查结果健康；禁用插件后菜单消失且 Autoload 保持不变。
 - 已在第二个小项目验证：未安装、安装、重复安装、名称冲突、重复路径和安全卸载。
 - `EditorExtensionUiRegression.gd` 会在 Headless Editor 中验证菜单分组、顺序和资源添加项前的分隔线，并真实触发已安装扩展的菜单，确认 GUIDE Input 与 Phantom Camera 报告非空、健康状态下修改按钮禁用。
