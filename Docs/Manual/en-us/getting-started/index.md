@@ -1,44 +1,55 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/index.md
-translation_source_hash: sha256:f03dc011f9ccfb7462c5f92f441843370ffb119fb7f2d9426bbc4dcb24dae8a4
+translation_source_hash: sha256:69a4b31c5b6c14109bf58ba3098fa30e90a2ff6d9703da07d1fc41a2ae6496f8
 ---
 
-# 5-Minute Quick Start
+# Quick start: build a runnable game skeleton
 
-This page adds GoDoFramework to an existing Godot C# project and verifies that its Runtime services are available.
+This path is for developers who already use Godot and C#. Its goal is not to demonstrate every API, but to establish useful boundaries in a small project: Runtime owns framework services, Procedure owns top-level game phases, Scene owns main content, and UI owns screen interfaces.
+
+After installation, complete these pages in order. Each one leaves a visible result.
+
+1. This page: install Runtime and confirm that services are available.
+2. [Create the first game flow](first-procedure.md): enter a Procedure from the game's boot scene.
+3. [Change the first main scene](first-scene.md): load main content from the Procedure.
+4. [Open a main menu and confirmation dialog](first-ui.md): create Scene, View, and Modal UI.
+5. [Enter gameplay from the menu and return](switch-procedures.md): connect UI intent to Procedure changes through events.
+6. [Add audio](add-audio.md), [save progress and settings](save-progress-and-settings.md), and [localize game text](localize-game-text.md): add common game foundations.
+
+After this path, use the [module guides](../guides/index.md) to explore the capabilities your project needs.
 
 ## Prerequisites
 
-- The .NET edition of Godot 4.7.1.
-- A working C# solution that has completed at least one successful Debug build.
-- .NET 8 for the target project; Android builds use .NET 9 according to the project requirements.
+- Godot 4.7.1 .NET edition.
+- A usable C# solution that has completed at least one Debug build.
+- .NET 8 for the target project; use .NET 9 for Android builds when the project requires it.
 
 ## 1. Copy the framework directory
 
-Copy the complete directory into the target project without splitting its internal modules:
+Copy the complete directory into the target project. Do not split internal modules.
 
 ```text
 addons/godo_framework/
 ```
 
-Do not copy this repository's `project.godot`, `.csproj`, verification scenes, or Demo as target-project configuration.
+Do not copy this repository's `project.godot`, `.csproj`, verification scenes, or demos as target-project configuration.
 
 ## 2. Enable the editor plugin
 
-Open **Project Settings → Plugins** in Godot and enable `GoDo Framework`. Enabling the plugin only registers editor tools; it does not install an Autoload automatically.
+In Godot, open **Project Settings → Plugins** and enable `GoDo Framework`. This registers editor tools only; it does not install the Autoload automatically.
 
-## 3. Check and install the Runtime
+## 3. Check and install Runtime
 
-1. Complete a C# Debug build of the target project.
-2. Open **GoDo → Setup...** in the editor's top toolbar.
-3. Resolve errors shown by the setup window.
+1. Complete a C# Debug build for the target project.
+2. Open **GoDo → Setup...** from the editor menu.
+3. Resolve every reported issue.
 4. When all checks pass, explicitly select **Install Runtime**.
 
-The plugin installs only the single `GoDoRuntime` Autoload. It does not modify the `.csproj`, input map, export presets, or game scenes.
+The plugin installs only one `GoDoRuntime` Autoload. It does not modify `.csproj`, input mappings, export presets, or gameplay scenes.
 
 ## 4. Confirm that services are available
 
-Game code can obtain registered long-lived services through `Services.Get<T>()`:
+Business code can obtain registered long-lived services through `Services.Get<T>()`:
 
 ```csharp
 using GoDo;
@@ -48,14 +59,10 @@ IUiService ui = Services.Get<IUiService>();
 IAudioService audio = Services.Get<IAudioService>();
 ```
 
-The game entry point starts its own first Procedure. Do not initialize GoDoRuntime again in a game scene, and do not place menu or level flow inside GoDoRuntime.
+The game's entry point starts its first Procedure. Do not initialize GoDoRuntime again in a gameplay scene or put menu and level flow inside GoDoRuntime.
 
 ## Expected result
 
-- The Godot Autoload list contains exactly one `GoDoRuntime`.
-- The framework checks in the Setup window pass.
+- The Godot Autoload list contains only one `GoDoRuntime`.
+- The Setup window reports that framework checks pass.
 - C# code can obtain registered services.
-
-## Next steps
-
-Continue with [Enter the First Procedure](first-procedure.md), then follow navigation through the first scene, UI, flow change, audio, saves, and localization. For complete version maintenance, see [Install, Upgrade, and Uninstall](install-upgrade-uninstall.md).

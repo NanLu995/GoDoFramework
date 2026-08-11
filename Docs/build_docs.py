@@ -937,12 +937,30 @@ def write_root_landing() -> None:
 <body>
   <main>
     <h1>GoDoFramework</h1>
-    <p>Choose documentation language / 选择文档语言</p>
+    <p>Opening your preferred documentation language… / 正在打开你的首选文档语言…</p>
     <nav>
-      <a href="zh-cn/index.html" lang="zh-CN">简体中文</a>
-      <a href="en-us/index.html" lang="en-US">English</a>
+      <a href="zh-cn/index.html" lang="zh-CN" data-godo-locale="zh-cn">简体中文</a>
+      <a href="en-us/index.html" lang="en-US" data-godo-locale="en-us">English</a>
     </nav>
   </main>
+  <script>
+    (() => {
+      const storageKey = "godo-docs-locale";
+      const savedLocale = localStorage.getItem(storageKey);
+      const browserLanguages = navigator.languages || [navigator.language || ""];
+      const preferredLocale = browserLanguages.some((language) => language.toLowerCase().startsWith("zh"))
+        ? "zh-cn"
+        : "en-us";
+      const locale = savedLocale === "zh-cn" || savedLocale === "en-us"
+        ? savedLocale
+        : preferredLocale;
+
+      document.querySelectorAll("[data-godo-locale]").forEach((link) => {
+        link.addEventListener("click", () => localStorage.setItem(storageKey, link.dataset.godoLocale));
+      });
+      window.location.replace(`${locale}/index.html`);
+    })();
+  </script>
 </body>
 </html>
 """
@@ -966,7 +984,7 @@ def inject_language_switches() -> None:
                 continue
             snippet = f"""
 {LANGUAGE_SWITCH_MARKER}
-<a class="godo-language-switch" href="{html.escape(href, quote=True)}" hreflang="{other_locale}">{html.escape(label)}</a>
+<a class="godo-language-switch" href="{html.escape(href, quote=True)}" hreflang="{other_locale}" onclick="localStorage.setItem('godo-docs-locale', '{other_locale}')">{html.escape(label)}</a>
 <style>
 .godo-language-switch {{ position: fixed; right: 1rem; bottom: 1rem; z-index: 1080; padding: .45rem .75rem; border: 1px solid var(--bs-border-color); border-radius: .5rem; background: var(--bs-body-bg); color: var(--bs-link-color); text-decoration: none; box-shadow: 0 .2rem .8rem rgba(0,0,0,.15); }}
 .godo-language-switch:hover {{ text-decoration: none; filter: brightness(.95); }}
@@ -1010,6 +1028,12 @@ def validate_site() -> None:
         toc_text = chinese_toc.read_text(encoding="utf-8")
         if 'title="GoDoFramework">GoDoFramework</a>' in toc_text:
             errors.append("导航仍包含与顶部品牌重复的首页入口")
+
+    root_landing = SITE_ROOT / "index.html"
+    if root_landing.is_file() and "godo-docs-locale" not in root_landing.read_text(
+        encoding="utf-8"
+    ):
+        errors.append("根页面缺少自动语言选择逻辑")
 
     for locale in LOCALES:
         theme_css = SITE_ROOT / locale / "public" / "main.css"

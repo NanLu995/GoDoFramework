@@ -1,6 +1,17 @@
-# 5 分钟快速开始
+# 快速开始：搭建可运行的游戏骨架
 
-本页帮助你把 GoDoFramework 接入现有 Godot C# 项目，并确认 Runtime 服务已经可用。
+本路线面向已经会使用 Godot 与 C# 的开发者。目标不是演示每个 API，而是在一个小型项目中建立正确边界：Runtime 管框架服务，Procedure 管顶层游戏阶段，Scene 管主内容，UI 管屏幕界面。
+
+完成安装后，按顺序完成以下页面；每页都会留下一个可观察结果。
+
+1. 本页：安装 Runtime 并确认服务可用。
+2. [创建第一个游戏流程](first-procedure.md)：从业务启动场景进入 Procedure。
+3. [切换第一个主内容场景](first-scene.md)：让流程加载主场景。
+4. [打开主菜单与确认框](first-ui.md)：建立 Scene、View 与 Modal UI。
+5. [从主菜单进入游戏并返回](switch-procedures.md)：用事件连接 UI 意图与流程切换。
+6. [添加音频](add-audio.md)、[保存进度与设置](save-progress-and-settings.md)、[本地化游戏文本](localize-game-text.md)：补齐常见游戏基础能力。
+
+完成这条路线后，转到[模块指南](../guides/index.md)，按模块深入当前项目需要的能力。
 
 ## 前置条件
 
@@ -50,7 +61,3 @@ IAudioService audio = Services.Get<IAudioService>();
 - Godot 的 Autoload 列表中只有一个 `GoDoRuntime`。
 - Setup 窗口的框架检查通过。
 - C# 代码能够获取已经注册的服务。
-
-## 下一步
-
-继续完成[进入第一个 Procedure](first-procedure.md)，随后按导航依次创建主场景、UI、流程切换、音频、存档和本地化。需要更完整的版本维护步骤时，查看[安装、升级与卸载](install-upgrade-uninstall.md)。

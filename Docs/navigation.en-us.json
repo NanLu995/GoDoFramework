@@ -16,8 +16,18 @@
       ]
     },
     {
-      "name": "Feature Guides",
+      "name": "Module Guides",
       "pages": [
+        "guides/index.md",
+        "guides/resources/index.md",
+        "guides/scene/index.md",
+        "guides/ui/index.md",
+        "guides/audio/index.md",
+        "guides/save/index.md",
+        "guides/settings/index.md",
+        "guides/localization/index.md",
+        "guides/data-table-runtime/index.md",
+        "guides/data-table-tool/index.md",
         "guides/input/index.md",
         "guides/input-rebinding/index.md",
         "guides/camera/index.md",
@@ -26,11 +36,22 @@
         "guides/scheduler/index.md",
         "guides/node-pool/index.md",
         "guides/configuration/index.md",
-        "guides/data-tables/index.md",
+        "guides/procedure-recovery/index.md"
+      ]
+    },
+    {
+      "name": "Cross-module Workflows",
+      "pages": [
         "guides/resources-and-scenes/index.md",
         "guides/ui-and-audio/index.md",
         "guides/save-settings-localization/index.md",
-        "guides/procedure-recovery/index.md"
+        "guides/data-tables/index.md"
+      ]
+    },
+    {
+      "name": "Integrations and Extensions",
+      "pages": [
+        "integrations/index.md"
       ]
     },
     {

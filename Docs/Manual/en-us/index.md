@@ -1,38 +1,36 @@
 ---
 translation_of: Docs/Manual/zh-cn/index.md
-translation_source_hash: sha256:0281e73fe2c6b4ebfa9f1dcd15313423eda4c1a363d9e8a9af79e0a9cd7dadc1
+translation_source_hash: sha256:16af23d6e4acfe0e44163d53580f04111ebff306bcbbc105835c244fed9b846a
 ---
 
-# GoDoFramework User Manual
+# GoDoFramework Manual
 
-GoDoFramework is a game-development framework for the currently supported Godot 4.x C# release. It provides consistent ways to handle scene transitions, UI navigation, audio, input, saves, settings, and top-level game flow so you can focus on the game itself. See Getting Started for the exact minimum version.
+GoDoFramework provides reusable game flow, scenes, UI, audio, input, data, and diagnostics for Godot 4.x C# projects. It does not replace gameplay code or native Godot nodes; it defines lifecycle, failure, and collaboration boundaries for the shared systems that become difficult as a project grows.
 
-## Projects it is designed for
+## Choose a reading path
 
-- Godot C# projects that want consistent ways to use scenes, UI, audio, input, saves, and game flow.
-- Growing teams that need explicit failure behavior, lifecycle rules, and thread constraints.
+<div class="godo-doc-grid">
+  <a class="godo-doc-card" href="getting-started/index.md">
+    <strong>Build a game skeleton</strong>
+    <span>Install the Runtime, then add flow, scenes, UI, an interaction loop, audio, saves, and localization.</span>
+  </a>
+  <a class="godo-doc-card" href="guides/index.md">
+    <strong>Solve a problem by module</strong>
+    <span>If the framework is already installed, start directly with Procedure, Scene, UI, Input, Save, or another module.</span>
+  </a>
+  <a class="godo-doc-card" href="integrations/index.md">
+    <strong>Integrate third-party capabilities</strong>
+    <span>Learn the setup, boundaries, and constraints for G.U.I.D.E-CSharp and Phantom Camera.</span>
+  </a>
+  <a class="godo-doc-card" href="troubleshooting/index.md">
+    <strong>Troubleshoot a runtime issue</strong>
+    <span>Locate installation, resource, flow, UI, input, and diagnostic problems from their observable symptoms.</span>
+  </a>
+</div>
 
-## What you can build with it
+## When this framework fits
 
-- Organize top-level flow from the main menu through gameplay and results.
-- Switch main scenes and manage HUDs, menus, and modal dialogs.
-- Play music and sound effects, read input, and control the main camera.
-- Save game data and player settings.
-- Load resources, read configuration, and diagnose runtime problems consistently.
+- A Godot C# project that needs consistent top-level flow, main scenes, screen UI, audio, input, saves, and settings.
+- A team that needs explicit boundaries for asynchronous failure, node lifetime, and the Godot main thread.
 
-The framework does not design characters, combat, or level rules for you, and it does not prevent you from using normal Godot nodes and scenes. It provides reusable foundations that can be shared across projects.
-
-## Start here
-
-Start with the [5-minute quick start](getting-started/index.md) to install and verify Runtime. Then follow the tutorials through the first Procedure, scene, UI, flow change, audio, saves, and localization.
-
-After the introductory path, choose by task:
-
-- Framework setup and version maintenance: [Install, Upgrade, and Uninstall](getting-started/install-upgrade-uninstall.md).
-- Build a framework mental model: [Services and Events](guides/services-and-events/index.md) and [Procedure Recovery](guides/procedure-recovery/index.md).
-- Build game features: [Input](guides/input/index.md), [Camera](guides/camera/index.md), and [UI and Audio](guides/ui-and-audio/index.md).
-- Manage game data: [Resources and Scenes](guides/resources-and-scenes/index.md), [Typed Configuration](guides/configuration/index.md), and [Data Tables](guides/data-tables/index.md).
-- Improve release quality: [Saves, Settings, and Localization](guides/save-settings-localization/index.md) and [Logs and Diagnostics](guides/diagnostics/index.md).
-- When something fails, start with symptom-based [Troubleshooting](troubleshooting/index.md).
-
-Use API Reference when you need exact types, members, parameters, or exceptions.
+Use the API Reference for exact types, members, parameters, and exceptions. This manual focuses on when to use a capability, how to combine it, and how to verify the result.
