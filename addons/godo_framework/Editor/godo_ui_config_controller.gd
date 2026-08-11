@@ -15,6 +15,7 @@ var _config_file_dialog: EditorFileDialog
 var _config_selector_dialog: ConfirmationDialog
 var _config_selector_label: Label
 var _config_selector_tree: Tree
+var _config_selector_create_button: Button
 var _config_selector_manual_button: Button
 var _scene_file_dialog: EditorFileDialog
 var _manage_dialog: AcceptDialog
@@ -25,6 +26,8 @@ var _add_button: Button
 var _edit_button: Button
 var _remove_button: Button
 var _validate_button: Button
+var _switch_config_button: Button
+var _create_config_button: Button
 var _locate_config_button: Button
 var _locate_scene_button: Button
 var _entry_dialog: ConfirmationDialog
@@ -50,6 +53,7 @@ func initialize(plugin: EditorPlugin) -> void:
 	var editor_root := _plugin.get_editor_interface().get_base_control()
 
 	_config_file_dialog = EditorFileDialog.new()
+	_config_file_dialog.name = "UiConfigFileDialog"
 	_config_file_dialog.access = FileDialog.ACCESS_RESOURCES
 	_config_file_dialog.mode_overrides_title = false
 	_config_file_dialog.filters = PackedStringArray(["*.tres,*.res;UI config resources"])
@@ -98,6 +102,7 @@ func dispose() -> void:
 
 func _create_config_selector_dialog(editor_root: Control) -> void:
 	_config_selector_dialog = ConfirmationDialog.new()
+	_config_selector_dialog.name = "UiConfigSelectorDialog"
 	_config_selector_dialog.title = "选择 UI 配置"
 	_config_selector_dialog.ok_button_text = "打开"
 	_config_selector_dialog.cancel_button_text = "取消"
@@ -116,6 +121,7 @@ func _create_config_selector_dialog(editor_root: Control) -> void:
 	_config_selector_label = Label.new()
 	content.add_child(_config_selector_label)
 	_config_selector_tree = Tree.new()
+	_config_selector_tree.name = "UiConfigSelectorTree"
 	_config_selector_tree.columns = 1
 	_config_selector_tree.column_titles_visible = true
 	_config_selector_tree.hide_root = true
@@ -126,10 +132,19 @@ func _create_config_selector_dialog(editor_root: Control) -> void:
 	_config_selector_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_child(_config_selector_tree)
 
+	var action_row := HBoxContainer.new()
+	action_row.add_theme_constant_override("separation", 8)
+	content.add_child(action_row)
+	_config_selector_create_button = Button.new()
+	_config_selector_create_button.name = "UiConfigSelectorCreateButton"
+	_config_selector_create_button.text = "创建 UI 配置..."
+	_config_selector_create_button.pressed.connect(_on_config_selector_create_pressed)
+	action_row.add_child(_config_selector_create_button)
 	_config_selector_manual_button = Button.new()
+	_config_selector_manual_button.name = "UiConfigSelectorManualButton"
 	_config_selector_manual_button.text = "手动选择其他配置..."
 	_config_selector_manual_button.pressed.connect(_on_config_selector_manual_pressed)
-	content.add_child(_config_selector_manual_button)
+	action_row.add_child(_config_selector_manual_button)
 	_config_selector_dialog.confirmed.connect(_on_config_selector_confirmed)
 	editor_root.add_child(_config_selector_dialog)
 
@@ -144,11 +159,11 @@ func open_create_dialog() -> void:
 
 
 func open_manage_dialog() -> void:
-	_open_existing_config(ACTION_MANAGE, "选择要管理的 UI 配置")
+	_open_existing_config(ACTION_MANAGE)
 
 
 func open_validate_dialog() -> void:
-	_open_existing_config(ACTION_VALIDATE, "选择要校验的 UI 配置")
+	_open_existing_config(ACTION_VALIDATE)
 
 
 func _create_manage_dialog(editor_root: Control) -> void:
@@ -178,6 +193,14 @@ func _create_manage_dialog(editor_root: Control) -> void:
 	_managed_config_label = Label.new()
 	_managed_config_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	config_toolbar.add_child(_managed_config_label)
+	_switch_config_button = Button.new()
+	_switch_config_button.text = "切换配置"
+	_switch_config_button.pressed.connect(_on_switch_config_pressed)
+	config_toolbar.add_child(_switch_config_button)
+	_create_config_button = Button.new()
+	_create_config_button.text = "创建配置"
+	_create_config_button.pressed.connect(_on_create_config_pressed)
+	config_toolbar.add_child(_create_config_button)
 	_locate_config_button = Button.new()
 	_locate_config_button.text = "定位配置"
 	_locate_config_button.pressed.connect(_on_locate_config_pressed)
@@ -351,21 +374,9 @@ func _open_config_selector(action: String, title: String) -> void:
 	_config_file_dialog.popup_centered(Vector2i(720, 480))
 
 
-func _open_existing_config(action: String, title: String) -> void:
+func _open_existing_config(action: String) -> void:
 	var config_paths := _prepare_config_paths(_find_ui_config_paths("res://"))
-	var direct_path := _get_direct_config_path(config_paths)
-	if not direct_path.is_empty():
-		_dispatch_config_action(action, direct_path)
-		return
-
-	if config_paths.is_empty():
-		_open_config_selector(action, "%s（未自动发现，可手动选择）" % title)
-		return
 	_show_config_selector(action, config_paths)
-
-
-func _get_direct_config_path(config_paths: PackedStringArray) -> String:
-	return config_paths[0] if config_paths.size() == 1 else ""
 
 
 func _prepare_config_paths(config_paths: PackedStringArray) -> PackedStringArray:
@@ -388,14 +399,22 @@ func _show_config_selector(action: String, config_paths: PackedStringArray) -> v
 		if action == ACTION_MANAGE
 		else "选择要校验的 UI 配置")
 	_config_selector_dialog.ok_button_text = "管理" if action == ACTION_MANAGE else "校验"
-	_config_selector_label.text = "项目内发现 %d 份 UiConfig，请明确选择目标。" % config_paths.size()
+	_config_selector_label.text = (
+		"项目内没有 UiConfig，请创建配置或手动选择。"
+		if config_paths.is_empty()
+		else "项目内发现 %d 份 UiConfig，请明确选择目标。" % config_paths.size())
 	_config_selector_tree.clear()
 	var root := _config_selector_tree.create_item()
-	for path in config_paths:
-		var item := _config_selector_tree.create_item(root)
-		item.set_text(0, path)
-		item.set_tooltip_text(0, path)
-		item.set_metadata(0, path)
+	if config_paths.is_empty():
+		var empty_item := _config_selector_tree.create_item(root)
+		empty_item.set_text(0, "当前没有 UI 配置")
+		empty_item.set_selectable(0, false)
+	else:
+		for path in config_paths:
+			var item := _config_selector_tree.create_item(root)
+			item.set_text(0, path)
+			item.set_tooltip_text(0, path)
+			item.set_metadata(0, path)
 	_config_selector_dialog.get_ok_button().disabled = true
 	_config_selector_dialog.popup_centered(Vector2i(760, 460))
 
@@ -420,8 +439,24 @@ func _on_config_selector_confirmed() -> void:
 
 
 func _on_config_selector_manual_pressed() -> void:
+	var action := _selector_action
 	_config_selector_dialog.hide()
-	_open_config_selector(_selector_action, "手动选择 UI 配置")
+	call_deferred("_open_config_selector", action, "手动选择 UI 配置")
+
+
+func _on_config_selector_create_pressed() -> void:
+	_config_selector_dialog.hide()
+	call_deferred("open_create_dialog")
+
+
+func _on_switch_config_pressed() -> void:
+	_manage_dialog.hide()
+	_open_existing_config(ACTION_MANAGE)
+
+
+func _on_create_config_pressed() -> void:
+	_manage_dialog.hide()
+	open_create_dialog()
 
 
 func _get_selected_config_path() -> String:

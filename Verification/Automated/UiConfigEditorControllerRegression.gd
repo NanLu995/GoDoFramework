@@ -43,17 +43,6 @@ func _initialize() -> void:
 	if root_configs.has("res://Templates/GoDoTemplate/Ui/UiConfig.tres"):
 		_fail("UiConfig 资源发现进入了嵌套 GoDoTemplate 项目")
 		return
-	if not controller._get_direct_config_path(PackedStringArray()).is_empty():
-		_fail("零配置时错误地选择了直接打开目标")
-		return
-	if controller._get_direct_config_path(
-		PackedStringArray([VALID_CONFIG_PATH])) != VALID_CONFIG_PATH:
-		_fail("单配置时没有直接返回目标")
-		return
-	if not controller._get_direct_config_path(
-		PackedStringArray([VALID_CONFIG_PATH, "res://OtherUiConfig.tres"])).is_empty():
-		_fail("多配置时错误地选择了直接打开目标")
-		return
 	var prepared_paths: PackedStringArray = controller._prepare_config_paths(
 		PackedStringArray([
 			"res://ZUiConfig.tres",

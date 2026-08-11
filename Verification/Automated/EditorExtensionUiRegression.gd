@@ -20,6 +20,24 @@ func _run() -> void:
 	var menu := menu_button.get_popup()
 	if not _verify_menu_layout(menu):
 		return
+	if not await _open_and_verify_management_selector(
+		menu,
+		"资源清单 (Resource Manifest)...",
+		"ManifestSelectorDialog",
+		"ManifestSelectorTree",
+		"ManifestSelectorCreateButton",
+		"ManifestSelectorManualButton",
+		"ManifestFileDialog"):
+		return
+	if not await _open_and_verify_management_selector(
+		menu,
+		"UI 配置 (UI Config)...",
+		"UiConfigSelectorDialog",
+		"UiConfigSelectorTree",
+		"UiConfigSelectorCreateButton",
+		"UiConfigSelectorManualButton",
+		"UiConfigFileDialog"):
+		return
 	if not await _open_and_verify_setup(menu):
 		return
 	if not await _open_and_verify_datatable(menu):
@@ -43,7 +61,7 @@ func _run() -> void:
 	):
 		return
 
-	print("[EditorExtensionUiRegression] PASS (5/5)")
+	print("[EditorExtensionUiRegression] PASS (7/7)")
 	quit(0)
 
 
@@ -51,10 +69,8 @@ func _verify_menu_layout(menu: PopupMenu) -> bool:
 	var ordered_labels := PackedStringArray([
 		"配置 (Setup)...",
 		"资源管理",
-		"创建资源清单 (Create Resource Manifest)...",
-		"管理资源清单 (Manage Resource Manifest)...",
-		"校验资源清单 (Validate Resource Manifest)...",
-		"选择资源并添加 (Select Resource to Add)...",
+		"资源清单 (Resource Manifest)...",
+		"UI 配置 (UI Config)...",
 		"数据表",
 		"数据表配置 (DataTable Configuration)...",
 		"编辑器扩展",
@@ -63,7 +79,6 @@ func _verify_menu_layout(menu: PopupMenu) -> bool:
 		"幻影相机配置 (Phantom Camera Settings)...",
 	])
 	var previous_index := -1
-	var add_resource_index := -1
 	for label in ordered_labels:
 		var index := _find_menu_index(menu, label)
 		if index < 0:
@@ -73,11 +88,61 @@ func _verify_menu_layout(menu: PopupMenu) -> bool:
 			_fail("菜单顺序错误：%s" % label)
 			return false
 		previous_index = index
-		if label == "选择资源并添加 (Select Resource to Add)...":
-			add_resource_index = index
-	if add_resource_index <= 0 or not menu.is_item_separator(add_resource_index - 1):
-		_fail("“选择资源并添加”前缺少分组分隔线。")
+	for removed_label in PackedStringArray([
+		"创建资源清单 (Create Resource Manifest)...",
+		"管理资源清单 (Manage Resource Manifest)...",
+		"校验资源清单 (Validate Resource Manifest)...",
+		"选择资源并添加 (Select Resource to Add)...",
+		"创建 UI 配置 (Create UI Config)...",
+		"管理 UI 配置 (Manage UI Config)...",
+		"校验 UI 配置 (Validate UI Config)...",
+	]):
+		if _find_menu_index(menu, removed_label) >= 0:
+			_fail("旧菜单项仍然存在：%s" % removed_label)
+			return false
+	return true
+
+
+func _open_and_verify_management_selector(
+	menu: PopupMenu,
+	menu_label: String,
+	dialog_name: String,
+	tree_name: String,
+	create_button_name: String,
+	manual_button_name: String,
+	file_dialog_name: String
+) -> bool:
+	var menu_id := _find_menu_id(menu, menu_label)
+	if menu_id < 0:
+		_fail("未找到菜单项：%s" % menu_label)
 		return false
+	menu.id_pressed.emit(menu_id)
+	await process_frame
+	await process_frame
+
+	var dialog := root.find_child(dialog_name, true, false) as Window
+	if dialog == null or not dialog.visible:
+		_fail("菜单没有打开管理选择弹窗：%s" % menu_label)
+		return false
+	var selector_tree := dialog.find_child(tree_name, true, false) as Tree
+	if selector_tree == null or selector_tree.get_root() == null:
+		_fail("管理选择弹窗没有显示配置列表：%s" % menu_label)
+		return false
+	if dialog.find_child(create_button_name, true, false) == null:
+		_fail("管理选择弹窗缺少创建入口：%s" % menu_label)
+		return false
+	var manual_button := dialog.find_child(manual_button_name, true, false) as Button
+	if manual_button == null:
+		_fail("管理选择弹窗缺少手动选择入口：%s" % menu_label)
+		return false
+	manual_button.pressed.emit()
+	await process_frame
+	await process_frame
+	var file_dialog := root.find_child(file_dialog_name, true, false) as Window
+	if file_dialog == null or not file_dialog.visible:
+		_fail("手动选择入口没有打开文件弹窗：%s" % menu_label)
+		return false
+	file_dialog.hide()
 	return true
 
 

@@ -22,6 +22,11 @@ enum HealthLevel {
 
 var _plugin: EditorPlugin
 var _manifest_file_dialog: EditorFileDialog
+var _manifest_selector_dialog: ConfirmationDialog
+var _manifest_selector_label: Label
+var _manifest_selector_tree: Tree
+var _manifest_selector_create_button: Button
+var _manifest_selector_manual_button: Button
 var _resource_file_dialog: EditorFileDialog
 var _manifest_add_confirm_dialog: ConfirmationDialog
 var _manifest_manage_dialog: AcceptDialog
@@ -33,12 +38,18 @@ var _manifest_report_label: RichTextLabel
 var _manifest_entries_tree: Tree
 var _manifest_edit_id_input: LineEdit
 var _manifest_edit_locator_input: LineEdit
+var _manifest_switch_button: Button
+var _manifest_create_manage_button: Button
+var _manifest_add_resource_button: Button
+var _manifest_validate_button: Button
 var _manifest_edit_button: Button
 var _manifest_uid_button: Button
 var _manifest_remove_button: Button
 var _manifest_action := ""
+var _manifest_return_action_after_create := ""
 var _pending_resource_paths := PackedStringArray()
 var _pending_manifest_path := ""
+var _pending_add_target_manifest_path := ""
 var _managed_manifest_path := ""
 var _managed_entry_index := -1
 var _csharp_resource_load_error := ""
@@ -47,6 +58,7 @@ var _uid_generation_error := ""
 func initialize(plugin: EditorPlugin) -> void:
 	_plugin = plugin
 	_manifest_file_dialog = EditorFileDialog.new()
+	_manifest_file_dialog.name = "ManifestFileDialog"
 	_manifest_file_dialog.title = "校验资源清单"
 	_manifest_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 	_manifest_file_dialog.access = FileDialog.ACCESS_RESOURCES
@@ -54,7 +66,9 @@ func initialize(plugin: EditorPlugin) -> void:
 	_manifest_file_dialog.filters = _manifest_file_filters()
 	_manifest_file_dialog.current_path = "res://"
 	_manifest_file_dialog.file_selected.connect(_on_manifest_file_selected)
+	_manifest_file_dialog.canceled.connect(_on_manifest_file_dialog_canceled)
 	_plugin.get_editor_interface().get_base_control().add_child(_manifest_file_dialog)
+	_create_manifest_selector_dialog(_plugin.get_editor_interface().get_base_control())
 
 	_resource_file_dialog = EditorFileDialog.new()
 	_resource_file_dialog.title = "选择要添加的资源"
@@ -77,7 +91,8 @@ func initialize(plugin: EditorPlugin) -> void:
 	_manifest_manage_dialog = AcceptDialog.new()
 	_manifest_manage_dialog.title = "资源清单管理"
 	_manifest_manage_dialog.ok_button_text = "关闭"
-	_manifest_manage_dialog.min_size = Vector2i(960, 520)
+	_manifest_manage_dialog.min_size = Vector2i(1100, 520)
+	_manifest_manage_dialog.exclusive = false
 	_manifest_manage_dialog.get_label().hide()
 	_manifest_entries_tree = Tree.new()
 	_manifest_entries_tree.columns = 3
@@ -101,6 +116,14 @@ func initialize(plugin: EditorPlugin) -> void:
 	_manifest_entries_tree.offset_top = 16
 	_manifest_entries_tree.offset_right = -16
 	_manifest_entries_tree.offset_bottom = -56
+	_manifest_switch_button = _manifest_manage_dialog.add_button("切换清单", true)
+	_manifest_switch_button.pressed.connect(_on_manifest_switch_pressed)
+	_manifest_create_manage_button = _manifest_manage_dialog.add_button("创建清单", true)
+	_manifest_create_manage_button.pressed.connect(_on_manifest_create_manage_pressed)
+	_manifest_add_resource_button = _manifest_manage_dialog.add_button("添加资源", true)
+	_manifest_add_resource_button.pressed.connect(_on_manifest_add_resource_pressed)
+	_manifest_validate_button = _manifest_manage_dialog.add_button("校验", true)
+	_manifest_validate_button.pressed.connect(_on_manifest_validate_pressed)
 	_manifest_edit_button = _manifest_manage_dialog.add_button("编辑选中项", true)
 	_manifest_edit_button.disabled = true
 	_manifest_edit_button.pressed.connect(_on_manifest_edit_pressed)
@@ -177,32 +200,184 @@ func initialize(plugin: EditorPlugin) -> void:
 	_plugin.get_editor_interface().get_base_control().add_child(_manifest_report_dialog)
 
 func dispose() -> void:
-	for dialog in [_manifest_file_dialog, _resource_file_dialog, _manifest_add_confirm_dialog, _manifest_manage_dialog, _manifest_remove_confirm_dialog, _manifest_edit_dialog, _manifest_uid_confirm_dialog, _manifest_report_dialog]:
+	for dialog in [_manifest_file_dialog, _manifest_selector_dialog, _resource_file_dialog, _manifest_add_confirm_dialog, _manifest_manage_dialog, _manifest_remove_confirm_dialog, _manifest_edit_dialog, _manifest_uid_confirm_dialog, _manifest_report_dialog]:
 		if is_instance_valid(dialog):
 			dialog.queue_free()
 
 func open_validate_dialog() -> void:
-	_open_manifest_validate_dialog()
+	_open_existing_manifest(MANIFEST_ACTION_VALIDATE)
 
 func open_create_dialog() -> void:
 	_open_manifest_create_dialog()
 
 func open_manage_dialog() -> void:
-	_open_manifest_manage_dialog()
+	_open_existing_manifest(MANIFEST_ACTION_MANAGE)
 
 func open_add_selected_resource_dialog() -> void:
+	_pending_add_target_manifest_path = ""
 	_open_add_selected_resource_dialog()
 
-func _open_manifest_validate_dialog() -> void:
+func _create_manifest_selector_dialog(editor_root: Control) -> void:
+	_manifest_selector_dialog = ConfirmationDialog.new()
+	_manifest_selector_dialog.name = "ManifestSelectorDialog"
+	_manifest_selector_dialog.title = "选择资源清单"
+	_manifest_selector_dialog.ok_button_text = "打开"
+	_manifest_selector_dialog.cancel_button_text = "取消"
+	_manifest_selector_dialog.min_size = Vector2i(760, 460)
+	_manifest_selector_dialog.get_label().hide()
+
+	var content := VBoxContainer.new()
+	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	content.offset_left = 16
+	content.offset_top = 16
+	content.offset_right = -16
+	content.offset_bottom = -64
+	content.add_theme_constant_override("separation", 8)
+	_manifest_selector_dialog.add_child(content)
+
+	_manifest_selector_label = Label.new()
+	content.add_child(_manifest_selector_label)
+	_manifest_selector_tree = Tree.new()
+	_manifest_selector_tree.name = "ManifestSelectorTree"
+	_manifest_selector_tree.columns = 1
+	_manifest_selector_tree.column_titles_visible = true
+	_manifest_selector_tree.hide_root = true
+	_manifest_selector_tree.select_mode = Tree.SELECT_ROW
+	_manifest_selector_tree.set_column_title(0, "ResourceManifest Resource")
+	_manifest_selector_tree.item_selected.connect(_on_manifest_selector_item_selected)
+	_manifest_selector_tree.item_activated.connect(_on_manifest_selector_item_activated)
+	_manifest_selector_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(_manifest_selector_tree)
+	var action_row := HBoxContainer.new()
+	action_row.add_theme_constant_override("separation", 8)
+	content.add_child(action_row)
+	_manifest_selector_create_button = Button.new()
+	_manifest_selector_create_button.name = "ManifestSelectorCreateButton"
+	_manifest_selector_create_button.text = "创建资源清单..."
+	_manifest_selector_create_button.pressed.connect(_on_manifest_selector_create_pressed)
+	action_row.add_child(_manifest_selector_create_button)
+	_manifest_selector_manual_button = Button.new()
+	_manifest_selector_manual_button.name = "ManifestSelectorManualButton"
+	_manifest_selector_manual_button.text = "手动选择其他资源清单..."
+	_manifest_selector_manual_button.pressed.connect(_on_manifest_selector_manual_pressed)
+	action_row.add_child(_manifest_selector_manual_button)
+	_manifest_selector_dialog.confirmed.connect(_on_manifest_selector_confirmed)
+	editor_root.add_child(_manifest_selector_dialog)
+
+
+func _open_existing_manifest(action: String) -> void:
+	var manifest_paths := _prepare_manifest_paths(_find_resource_manifest_paths("res://"))
+	_show_manifest_selector(action, manifest_paths)
+
+
+func _open_manifest_file_selector(action: String, title: String) -> void:
 	if not is_instance_valid(_manifest_file_dialog):
 		return
-	_manifest_action = MANIFEST_ACTION_VALIDATE
-	_manifest_file_dialog.title = "校验资源清单"
+	_manifest_action = action
+	_manifest_file_dialog.title = title
 	_manifest_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 	_manifest_file_dialog.filters = _manifest_file_filters()
-	_manifest_file_dialog.get_ok_button().text = "打开"
+	_manifest_file_dialog.get_ok_button().text = "选择"
 	_manifest_file_dialog.current_path = "res://"
 	_manifest_file_dialog.popup_centered(Vector2i(720, 480))
+
+
+func _prepare_manifest_paths(manifest_paths: PackedStringArray) -> PackedStringArray:
+	var unique_paths := {}
+	for path in manifest_paths:
+		var normalized_path := path.strip_edges()
+		if not normalized_path.is_empty():
+			unique_paths[normalized_path] = true
+	var prepared := PackedStringArray()
+	for path in unique_paths:
+		prepared.append(path)
+	prepared.sort()
+	return prepared
+
+
+func _show_manifest_selector(action: String, manifest_paths: PackedStringArray) -> void:
+	if not is_instance_valid(_manifest_selector_dialog):
+		return
+	_manifest_action = action
+	_manifest_selector_dialog.title = "选择要管理的资源清单" if action == MANIFEST_ACTION_MANAGE else "选择要校验的资源清单" if action == MANIFEST_ACTION_VALIDATE else "选择目标资源清单"
+	_manifest_selector_dialog.ok_button_text = "管理" if action == MANIFEST_ACTION_MANAGE else "校验" if action == MANIFEST_ACTION_VALIDATE else "添加到此清单"
+	_manifest_selector_label.text = (
+		"项目内没有 ResourceManifest，请创建清单或手动选择。"
+		if manifest_paths.is_empty()
+		else "项目内发现 %d 份 ResourceManifest，请明确选择目标。" % manifest_paths.size())
+	_manifest_selector_tree.clear()
+	var root := _manifest_selector_tree.create_item()
+	if manifest_paths.is_empty():
+		var empty_item := _manifest_selector_tree.create_item(root)
+		empty_item.set_text(0, "当前没有资源清单")
+		empty_item.set_selectable(0, false)
+	else:
+		for path in manifest_paths:
+			var item := _manifest_selector_tree.create_item(root)
+			item.set_text(0, path)
+			item.set_tooltip_text(0, path)
+			item.set_metadata(0, path)
+	_manifest_selector_dialog.get_ok_button().disabled = true
+	_manifest_selector_dialog.popup_centered(Vector2i(760, 460))
+
+
+func _on_manifest_selector_item_selected() -> void:
+	_manifest_selector_dialog.get_ok_button().disabled = _get_selected_manifest_path().is_empty()
+
+
+func _on_manifest_selector_item_activated() -> void:
+	var path := _get_selected_manifest_path()
+	if path.is_empty():
+		return
+	_manifest_selector_dialog.hide()
+	_dispatch_manifest_action(_manifest_action, path)
+
+
+func _on_manifest_selector_confirmed() -> void:
+	var path := _get_selected_manifest_path()
+	if not path.is_empty():
+		_dispatch_manifest_action(_manifest_action, path)
+
+
+func _on_manifest_selector_manual_pressed() -> void:
+	var action := _manifest_action
+	_manifest_selector_dialog.hide()
+	call_deferred("_open_manifest_file_selector", action, "手动选择资源清单")
+
+
+func _on_manifest_selector_create_pressed() -> void:
+	_manifest_return_action_after_create = _manifest_action
+	_manifest_selector_dialog.hide()
+	call_deferred("_open_manifest_create_dialog")
+
+
+func _on_manifest_file_dialog_canceled() -> void:
+	if _manifest_action != MANIFEST_ACTION_CREATE:
+		return
+	var return_action := _manifest_return_action_after_create
+	_manifest_return_action_after_create = ""
+	if not return_action.is_empty():
+		call_deferred("_open_existing_manifest", return_action)
+
+
+func _get_selected_manifest_path() -> String:
+	var item := _manifest_selector_tree.get_selected()
+	if item == null:
+		return ""
+	var path = item.get_metadata(0)
+	return str(path) if path != null else ""
+
+
+func _dispatch_manifest_action(action: String, path: String) -> void:
+	match action:
+		MANIFEST_ACTION_MANAGE:
+			call_deferred("_show_manifest_manager", path)
+		MANIFEST_ACTION_ADD_SELECTED:
+			_preview_manifest_add(path)
+		_:
+			var report := _validate_manifest(path)
+			_render_manifest_report(path, report)
+			_manifest_report_dialog.popup_centered(Vector2i(720, 420))
 
 
 func _open_manifest_create_dialog() -> void:
@@ -214,25 +389,6 @@ func _open_manifest_create_dialog() -> void:
 	_manifest_file_dialog.filters = _manifest_file_filters()
 	_manifest_file_dialog.get_ok_button().text = "保存"
 	_manifest_file_dialog.current_path = "res://ResourceManifest.tres"
-	_manifest_file_dialog.popup_centered(Vector2i(720, 480))
-
-
-func _open_manifest_manage_dialog() -> void:
-	var manifest_paths := _find_resource_manifest_paths("res://")
-	if manifest_paths.is_empty():
-		_show_manifest_message(HealthLevel.ERROR, "打开失败", "项目内没有 ResourceManifest，请先创建资源清单")
-		return
-	if manifest_paths.size() == 1:
-		call_deferred("_show_manifest_manager", manifest_paths[0])
-		return
-	if not is_instance_valid(_manifest_file_dialog):
-		return
-	_manifest_action = MANIFEST_ACTION_MANAGE
-	_manifest_file_dialog.title = "选择要管理的资源清单（发现 %d 份）" % manifest_paths.size()
-	_manifest_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
-	_manifest_file_dialog.filters = _manifest_file_filters()
-	_manifest_file_dialog.get_ok_button().text = "选择"
-	_manifest_file_dialog.current_path = "res://"
 	_manifest_file_dialog.popup_centered(Vector2i(720, 480))
 
 
@@ -258,25 +414,23 @@ func _on_resource_files_selected(resource_paths: PackedStringArray) -> void:
 		return
 
 	_pending_resource_paths = resource_paths
-	_select_target_manifest()
+	var target_manifest_path := _pending_add_target_manifest_path
+	_pending_add_target_manifest_path = ""
+	if target_manifest_path.is_empty():
+		_select_target_manifest()
+	else:
+		_preview_manifest_add(target_manifest_path)
 
 
 func _select_target_manifest() -> void:
-	var manifest_paths := _find_resource_manifest_paths("res://")
+	var manifest_paths := _prepare_manifest_paths(_find_resource_manifest_paths("res://"))
 	if manifest_paths.is_empty():
 		_show_manifest_message(HealthLevel.ERROR, "添加失败", "项目内没有 ResourceManifest，请先创建资源清单")
 		return
 	if manifest_paths.size() == 1:
 		_preview_manifest_add(manifest_paths[0])
 		return
-
-	_manifest_action = MANIFEST_ACTION_ADD_SELECTED
-	_manifest_file_dialog.title = "选择目标资源清单（发现 %d 份）" % manifest_paths.size()
-	_manifest_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
-	_manifest_file_dialog.filters = _manifest_file_filters()
-	_manifest_file_dialog.get_ok_button().text = "确认选择"
-	_manifest_file_dialog.current_path = "res://"
-	_manifest_file_dialog.popup_centered(Vector2i(720, 480))
+	_show_manifest_selector(MANIFEST_ACTION_ADD_SELECTED, manifest_paths)
 
 
 func _on_manifest_file_selected(path: String) -> void:
@@ -294,6 +448,8 @@ func _on_manifest_file_selected(path: String) -> void:
 
 
 func _create_manifest(path: String) -> void:
+	var return_action := _manifest_return_action_after_create
+	_manifest_return_action_after_create = ""
 	var save_path := _normalize_manifest_save_path(path)
 	var manifest := _create_manifest_instance()
 	if manifest == null:
@@ -306,7 +462,10 @@ func _create_manifest(path: String) -> void:
 		return
 
 	_refresh_editor_filesystem()
-	_show_manifest_message(HealthLevel.NORMAL, "创建成功", "已创建空 ResourceManifest：%s" % save_path)
+	if return_action.is_empty():
+		_show_manifest_message(HealthLevel.NORMAL, "创建成功", "已创建空 ResourceManifest：%s" % save_path)
+	else:
+		call_deferred("_dispatch_manifest_action", return_action, save_path)
 
 
 func _add_selected_resources_to_manifest(manifest_path: String) -> void:
@@ -355,6 +514,8 @@ func _add_selected_resources_to_manifest(manifest_path: String) -> void:
 		manifest_path,
 		"\n".join(_pending_resource_paths),
 	]
+	if _managed_manifest_path == manifest_path:
+		_render_manifest_entries(manifest)
 	_show_manifest_message(HealthLevel.NORMAL, "添加成功", success_message)
 	_pending_resource_paths = PackedStringArray()
 	_pending_manifest_path = ""
@@ -425,8 +586,35 @@ func _show_manifest_manager(manifest_path: String) -> void:
 		return
 
 	_managed_manifest_path = manifest_path
+	_manifest_manage_dialog.title = "资源清单管理 — %s" % manifest_path
 	_render_manifest_entries(manifest)
-	_manifest_manage_dialog.popup_centered(Vector2i(960, 520))
+	_manifest_manage_dialog.popup_centered(Vector2i(1100, 520))
+
+
+func _on_manifest_switch_pressed() -> void:
+	_manifest_manage_dialog.hide()
+	_open_existing_manifest(MANIFEST_ACTION_MANAGE)
+
+
+func _on_manifest_create_manage_pressed() -> void:
+	_manifest_return_action_after_create = MANIFEST_ACTION_MANAGE
+	_manifest_manage_dialog.hide()
+	call_deferred("_open_manifest_create_dialog")
+
+
+func _on_manifest_add_resource_pressed() -> void:
+	if _managed_manifest_path.is_empty():
+		return
+	_pending_add_target_manifest_path = _managed_manifest_path
+	_open_add_selected_resource_dialog()
+
+
+func _on_manifest_validate_pressed() -> void:
+	if _managed_manifest_path.is_empty():
+		return
+	var report := _validate_manifest(_managed_manifest_path)
+	_render_manifest_report(_managed_manifest_path, report)
+	_manifest_report_dialog.popup_centered(Vector2i(720, 420))
 
 
 func _render_manifest_entries(manifest: Resource) -> void:
@@ -741,10 +929,17 @@ func _find_resource_manifest_paths(path: String) -> PackedStringArray:
 		if _is_resource_manifest(ResourceLoader.load(resource_path)):
 			manifest_paths.append(resource_path)
 	for directory_name in DirAccess.get_directories_at(path):
-		if directory_name.begins_with("."):
+		if _should_skip_resource_manifest_directory(path, directory_name):
 			continue
 		manifest_paths.append_array(_find_resource_manifest_paths(path.path_join(directory_name)))
 	return manifest_paths
+
+
+func _should_skip_resource_manifest_directory(path: String, directory_name: String) -> bool:
+	if directory_name.begins_with("."):
+		return true
+	var directory_path := path.path_join(directory_name)
+	return FileAccess.file_exists(directory_path.path_join("project.godot"))
 
 
 func _get_pending_entry_ids(entries: Array) -> PackedStringArray:

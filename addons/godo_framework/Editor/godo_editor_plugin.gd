@@ -6,13 +6,8 @@ const RUNTIME_SETUP_CONTROLLER_SCRIPT := preload("res://addons/godo_framework/Ed
 const RESOURCE_MANIFEST_CONTROLLER_SCRIPT := preload("res://addons/godo_framework/Editor/godo_resource_manifest_controller.gd")
 const UI_CONFIG_CONTROLLER_SCRIPT := preload("res://addons/godo_framework/Editor/godo_ui_config_controller.gd")
 const MENU_SETUP_ID := 1
-const MENU_VALIDATE_MANIFEST_ID := 100
-const MENU_CREATE_MANIFEST_ID := 101
-const MENU_ADD_SELECTED_RESOURCE_ID := 102
-const MENU_MANAGE_MANIFEST_ID := 103
-const MENU_CREATE_UI_CONFIG_ID := 200
-const MENU_MANAGE_UI_CONFIG_ID := 201
-const MENU_VALIDATE_UI_CONFIG_ID := 202
+const MENU_RESOURCE_MANIFEST_ID := 100
+const MENU_UI_CONFIG_ID := 200
 
 var _toolbar_menu_button: MenuButton
 var _tool_menu: PopupMenu
@@ -60,15 +55,8 @@ func _create_tool_menu() -> void:
 	_tool_menu = _toolbar_menu_button.get_popup()
 	_tool_menu.add_item("配置 (Setup)...", MENU_SETUP_ID)
 	_tool_menu.add_separator("资源管理")
-	_tool_menu.add_item("创建资源清单 (Create Resource Manifest)...", MENU_CREATE_MANIFEST_ID)
-	_tool_menu.add_item("管理资源清单 (Manage Resource Manifest)...", MENU_MANAGE_MANIFEST_ID)
-	_tool_menu.add_item("校验资源清单 (Validate Resource Manifest)...", MENU_VALIDATE_MANIFEST_ID)
-	_tool_menu.add_separator()
-	_tool_menu.add_item("选择资源并添加 (Select Resource to Add)...", MENU_ADD_SELECTED_RESOURCE_ID)
-	_tool_menu.add_separator("UI 配置")
-	_tool_menu.add_item("创建 UI 配置 (Create UI Config)...", MENU_CREATE_UI_CONFIG_ID)
-	_tool_menu.add_item("管理 UI 配置 (Manage UI Config)...", MENU_MANAGE_UI_CONFIG_ID)
-	_tool_menu.add_item("校验 UI 配置 (Validate UI Config)...", MENU_VALIDATE_UI_CONFIG_ID)
+	_tool_menu.add_item("资源清单 (Resource Manifest)...", MENU_RESOURCE_MANIFEST_ID)
+	_tool_menu.add_item("UI 配置 (UI Config)...", MENU_UI_CONFIG_ID)
 	_tool_menu.id_pressed.connect(_on_tool_menu_id_pressed)
 
 
@@ -76,17 +64,7 @@ func _on_tool_menu_id_pressed(id: int) -> void:
 	match id:
 		MENU_SETUP_ID:
 			_runtime_setup_controller.open_dialog()
-		MENU_CREATE_MANIFEST_ID:
-			_resource_manifest_controller.open_create_dialog()
-		MENU_ADD_SELECTED_RESOURCE_ID:
-			_resource_manifest_controller.open_add_selected_resource_dialog()
-		MENU_MANAGE_MANIFEST_ID:
+		MENU_RESOURCE_MANIFEST_ID:
 			_resource_manifest_controller.open_manage_dialog()
-		MENU_VALIDATE_MANIFEST_ID:
-			_resource_manifest_controller.open_validate_dialog()
-		MENU_CREATE_UI_CONFIG_ID:
-			_ui_config_controller.open_create_dialog()
-		MENU_MANAGE_UI_CONFIG_ID:
+		MENU_UI_CONFIG_ID:
 			_ui_config_controller.open_manage_dialog()
-		MENU_VALIDATE_UI_CONFIG_ID:
-			_ui_config_controller.open_validate_dialog()

@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/resources-and-scenes/index.md
-translation_source_hash: sha256:e61be1e82173968ba3653ba030c9b239fa77fdab87a806d80643fb3943b9beb5
+translation_source_hash: sha256:2ed8f36b77e8fdcc322ad86793bc94d24ae52e660a687194be4b860fec284444
 ---
 
 # Manage Resource Manifests, Async Loading, and Scene Changes
@@ -35,16 +35,11 @@ Semantic IDs decouple game meaning from file location and allow manifests to be 
 
 ## 2. Create and maintain ResourceManifest
 
-After enabling the GoDo Framework editor plugin, use the top menu:
-
-1. **Create Resource Manifest...** creates a `.tres` or `.res` manifest.
-2. **Select Resource to Add...** selects several project assets and writes them after preview.
-3. **Manage Resource Manifest...** edits IDs, converts paths to UIDs, or removes mappings.
-4. **Validate Resource Manifest...** checks values, duplicate IDs, Locators, and resolvability without writing.
+After enabling the GoDo Framework editor plugin, open **Resource Manifest...** from the top menu. The dialog first lists manifests discovered in the project; when none exist, it offers creation and manual selection. After selecting a manifest, the management window can add project assets, edit IDs, convert paths to UIDs, remove mappings, switch manifests, or run read-only validation.
 
 The add tool initially derives an ID from the path without `res://` or the extension. Change important entries to stable game semantics such as `ui/icon_close` before committing. Removing a mapping does not delete its Resource file.
 
-Manifest writes require confirmation. Generating a missing UID also requires confirmation. Validation never repairs or modifies files.
+Adding assets and generating missing UIDs require confirmation before writing. Validation never repairs or modifies files.
 
 ## 3. Load the registry during startup
 
