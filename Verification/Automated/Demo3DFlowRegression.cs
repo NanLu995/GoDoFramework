@@ -177,7 +177,7 @@ public sealed partial class Demo3DFlowRegression : Node
                 cleanupCount: 0);
 #endif
             await ToSignal(tree, SceneTree.SignalName.ProcessFrame);
-            GD.Print("[Demo3DFlowRegression] PASS");
+            GD.Print("[Demo3DFlowRegression] PASS (1/1)");
             tree.Quit(0);
         }
         catch (Exception exception)

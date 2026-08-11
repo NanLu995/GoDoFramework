@@ -22,6 +22,7 @@
 
   <ItemGroup Condition="'$(GoDoIncludeGuideInput)' != 'true' or '$(GoDoIncludePhantomCamera)' != 'true'">
     <Compile Remove="Templates/Demo3D/**/*.cs" />
+    <Compile Remove="Verification/Automated/Demo3DFlowRegression.cs" />
     <Compile Remove="Verification/Automated/Demo3DInputProfileRegression.cs" />
   </ItemGroup>
 </Project>

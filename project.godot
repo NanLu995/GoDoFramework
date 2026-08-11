@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="GoDoFramework"
-run/main_scene="uid://bjrtjk0nd7c4l"
+run/main_scene="res://Templates/Demo3D/Boot/Boot.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 [autoload]

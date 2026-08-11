@@ -40,10 +40,14 @@ SUITE_SCENES = {
     "core": WORKBENCH_REGRESSION_SCENES,
     "guide": ("GuideInputBackendRegression.tscn",),
     "phantom": ("PhantomCameraRigRegression.tscn",),
-    "demo": ("Demo3DInputProfileRegression.tscn",),
+    "demo": (
+        "Demo3DInputProfileRegression.tscn",
+        "Demo3DFlowRegression.tscn",
+    ),
     "all": WORKBENCH_REGRESSION_SCENES + (
         "GuideInputBackendRegression.tscn",
         "Demo3DInputProfileRegression.tscn",
+        "Demo3DFlowRegression.tscn",
         "PhantomCameraRigRegression.tscn",
     ),
 }
@@ -344,7 +348,7 @@ def run_editor_extension_check(godot_path: Path, timeout: int) -> bool:
             "Invalid access to property or key",
         )
     )
-    has_pass_summary = "[EditorExtensionUiRegression] PASS (5/5)" in output
+    has_pass_summary = "[EditorExtensionUiRegression] PASS (7/7)" in output
     if result.returncode == 0 and not has_script_error and has_pass_summary:
         try:
             transport_result = subprocess.run(
