@@ -21,13 +21,11 @@
 
 ## 1. 复制框架目录
 
-将完整核心目录复制到目标项目，不拆分 Core、编辑器安装助手和核心 Runtime 模块：
+将完整目录复制到目标项目，不拆分内部模块：
 
 ```text
 addons/godo_framework/
 ```
-
-核心包可以不包含 `Integrations/`；缺少该可选目录不会阻止编辑器插件或 Runtime 安装。需要 GUIDE Input 或 Phantom Camera 时，再按[集成与扩展](../integrations/index.md)叠加对应包和第三方依赖。
 
 不要复制本仓库的 `project.godot`、`.csproj`、验证场景或 Demo 作为目标项目配置。
 

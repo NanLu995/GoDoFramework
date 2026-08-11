@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/index.md
-translation_source_hash: sha256:cc3e99b09254cfaa9dafd10c5835ae990ce8c255b387f86db644749b56b41844
+translation_source_hash: sha256:69a4b31c5b6c14109bf58ba3098fa30e90a2ff6d9703da07d1fc41a2ae6496f8
 ---
 
 # Quick start: build a runnable game skeleton
@@ -26,13 +26,11 @@ After this path, use the [module guides](../guides/index.md) to explore the capa
 
 ## 1. Copy the framework directory
 
-Copy the complete core directory into the target project. Do not split Core, editor setup, or core Runtime modules.
+Copy the complete directory into the target project. Do not split internal modules.
 
 ```text
 addons/godo_framework/
 ```
-
-The core package may omit `Integrations/`; a missing optional directory does not prevent the editor plugin or Runtime setup. Add the required overlay package and third-party dependency later for GUIDE Input or Phantom Camera, following [Integrations and extensions](../integrations/index.md).
 
 Do not copy this repository's `project.godot`, `.csproj`, verification scenes, or demos as target-project configuration.
 
