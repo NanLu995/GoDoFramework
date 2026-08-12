@@ -82,7 +82,7 @@ GoDoRuntime 不承载菜单、关卡、登录等具体游戏流程。业务场�
 | Service | Settings | 音量、Locale 选择与持久化、显示偏好 | Audio、Save、Localization、平台适配器 | `ISettingsService` | Windows 稳定基线（其他平台待验证，见上方图例） |
 | Service | Procedure | 顶层游戏流程阶段的串行切换、激活资源生命周期、首请求仲裁与可恢复失败通知 | Core、Services | `IProcedureService` / `ProcedureContext` | 首版完成 |
 | Foundation | Config | 强类型 Resource 校验与唯一键只读表 | ResourceHub | `ConfigHub` / `ConfigTable` | 稳定基线 |
-| Editor | Installer / Validator / Extension Host | GoDoRuntime Autoload 的显式安装、健康检查、ResourceManifest 只读校验，以及 Integrations / Tools 编辑器扩展的受控发现与菜单注册；DataTable 通过该宿主执行离线检查、全量生成、带基线保护的单表生成与目标导出过滤，CLI 另提供只读产物过期检查、语言无关 Manifest 兼容比较及校验后才启动 Godot 的可靠发布门禁 | Godot Editor API、通用扩展清单 | 顶部 `GoDo` 菜单 | 首版完成 |
+| Editor | Installer / Validator / Extension Host | 单入口项目管理窗口、GoDoRuntime Autoload 的显式安装与健康检查、ResourceManifest / UiConfig 管理，以及 Integrations / Tools 编辑器扩展的受控发现；框架导出过滤器自动从游戏导出移除编辑器工具，并仅在 Debug 导出保留游戏内 Debugger；DataTable 继续通过宿主执行离线检查、生成与目标导出过滤 | Godot Editor API、通用扩展清单 | 顶部 `GoDo Framework` 单入口 | 首版完成 |
 | Development | Debugger | Debug 构建的只读运行时仪表盘，含 Procedure / Scene / UI 联合 Flow 诊断 | 各模块 Debug 快照 | GoDoRuntime 自动创建 | 稳定基线 |
 
 模块的完整公共 API、失败语义、线程限制、性能注意事项和验证范围以各自 `USAGE.md` 为唯一详细来源。

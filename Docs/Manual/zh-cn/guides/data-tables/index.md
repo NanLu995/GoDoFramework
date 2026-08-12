@@ -39,7 +39,7 @@ DataTables/
    └─ BaseDataTables.g.cs
 ```
 
-通过 `GoDo Framework` 菜单“数据表”分组中的“数据表配置 (DataTable Configuration)...”维护 Schema 和 `.datafiles`。`Runtime` 与 `BaseDataTables.g.cs` 是工具输出，不应手工编辑；推荐提交生成物，让新拉取的项目可直接编译，并让 CI 验证它们没有过期。Schema 和 `.datafiles` 不进入最终游戏包。
+通过 `GoDo Framework → 打开 GoDo Framework...` 统一窗口“编辑器扩展”页中的“数据表配置 (DataTable Configuration)...”维护 Schema 和 `.datafiles`。`Runtime` 与 `BaseDataTables.g.cs` 是工具输出，不应手工编辑；推荐提交生成物，让新拉取的项目可直接编译，并让 CI 验证它们没有过期。Schema 和 `.datafiles` 不进入最终游戏包。
 
 输入 CSV 使用 UTF-8，可带 BOM。列名必须与 Schema 字段名一致。
 
@@ -65,7 +65,7 @@ health_potion,consumable,Health Potion,true,20,0.2,Uncommon,Restores health
 
 ## 3. 用 Schema 编辑器声明结构
 
-打开 `GoDo Framework` 菜单“数据表”分组中的“数据表配置 (DataTable Configuration)...”，选择 `.datatable.schema.json` 后点击“编辑 Schema...”。数据文件面板按文件、状态和数据表 ID 显示绿色“已加入”、黄色“未加入”或红色“文件缺失”；单击选中整行后，可以将未加入 CSV 加入 Schema，也可以把已加入 CSV 移出 Schema 而不删除文件。“新建数据表...”会在保存时创建新 CSV。数据表 ID、字段名和 CSV 路径不会经过 Godot 自动翻译。数据表 ID 与 CSV 路径通过独立按钮显式修改，“当前表结构版本”只读并由工具维护；字段以整行背景标识当前目标，双击编辑文本，类型和复选框单击操作。默认值留空表示不配置 fallback，不会自动变成 `0`、`false` 或空字符串。以下 JSON 仅用于解释保存结果，不要求手工编辑：
+打开统一窗口“编辑器扩展”页中的“数据表配置 (DataTable Configuration)...”，选择 `.datatable.schema.json` 后点击“编辑 Schema...”。数据文件面板按文件、状态和数据表 ID 显示绿色“已加入”、黄色“未加入”或红色“文件缺失”；单击选中整行后，可以将未加入 CSV 加入 Schema，也可以把已加入 CSV 移出 Schema 而不删除文件。“新建数据表...”会在保存时创建新 CSV。数据表 ID、字段名和 CSV 路径不会经过 Godot 自动翻译。数据表 ID 与 CSV 路径通过独立按钮显式修改，“当前表结构版本”只读并由工具维护；字段以整行背景标识当前目标，双击编辑文本，类型和复选框单击操作。默认值留空表示不配置 fallback，不会自动变成 `0`、`false` 或空字符串。以下 JSON 仅用于解释保存结果，不要求手工编辑：
 
 ```json
 {
@@ -154,7 +154,7 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py generate `
 启用唯一的 **GoDo Framework** 插件，然后打开：
 
 ```text
-GoDo Framework → 数据表 → 数据表配置 (DataTable Configuration)...
+GoDo Framework → 打开 GoDo Framework... → 编辑器扩展 → 数据表配置 (DataTable Configuration)...
 ```
 
 窗口默认寻找 `res://DataTables/Base/.datatable.schema.json`。可以编辑 Schema、查看或加入数据文件，使用“校验全部数据”执行只读校验，或在“数据表导出”行执行“导出当前表...”和“导出全部表...”。导出操作会先展示目标并要求确认，完成后通知 Godot 扫描新文件。

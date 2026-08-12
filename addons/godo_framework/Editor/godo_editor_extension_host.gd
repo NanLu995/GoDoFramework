@@ -18,15 +18,17 @@ var _statuses: Array[Dictionary] = []
 var _action_keys: Dictionary = {}
 var _action_callbacks: Dictionary = {}
 var _action_extensions: Dictionary = {}
+var _action_labels: Dictionary = {}
 var _next_menu_id := FIRST_EXTENSION_MENU_ID
 var _status_dialog: AcceptDialog
 
 
-func activate(owner: EditorPlugin, menu: PopupMenu) -> void:
+func activate(owner: EditorPlugin, menu: PopupMenu = null) -> void:
 	_owner = owner
 	_menu = menu
 	_discover_extensions()
-	_menu.id_pressed.connect(_on_menu_id_pressed)
+	if is_instance_valid(_menu):
+		_menu.id_pressed.connect(_on_menu_id_pressed)
 
 
 func deactivate() -> void:
@@ -53,6 +55,7 @@ func deactivate() -> void:
 	_action_keys.clear()
 	_action_callbacks.clear()
 	_action_extensions.clear()
+	_action_labels.clear()
 	_owner = null
 	_menu = null
 
@@ -74,8 +77,32 @@ func register_menu_action(
 	_action_keys[action_key] = menu_id
 	_action_callbacks[menu_id] = callback
 	_action_extensions[menu_id] = extension_id
-	_menu.add_item(label, menu_id)
+	_action_labels[action_key] = label
+	if is_instance_valid(_menu):
+		_menu.add_item(label, menu_id)
 	return OK
+
+
+func get_statuses() -> Array[Dictionary]:
+	return _statuses.duplicate(true)
+
+
+func get_actions() -> Array[Dictionary]:
+	var actions: Array[Dictionary] = []
+	for action_key in _action_keys:
+		actions.append({
+			"key": action_key,
+			"label": str(_action_labels.get(action_key, action_key)),
+		})
+	return actions
+
+
+func execute_action(action_key: String) -> void:
+	if not _action_keys.has(action_key):
+		return
+	var callback: Callable = _action_callbacks.get(_action_keys[action_key], Callable())
+	if callback.is_valid():
+		callback.call()
 
 
 func _discover_extensions() -> void:
@@ -95,11 +122,13 @@ func _discover_extensions() -> void:
 
 	var loaded_ids: Dictionary = {}
 	if not data_table_descriptors.is_empty():
-		_menu.add_separator("数据表", MENU_DATA_TABLE_SEPARATOR_ID)
+		if is_instance_valid(_menu):
+			_menu.add_separator("数据表", MENU_DATA_TABLE_SEPARATOR_ID)
 		_load_descriptors(data_table_descriptors, loaded_ids)
 
-	_menu.add_separator("编辑器扩展", MENU_EDITOR_EXTENSION_SEPARATOR_ID)
-	_menu.add_item("编辑器扩展状态 (Editor Extension Status)...", MENU_STATUS_ID)
+	if is_instance_valid(_menu):
+		_menu.add_separator("编辑器扩展", MENU_EDITOR_EXTENSION_SEPARATOR_ID)
+		_menu.add_item("编辑器扩展状态 (Editor Extension Status)...", MENU_STATUS_ID)
 	_load_descriptors(editor_extension_descriptors, loaded_ids)
 
 
@@ -213,10 +242,13 @@ func _remove_extension_actions(extension_id: String) -> void:
 		_action_extensions.erase(menu_id)
 	for action_key in _action_keys.keys():
 		if str(action_key).begins_with(extension_id + ":"):
+			_action_labels.erase(action_key)
 			_action_keys.erase(action_key)
 
 
 func _remove_menu_item(menu_id: int) -> void:
+	if not is_instance_valid(_menu):
+		return
 	var item_index := _menu.get_item_index(menu_id)
 	if item_index >= 0:
 		_menu.remove_item(item_index)

@@ -217,6 +217,20 @@ func open_add_selected_resource_dialog() -> void:
 	_pending_add_target_manifest_path = ""
 	_open_add_selected_resource_dialog()
 
+
+func find_manifest_paths() -> PackedStringArray:
+	return _prepare_manifest_paths(_find_resource_manifest_paths("res://"))
+
+
+func open_manage_path(path: String) -> void:
+	_show_manifest_manager(path)
+
+
+func open_validate_path(path: String) -> void:
+	var report := _validate_manifest(path)
+	_render_manifest_report(path, report)
+	_manifest_report_dialog.popup_centered(Vector2i(720, 420))
+
 func _create_manifest_selector_dialog(editor_root: Control) -> void:
 	_manifest_selector_dialog = ConfirmationDialog.new()
 	_manifest_selector_dialog.name = "ManifestSelectorDialog"

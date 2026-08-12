@@ -11,7 +11,7 @@
         "guides/resources-and-scenes/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:b00fc67586939c793e3209f980a3655130b069af69b1eb6b504a5d4d1c8b3e9a"
+      "reviewed_contract_hash": "sha256:b3f8231bf04ae8d3b8fe06c6850ea41a680c6c38afc7fde8fcd4dda8d21f96d5"
     },
     "error-hub": {
       "contract": "addons/godo_framework/Core/ErrorHub/USAGE.md",

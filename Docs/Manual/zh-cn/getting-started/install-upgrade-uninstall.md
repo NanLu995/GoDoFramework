@@ -65,7 +65,7 @@ GUIDE Input 与 Phantom Camera 适配分别使用独立叠加包，并仍需要�
 打开：
 
 ```text
-GoDo Framework → 配置 (Setup)...
+GoDo Framework → 打开 GoDo Framework... → 项目配置 → Runtime → 打开 Runtime 配置...
 ```
 
 检查窗口按顺序验证：
@@ -127,9 +127,9 @@ public partial class FrameworkProbe : Node
 
 | 集成 | 安装入口 | 核心是否依赖 |
 |---|---|---:|
-| GUIDE Input | `GoDo Framework → 编辑器扩展 → 输入映射配置 (GUIDE Input Settings)...` | 否 |
-| Phantom Camera | `GoDo Framework → 编辑器扩展 → 幻影相机配置 (Phantom Camera Settings)...` | 否 |
-| DataTable | `GoDo Framework → 数据表 → 数据表配置 (DataTable Configuration)...` | 否，开发期工具 |
+| GUIDE Input | 统一窗口“编辑器扩展”页中的“输入映射配置 (GUIDE Input Settings)...” | 否 |
+| Phantom Camera | 统一窗口“编辑器扩展”页中的“幻影相机配置 (Phantom Camera Settings)...” | 否 |
+| DataTable | 统一窗口“编辑器扩展”页中的“数据表配置 (DataTable Configuration)...” | 否，开发期工具 |
 
 禁用或不复制可选集成不会改变 GoDoRuntime 的核心初始化。对应业务代码必须避免引用未安装集成的类型。
 
@@ -181,7 +181,7 @@ GoDoFramework 版本与 Godot 版本是两套独立版本号。框架包在 `add
 
 彻底卸载按以下顺序执行：
 
-1. 打开 `GoDo Framework → 配置 (Setup)...`。
+1. 打开统一窗口“项目配置 → Runtime”，再打开 Runtime 配置。
 2. 点击 **卸载 Runtime** 并确认。
 3. 确认 Autoload 中已没有精确匹配的 `GoDoRuntime`。
 4. 在插件列表禁用 GoDo Framework。

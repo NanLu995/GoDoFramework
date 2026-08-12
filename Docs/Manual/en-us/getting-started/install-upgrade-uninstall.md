@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/install-upgrade-uninstall.md
-translation_source_hash: sha256:613894608edee6bec0db5b66591e36cf272ecb8a09372697bc7580488de660a1
+translation_source_hash: sha256:e9cf592703f17c0265ea0aad47a91e23fd7682a93ada18c20dca9ecdf74b8e99
 ---
 
 # Install, Upgrade, and Uninstall the Framework
@@ -70,7 +70,7 @@ Setup reports an error when the root has no `.csproj`, has several `.csproj` fil
 Open:
 
 ```text
-GoDo Framework → Setup...
+GoDo Framework → Open GoDo Framework... → 项目配置 → Runtime → Open Runtime Setup...
 ```
 
 The window checks, in order:
@@ -132,9 +132,9 @@ Enable integrations only after core setup. Each has an independent health check 
 
 | Integration | Setup entry | Required by core |
 |---|---|---:|
-| GUIDE Input | `GoDo Framework → Editor Extensions → 输入映射配置 (GUIDE Input Settings)...` | No |
-| Phantom Camera | `GoDo Framework → Editor Extensions → 幻影相机配置 (Phantom Camera Settings)...` | No |
-| DataTable | `GoDo Framework → Data Tables → 数据表配置 (DataTable Configuration)...` | No; development-time tool |
+| GUIDE Input | `输入映射配置 (GUIDE Input Settings)...` on the unified window's Editor Extensions page | No |
+| Phantom Camera | `幻影相机配置 (Phantom Camera Settings)...` on the unified window's Editor Extensions page | No |
+| DataTable | `数据表配置 (DataTable Configuration)...` on the unified window's Editor Extensions page | No; development-time tool |
 
 Disabling or omitting an optional integration does not change core GoDoRuntime initialization. Game code must not reference an integration type that is not installed.
 
@@ -186,7 +186,7 @@ Disabling **GoDo Framework** in the plugin list removes only editor menus and wi
 
 For complete removal:
 
-1. Open `GoDo Framework → Setup...`.
+1. Open the unified window's 项目配置 → Runtime page, then open Runtime Setup.
 2. Click **Uninstall Runtime** and confirm.
 3. Confirm there is no exact `GoDoRuntime` entry in Autoload.
 4. Disable GoDo Framework in the plugin list.

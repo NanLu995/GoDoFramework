@@ -2,7 +2,7 @@
 
 ## 定位
 
-本插件是 GoDo 的项目安装助手、健康检查工具、资源清单校验入口与编辑器扩展宿主。它负责检查、安装和卸载 `GoDoRuntime` Autoload，只读校验 `ResourceManifest`，并通过 `godo_editor_extension.cfg` 注册可选集成与框架 Tools 的顶部 `GoDo Framework` 菜单项。DataTable 离线编译前端及编辑器入口详见 `Tools/DataTable/USAGE.md`。这些工具不创建业务场景或 UI，不修改 C# 项目文件，也不参与导出后的游戏运行。
+本插件是 GoDo 的项目安装助手、健康检查工具、资源清单与 UI 配置管理入口，以及编辑器扩展宿主。顶部 `GoDo Framework` 只有一个打开入口；统一窗口通过左侧导航管理 Runtime、ResourceManifest、UiConfig 与编辑器扩展。DataTable 离线编译前端及编辑器入口详见 `Tools/DataTable/USAGE.md`。这些工具不创建业务场景或 UI，不修改 C# 项目文件，也不参与导出后的游戏运行。
 
 EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其他运行时模块；Runtime 不反向依赖插件。
 
@@ -12,7 +12,7 @@ EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其�
 
 核心框架的分发单元是排除 `Integrations/` 的 `addons/godo_framework/` 目录。核心 ZIP 保留运行时、编辑器资源与 DataTable 编译前端，排除 Markdown 文档；GUIDE Input 与 Phantom Camera 适配以独立 ZIP 保留原路径，按需叠加到已安装的核心目录。发布物不包含当前仓库的 Demo、测试脚本、`.godot/`、`bin/`、`obj/`、根目录 `.csproj`、解决方案文件或 `project.godot`。使用说明以 GitHub 仓库中的对应文档为准。
 
-框架不接管目标项目配置：不会创建或修改 `.csproj`、解决方案、输入映射、导出预设和业务场景，也不会在启用插件时自动写入 Autoload。目标项目仍负责自身的 Godot/.NET 版本、程序集名称、构建和导出配置。
+框架不接管目标项目配置：不会创建或修改 `.csproj`、解决方案、输入映射、导出预设和业务场景，也不会在启用插件时自动写入 Autoload。框架会自动注册游戏导出过滤器：Debug 与 Release 导出都排除 `Editor/` 和 `Tools/`；Release 额外排除 `Debugger/`，Debug 保留游戏内 Debugger。目标项目仍负责自身的 Godot/.NET 版本、程序集名称、平台和其他导出配置。
 
 ### 首次迁移
 
@@ -38,7 +38,7 @@ EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其�
 ## 启用与检查
 
 1. 在“项目设置 → 插件”中启用 `GoDo Framework`。
-2. 打开顶部 `GoDo Framework → 配置 (Setup)...` 窗口。
+2. 打开顶部 `GoDo Framework → 打开 GoDo Framework...`，在“项目配置 → Runtime”中打开配置窗口。
 3. 查看 GoDoFramework 版本、Godot 兼容性、Runtime 场景、Autoload 和重复注册检查结果。
 
 启用插件只增加工具菜单，不修改 Autoload。禁用插件只移除菜单和对话框，不卸载 Runtime。
@@ -55,13 +55,13 @@ EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其�
 
 ## 资源清单管理
 
-编辑器顶部工具栏提供原生样式的 `GoDo Framework` 下拉入口。菜单按“配置”“资源管理”“数据表”“编辑器扩展”分组；资源管理中先列出创建、管理和校验清单，再以分隔线区分“选择资源并添加”。其中的“创建资源清单 (Create Resource Manifest)...”可以创建一个空的 `.tres` / `.res` 格式 `ResourceManifest`。创建失败通常代表目标项目尚未完成 C# 编译，或已启用的插件尚未重新加载，导致清单脚本无法被编辑器加载或实例化。
+编辑器顶部工具栏提供原生样式的 `GoDo Framework → 打开 GoDo Framework...` 单一入口。统一窗口的“资源 → 资源清单”页直接列出项目内现有清单，并提供创建、校验和管理入口。“创建清单...”可以创建一个空的 `.tres` / `.res` 格式 `ResourceManifest`。创建失败通常代表目标项目尚未完成 C# 编译，或已启用的插件尚未重新加载，导致清单脚本无法被编辑器加载或实例化。
 
 打开顶部工具栏 `GoDo Framework` 中的“选择资源并添加 (Select Resource to Add)...”，选择器只浏览 `res://`，并优先显示场景、`.tres/.res`、贴图、音频、字体与 3D 场景资源。可一次多选资源；双击或点击“添加”都会进入目标清单选择。项目内恰好一份 `ResourceManifest` 时自动作为目标；多份时才弹出选择器并显示“选择目标资源清单（发现 N 份）”；没有时拒绝添加并提示先创建。确定目标后，插件会显示“尚未写入”的预览，确认添加才会一次保存全部 `ResourceManifestEntry`；没有 UID 的资源会在预览中明确列出，确认后插件才生成 UID、更新 Godot 的 UID 记录并以 `uid://` 写入清单。取消时不写入清单，也不生成 UID。成功提示只列出每条写入的资源路径；`Id` 与 `Locator` 可在管理窗口查看。默认 `Id` 使用资源路径去掉 `res://` 与扩展名后的形式，例如 `res://Features/Shop/Icon.png` 会生成 `Features/Shop/Icon`，以避免同名资源冲突；可在 Inspector 中改为更稳定的业务语义 ID，例如 `ui/icon_close`。
 
 打开“管理资源清单 (Manage Resource Manifest)...”后，项目内恰好一份清单时会直接打开；多份时才要求选择目标。管理窗口在 `Id`、“定位”与“UID 状态”三列中显示全部映射；定位始终优先显示可读的 `res://` 路径，UID 状态直接标示“已使用 UID”“可转换为 UID”“缺少 UID”或“UID 无效”，悬停可查看完整路径和实际保存的 `uid://`。单击条目只选中，双击可直接编辑；也可点击“编辑选中项”修改 `Id` 或 Locator。对于已有 `res://` 定位，可点击“生成并使用 UID”，确认后插件会生成或复用资源 UID，并把该条目更新为 `uid://`。工具会校验空值、重复 ID、Locator 前缀与资源是否存在，再通过 `ResourceSaver` 保存。点击“删除选中项”并确认后仅移除该映射；不会删除该 Locator 指向的资源文件。
 
-打开编辑器顶部“GoDo Framework → 资源管理 → 校验资源清单 (Validate Resource Manifest)...”，选择 `.tres` 或 `.res` 格式的 `ResourceManifest` 资源。校验器只读取资源并输出报告，不生成清单、不修复路径，也不写入任何项目文件。
+在统一窗口“资源 → 资源清单”页选中 `.tres` 或 `.res` 格式的 `ResourceManifest`，再点击“校验选中项”。校验器只读取资源并输出报告，不生成清单、不修复路径，也不写入任何项目文件。
 
 当前检查内容包括：
 

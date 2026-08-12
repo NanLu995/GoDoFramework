@@ -25,4 +25,8 @@
     <Compile Remove="Verification/Automated/Demo3DFlowRegression.cs" />
     <Compile Remove="Verification/Automated/Demo3DInputProfileRegression.cs" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Release' or '$(Configuration)' == 'ExportRelease'">
+    <Compile Remove="addons/godo_framework/Debugger/DebuggerOverlay.cs" />
+  </ItemGroup>
 </Project>

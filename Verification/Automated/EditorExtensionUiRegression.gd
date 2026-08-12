@@ -3,6 +3,7 @@ extends SceneTree
 
 const MENU_BUTTON_NAME := "GoDoFrameworkToolbarMenu"
 const SETUP_CONTROLLER_SCRIPT := preload("res://addons/godo_framework/Editor/godo_runtime_setup_controller.gd")
+const EXPORT_FILTER_SCRIPT := preload("res://addons/godo_framework/Editor/godo_export_filter.gd")
 
 
 func _initialize() -> void:
@@ -12,6 +13,8 @@ func _initialize() -> void:
 func _run() -> void:
 	await process_frame
 	await process_frame
+	if not _verify_export_filter():
+		return
 	var menu_button := root.find_child(MENU_BUTTON_NAME, true, false) as MenuButton
 	if menu_button == null:
 		_fail("未找到 GoDo 工具栏菜单。")
@@ -20,30 +23,29 @@ func _run() -> void:
 	var menu := menu_button.get_popup()
 	if not _verify_menu_layout(menu):
 		return
-	if not await _open_and_verify_management_selector(
-		menu,
-		"资源清单 (Resource Manifest)...",
-		"ManifestSelectorDialog",
-		"ManifestSelectorTree",
-		"ManifestSelectorCreateButton",
-		"ManifestSelectorManualButton",
-		"ManifestFileDialog"):
+	var framework_window := await _open_framework_window(menu)
+	if framework_window == null:
 		return
-	if not await _open_and_verify_management_selector(
-		menu,
-		"UI 配置 (UI Config)...",
-		"UiConfigSelectorDialog",
-		"UiConfigSelectorTree",
-		"UiConfigSelectorCreateButton",
-		"UiConfigSelectorManualButton",
-		"UiConfigFileDialog"):
+	if not _verify_management_page(
+		framework_window,
+		"manifest",
+		"GoDoResourceManifestList",
+		"GoDoResourceManifestCreateButton",
+		"GoDoResourceManifestManageButton"):
 		return
-	if not await _open_and_verify_setup(menu):
+	if not _verify_management_page(
+		framework_window,
+		"ui_config",
+		"GoDoUiConfigList",
+		"GoDoUiConfigCreateButton",
+		"GoDoUiConfigManageButton"):
 		return
-	if not await _open_and_verify_datatable(menu):
+	if not await _open_and_verify_setup(framework_window):
+		return
+	if not await _open_and_verify_datatable(framework_window):
 		return
 	if not await _open_and_verify(
-		menu,
+		framework_window,
 		"输入映射配置 (GUIDE Input Settings)...",
 		"GoDo GUIDE Input 设置",
 		"GuideInputReport",
@@ -52,7 +54,7 @@ func _run() -> void:
 	):
 		return
 	if not await _open_and_verify(
-		menu,
+		framework_window,
 		"幻影相机配置 (Phantom Camera Settings)...",
 		"GoDo Phantom Camera 设置",
 		"PhantomCameraReport",
@@ -61,45 +63,137 @@ func _run() -> void:
 	):
 		return
 
-	print("[EditorExtensionUiRegression] PASS (7/7)")
+	print("[EditorExtensionUiRegression] PASS (8/8)")
 	quit(0)
 
 
+func _verify_export_filter() -> bool:
+	var export_filter = EXPORT_FILTER_SCRIPT.new()
+	if not export_filter.should_skip_path(
+		"res://addons/godo_framework/Editor/godo_editor_plugin.gd", true):
+		_fail("Debug 导出没有排除 Editor。")
+		return false
+	if not export_filter.should_skip_path(
+		"res://addons/godo_framework/Tools/DataTable/godo_datatable.py", true):
+		_fail("Debug 导出没有排除 Tools。")
+		return false
+	if export_filter.should_skip_path(
+		"res://addons/godo_framework/Debugger/DebuggerOverlay.tscn", true):
+		_fail("Debug 导出错误地排除了 Debugger。")
+		return false
+	if not export_filter.should_skip_path(
+		"res://addons/godo_framework/Debugger/DebuggerOverlay.tscn", false):
+		_fail("Release 导出没有排除 Debugger。")
+		return false
+	if export_filter.should_skip_path(
+		"res://addons/godo_framework/Runtime/UI/UiService.cs", false):
+		_fail("Release 导出错误地排除了 Runtime。")
+		return false
+	return true
+
+
 func _verify_menu_layout(menu: PopupMenu) -> bool:
-	var ordered_labels := PackedStringArray([
-		"配置 (Setup)...",
-		"资源管理",
-		"资源清单 (Resource Manifest)...",
-		"UI 配置 (UI Config)...",
-		"数据表",
-		"数据表配置 (DataTable Configuration)...",
-		"编辑器扩展",
-		"编辑器扩展状态 (Editor Extension Status)...",
-		"输入映射配置 (GUIDE Input Settings)...",
-		"幻影相机配置 (Phantom Camera Settings)...",
-	])
-	var previous_index := -1
-	for label in ordered_labels:
-		var index := _find_menu_index(menu, label)
-		if index < 0:
-			_fail("未找到菜单项：%s" % label)
-			return false
-		if index <= previous_index:
-			_fail("菜单顺序错误：%s" % label)
-			return false
-		previous_index = index
-	for removed_label in PackedStringArray([
-		"创建资源清单 (Create Resource Manifest)...",
-		"管理资源清单 (Manage Resource Manifest)...",
-		"校验资源清单 (Validate Resource Manifest)...",
-		"选择资源并添加 (Select Resource to Add)...",
-		"创建 UI 配置 (Create UI Config)...",
-		"管理 UI 配置 (Manage UI Config)...",
-		"校验 UI 配置 (Validate UI Config)...",
-	]):
-		if _find_menu_index(menu, removed_label) >= 0:
-			_fail("旧菜单项仍然存在：%s" % removed_label)
-			return false
+	return menu.item_count == 1 and menu.get_item_text(0) == "打开 GoDo Framework..."
+
+
+func _open_framework_window(menu: PopupMenu) -> Window:
+	menu.id_pressed.emit(menu.get_item_id(0))
+	await process_frame
+	await process_frame
+	var dialog := root.find_child("GoDoFrameworkWindow", true, false) as Window
+	if dialog == null or not dialog.visible:
+		_fail("单一菜单入口没有打开 GoDo Framework 窗口。")
+		return null
+	var navigation := dialog.find_child("GoDoFrameworkNavigation", true, false) as Tree
+	if navigation == null or navigation.get_root() == null:
+		_fail("统一窗口缺少左侧导航。")
+		return null
+	var navigation_panel := dialog.find_child(
+		"GoDoFrameworkNavigationPanel", true, false) as PanelContainer
+	var content_panel := dialog.find_child(
+		"GoDoFrameworkContentPanel", true, false) as PanelContainer
+	var outer_frame := dialog.find_child(
+		"GoDoFrameworkOuterFrame", true, false) as PanelContainer
+	if navigation_panel == null or content_panel == null or outer_frame == null:
+		_fail("统一窗口缺少外框、导航区或内容区的主题面板。")
+		return null
+	var navigation_style := navigation_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	var content_style := content_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	var outer_style := outer_frame.get_theme_stylebox("panel") as StyleBoxFlat
+	if (
+		navigation_style == null
+		or content_style == null
+		or outer_style == null
+		or navigation_style.bg_color == content_style.bg_color
+		or navigation_style.border_width_left != 1
+		or content_style.border_width_left != 1
+		or outer_style.border_width_left != 1
+	):
+		_fail("统一窗口的三层边界或左右背景区分未生效。")
+		return null
+	var close_button := (dialog as AcceptDialog).get_ok_button() as Button
+	if outer_frame.get_global_rect().end.y > close_button.get_global_rect().position.y:
+		_fail("统一窗口首次打开时，内容外框覆盖了底部关闭按钮区：outer=%s, close=%s, dialog=%s。" % [
+			outer_frame.get_global_rect(),
+			close_button.get_global_rect(),
+			dialog.size,
+		])
+		return null
+	var navigation_filter := dialog.find_child(
+		"GoDoFrameworkNavigationFilter", true, false) as LineEdit
+	if navigation_filter == null or navigation_filter.placeholder_text != "筛选设置":
+		_fail("统一窗口缺少项目设置式导航筛选框。")
+		return null
+	var page_scroll := dialog.find_child(
+		"GoDoFrameworkPageScroll", true, false) as ScrollContainer
+	if page_scroll == null or page_scroll.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+		_fail("统一窗口的右侧页面缺少垂直滚动边界。")
+		return null
+	var page_host := dialog.find_child(
+		"GoDoFrameworkPageHost", true, false) as MarginContainer
+	if (
+		page_host == null
+		or page_scroll.size_flags_horizontal != Control.SIZE_EXPAND_FILL
+		or page_host.size_flags_horizontal != Control.SIZE_EXPAND_FILL
+		or page_host.size.x < page_scroll.size.x - 24.0
+	):
+		_fail("统一窗口的右侧页面未填满滚动区宽度。")
+		return null
+	if (
+		not dialog.keep_title_visible
+		or dialog.wrap_controls
+		or dialog.min_size != Vector2i(560, 360)
+		or dialog.size.x > 900
+		or dialog.size.y > 600
+	):
+		_fail("统一窗口没有重置为可见的紧凑尺寸：size=%s, min_size=%s, mode=%s。" % [
+			dialog.size,
+			dialog.min_size,
+			dialog.mode,
+		])
+		return null
+	return dialog
+
+
+func _verify_management_page(
+	dialog: Window,
+	page_id: String,
+	tree_name: String,
+	create_button_name: String,
+	manage_button_name: String
+) -> bool:
+	if not _select_framework_page(dialog, page_id):
+		return false
+	var tree := dialog.find_child(tree_name, true, false) as Tree
+	if tree == null or tree.get_root() == null:
+		_fail("统一管理页没有显示现有配置列表：%s" % page_id)
+		return false
+	if dialog.find_child(create_button_name, true, false) == null:
+		_fail("统一管理页缺少创建入口：%s" % page_id)
+		return false
+	if dialog.find_child(manage_button_name, true, false) == null:
+		_fail("统一管理页缺少管理入口：%s" % page_id)
+		return false
 	return true
 
 
@@ -147,18 +241,20 @@ func _open_and_verify_management_selector(
 
 
 func _open_and_verify(
-	menu: PopupMenu,
-	menu_label: String,
+	framework_window: Window,
+	action_label: String,
 	dialog_title: String,
 	report_name: String,
 	message_name: String,
 	action_button_name: String
 ) -> bool:
-	var menu_id := _find_menu_id(menu, menu_label)
-	if menu_id < 0:
-		_fail("未找到菜单项：%s" % menu_label)
+	if not _select_framework_page(framework_window, "extensions"):
 		return false
-	menu.id_pressed.emit(menu_id)
+	var action_button := _find_button(framework_window, action_label)
+	if action_button == null:
+		_fail("未找到扩展操作：%s" % action_label)
+		return false
+	action_button.pressed.emit()
 	await process_frame
 
 	var dialog := _find_window(root, dialog_title)
@@ -173,15 +269,15 @@ func _open_and_verify(
 	if message == null or not message.text.contains("提示："):
 		_fail("%s 缺少独立提示栏。" % dialog_title)
 		return false
-	var action_button := dialog.find_child(action_button_name, true, false) as Button
-	if action_button == null or not action_button.disabled:
+	var target_button := dialog.find_child(action_button_name, true, false) as Button
+	if target_button == null or not target_button.disabled:
 		_fail("%s 在健康状态下仍允许重复写入。" % dialog_title)
 		return false
 	dialog.hide()
 	return true
 
 
-func _open_and_verify_setup(menu: PopupMenu) -> bool:
+func _open_and_verify_setup(framework_window: Window) -> bool:
 	var controller = SETUP_CONTROLLER_SCRIPT.new()
 	var minimum := Vector3i(4, 7, 1)
 	var tested := Vector3i(4, 7, 1)
@@ -193,17 +289,10 @@ func _open_and_verify_setup(menu: PopupMenu) -> bool:
 		_fail("高于已验证版本的同 major Godot 未进入兼容但未验证状态。")
 		return false
 
-	var menu_id := _find_menu_id(menu, "配置 (Setup)...")
-	if menu_id < 0:
-		_fail("未找到 Setup 菜单项。")
+	if not _select_framework_page(framework_window, "runtime"):
 		return false
-	menu.id_pressed.emit(menu_id)
 	await process_frame
-	var dialog := _find_window(root, "GoDo Framework")
-	if dialog == null:
-		_fail("未找到 GoDo Framework 配置窗口。")
-		return false
-	var report := dialog.find_child("ReportLabel", true, false) as RichTextLabel
+	var report := framework_window.find_child("GoDoRuntimeReport", true, false) as RichTextLabel
 	if (
 		report == null
 		or not report.get_parsed_text().contains("GoDoFramework 版本")
@@ -211,16 +300,24 @@ func _open_and_verify_setup(menu: PopupMenu) -> bool:
 	):
 		_fail("Setup 未显示框架版本和 Godot 兼容性：%s" % ("<missing>" if report == null else report.get_parsed_text()))
 		return false
-	dialog.hide()
+	if (
+		framework_window.find_child("GoDoRuntimeCheckButton", true, false) == null
+		or framework_window.find_child("GoDoRuntimeInstallButton", true, false) == null
+		or framework_window.find_child("GoDoRuntimeUninstallButton", true, false) == null
+	):
+		_fail("Runtime 页面缺少嵌入式检查、安装或卸载操作。")
+		return false
 	return true
 
 
-func _open_and_verify_datatable(menu: PopupMenu) -> bool:
-	var menu_id := _find_menu_id(menu, "数据表配置 (DataTable Configuration)...")
-	if menu_id < 0:
-		_fail("未找到 DataTable 配置菜单项。")
+func _open_and_verify_datatable(framework_window: Window) -> bool:
+	if not _select_framework_page(framework_window, "extensions"):
 		return false
-	menu.id_pressed.emit(menu_id)
+	var action_button := _find_button(framework_window, "数据表配置 (DataTable Configuration)...")
+	if action_button == null:
+		_fail("编辑器扩展页缺少 DataTable 配置入口。当前按钮：%s" % ", ".join(_button_texts(framework_window)))
+		return false
+	action_button.pressed.emit()
 	await process_frame
 
 	var dialog := _find_window(root, "GoDo DataTable")
@@ -587,6 +684,51 @@ func _find_menu_index(menu: PopupMenu, label: String) -> int:
 		if menu.get_item_text(index) == label:
 			return index
 	return -1
+
+
+func _select_framework_page(dialog: Window, page_id: String) -> bool:
+	var navigation := dialog.find_child("GoDoFrameworkNavigation", true, false) as Tree
+	if navigation == null or navigation.get_root() == null:
+		_fail("统一窗口缺少导航树。")
+		return false
+	var item := _find_tree_item_by_metadata(navigation.get_root(), page_id)
+	if item == null:
+		_fail("统一窗口缺少页面：%s" % page_id)
+		return false
+	navigation.set_selected(item, 0)
+	navigation.item_selected.emit()
+	return true
+
+
+func _find_tree_item_by_metadata(item: TreeItem, value: String) -> TreeItem:
+	var child := item.get_first_child()
+	while child != null:
+		if str(child.get_metadata(0)) == value:
+			return child
+		var nested := _find_tree_item_by_metadata(child, value)
+		if nested != null:
+			return nested
+		child = child.get_next()
+	return null
+
+
+func _find_button(node: Node, text: String) -> Button:
+	for child in node.get_children():
+		if child is Button and child.text == text and child.visible:
+			return child
+		var nested := _find_button(child, text)
+		if nested != null:
+			return nested
+	return null
+
+
+func _button_texts(node: Node) -> PackedStringArray:
+	var result := PackedStringArray()
+	for child in node.get_children():
+		if child is Button and child.is_visible_in_tree():
+			result.append(child.text)
+		result.append_array(_button_texts(child))
+	return result
 
 
 func _find_window(node: Node, title: String) -> Window:

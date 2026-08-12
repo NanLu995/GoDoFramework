@@ -166,6 +166,18 @@ func open_validate_dialog() -> void:
 	_open_existing_config(ACTION_VALIDATE)
 
 
+func find_config_paths() -> PackedStringArray:
+	return _prepare_config_paths(_find_ui_config_paths("res://"))
+
+
+func open_manage_path(path: String) -> void:
+	_show_manager(path)
+
+
+func open_validate_path(path: String) -> void:
+	_show_validation_report(path)
+
+
 func _create_manage_dialog(editor_root: Control) -> void:
 	_manage_dialog = AcceptDialog.new()
 	_manage_dialog.title = "UI 配置管理"

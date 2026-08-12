@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/data-tables/index.md
-translation_source_hash: sha256:12a8cf30760e5540ff18c4268633aba0e3623f16e2a8ee592e287e1beba46a10
+translation_source_hash: sha256:516a29b093f3580c7f19157e34261590fef77b33f3cccbc99f5e99fe9b584c46
 ---
 
 # Generate Validated Data Tables from CSV
@@ -44,7 +44,7 @@ DataTables/
    └─ BaseDataTables.g.cs
 ```
 
-Use `数据表配置 (DataTable Configuration)...` in the **Data Tables** section of the `GoDo Framework` menu to maintain the Schema and `.datafiles`. `Runtime` and `BaseDataTables.g.cs` are generated and must not be edited. Committing generated artifacts is recommended so a fresh checkout compiles immediately and CI can verify that they are current. The Schema and `.datafiles` are excluded from the final game package.
+Use `数据表配置 (DataTable Configuration)...` on the unified window's **Editor Extensions** page to maintain the Schema and `.datafiles`. `Runtime` and `BaseDataTables.g.cs` are generated and must not be edited. Committing generated artifacts is recommended so a fresh checkout compiles immediately and CI can verify that they are current. The Schema and `.datafiles` are excluded from the final game package.
 
 Source CSV uses UTF-8 and may contain a BOM. Column names must match Schema field names.
 
@@ -70,7 +70,7 @@ Stable IDs are case-sensitive. Do not use localized display copy as an ID. A pro
 
 ## 3. Declare structure in the Schema editor
 
-Open `数据表配置 (DataTable Configuration)...` in the **Data Tables** section of the `GoDo Framework` menu, select `.datatable.schema.json`, then choose **Edit Schema...**. The data-file panel shows the file, state, and data table ID, using green for included files, yellow for files not yet included, and red for missing files. Select a whole row to include an unconfigured CSV or remove an included CSV from the Schema without deleting the file. **新建数据表...** creates a new CSV when the Schema is saved. Godot translation is disabled for data table IDs, field names, and CSV paths. Data table IDs and CSV paths change only through explicit actions, while the read-only current table-structure version is maintained by the tool. A row background marks the active field; double-click edits text cells, while types and checkboxes use a single click. A blank default means no fallback is configured—it does not silently become `0`, `false`, or an empty string. The JSON below explains the saved result and is not intended for manual editing:
+Open `数据表配置 (DataTable Configuration)...` on the unified window's **Editor Extensions** page, select `.datatable.schema.json`, then choose **Edit Schema...**. The data-file panel shows the file, state, and data table ID, using green for included files, yellow for files not yet included, and red for missing files. Select a whole row to include an unconfigured CSV or remove an included CSV from the Schema without deleting the file. **新建数据表...** creates a new CSV when the Schema is saved. Godot translation is disabled for data table IDs, field names, and CSV paths. Data table IDs and CSV paths change only through explicit actions, while the read-only current table-structure version is maintained by the tool. A row background marks the active field; double-click edits text cells, while types and checkboxes use a single click. A blank default means no fallback is configured—it does not silently become `0`, `false`, or an empty string. The JSON below explains the saved result and is not intended for manual editing:
 
 ```json
 {
@@ -159,7 +159,7 @@ Do not edit these files manually; the next generation replaces them.
 Enable the single **GoDo Framework** plugin, then open:
 
 ```text
-GoDo Framework → Data Tables → 数据表配置 (DataTable Configuration)...
+GoDo Framework → Open GoDo Framework... → Editor Extensions → 数据表配置 (DataTable Configuration)...
 ```
 
 The window looks for `res://DataTables/Base/.datatable.schema.json` by default. It can edit the Schema, inspect or include data files, run **校验全部数据** for read-only validation, or use **导出当前表...** and **导出全部表...** in the data-export row. Export previews its targets and asks for confirmation, then tells Godot to rescan files when complete.

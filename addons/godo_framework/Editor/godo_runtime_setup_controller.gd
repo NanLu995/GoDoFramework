@@ -20,9 +20,7 @@ enum HealthLevel {
 }
 
 var _plugin: EditorPlugin
-var _setup_dialog: AcceptDialog
 var _uninstall_dialog: ConfirmationDialog
-var _content: VBoxContainer
 var _report_label: RichTextLabel
 var _message_label: RichTextLabel
 var _install_button: Button
@@ -30,98 +28,46 @@ var _uninstall_button: Button
 
 func initialize(plugin: EditorPlugin) -> void:
 	_plugin = plugin
-	_setup_dialog = AcceptDialog.new()
-	_setup_dialog.title = "GoDo Framework"
-	_setup_dialog.ok_button_text = "关闭"
-	_setup_dialog.min_size = Vector2i(620, 360)
-	_setup_dialog.get_label().hide()
-	_create_content()
-	var check_button := _setup_dialog.add_button("重新检查", true)
-	_install_button = _setup_dialog.add_button("安装 Runtime", true)
-	_uninstall_button = _setup_dialog.add_button("卸载 Runtime", true)
-	check_button.pressed.connect(_on_check_pressed)
-	_install_button.pressed.connect(_on_install_pressed)
-	_uninstall_button.pressed.connect(_on_uninstall_pressed)
-	_plugin.get_editor_interface().get_base_control().add_child(_setup_dialog)
-
 	_uninstall_dialog = ConfirmationDialog.new()
 	_uninstall_dialog.title = "卸载 GoDoRuntime"
 	_uninstall_dialog.dialog_text = "只会移除正确匹配的 GoDoRuntime Autoload，不会删除任何框架或业务文件。是否继续？"
 	_uninstall_dialog.ok_button_text = "卸载"
 	_uninstall_dialog.cancel_button_text = "取消"
 	_uninstall_dialog.confirmed.connect(_on_uninstall_confirmed)
-	_uninstall_dialog.canceled.connect(_on_uninstall_canceled)
 	_plugin.get_editor_interface().get_base_control().add_child(_uninstall_dialog)
 
 func dispose() -> void:
-	if is_instance_valid(_setup_dialog):
-		_setup_dialog.queue_free()
 	if is_instance_valid(_uninstall_dialog):
 		_uninstall_dialog.queue_free()
 
-func open_dialog() -> void:
-	_open_setup_dialog()
+func bind_view(
+	report_label: RichTextLabel,
+	message_label: RichTextLabel,
+	install_button: Button,
+	uninstall_button: Button
+) -> void:
+	_report_label = report_label
+	_message_label = message_label
+	_install_button = install_button
+	_uninstall_button = uninstall_button
 
 
-func _open_setup_dialog() -> void:
+func refresh() -> void:
 	var report := _refresh_report()
 	_show_status_advice(report)
-	_setup_dialog.popup_centered(Vector2i(620, 360))
-
-
-func _create_content() -> void:
-	_content = _setup_dialog.get_node_or_null("Content") as VBoxContainer
-	if is_instance_valid(_content):
-		_report_label = _content.get_node_or_null("ReportLabel") as RichTextLabel
-		_message_label = _content.get_node_or_null("MessageLabel") as RichTextLabel
-		return
-
-	for child in _setup_dialog.get_children():
-		if child is RichTextLabel:
-			child.hide()
-
-	_content = VBoxContainer.new()
-	_content.name = "Content"
-	_setup_dialog.add_child(_content)
-	_content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_content.offset_left = 16
-	_content.offset_top = 16
-	_content.offset_right = -16
-	_content.offset_bottom = -64
-	_content.add_theme_constant_override("separation", 10)
-
-	_report_label = RichTextLabel.new()
-	_report_label.name = "ReportLabel"
-	_report_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_report_label.bbcode_enabled = false
-	_report_label.selection_enabled = true
-	_content.add_child(_report_label)
-
-	_message_label = RichTextLabel.new()
-	_message_label.name = "MessageLabel"
-	_message_label.custom_minimum_size.y = 44
-	_message_label.bbcode_enabled = false
-	_message_label.scroll_active = false
-	_message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_content.add_child(_message_label)
 
 
 func _ensure_content() -> bool:
-	if not is_instance_valid(_setup_dialog):
-		return false
-	if not is_instance_valid(_report_label) or not is_instance_valid(_message_label):
-		_create_content()
 	return is_instance_valid(_report_label) and is_instance_valid(_message_label)
 
 
-
-func _on_check_pressed() -> void:
+func check() -> void:
 	var report := _refresh_report()
 	var status := _framework_status(report)
 	_show_message("检查已刷新。%s" % status.advice, status.level)
 
 
-func _on_install_pressed() -> void:
+func install() -> void:
 	var report := _check_health()
 	if report.autoload_healthy and not report.has_duplicate:
 		_show_message("GoDoRuntime 已正确安装，无需重复操作。", HealthLevel.NORMAL)
@@ -139,7 +85,7 @@ func _on_install_pressed() -> void:
 	)
 
 
-func _on_uninstall_pressed() -> void:
+func request_uninstall() -> void:
 	var report := _check_health()
 	if not report.autoload_healthy:
 		_refresh_report()
@@ -148,7 +94,6 @@ func _on_uninstall_pressed() -> void:
 	if not report.project_config_readable:
 		_show_message("无法读取 project.godot，插件不会执行卸载。", HealthLevel.ERROR)
 		return
-	_setup_dialog.hide()
 	_show_uninstall_dialog.call_deferred()
 
 
@@ -156,15 +101,11 @@ func _show_uninstall_dialog() -> void:
 	_uninstall_dialog.popup_centered()
 
 
-func _on_uninstall_canceled() -> void:
-	_open_setup_dialog.call_deferred()
-
-
 func _on_uninstall_confirmed() -> void:
 	var report := _check_health()
 	if not report.project_config_readable or not report.autoload_healthy:
 		_show_message("项目配置或 Autoload 状态已变化，已取消卸载。", HealthLevel.ERROR)
-		_show_setup_dialog.call_deferred()
+		_refresh_report()
 		return
 
 	_plugin.remove_autoload_singleton(AUTOLOAD_NAME)
@@ -174,11 +115,6 @@ func _on_uninstall_confirmed() -> void:
 		else "卸载调用已完成，但复查未通过，请查看上方检查结果和编辑器输出。",
 		HealthLevel.NORMAL if result.autoload_missing else HealthLevel.ERROR
 	)
-	_show_setup_dialog.call_deferred()
-
-
-func _show_setup_dialog() -> void:
-	_setup_dialog.popup_centered(Vector2i(620, 360))
 
 
 func _refresh_report() -> Dictionary:
