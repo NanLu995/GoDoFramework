@@ -10,6 +10,11 @@ const GUIDE_AUTOLOAD_PATH := "res://addons/guideCS/guide/guide.gd"
 const GUIDE_CS_AUTOLOAD_PATH := "res://addons/guideCS/Guide.cs"
 const GODO_AUTOLOAD_PATH := "res://addons/godo_framework/Core/GoDoRuntime.tscn"
 const REQUIRED_GLOBAL_CLASS := "GUIDEActionMapping"
+const GUIDE_PLUGIN_CONFIG := "res://addons/guideCS/guide/plugin.cfg"
+const GUIDE_CS_PLUGIN_CONFIG := "res://addons/guideCS/plugin.cfg"
+const SUPPORTED_GUIDE_VERSION := "0.13.0"
+const SUPPORTED_GUIDE_CS_VERSION := "0.3.7--0.13.0"
+const VERIFIED_RELEASE_URL := "https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7"
 
 var _dialog: AcceptDialog
 var _confirmation: ConfirmationDialog
@@ -65,9 +70,13 @@ func _create_dialogs() -> void:
 	content.add_child(_message_label)
 
 	var refresh_button := _dialog.add_button("重新检查", true)
+	var source_button := _dialog.add_button("打开已验证版本...", true)
+	source_button.name = "GuideInputOfficialSourceButton"
+	source_button.tooltip_text = VERIFIED_RELEASE_URL
 	_repair_button = _dialog.add_button("安装 / 修复顺序...", true)
 	_repair_button.name = "GuideInputRepairButton"
 	refresh_button.pressed.connect(_refresh)
+	source_button.pressed.connect(_open_official_source)
 	_repair_button.pressed.connect(_request_repair)
 	_context.get_editor_interface().get_base_control().add_child(_dialog)
 
@@ -119,12 +128,19 @@ func _inspect_state() -> Dictionary:
 		or (not godo_path.is_empty() and godo_path != GODO_AUTOLOAD_PATH)
 	)
 	var class_ready := _has_global_class(REQUIRED_GLOBAL_CLASS)
+	var guide_version := _read_plugin_version(GUIDE_PLUGIN_CONFIG)
+	var guide_cs_version := _read_plugin_version(GUIDE_CS_PLUGIN_CONFIG)
+	var version_supported := (
+		guide_version == SUPPORTED_GUIDE_VERSION
+		and guide_cs_version == SUPPORTED_GUIDE_CS_VERSION
+	)
 	var guide_plugin_enabled: bool = editor_interface.is_plugin_enabled(GUIDE_PLUGIN)
 	var guide_cs_plugin_enabled: bool = editor_interface.is_plugin_enabled(GUIDE_CS_PLUGIN)
 	var order_ready := _is_autoload_order_ready()
 	var runtime_present := godo_path == GODO_AUTOLOAD_PATH
 	var needs_repair: bool = (
-		not guide_plugin_enabled
+		not version_supported
+		or not guide_plugin_enabled
 		or not guide_cs_plugin_enabled
 		or guide_path != GUIDE_AUTOLOAD_PATH
 		or guide_cs_path != GUIDE_CS_AUTOLOAD_PATH
@@ -134,6 +150,9 @@ func _inspect_state() -> Dictionary:
 		"scanning": scanning,
 		"files_ready": files_ready,
 		"class_ready": class_ready,
+		"guide_version": guide_version,
+		"guide_cs_version": guide_cs_version,
+		"version_supported": version_supported,
 		"guide_plugin_enabled": guide_plugin_enabled,
 		"guide_cs_plugin_enabled": guide_cs_plugin_enabled,
 		"guide_path": guide_path,
@@ -143,7 +162,7 @@ func _inspect_state() -> Dictionary:
 		"order_ready": order_ready,
 		"has_conflict": has_conflict,
 		"needs_repair": needs_repair,
-		"can_repair": files_ready and not scanning and class_ready and not has_conflict,
+		"can_repair": files_ready and version_supported and not scanning and class_ready and not has_conflict,
 	}
 
 
@@ -157,6 +176,15 @@ func _format_report(state: Dictionary) -> String:
 	)
 	lines.append("")
 	lines.append(_status_line("第三方文件", state["files_ready"], "已找到固定目录" if state["files_ready"] else "缺少 addons/guideCS/ 完整文件"))
+	lines.append(_status_line(
+		"第三方版本",
+		state["version_supported"],
+		"GUIDE %s + GUIDE-CSharp %s" % [
+			state["guide_version"] if not state["guide_version"].is_empty() else "未知",
+			state["guide_cs_version"] if not state["guide_cs_version"].is_empty() else "未知",
+		]
+	))
+	lines.append("安装位置：addons/guideCS/（适配器已验证 GUIDE %s + GUIDE-CSharp %s）" % [SUPPORTED_GUIDE_VERSION, SUPPORTED_GUIDE_CS_VERSION])
 	lines.append(_status_line("文件扫描", not state["scanning"], "已完成" if not state["scanning"] else "仍在扫描，请等待"))
 	lines.append(_status_line("全局脚本类型", state["class_ready"], REQUIRED_GLOBAL_CLASS if state["class_ready"] else "%s 尚未注册" % REQUIRED_GLOBAL_CLASS))
 	lines.append(_status_line("基础 GUIDE 插件", state["guide_plugin_enabled"], "已启用" if state["guide_plugin_enabled"] else "未启用"))
@@ -173,6 +201,11 @@ func _hint_for_state(state: Dictionary) -> Dictionary:
 		return {"text": "检测到同名 Autoload 冲突，请先手动处理。", "color": "#ff6b6b"}
 	if not state["files_ready"]:
 		return {"text": "请先完整安装 addons/guideCS/，然后重新检查。", "color": "#ff6b6b"}
+	if not state["version_supported"]:
+		return {
+			"text": "当前仅验证 GUIDE %s + GUIDE-CSharp %s；请从已验证版本页面取得匹配版本。" % [SUPPORTED_GUIDE_VERSION, SUPPORTED_GUIDE_CS_VERSION],
+			"color": "#ffd166",
+		}
 	if state["scanning"]:
 		return {"text": "Godot 正在扫描文件，请等待完成后重新检查。", "color": "#ffd166"}
 	if not state["class_ready"]:
@@ -186,6 +219,21 @@ func _hint_for_state(state: Dictionary) -> Dictionary:
 
 func _set_hint(message: String, color: String) -> void:
 	_message_label.text = "[center][color=%s]提示：%s[/color][/center]" % [color, message]
+
+
+func _open_official_source() -> void:
+	var result := OS.shell_open(VERIFIED_RELEASE_URL)
+	if result == OK:
+		_refresh("已交给系统浏览器打开已验证的官方 Release；下载与安装仍由开发者完成。", "#8bd49c")
+	else:
+		_refresh("无法打开已验证版本页面：%s" % error_string(result), "#ff6b6b")
+
+
+func _read_plugin_version(config_path: String) -> String:
+	var config := ConfigFile.new()
+	if config.load(config_path) != OK:
+		return ""
+	return str(config.get_value("plugin", "version", "")).strip_edges()
 
 
 func _status_line(name: String, healthy: bool, detail: String) -> String:

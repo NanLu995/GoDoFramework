@@ -16,6 +16,8 @@
 </ItemGroup>
 ```
 
+依赖的官方版本页是 [NuGet：Friflo.Engine.ECS 3.6.0](https://www.nuget.org/packages/Friflo.Engine.ECS/3.6.0)。编辑器检查页提供该入口，但不会自行下载程序包；无论手工还是由工具确认写入 `PackageReference`，程序集都由开发者随后执行的 restore/build 获取。
+
 然后叠加 `GoDoFramework-FrifloEcs-<version>.zip`（或复制 `addons/godo_framework/Integrations/FrifloEcs/`），再重新执行 restore/build。独立发布包包含适配源码与上游 MIT `LICENSE`，不内置 NuGet 程序集。
 
 启用 GoDo EditorPlugin 后，可在统一窗口的“编辑器扩展”页打开“Friflo ECS 依赖检查...”。检查器读取项目根目录的 `.csproj` 与可选 `Directory.Packages.props`，识别直接 `PackageReference` 和中央 `PackageVersion`；缺少引用、版本不符、MSBuild 变量、多个项目或损坏 XML 都会明确报告。

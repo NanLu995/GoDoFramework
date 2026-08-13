@@ -16,6 +16,8 @@
 </ItemGroup>
 ```
 
+可在 [NuGet 官方版本页](https://www.nuget.org/packages/Friflo.Engine.ECS/3.6.0)核对 `3.6.0` 与精确 `PackageReference`。依赖检查窗口的“查看 NuGet 包...”只打开该页面；工具本身不会下载程序集，程序包仍由后续 restore/build 获取。
+
 也可以先在 `GoDo Framework → 打开 GoDo Framework... → 编辑器扩展` 中运行“Friflo ECS 依赖检查...”。当根目录只有一个普通 `.csproj`、依赖缺失且没有 `Directory.Packages.props` 时，“添加依赖...”按钮可用。确认窗口会显示实际项目文件和上述精确 `PackageReference`；确认后先在同目录创建不覆盖旧文件的 `.godo-backup` 备份，再写入并重新检查。已有备份时文件名会递增编号。
 
 无论手工还是由工具写入，之后都要自行执行 restore/build 并重新打开 Godot；工具不会启动构建或下载依赖。

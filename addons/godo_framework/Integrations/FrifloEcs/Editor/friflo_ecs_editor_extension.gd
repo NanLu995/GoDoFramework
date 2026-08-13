@@ -3,6 +3,7 @@ extends RefCounted
 
 const PROJECT_INSPECTOR_SCRIPT := preload("res://addons/godo_framework/Integrations/FrifloEcs/Editor/friflo_ecs_project_inspector.gd")
 const PROJECT_INSTALLER_SCRIPT := preload("res://addons/godo_framework/Integrations/FrifloEcs/Editor/friflo_ecs_project_installer.gd")
+const OFFICIAL_PACKAGE_URL := "https://www.nuget.org/packages/Friflo.Engine.ECS/3.6.0"
 
 var _context
 var _dialog: AcceptDialog
@@ -65,6 +66,10 @@ func _create_dialog() -> void:
 	var refresh_button := _dialog.add_button("重新检查", true)
 	refresh_button.name = "FrifloEcsRefreshButton"
 	refresh_button.pressed.connect(_refresh)
+	var source_button := _dialog.add_button("查看 NuGet 包...", true)
+	source_button.name = "FrifloEcsOfficialSourceButton"
+	source_button.tooltip_text = OFFICIAL_PACKAGE_URL
+	source_button.pressed.connect(_open_official_source)
 	_install_button = _dialog.add_button("添加依赖...", true)
 	_install_button.name = "FrifloEcsInstallButton"
 	_install_button.pressed.connect(_request_install)
@@ -86,10 +91,17 @@ func _refresh() -> void:
 		"",
 		"项目文件：%s" % (state["project_path"].get_file() if not state["project_path"].is_empty() else "未确定"),
 		"依赖版本：%s" % (state["version"] if not state["version"].is_empty() else "未确定"),
+		"安装方式：根目录 .csproj 添加 Friflo.Engine.ECS 3.6.0，再由 restore 下载程序集",
 		"检查结果：%s" % state["detail"],
 	])
 	_report.text = "\n".join(lines)
 	_install_button.disabled = not state["can_install"]
+
+
+func _open_official_source() -> void:
+	var result := OS.shell_open(OFFICIAL_PACKAGE_URL)
+	if result != OK:
+		_report.text += "\n\n[color=#ff6b6b]无法打开 NuGet 官方页面：%s[/color]" % error_string(result)
 
 
 func _request_install() -> void:

@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/input/index.md
-translation_source_hash: sha256:eb17a536037667c98a900d8dd414464d1945fd8ed818317cb1e13272fd9bec03
+translation_source_hash: sha256:f6caf9d57c33146e23b5603bc2dc661365f65eb7b436f6160c570b30fc64c5ff
 ---
 
 # Read Semantic Input and Manage Contexts
@@ -32,6 +32,8 @@ addons/godo_framework/
 addons/guideCS/
 addons/godo_framework/Integrations/GuideInput/
 ```
+
+The verified combination is GUIDE `0.13.0` with GUIDE-CSharp `0.3.7--0.13.0`. Obtain it from the [official GitHub release](https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7) and ensure the resulting path is `addons/guideCS/`. **Open verified version...** only opens that page in the system browser; it never downloads, extracts, or overwrites third-party files. The Asset Store currently marks `0.3.7--0.14.0` as unstable, while its downloaded base GUIDE still declares `0.13.0`, so GoDo `0.6.0` does not list it as verified.
 
 After copying dependencies, let Godot finish scanning files and rebuilding its global script-class cache, then complete one C# build. Open:
 

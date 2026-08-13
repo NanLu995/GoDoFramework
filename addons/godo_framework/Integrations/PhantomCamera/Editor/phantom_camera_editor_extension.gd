@@ -4,6 +4,7 @@ extends RefCounted
 const PHANTOM_PLUGIN := "phantom_camera"
 const PHANTOM_PLUGIN_CONFIG := "res://addons/phantom_camera/plugin.cfg"
 const SUPPORTED_VERSION := "0.11"
+const ASSET_LIBRARY_URL := "https://godotengine.org/asset-library/asset/1822"
 const REQUIRED_FILES := [
 	"res://addons/phantom_camera/plugin.cfg",
 	"res://addons/phantom_camera/plugin.gd",
@@ -71,9 +72,13 @@ func _create_dialogs() -> void:
 	content.add_child(_message_label)
 
 	var refresh_button := _dialog.add_button("重新检查", true)
+	var source_button := _dialog.add_button("打开 Godot 商店...", true)
+	source_button.name = "PhantomCameraOfficialSourceButton"
+	source_button.tooltip_text = ASSET_LIBRARY_URL
 	_enable_button = _dialog.add_button("启用 Phantom Camera...", true)
 	_enable_button.name = "PhantomCameraEnableButton"
 	refresh_button.pressed.connect(_refresh)
+	source_button.pressed.connect(_open_official_source)
 	_enable_button.pressed.connect(_request_enable)
 	_context.get_editor_interface().get_base_control().add_child(_dialog)
 
@@ -96,6 +101,7 @@ func _refresh(message: String = "", message_color: String = "") -> void:
 	lines.append("")
 	lines.append(_status_line("第三方与适配文件", state["files_ready"], "已找到" if state["files_ready"] else "文件不完整"))
 	lines.append(_status_line("第三方版本", state["version_supported"], state["version"] if not state["version"].is_empty() else "未知"))
+	lines.append("安装位置：addons/phantom_camera/（GoDo 当前验证 plugin.cfg 版本 %s）" % SUPPORTED_VERSION)
 	lines.append(_status_line("第三方插件", state["plugin_enabled"], "已启用" if state["plugin_enabled"] else "未启用"))
 	_report.text = "\n".join(lines)
 	_enable_button.disabled = state["plugin_enabled"] or not state["can_enable"]
@@ -121,6 +127,14 @@ func _hint_for_state(state: Dictionary) -> Dictionary:
 
 func _set_hint(message: String, color: String) -> void:
 	_message_label.text = "[center][color=%s]提示：%s[/color][/center]" % [color, message]
+
+
+func _open_official_source() -> void:
+	var result := OS.shell_open(ASSET_LIBRARY_URL)
+	if result == OK:
+		_refresh("已交给系统浏览器打开 Godot Asset Library；下载与安装仍由开发者完成。", "#8bd49c")
+	else:
+		_refresh("无法打开 Godot Asset Library：%s" % error_string(result), "#ff6b6b")
 
 
 func _inspect_state() -> Dictionary:

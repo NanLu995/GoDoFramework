@@ -52,7 +52,9 @@ func _run() -> void:
 		"GoDo GUIDE Input 设置",
 		"GuideInputReport",
 		"GuideInputMessage",
-		"GuideInputRepairButton"
+		"GuideInputRepairButton",
+		"GuideInputOfficialSourceButton",
+		"https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7"
 	):
 		return
 	if not await _open_and_verify(
@@ -61,7 +63,9 @@ func _run() -> void:
 		"GoDo Phantom Camera 设置",
 		"PhantomCameraReport",
 		"PhantomCameraMessage",
-		"PhantomCameraEnableButton"
+		"PhantomCameraEnableButton",
+		"PhantomCameraOfficialSourceButton",
+		"https://godotengine.org/asset-library/asset/1822"
 	):
 		return
 	if not await _open_and_verify_friflo_dependency(framework_window):
@@ -269,7 +273,9 @@ func _open_and_verify(
 	dialog_title: String,
 	report_name: String,
 	message_name: String,
-	action_button_name: String
+	action_button_name: String,
+	source_button_name: String,
+	official_url: String
 ) -> bool:
 	if not _select_framework_page(framework_window, "extensions"):
 		return false
@@ -296,6 +302,10 @@ func _open_and_verify(
 	if target_button == null or not target_button.disabled:
 		_fail("%s 在健康状态下仍允许重复写入。" % dialog_title)
 		return false
+	var source_button := dialog.find_child(source_button_name, true, false) as Button
+	if source_button == null or source_button.disabled or source_button.tooltip_text != official_url:
+		_fail("%s 缺少可用且地址明确的官方来源按钮。" % dialog_title)
+		return false
 	dialog.hide()
 	return true
 
@@ -318,6 +328,7 @@ func _open_and_verify_friflo_dependency(framework_window: Window) -> bool:
 	var note := dialog.find_child("FrifloEcsInstallBoundaryNote", true, false) as Label
 	var refresh := dialog.find_child("FrifloEcsRefreshButton", true, false) as Button
 	var install := dialog.find_child("FrifloEcsInstallButton", true, false) as Button
+	var source := dialog.find_child("FrifloEcsOfficialSourceButton", true, false) as Button
 	if report == null or not report.get_parsed_text().contains("已就绪"):
 		_fail("Friflo ECS 没有识别当前项目的已验证依赖。")
 		return false
@@ -326,6 +337,9 @@ func _open_and_verify_friflo_dependency(framework_window: Window) -> bool:
 		return false
 	if refresh == null or install == null or not install.disabled:
 		_fail("Friflo ECS 已就绪状态没有禁用安装，或缺少检查操作。")
+		return false
+	if source == null or source.disabled or source.tooltip_text != "https://www.nuget.org/packages/Friflo.Engine.ECS/3.6.0":
+		_fail("Friflo ECS 检查缺少精确版本的 NuGet 官方来源。")
 		return false
 	var confirmation := _find_window(dialog, "添加 Friflo ECS 依赖") as ConfirmationDialog
 	if confirmation == null or not confirmation.dialog_text.contains(".godo-backup"):

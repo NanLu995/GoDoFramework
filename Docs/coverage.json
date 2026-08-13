@@ -74,7 +74,7 @@
         "guides/input-rebinding/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:78b34ff85b71c22fdcf611ce7a15925fa0466c07b522c6b97a613623365bbe55"
+      "reviewed_contract_hash": "sha256:42cd28ad22be2c2695b322a5a511dad7a0ed1d959f0ab7a92b6edc846363c354"
     },
     "friflo-ecs": {
       "contract": "addons/godo_framework/Integrations/FrifloEcs/USAGE.md",
@@ -85,7 +85,7 @@
         "guides/friflo-ecs/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:ac612ff9a2038080fa43307d835ca7ca6067574f02efc5907481689a47606dae"
+      "reviewed_contract_hash": "sha256:07fc6ab12b9f3eebc761d9add279d6e4aa8ab30ae9fd0a61901db0c724d7bd05"
     },
     "phantom-camera": {
       "contract": "addons/godo_framework/Integrations/PhantomCamera/USAGE.md",
@@ -95,7 +95,7 @@
         "guides/camera/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:f6e14b2503c4080091009d8d705bb680f69d1d9df78e12795bb1ccc2f3b2a591"
+      "reviewed_contract_hash": "sha256:296d27171844c24a5c5ae63cbc80a2d71e23a2eccdbb6e569cc4753036a19ca1"
     },
     "audio": {
       "contract": "addons/godo_framework/Runtime/Audio/USAGE.md",

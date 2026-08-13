@@ -1,11 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.6.0
 
 - 编辑器插件收敛为项目设置式单窗口入口，按 Runtime、资源清单、UI 配置和编辑器扩展分页管理；资源与 UI 页面直接显示项目内现有配置列表。
 - 新增框架级游戏导出过滤：Debug 与 Release 均排除 Editor/Tools，Release 额外排除 Debugger，源码发布包仍保留完整开发工具。
 - 新增基于 Friflo.Engine.ECS 3.6.0 的可选场景级 ECS 宿主与独立发布包；核心框架不依赖 Friflo，目标项目按需添加 NuGet 依赖。
 - Friflo ECS 编辑器扩展新增项目依赖检查；普通单项目缺少依赖时可在精确预览和非覆盖备份后确认写入，中央包管理、多个项目及无法确定的结构保持只读，且不自动执行 restore/build。
+- GUIDE Input、Phantom Camera 与 Friflo ECS 设置页新增已验证版本、安装位置/方式和官方来源入口；第三方依赖仍由开发者下载，编辑器不自动下载或覆盖。
 - GoDo Framework 窗口新增 C# 项目配置检查；可按已安装的 GUIDE、Phantom Camera、Friflo ECS 与 Debugger 补齐框架自有条件编译/Release 裁剪规则，修改前精确预览并创建非覆盖备份，复杂项目保持只读。
 - Demo3D Gameplay 新增 512 实体的 Friflo ECS 群体展示，通过单个 MultiMesh 可视化批量更新，并验证暂停、恢复和跨场景 World 重建。
 

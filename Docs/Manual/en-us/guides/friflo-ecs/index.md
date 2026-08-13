@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/friflo-ecs/index.md
-translation_source_hash: sha256:14a86ffd57037d2afba45fb7593c171b886bbd12c5dda00a6c37beb538c84ac6
+translation_source_hash: sha256:83a564db0b19a7ebb453c7601d348ac3dd2ae479ae6affa7494f799866d4ca9e
 ---
 
 # Batch Scene Data with Friflo ECS
@@ -20,6 +20,8 @@ Add the verified version to the target `.csproj`:
   <PackageReference Include="Friflo.Engine.ECS" Version="3.6.0" />
 </ItemGroup>
 ```
+
+Use the [official NuGet version page](https://www.nuget.org/packages/Friflo.Engine.ECS/3.6.0) to verify `3.6.0` and the exact `PackageReference`. **View NuGet package...** only opens that page. The tool never downloads the assembly; the package is obtained by the subsequent restore/build.
 
 Alternatively, first run **Friflo ECS dependency check...** under `GoDo Framework → Open GoDo Framework... → Editor extensions`. **Add dependency...** is available only when the root contains exactly one ordinary `.csproj`, the reference is missing, and no `Directory.Packages.props` is detected. The confirmation shows the actual project file and exact `PackageReference`. On confirmation, the tool creates a non-overwriting `.godo-backup` beside the project, writes the reference, and checks again; existing backup names receive an incrementing suffix.
 
