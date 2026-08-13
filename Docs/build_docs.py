@@ -710,6 +710,7 @@ API_TOC_GROUPS = {
     "scheduler": "Runtime / Scheduler",
     "pool": "Runtime / Pool",
     "guide-input": "Integrations / GUIDE Input",
+    "friflo-ecs": "Integrations / Friflo ECS",
     "phantom-camera": "Integrations / Phantom Camera",
     "data-table": "Tools / DataTable",
     "framework-setup": "Editor setup",

@@ -32,13 +32,16 @@ python Tools/update_godot_version.py --check
 - `--suite core`：只运行干净 Core 包验证，不需要任何可选插件。
 - `--suite guide`：运行 GUIDE 集成验证，只要求 GUIDE / G.U.I.D.E-CSharp。
 - `--suite phantom`：运行 Phantom 集成验证，只要求 Phantom Camera。
+- `--suite friflo`：运行 Friflo ECS 宿主生命周期验证，只要求 Friflo.Engine.ECS。
 - `--suite demo`：运行 Demo3D 集成验证，需要 GUIDE / G.U.I.D.E-CSharp 与 Phantom Camera。
 - `--suite all`：先验证 Core 包，再构建当前工作区并运行核心回归；已安装的可选依赖追加对应验证，缺少的套件会明确标记为跳过。
 
-`GoDoFramework.csproj` 默认根据第三方插件目录是否存在决定是否编译可选适配包。可用下面的构建参数在 CI 或排查时强制验证缺失插件分支：
+`GoDoFramework.csproj` 默认根据第三方插件或适配目录是否存在决定是否编译可选适配包。Demo3D 同时需要 GUIDE、Phantom Camera 与 Friflo ECS，任一缺失时整体排除其业务源码。可用下面的构建参数在 CI 或排查时强制验证缺失插件分支：
+
+`GoDoCsprojManagerRegression.gd` 在 `user://` 临时目录验证普通单项目的精确规则补齐、非覆盖备份、幂等复查、按已安装模块生成，以及多个项目、中央包管理、非 Godot SDK 和用户自定义同名规则的只读边界；不会修改仓库根 `.csproj`。
 
 ```powershell
-dotnet build GoDoFramework.csproj -c CoreVerification -p:GoDoIncludeGuideInput=false -p:GoDoIncludePhantomCamera=false
+dotnet build GoDoFramework.csproj -c CoreVerification -p:GoDoIncludeGuideInput=false -p:GoDoIncludePhantomCamera=false -p:GoDoIncludeFrifloEcs=false
 ```
 
 必须使用独立的 `CoreVerification` 配置并直接构建 `.csproj`。不要用上述强制禁用参数构建默认 Debug：它会覆盖 Godot 编辑器当前加载的 Debug 程序集，导致已安装的 GUIDE / Phantom C# 插件脚本暂时无法实例化，直到重新执行默认 Debug 构建。

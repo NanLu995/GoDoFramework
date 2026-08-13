@@ -42,6 +42,8 @@ func _run() -> void:
 		return
 	if not await _open_and_verify_setup(framework_window):
 		return
+	if not _verify_csproj_page(framework_window):
+		return
 	if not await _open_and_verify_datatable(framework_window):
 		return
 	if not await _open_and_verify(
@@ -62,8 +64,10 @@ func _run() -> void:
 		"PhantomCameraEnableButton"
 	):
 		return
+	if not await _open_and_verify_friflo_dependency(framework_window):
+		return
 
-	print("[EditorExtensionUiRegression] PASS (8/8)")
+	print("[EditorExtensionUiRegression] PASS (10/10)")
 	quit(0)
 
 
@@ -197,6 +201,25 @@ func _verify_management_page(
 	return true
 
 
+func _verify_csproj_page(framework_window: Window) -> bool:
+	if not _select_framework_page(framework_window, "csproj"):
+		return false
+	var report := framework_window.find_child("GoDoCsprojReport", true, false) as RichTextLabel
+	var refresh := framework_window.find_child("GoDoCsprojRefreshButton", true, false) as Button
+	var repair := framework_window.find_child("GoDoCsprojRepairButton", true, false) as Button
+	var confirmation := _find_window(root, "修复 GoDo 项目配置") as ConfirmationDialog
+	if report == null or not report.text.contains("已就绪"):
+		_fail("C# 项目页没有识别当前项目配置。")
+		return false
+	if refresh == null or repair == null or not repair.disabled:
+		_fail("C# 项目已就绪时修复按钮没有禁用。")
+		return false
+	if confirmation == null or not confirmation.dialog_text.is_empty():
+		_fail("C# 项目确认窗口没有保持按需精确预览。")
+		return false
+	return true
+
+
 func _open_and_verify_management_selector(
 	menu: PopupMenu,
 	menu_label: String,
@@ -272,6 +295,41 @@ func _open_and_verify(
 	var target_button := dialog.find_child(action_button_name, true, false) as Button
 	if target_button == null or not target_button.disabled:
 		_fail("%s 在健康状态下仍允许重复写入。" % dialog_title)
+		return false
+	dialog.hide()
+	return true
+
+
+func _open_and_verify_friflo_dependency(framework_window: Window) -> bool:
+	if not _select_framework_page(framework_window, "extensions"):
+		return false
+	var action_button := _find_button(framework_window, "Friflo ECS 依赖检查...")
+	if action_button == null:
+		_fail("未找到 Friflo ECS 依赖检查入口。")
+		return false
+	action_button.pressed.emit()
+	await process_frame
+
+	var dialog := _find_window(root, "GoDo Friflo ECS 依赖检查")
+	if dialog == null:
+		_fail("Friflo ECS 依赖检查没有打开窗口。")
+		return false
+	var report := dialog.find_child("FrifloEcsDependencyReport", true, false) as RichTextLabel
+	var note := dialog.find_child("FrifloEcsInstallBoundaryNote", true, false) as Label
+	var refresh := dialog.find_child("FrifloEcsRefreshButton", true, false) as Button
+	var install := dialog.find_child("FrifloEcsInstallButton", true, false) as Button
+	if report == null or not report.get_parsed_text().contains("已就绪"):
+		_fail("Friflo ECS 没有识别当前项目的已验证依赖。")
+		return false
+	if note == null or not note.text.contains("中央包管理始终只读"):
+		_fail("Friflo ECS 检查没有明确自动写入边界。")
+		return false
+	if refresh == null or install == null or not install.disabled:
+		_fail("Friflo ECS 已就绪状态没有禁用安装，或缺少检查操作。")
+		return false
+	var confirmation := _find_window(dialog, "添加 Friflo ECS 依赖") as ConfirmationDialog
+	if confirmation == null or not confirmation.dialog_text.contains(".godo-backup"):
+		_fail("Friflo ECS 安装确认缺少精确变更或备份说明。")
 		return false
 	dialog.hide()
 	return true

@@ -35,6 +35,7 @@
         "guides/services-and-events/index.md",
         "guides/scheduler/index.md",
         "guides/node-pool/index.md",
+        "guides/friflo-ecs/index.md",
         "guides/configuration/index.md",
         "guides/procedure-recovery/index.md"
       ]

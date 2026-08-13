@@ -1,6 +1,6 @@
 # 安装、升级与卸载框架
 
-GoDoFramework 的分发单元是完整的 `addons/godo_framework/` 目录。编辑器插件负责检查环境并显式安装唯一的 `GoDoRuntime` Autoload；它不会接管目标项目的 `.csproj`、输入映射、导出预设或业务场景。
+GoDoFramework 的分发单元是完整的 `addons/godo_framework/` 目录。编辑器插件负责检查环境、显式安装唯一的 `GoDoRuntime` Autoload，并可在确认后补齐 GoDo 自有的 `.csproj` 条件编译规则；它不会接管输入映射、导出预设或业务场景。
 
 本页适用于把一个明确版本的框架接入已有 Godot C# 项目，以及后续安全升级或彻底移除。
 
@@ -53,10 +53,12 @@ GUIDE Input 与 Phantom Camera 适配分别使用独立叠加包，并仍需要�
 
 框架不会自动：
 
-- 创建或修改 `.csproj` 和解决方案。
+- 创建 `.csproj` 或解决方案。
 - 改变程序集名称或目标框架。
 - 添加 NuGet 包。
 - 复制工作仓库的构建配置。
+
+在“项目配置 → C# 项目”中可检查当前已安装的 GUIDE、Phantom Camera、Friflo ECS 适配和 Release Debugger 裁剪。只有根目录唯一普通 `.csproj` 缺少 GoDo 自有规则时，才可在查看精确变更后确认修复；工具先创建非覆盖 `.godo-backup`。多个项目、中央包管理、非 Godot SDK 和冲突配置只报告，不写入。
 
 设置窗口会把以下情况显示为错误：根目录缺少 `.csproj`、存在多份 `.csproj`、尚无 Debug 程序集，或框架源码比现有程序集更新。
 

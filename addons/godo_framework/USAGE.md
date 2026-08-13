@@ -2,7 +2,7 @@
 
 ## 定位
 
-本插件是 GoDo 的项目安装助手、健康检查工具、资源清单与 UI 配置管理入口，以及编辑器扩展宿主。顶部 `GoDo Framework` 只有一个打开入口；统一窗口通过左侧导航管理 Runtime、ResourceManifest、UiConfig 与编辑器扩展。DataTable 离线编译前端及编辑器入口详见 `Tools/DataTable/USAGE.md`。这些工具不创建业务场景或 UI，不修改 C# 项目文件，也不参与导出后的游戏运行。
+本插件是 GoDo 的项目安装助手、健康检查工具、资源清单与 UI 配置管理入口，以及编辑器扩展宿主。顶部 `GoDo Framework` 只有一个打开入口；统一窗口通过左侧导航管理 Runtime、C# 项目、ResourceManifest、UiConfig 与编辑器扩展。DataTable 离线编译前端及编辑器入口详见 `Tools/DataTable/USAGE.md`。这些工具不创建业务场景或 UI，也不参与导出后的游戏运行。
 
 EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其他运行时模块；Runtime 不反向依赖插件。
 
@@ -10,9 +10,9 @@ EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其�
 
 ## 打包与迁移边界
 
-核心框架的分发单元是排除 `Integrations/` 的 `addons/godo_framework/` 目录。核心 ZIP 保留运行时、编辑器资源与 DataTable 编译前端，排除 Markdown 文档；GUIDE Input 与 Phantom Camera 适配以独立 ZIP 保留原路径，按需叠加到已安装的核心目录。发布物不包含当前仓库的 Demo、测试脚本、`.godot/`、`bin/`、`obj/`、根目录 `.csproj`、解决方案文件或 `project.godot`。使用说明以 GitHub 仓库中的对应文档为准。
+核心框架的分发单元是排除 `Integrations/` 的 `addons/godo_framework/` 目录。核心 ZIP 保留运行时、编辑器资源与 DataTable 编译前端，排除 Markdown 文档；GUIDE Input、Phantom Camera 与 Friflo ECS 适配以独立 ZIP 保留原路径，按需叠加到已安装的核心目录。Friflo ECS 包额外保留上游 MIT `LICENSE`，但不内置 NuGet 程序集；目标项目必须自行声明对应依赖。发布物不包含当前仓库的 Demo、测试脚本、`.godot/`、`bin/`、`obj/`、根目录 `.csproj`、解决方案文件或 `project.godot`。使用说明以 GitHub 仓库中的对应文档为准。
 
-框架不接管目标项目配置：不会创建或修改 `.csproj`、解决方案、输入映射、导出预设和业务场景，也不会在启用插件时自动写入 Autoload。框架会自动注册游戏导出过滤器：Debug 与 Release 导出都排除 `Editor/` 和 `Tools/`；Release 额外排除 `Debugger/`，Debug 保留游戏内 Debugger。目标项目仍负责自身的 Godot/.NET 版本、程序集名称、平台和其他导出配置。
+框架不接管目标项目配置：不会创建 `.csproj` 或解决方案，不修改输入映射、导出预设和业务场景，也不会在启用插件时自动写入 Autoload。用户可在“项目配置 → C# 项目”中确认补齐 GoDo 自有的可选集成条件编译与 Release Debugger 裁剪；SDK、目标框架、Android 配置、程序集名称、NuGet 版本和其他构建配置始终由目标项目维护。框架会自动注册游戏导出过滤器：Debug 与 Release 导出都排除 `Editor/` 和 `Tools/`；Release 额外排除 `Debugger/`，Debug 保留游戏内 Debugger。
 
 ### 首次迁移
 
@@ -48,6 +48,12 @@ EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其�
 宿主只在插件进入树时扫描一次 `res://addons/`、`res://addons/godo_framework/Integrations/` 与 `res://addons/godo_framework/Tools/` 的一级子目录，并读取固定名称 `godo_editor_extension.cfg`；未安装可选集成时，缺失的 `Integrations/` 目录会被静默忽略。扫描不递归、不轮询，也不使用 `_Process()`。清单必须提供唯一 `id`、显示名、精确匹配的宿主 API 版本和位于同一包目录内的 GDScript。清单按 `menu_section`、`menu_order`、扩展 ID 分组和排序：`data_tables` 归入“数据表”，其他扩展归入“编辑器扩展”。单个扩展失败只记录到“编辑器扩展状态...”，不阻断核心菜单或其他扩展。
 
 扩展加载只允许注册菜单和延迟创建编辑器窗口，不等于安装运行时依赖。插件启用、Autoload 等项目修改仍由对应扩展先只读检查、展示确认，再执行幂等修改。宿主退出时按相反顺序停用扩展并清理菜单、信号和窗口。扩展宿主与控制器不进入游戏生命周期，Release 不产生每帧调用或托管分配。
+
+Friflo ECS 扩展检查根目录 `.csproj` 与可选 `Directory.Packages.props`，识别直接和中央 NuGet 版本，并报告缺少引用、版本不符或无法确定的项目结构。只有根目录唯一普通项目缺少依赖且未使用中央包管理时，用户才能在精确预览后确认写入；扩展先创建非覆盖 `.godo-backup` 备份，写入后重新检查。多个项目、中央包管理、变量/条件版本和损坏 XML 保持只读，扩展也不执行 restore/build。
+
+### C# 项目配置
+
+“项目配置 → C# 项目”只检查当前已安装框架模块需要的规则：GUIDE Input、Phantom Camera、Friflo ECS 的存在检测与 `Compile Remove`，以及 Release / ExportRelease 下的 Debugger 裁剪。普通单项目缺项时可经精确预览确认修复；写入前创建非覆盖 `.godo-backup`，写入后重新解析检查。工具不添加 NuGet 包，不复制 Demo/Verification 规则，也不改变 SDK、TargetFramework、Android 条件或用户已有的同名配置。多个 `.csproj`、中央包管理、非 Godot SDK、损坏 XML 或已有冲突规则保持只读。
 
 检查窗口会显示“C# 环境”状态。根目录缺少或存在多个 `.csproj`、尚未生成编辑器 Debug 程序集，或框架源码比程序集更新时显示错误，不额外提供创建或编译按钮。
 
@@ -114,7 +120,7 @@ EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其�
 - `python Verification/Package/verify_core_package.py --godot <GodotMonoConsole>`：在临时干净项目中只复制 `addons/godo_framework/`，启用 EditorPlugin 后验证缺失可选集成目录不会报错，并验证核心运行时不依赖可选适配包或第三方插件。
 - 已在当前项目验证：启用插件后检查结果健康；禁用插件后菜单消失且 Autoload 保持不变。
 - 已在第二个小项目验证：未安装、安装、重复安装、名称冲突、重复路径和安全卸载。
-- `EditorExtensionUiRegression.gd` 会在 Headless Editor 中验证菜单分组、顺序和资源添加项前的分隔线，并真实触发已安装扩展的菜单，确认 GUIDE Input 与 Phantom Camera 报告非空、健康状态下修改按钮禁用。
+- `EditorExtensionUiRegression.gd` 会在 Headless Editor 中验证菜单分组、顺序和资源添加项前的分隔线，并真实触发已安装扩展的菜单，确认 GUIDE Input 与 Phantom Camera 报告非空、健康状态下修改按钮禁用，以及 Friflo ECS 能识别当前项目、按状态控制安装按钮并展示备份确认。
 - DataTable 阶段 C.2 / C.3 使用独立实验 Probe 真实执行检查、全量生成与单表选择生成，不加入永久 `run_all.py`。
 
 当前项目不自动执行安装或卸载测试，避免修改现有 `project.godot`。

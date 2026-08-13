@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/index.md
-translation_source_hash: sha256:86e801e691e6bb4b5e0825b2fef98a55d4172f6ba8de7c04e5eb7f8106d5b9df
+translation_source_hash: sha256:46597321bc20a2b453766ecc1ba064a6bc44d868a4f11850694b100b04adc0b2
 ---
 
 # Module guides
@@ -14,6 +14,7 @@ Quick start connects capabilities into one game flow. This section is organized 
 - [Scene and ResourceHub](resources-and-scenes/index.md): maintain resource manifests, asynchronous loading, and main-scene changes.
 - [Scheduler](scheduler/index.md): schedule delays, repeating work, and asynchronous waits scoped to an owner lifetime.
 - [NodePool](node-pool/index.md): reuse frequently created nodes and restore state at rent/return boundaries.
+- [Friflo ECS](friflo-ecs/index.md): batch-update homogeneous data in a scene-level World and manage its start, pause, and exit lifecycle.
 
 ## Game interaction and presentation
 
@@ -32,4 +33,4 @@ Quick start connects capabilities into one game flow. This section is organized 
 
 - [Diagnostics](diagnostics/index.md): record logs, report errors, and inspect runtime state with the Debugger.
 
-For a third-party input or camera backend, read [Integrations and extensions](../integrations/index.md) before the corresponding module guide.
+For a third-party input, camera, or ECS backend, read [Integrations and extensions](../integrations/index.md) before the corresponding module guide.

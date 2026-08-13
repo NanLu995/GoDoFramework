@@ -3,6 +3,7 @@ extends RefCounted
 
 const OVERVIEW_PAGE_SCRIPT := preload("res://addons/godo_framework/Editor/Pages/overview_page.gd")
 const RUNTIME_PAGE_SCRIPT := preload("res://addons/godo_framework/Editor/Pages/runtime_setup_page.gd")
+const CSPROJ_PAGE_SCRIPT := preload("res://addons/godo_framework/Editor/Pages/csproj_page.gd")
 const MANIFEST_PAGE_SCRIPT := preload("res://addons/godo_framework/Editor/Pages/resource_manifest_page.gd")
 const UI_CONFIG_PAGE_SCRIPT := preload("res://addons/godo_framework/Editor/Pages/ui_config_page.gd")
 const EXTENSIONS_PAGE_SCRIPT := preload("res://addons/godo_framework/Editor/Pages/extension_status_page.gd")
@@ -14,6 +15,7 @@ const WINDOW_MARGIN := Vector2i(48, 96)
 const PAGE_DEFINITIONS := [
 	{"id": "overview", "label": "概览", "script": OVERVIEW_PAGE_SCRIPT},
 	{"id": "runtime", "label": "项目配置/Runtime", "script": RUNTIME_PAGE_SCRIPT},
+	{"id": "csproj", "label": "项目配置/C# 项目", "script": CSPROJ_PAGE_SCRIPT},
 	{"id": "manifest", "label": "资源/资源清单", "script": MANIFEST_PAGE_SCRIPT},
 	{"id": "ui_config", "label": "资源/UI 配置", "script": UI_CONFIG_PAGE_SCRIPT},
 	{"id": "extensions", "label": "编辑器扩展", "script": EXTENSIONS_PAGE_SCRIPT},
@@ -33,6 +35,7 @@ var _group_items: Dictionary = {}
 func initialize(
 	plugin: EditorPlugin,
 	runtime_controller: RefCounted,
+	csproj_controller: RefCounted,
 	manifest_controller: RefCounted,
 	ui_config_controller: RefCounted,
 	extension_host: RefCounted
@@ -155,7 +158,7 @@ func initialize(
 	right.add_child(page_scroll)
 	page_scroll.add_child(_page_host)
 
-	_create_pages(runtime_controller, manifest_controller, ui_config_controller, extension_host)
+	_create_pages(runtime_controller, csproj_controller, manifest_controller, ui_config_controller, extension_host)
 	plugin.get_editor_interface().get_base_control().add_child(_dialog)
 
 
@@ -219,6 +222,7 @@ func _calculate_window_size(parent_size: Vector2i) -> Vector2i:
 
 func _create_pages(
 	runtime_controller: RefCounted,
+	csproj_controller: RefCounted,
 	manifest_controller: RefCounted,
 	ui_config_controller: RefCounted,
 	extension_host: RefCounted
@@ -252,6 +256,7 @@ func _create_pages(
 
 	_pages.overview.setup(self)
 	_pages.runtime.setup(runtime_controller)
+	_pages.csproj.setup(csproj_controller)
 	_pages.manifest.setup(manifest_controller)
 	_pages.ui_config.setup(ui_config_controller)
 	_pages.extensions.setup(extension_host)

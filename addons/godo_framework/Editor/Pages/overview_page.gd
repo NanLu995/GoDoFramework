@@ -12,6 +12,7 @@ func setup(window: RefCounted) -> void:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(description)
 	_add_entry("项目配置", "检查框架状态，并安装或卸载 GoDoRuntime。", "runtime")
+	_add_entry("C# 项目", "检查并补齐 GoDo 条件编译与 Release 裁剪规则。", "csproj")
 	_add_entry("资源清单", "查看项目内已有 ResourceManifest，再进行维护和校验。", "manifest")
 	_add_entry("UI 配置", "查看项目内已有 UiConfig，再进行界面配置维护。", "ui_config")
 	_add_entry("编辑器扩展", "查看扩展加载状态，打开 DataTable 和可选集成工具。", "extensions")

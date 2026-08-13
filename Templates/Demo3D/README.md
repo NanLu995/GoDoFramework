@@ -33,12 +33,21 @@ Templates/Demo3D/Boot/Boot.tscn
 - `PhantomCameraRig`：把 CameraService 的激活/停用转换为 Phantom Camera 优先级。
 - `InputService`：向业务代码提供 Move、Look、Jump 等语义输入，不暴露 GUIDE 类型。
 - `DataTableService`：由 `BootProcedure` 显式加载 Base 数据集并报告逐表进度；框架启动本身不会自动读取业务数据。
+- `Friflo ECS`：Gameplay 右侧用场景级 World 批量更新 512 个移动实体，并通过一个 `MultiMeshInstance3D` 同步可见结果；暂停时 System 与可视同步同时停止，重进 Gameplay 时创建新 World。
 - `Integrations/GuideInput`：把 GUIDE Action / Mapping Context 转换为 InputService 快照。
 - Gameplay HUD：监听 `InputDeviceChangedEvent`，显示当前键鼠、手柄或触摸类别。
 - Gameplay HUD：通过 `IInputRebinding` 查询、捕获、检查冲突、应用或恢复跳跃主绑定，不接触 GUIDE 类型。
 - Gameplay HUD：右上角 Localization 验收面板通过 Settings 切换/保存语言，通过 Localization 查询动态文本和复数，并展示 Control 自动翻译、上下文、伪本地化与 RTL 状态。
 
 角色控制、视角协调和收集判定属于具体玩法，保留在 `Demo3D` 业务层。`PlayerController` 只从 `IInputService` 读取输入，仍通过 Phantom C# Wrapper 修改第三人称旋转；InputService 与 CameraService 彼此不依赖。
+
+## Friflo ECS 展示
+
+进入 Gameplay 后，场地右侧显示标有 `Friflo ECS · 512 Entities` 的蓝色群体。`EcsSwarmDemo` 在业务命名空间中定义位置、速度和移动 System；`EcsWorldHost` 只拥有 World 并驱动 Process。实体不各自创建 Godot Node，可见层由单个 `MultiMeshInstance3D` 承担。
+
+宿主使用 `ProcessPriority = -10`，确保 ECS 数据先更新；业务控制器随后在主线程把 512 个位置同步到 MultiMesh。工作量固定有界，不随场景内容无上限增长；本机 Headless Debug 基准中，ECS 更新加可视同步平均约 0.0358 ms/次，稳态当前线程分配为 0 B。该数据不包含 GPU 渲染且不是跨设备保证；1 万/10 万实体的纯 ECS 性能验证仍由独立基准承担，不在普通 Demo 中压测。
+
+按 `Esc` 暂停时，世界空间标签切换为 `Process: Paused`，ECS System 和 MultiMesh 同步都停止；恢复后继续。收集完成进入 Result 会释放 Gameplay 场景和 World，点击“再玩一次”创建全新的 World，不把 Entity 句柄放入 `Services` 或跨场景保存。
 
 ## DataTable 用法
 
@@ -117,6 +126,14 @@ CharacterBody3D + Phantom Camera
 7. 打开 Debugger 的 `运行时 / Scheduler` 页面，确认活动数、三种时钟分布和取消计数与面板操作一致。
 
 离开 Gameplay 时面板会取消自身任务，并恢复场景暂停和 `Engine.TimeScale`，不把验证状态带入后续流程。
+
+## Friflo ECS 人工验收
+
+1. 进入 Gameplay，确认场地右侧可看到蓝色粒子群，标签显示 `Friflo ECS · 512 Entities` 与 `Process: Running`。
+2. 观察群体在固定空间内连续移动并在边界反弹；场景树中应只有一个 `SwarmVisuals`，而不是 512 个实体节点。
+3. 按 `Esc` 暂停，确认标签切换为 `Process: Paused` 且群体停止；恢复后继续运动。
+4. 收集 5 个能量核心进入 Result，再点击“再玩一次”，确认群体重新出现并正常运动。
+5. 在目标设备观察帧时间；该展示固定为 512 个实体，不能用来替代 `FrifloEcsBenchmark.tscn` 的规模基准或目标平台验收。
 
 ## 插件边界
 

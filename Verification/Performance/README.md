@@ -2,6 +2,28 @@
 
 性能场景记录特定机器与构建配置下的相对基线，不把耗时设为跨机器硬门槛。行为正确性和明确承诺的零分配热路径仍作为断言。
 
+## Friflo ECS
+
+`FrifloEcsBenchmark.tscn` 使用单线程 `QuerySystem<Position, Velocity>` 覆盖 1 万实体连续更新 1,000 次和 10 万实体连续更新 100 次，断言预热后的稳态更新为零当前线程托管分配。基准只测纯 ECS 数据查询，不包含 Godot Node 同步、物理查询、结构变更、渲染或多线程调度。
+
+```powershell
+dotnet build GoDoFramework.csproj -c Debug -p:GoDoIncludeFrifloEcs=true
+& <GodotConsole.exe> --headless --path <RepoRoot> res://Verification/Performance/FrifloEcsBenchmark.tscn
+```
+
+2026-08-13 Windows Godot 4.7.1 Mono Headless、.NET 8 Debug、20 个逻辑处理器的样本中，1 万实体平均约 0.044 ms/次，10 万实体平均约 0.338 ms/次，两档稳态当前线程托管分配均为 0 B。绝对值只作为当前机器的后续同配置回归基线。
+
+## Demo3D ECS 可视同步
+
+`Demo3DEcsSwarmBenchmark.tscn` 直接驱动 Demo3D 的 `EcsSwarmDemo`，覆盖固定 512 个实体的一次 Friflo System 更新，以及随后 512 次 `MultiMesh.SetInstanceTransform()` 主线程可视同步。预热 200 次后连续测量 10,000 次，断言稳态当前线程托管分配为 0 B；耗时不设跨机器门槛。
+
+```powershell
+dotnet build GoDoFramework.csproj -c Debug
+& <GodotConsole.exe> --headless --path <RepoRoot> res://Verification/Performance/Demo3DEcsSwarmBenchmark.tscn
+```
+
+2026-08-13 同机 Headless Debug 样本中，10,000 次总耗时约 358.297 ms，平均约 0.035830 ms/次，当前线程托管分配 0 B。数据包含 ECS 位置更新和 C# 到 Godot MultiMesh 的 transform 提交，不包含真实 GPU 渲染、相机或其他 Demo3D 系统，目标平台仍需实际验收。
+
 ## Audio SFX
 
 `AudioSfxBenchmark.tscn` 覆盖冷首次播放、显式资源准备后的首次播放、播放时从默认预热容量扩展到 32 路、显式 Voice 预热到 32 路后的突发、池已稳定后的 1/8/32 路缓存批量播放、32 路 Low 满载时连续 25 次 Critical 优先级抢占、独立 3D Voice 预热后的首次/稳定 32 路空间突发，以及 8/16/32 路目标跟随的固定物理帧热更新。缓存批次和抢占样本记录提交调用和等待可播放的平均值、P50、P95 与当前线程托管分配；跟随基准连续直接更新 10,000 次，断言热路径为零当前线程托管分配。耗时不设置跨机器门槛。

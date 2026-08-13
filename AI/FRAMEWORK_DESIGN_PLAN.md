@@ -72,8 +72,9 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 | DataTable | 首版完成 | 离线校验/生成/导出门禁与显式运行时 Service 已接通；Windows 完整 ExportRelease 和 10 万行峰值内存已验证，真实业务长期体验与移动端/AOT 后置 |
 | UI | 首版完成 | 已提供四层显示、Inspector UiConfig/UiId、同步/异步打开与取消、查询/批量关闭/CloseTo、焦点恢复、外部释放自恢复、`UiScope<TView>` 所有权及可选 Single 实例复用；下一步以真实项目使用反馈校验 API 与性能预算 |
 | Debugger | 稳定基线 | 紧凑健康入口、树状诊断导航、System/Performance、运行时模块快照及 Procedure / Scene / UI 联合 Flow 页面；Release 不创建节点 |
-| EditorPlugin | 首版完成 | 单一 GoDo 插件入口；显式安装与检查 GoDoRuntime Autoload，并通过版本化清单发现 GUIDE Input、Phantom Camera 等可选编辑器扩展；扩展失败隔离、项目修改需确认，不进入运行时依赖 |
+| EditorPlugin | 首版完成 | 单一 GoDo 插件入口；显式安装与检查 GoDoRuntime Autoload，检查并经确认补齐普通单项目的 GoDo 条件编译/Release 裁剪规则，并通过版本化清单发现 GUIDE Input、Phantom Camera 等可选编辑器扩展；复杂项目只读、扩展失败隔离，不进入运行时依赖 |
 | Procedure | 首版完成 | 顶层游戏流程状态机；已提供激活生命周期资源、首请求仲裁、结构化失败阶段和延迟请求失败通知，不内置具体业务流程 |
+| Friflo ECS 集成 | 首版完成 | 作为独立可选集成提供场景级 World 所有权、Process / Physics 单阶段驱动、项目依赖检查及普通单项目的确认安装与备份；复杂工程结构保持只读，不进入 GoDoRuntime。已完成生命周期回归、规模基准、核心隔离、Release / ExportRelease 编译、独立发布包、中英文上手教程及 Demo3D 的 512 实体 MultiMesh 展示；Android、AOT 与生产玩法仍随目标项目验证 |
 
 模块完成状态的证据、性能数据和详细边界只记录在对应 `USAGE.md`，避免多处同步。
 
@@ -123,7 +124,7 @@ ProcedureContext 除显式获取长期服务外，还提供激活 `LifetimeToken
 
 ### Scheduler
 
-Timer 的真实缺口已经确认：业务需要统一的一次性/重复延迟、取消、独立暂停、三种时间语义、Process/Physics 阶段、Owner 生命周期和异步等待。采用单一长期 `SchedulerService`，不为每个任务创建 Timer Node，也不混入确定性 Tick、后台线程或持久化离线计时。详细设计见 `Docs/SchedulerServiceDesign.md`；人工时钟核心、完整调度状态、DelayAsync、跨线程取消、Owner 生命周期、真实时钟采样、GoDoRuntime 接入、性能基准与 Debug-only 快照已完成，Scheduler 进入首版完成状态。快照 UI 与 Input 诊断统一留到后续 Debugger 面板优化。
+Timer 的真实缺口已经确认：业务需要统一的一次性/重复延迟、取消、独立暂停、三种时间语义、Process/Physics 阶段、Owner 生命周期和异步等待。采用单一长期 `SchedulerService`，不为每个任务创建 Timer Node，也不混入确定性 Tick、后台线程或持久化离线计时。详细设计见 `Docs/SchedulerServiceDesign.md`；人工时钟核心、完整调度状态、DelayAsync、跨线程取消、Owner 生命周期、真实时钟采样、GoDoRuntime 接入、性能基准、Debug-only 快照及 Debugger 诊断页已完成，Scheduler 进入首版完成状态。
 
 ### 其他候选
 
@@ -141,7 +142,7 @@ Timer 的真实缺口已经确认：业务需要统一的一次性/重复延迟�
 | 1. 稳定 Core | EventChannel、ErrorHub、Services、GoDoRuntime 可长期依赖 | 稳定基线 |
 | 2. 高频运行时能力 | Resources、Pool、Scene、Audio | 稳定基线 |
 | 3. 数据与产品能力 | Save、Settings、Config | 稳定基线；Settings 移动端验证后置 |
-| 4. 开发体验 | 轻量 Debugger、经真实需求确认的 UI、安装检查工具（即 EditorPlugin/Installer） | Debugger、UI、EditorPlugin 均已升级为稳定基线（此前记录的"首版完成"已过期，见第 4 节最新状态表） |
+| 4. 开发体验 | 轻量 Debugger、经真实需求确认的 UI、安装检查工具（即 EditorPlugin/Installer） | Debugger 已进入稳定基线；UI、EditorPlugin 首版完成，继续通过真实项目验证接口与工作流 |
 | 5. 候选评估 | Procedure、Scheduler、Tick、Input、本地化与远程资源 | Procedure、Scheduler、Input、Localization 首版完成；其余未排期 |
 | 6. 工业化保障 | API 兼容与迁移、跨平台验证、资源与编辑器审计、自动化验证、发布流程 | 规划中；按真实项目规模逐项立项，不作为一次性大版本 |
 
@@ -169,9 +170,9 @@ Timer 的真实缺口已经确认：业务需要统一的一次性/重复延迟�
 
 ## 8. 当前建议
 
-当前仍处于 0-1 阶段：继续避免新增泛化模块，用真实游戏和模板迁移验证现有基线并记录重复出现的缺口。工业级定位是长期质量标准，不是立即扩大模块范围的理由。
+当前已完成主要框架能力的首版建设，进入基线收敛与真实项目验证阶段：继续避免新增泛化模块，用真实游戏和模板迁移验证现有基线并记录重复出现的缺口。工业级定位是长期质量标准，不是立即扩大模块范围的理由。
 
-接下来的能力建设分为两条轨道：一条是在 Input 与 Localization 首版完成后，按真实需求单独设计 Tick、资源扩展等运行时能力；另一条是逐步补齐 API 兼容与迁移、跨平台验证、资源与编辑器审计、自动化验证和发布流程。Procedure 已按“顶层游戏流程状态机”完成首版，但不先抽象通用 StateMachine；UI 已完成首轮实际项目验证并进入稳定基线。
+接下来的能力建设分为两条轨道：一条是在 Input 与 Localization 首版完成后，按真实需求单独设计 Tick、资源扩展等运行时能力；另一条是逐步补齐 API 兼容与迁移、跨平台验证、资源与编辑器审计、自动化验证和发布流程。Procedure 已按“顶层游戏流程状态机”完成首版，但不先抽象通用 StateMachine；UI 已完成首轮实际项目验证，当前保持首版完成状态并继续收集真实项目反馈。
 
 ### 当前优先级
 

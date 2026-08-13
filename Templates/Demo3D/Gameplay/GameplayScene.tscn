@@ -1,10 +1,12 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://Templates/Demo3D/Gameplay/PlayerController.cs" id="1_player"]
 [ext_resource type="Script" path="res://Templates/Demo3D/Gameplay/Collectible.cs" id="2_collectible"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="3_pcam"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="4_host"]
 [ext_resource type="Script" path="res://addons/godo_framework/Integrations/PhantomCamera/Runtime/PhantomCameraRig.cs" id="5_rig"]
+[ext_resource type="Script" path="res://Templates/Demo3D/Gameplay/EcsSwarmDemo.cs" id="6_ecs_demo"]
+[ext_resource type="Script" path="res://addons/godo_framework/Integrations/FrifloEcs/Runtime/EcsWorldHost.cs" id="7_ecs_host"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -57,6 +59,25 @@ albedo_color = Color(0.16, 0.27, 0.35, 1)
 [sub_resource type="BoxShape3D" id="BoxShape_camera_wall"]
 size = Vector3(4, 3, 0.5)
 
+[sub_resource type="StandardMaterial3D" id="Material_ecs_swarm"]
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.1, 0.85, 1, 1)
+emission_enabled = true
+emission = Color(0.03, 0.45, 0.8, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_ecs_swarm"]
+material = SubResource("Material_ecs_swarm")
+radius = 0.085
+height = 0.17
+radial_segments = 8
+rings = 4
+
+[sub_resource type="MultiMesh" id="MultiMesh_ecs_swarm"]
+transform_format = 1
+use_colors = true
+mesh = SubResource("SphereMesh_ecs_swarm")
+
 [node name="GameplayScene" type="Node3D"]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
@@ -76,6 +97,27 @@ material_override = SubResource("Material_ground")
 
 [node name="Collision" type="CollisionShape3D" parent="Ground"]
 shape = SubResource("BoxShape_ground")
+
+[node name="EcsSwarmDemo" type="Node3D" parent="."]
+position = Vector3(9, 0.2, 0)
+process_mode = 3
+script = ExtResource("6_ecs_demo")
+
+[node name="EcsWorldHost" type="Node" parent="EcsSwarmDemo"]
+process_mode = 1
+process_priority = -10
+script = ExtResource("7_ecs_host")
+
+[node name="SwarmVisuals" type="MultiMeshInstance3D" parent="EcsSwarmDemo"]
+multimesh = SubResource("MultiMesh_ecs_swarm")
+
+[node name="StatusLabel" type="Label3D" parent="EcsSwarmDemo"]
+position = Vector3(0, 4.15, 0)
+text = "Friflo ECS · 512 Entities\nProcess: Starting"
+font_size = 40
+outline_size = 8
+modulate = Color(0.55, 0.92, 1, 1)
+billboard = 1
 
 [node name="Player" type="CharacterBody3D" parent="."]
 position = Vector3(0, 1, 10)

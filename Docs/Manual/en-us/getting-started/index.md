@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/index.md
-translation_source_hash: sha256:cc3e99b09254cfaa9dafd10c5835ae990ce8c255b387f86db644749b56b41844
+translation_source_hash: sha256:0ee777b6be1b9d57e99e53c3c05aedba03eb4ac4c84ceadcad538cc36ff9d3bf
 ---
 
 # Quick start: build a runnable game skeleton
@@ -47,7 +47,7 @@ In Godot, open **Project Settings → Plugins** and enable `GoDo Framework`. Thi
 3. Resolve every reported issue.
 4. When all checks pass, explicitly select **Install Runtime**.
 
-The plugin installs only one `GoDoRuntime` Autoload. It does not modify `.csproj`, input mappings, export presets, or gameplay scenes.
+The plugin installs the single `GoDoRuntime` Autoload only after an explicit action. Under **Project configuration → C# project**, you may also preview and confirm missing GoDo-owned conditional compilation rules. Neither operation changes input mappings, export presets, or gameplay scenes.
 
 ## 4. Confirm that services are available
 

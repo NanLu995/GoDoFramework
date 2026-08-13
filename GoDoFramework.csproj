@@ -5,7 +5,12 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <GoDoIncludeGuideInput Condition="'$(GoDoIncludeGuideInput)' == '' and Exists('addons/guideCS/plugin.cfg') and Exists('addons/guideCS/guide/plugin.cfg')">true</GoDoIncludeGuideInput>
     <GoDoIncludePhantomCamera Condition="'$(GoDoIncludePhantomCamera)' == '' and Exists('addons/phantom_camera/plugin.cfg')">true</GoDoIncludePhantomCamera>
+    <GoDoIncludeFrifloEcs Condition="'$(GoDoIncludeFrifloEcs)' == '' and Exists('addons/godo_framework/Integrations/FrifloEcs/Runtime/EcsWorldHost.cs')">true</GoDoIncludeFrifloEcs>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(GoDoIncludeFrifloEcs)' == 'true'">
+    <PackageReference Include="Friflo.Engine.ECS" Version="3.6.0" />
+  </ItemGroup>
 
   <ItemGroup Condition="'$(GoDoIncludeGuideInput)' != 'true'">
     <Compile Remove="addons/guideCS/**/*.cs" />
@@ -20,10 +25,17 @@
     <Compile Remove="Verification/Automated/PhantomCameraRigRegression.cs" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(GoDoIncludeGuideInput)' != 'true' or '$(GoDoIncludePhantomCamera)' != 'true'">
+  <ItemGroup Condition="'$(GoDoIncludeFrifloEcs)' != 'true'">
+    <Compile Remove="addons/godo_framework/Integrations/FrifloEcs/**/*.cs" />
+    <Compile Remove="Verification/Automated/FrifloEcsRegression.cs" />
+    <Compile Remove="Verification/Performance/FrifloEcsBenchmark.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(GoDoIncludeGuideInput)' != 'true' or '$(GoDoIncludePhantomCamera)' != 'true' or '$(GoDoIncludeFrifloEcs)' != 'true'">
     <Compile Remove="Templates/Demo3D/**/*.cs" />
     <Compile Remove="Verification/Automated/Demo3DFlowRegression.cs" />
     <Compile Remove="Verification/Automated/Demo3DInputProfileRegression.cs" />
+    <Compile Remove="Verification/Performance/Demo3DEcsSwarmBenchmark.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Release' or '$(Configuration)' == 'ExportRelease'">

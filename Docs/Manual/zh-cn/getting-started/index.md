@@ -42,7 +42,7 @@ addons/godo_framework/
 3. 处理检查窗口中的错误。
 4. 检查全部通过后，显式点击“安装 Runtime”。
 
-插件只会安装唯一的 `GoDoRuntime` Autoload，不会修改 `.csproj`、输入映射、导出预设或业务场景。
+插件只会在明确操作后安装唯一的 `GoDoRuntime` Autoload；也可在“项目配置 → C# 项目”中预览并确认补齐 GoDo 自有条件编译规则。两类操作都不会修改输入映射、导出预设或业务场景。
 
 ## 4. 确认服务可用
 

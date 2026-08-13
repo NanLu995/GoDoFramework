@@ -5,6 +5,7 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <GoDoIncludeGuideInput Condition="'$(GoDoIncludeGuideInput)' == '' and Exists('addons/guideCS/plugin.cfg') and Exists('addons/guideCS/guide/plugin.cfg')">true</GoDoIncludeGuideInput>
     <GoDoIncludePhantomCamera Condition="'$(GoDoIncludePhantomCamera)' == '' and Exists('addons/phantom_camera/plugin.cfg')">true</GoDoIncludePhantomCamera>
+    <GoDoIncludeFrifloEcs Condition="'$(GoDoIncludeFrifloEcs)' == '' and Exists('addons/godo_framework/Integrations/FrifloEcs/Runtime/EcsWorldHost.cs')">true</GoDoIncludeFrifloEcs>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(GoDoIncludeGuideInput)' != 'true'">
@@ -13,6 +14,15 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(GoDoIncludePhantomCamera)' != 'true'">
+    <Compile Remove="addons/phantom_camera/**/*.cs" />
     <Compile Remove="addons/godo_framework/Integrations/PhantomCamera/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(GoDoIncludeFrifloEcs)' != 'true'">
+    <Compile Remove="addons/godo_framework/Integrations/FrifloEcs/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Release' or '$(Configuration)' == 'ExportRelease'">
+    <Compile Remove="addons/godo_framework/Debugger/DebuggerOverlay.cs" />
   </ItemGroup>
 </Project>

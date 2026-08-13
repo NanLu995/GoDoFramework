@@ -4,14 +4,14 @@
     "framework-setup": {
       "contract": "addons/godo_framework/USAGE.md",
       "status": "documented",
-      "reason": "快速开始、安装和资源指南已覆盖完整复制、C# 准备、健康检查、Runtime 安装及可观察结果、复查失败排查、可选集成、升级回滚、安全卸载及资源清单编辑器工作流；仍等待正式版本包验收。",
+      "reason": "快速开始、安装和资源指南已覆盖完整复制、C# 准备、健康检查、Runtime 安装、GoDo 自有条件编译/Release 裁剪规则的确认修复与备份、复杂项目只读边界、可选集成、升级回滚、安全卸载及资源清单编辑器工作流；仍等待正式版本包验收。",
       "manual_pages": [
         "getting-started/index.md",
         "getting-started/install-upgrade-uninstall.md",
         "guides/resources-and-scenes/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:b3f8231bf04ae8d3b8fe06c6850ea41a680c6c38afc7fde8fcd4dda8d21f96d5"
+      "reviewed_contract_hash": "sha256:25c3af6768a30657577020ba8e40a2e0e05b8b176f83d0b50a5a10da23a2c3cd"
     },
     "error-hub": {
       "contract": "addons/godo_framework/Core/ErrorHub/USAGE.md",
@@ -75,6 +75,17 @@
       ],
       "api_reference_status": "verified",
       "reviewed_contract_hash": "sha256:78b34ff85b71c22fdcf611ce7a15925fa0466c07b522c6b97a613623365bbe55"
+    },
+    "friflo-ecs": {
+      "contract": "addons/godo_framework/Integrations/FrifloEcs/USAGE.md",
+      "status": "documented",
+      "reason": "集成概览和上手教程已覆盖适用与非适用场景、独立发布包、手工 NuGet 安装、普通单项目确认安装与非覆盖备份、复杂项目只读边界、组件与 System、场景级 World 所有权、显式启动、暂停恢复、退出清理、Demo3D MultiMesh 可视同步、常见误用和后端替换边界；技术契约补充完整生命周期、线程、失败语义与规模基准。",
+      "manual_pages": [
+        "integrations/index.md",
+        "guides/friflo-ecs/index.md"
+      ],
+      "api_reference_status": "verified",
+      "reviewed_contract_hash": "sha256:ac612ff9a2038080fa43307d835ca7ca6067574f02efc5907481689a47606dae"
     },
     "phantom-camera": {
       "contract": "addons/godo_framework/Integrations/PhantomCamera/USAGE.md",

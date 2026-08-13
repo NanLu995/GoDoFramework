@@ -30,16 +30,23 @@ class ReleasePackageTests(unittest.TestCase):
         core = self._relative_paths(self.release.collect_release_files("core"))
         guide = self._relative_paths(self.release.collect_release_files("guide-input"))
         phantom = self._relative_paths(self.release.collect_release_files("phantom-camera"))
+        friflo = self._relative_paths(self.release.collect_release_files("friflo-ecs"))
 
         self.assertTrue(core)
         self.assertTrue(guide)
         self.assertTrue(phantom)
+        self.assertTrue(friflo)
         self.assertFalse(any("/Integrations/" in path for path in core))
         self.assertTrue(all("/Integrations/GuideInput/" in path for path in guide))
         self.assertTrue(all("/Integrations/PhantomCamera/" in path for path in phantom))
+        self.assertTrue(all("/Integrations/FrifloEcs/" in path for path in friflo))
+        self.assertTrue(any(path.endswith("/LICENSE") for path in friflo))
         self.assertFalse(core & guide)
         self.assertFalse(core & phantom)
         self.assertFalse(guide & phantom)
+        self.assertFalse(core & friflo)
+        self.assertFalse(guide & friflo)
+        self.assertFalse(phantom & friflo)
 
     def test_build_archives_preserves_overlay_paths(self) -> None:
         with tempfile.TemporaryDirectory(prefix="godo-release-test-") as temporary_directory:
@@ -50,6 +57,7 @@ class ReleasePackageTests(unittest.TestCase):
                     "GoDoFramework-v9.8.7.zip",
                     "GoDoFramework-GuideInput-v9.8.7.zip",
                     "GoDoFramework-PhantomCamera-v9.8.7.zip",
+                    "GoDoFramework-FrifloEcs-v9.8.7.zip",
                 ],
                 [archive.name for archive in archives],
             )
@@ -67,7 +75,12 @@ class ReleasePackageTests(unittest.TestCase):
                 self.assertFalse(any("/Integrations/" in name for name in core.namelist()))
 
     def test_publish_uploads_every_archive(self) -> None:
-        archives = [Path("core.zip"), Path("guide.zip"), Path("phantom.zip")]
+        archives = [
+            Path("core.zip"),
+            Path("guide.zip"),
+            Path("phantom.zip"),
+            Path("friflo.zip"),
+        ]
         with (
             patch.object(self.release.shutil, "which", return_value="gh") as which,
             patch.object(self.release.subprocess, "run") as run,
@@ -77,7 +90,7 @@ class ReleasePackageTests(unittest.TestCase):
         which.assert_called_once_with("gh")
         command = run.call_args.args[0]
         self.assertEqual("v9.8.7", command[3])
-        self.assertEqual([str(path) for path in archives], command[4:7])
+        self.assertEqual([str(path) for path in archives], command[4:8])
         self.assertIn("--verify-tag", command)
 
     @staticmethod

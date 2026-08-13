@@ -9,6 +9,8 @@ GoDoFramework 的官方 Starter Template 源项目。它提供通用项目启动
 3. 使用 Godot 打开项目；`project.godot` 已声明 `GoDoRuntime` Autoload 和 GoDo EditorPlugin。
 4. 等待 Godot 生成并加载 `GoDoTemplate.csproj`，再运行 `Boot/Boot.tscn`。
 
+模板源码单独存在时不会编译，因为它有意不携带 `addons/godo_framework/`。验证模板必须先按第 2 步叠加核心框架；当前模板与核心包组合已通过 Debug 编译。不要通过给模板添加仓库 `ProjectReference` 来绕过真实安装流程。
+
 可选输入集成不随模板分发。需要输入 Context、改键或输入提示时，先按 GoDo 的 GUIDE Input 安装流程安装 GUIDE / GuideCs，然后配置模板将在后续阶段提供的 Profile。未安装 GUIDE 不应阻断菜单、设置、场景、UI 或存档能力。
 
 ## 目录职责

@@ -9,6 +9,7 @@
 - [Scene 与 ResourceHub](resources-and-scenes/index.md)：维护资源清单、异步加载与主内容场景切换。
 - [Scheduler](scheduler/index.md)：安排延迟、循环任务和受所有者生命周期约束的异步等待。
 - [NodePool](node-pool/index.md)：复用高频创建销毁的节点，并在租借/归还边界恢复状态。
+- [Friflo ECS](friflo-ecs/index.md)：在场景级 World 中批量更新大量同构数据，并管理启动、暂停与退出生命周期。
 
 ## 游戏交互与展示
 
@@ -27,4 +28,4 @@
 
 - [Diagnostics](diagnostics/index.md)：记录日志、上报错误，并使用 Debugger 观察框架运行状态。
 
-需要使用第三方后端或镜头实现时，先阅读[集成与扩展](../integrations/index.md)，再进入对应模块页。
+需要使用第三方输入、镜头或 ECS 后端时，先阅读[集成与扩展](../integrations/index.md)，再进入对应模块页。

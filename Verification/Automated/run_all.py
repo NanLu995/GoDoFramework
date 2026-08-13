@@ -40,6 +40,7 @@ SUITE_SCENES = {
     "core": WORKBENCH_REGRESSION_SCENES,
     "guide": ("GuideInputBackendRegression.tscn",),
     "phantom": ("PhantomCameraRigRegression.tscn",),
+    "friflo": ("FrifloEcsRegression.tscn",),
     "demo": (
         "Demo3DInputProfileRegression.tscn",
         "Demo3DFlowRegression.tscn",
@@ -57,11 +58,13 @@ OPTIONAL_DEPENDENCIES = {
         "addons/guideCS/guide/plugin.cfg",
     ),
     "Phantom Camera": ("addons/phantom_camera/plugin.cfg",),
+    "Friflo ECS": ("addons/godo_framework/Integrations/FrifloEcs/Runtime/EcsWorldHost.cs",),
 }
 SUITE_DEPENDENCIES = {
     "guide": ("GUIDE / G.U.I.D.E-CSharp",),
     "phantom": ("Phantom Camera",),
-    "demo": ("GUIDE / G.U.I.D.E-CSharp", "Phantom Camera"),
+    "friflo": ("Friflo ECS",),
+    "demo": ("GUIDE / G.U.I.D.E-CSharp", "Phantom Camera", "Friflo ECS"),
 }
 GUIDE_AUTOLOAD_SEQUENCE = (
     ("GUIDE", "res://addons/guideCS/guide/guide.gd"),
@@ -107,7 +110,7 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--suite",
-        choices=("core", "guide", "phantom", "demo", "all"),
+        choices=("core", "guide", "phantom", "friflo", "demo", "all"),
         default="all",
         help="验证分组；默认 all。",
     )
@@ -348,8 +351,72 @@ def run_editor_extension_check(godot_path: Path, timeout: int) -> bool:
             "Invalid access to property or key",
         )
     )
-    has_pass_summary = "[EditorExtensionUiRegression] PASS (8/8)" in output
+    has_pass_summary = "[EditorExtensionUiRegression] PASS (10/10)" in output
     if result.returncode == 0 and not has_script_error and has_pass_summary:
+        try:
+            dependency_result = subprocess.run(
+                [
+                    str(godot_path),
+                    "--headless",
+                    "--editor",
+                    "--path",
+                    str(REPOSITORY_ROOT),
+                    "--script",
+                    "res://Verification/Automated/FrifloEcsProjectDependencyRegression.gd",
+                ],
+                cwd=REPOSITORY_ROOT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as exception:
+            dependency_output = (exception.stdout or "") + (exception.stderr or "")
+            print(dependency_output + f"\nFriflo ECS 依赖解析验证超时：{timeout} 秒", file=sys.stderr)
+            return False
+        dependency_output = dependency_result.stdout + dependency_result.stderr
+        if (
+            dependency_result.returncode != 0
+            or "[FrifloEcsProjectDependencyRegression] PASS (11/11)" not in dependency_output
+            or "SCRIPT ERROR:" in dependency_output
+        ):
+            print(f"[EDITOR] Friflo ECS 依赖解析 FAIL (exit={dependency_result.returncode})", file=sys.stderr)
+            print(dependency_output, file=sys.stderr)
+            return False
+
+        try:
+            csproj_result = subprocess.run(
+                [
+                    str(godot_path),
+                    "--headless",
+                    "--editor",
+                    "--path",
+                    str(REPOSITORY_ROOT),
+                    "--script",
+                    "res://Verification/Automated/GoDoCsprojManagerRegression.gd",
+                ],
+                cwd=REPOSITORY_ROOT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as exception:
+            csproj_output = (exception.stdout or "") + (exception.stderr or "")
+            print(csproj_output + f"\nC# 项目配置验证超时：{timeout} 秒", file=sys.stderr)
+            return False
+        csproj_output = csproj_result.stdout + csproj_result.stderr
+        if (
+            csproj_result.returncode != 0
+            or "[GoDoCsprojManagerRegression] PASS (7/7)" not in csproj_output
+            or "SCRIPT ERROR:" in csproj_output
+        ):
+            print(f"[EDITOR] C# 项目配置 FAIL (exit={csproj_result.returncode})", file=sys.stderr)
+            print(csproj_output, file=sys.stderr)
+            return False
+
         try:
             transport_result = subprocess.run(
                 [
@@ -494,7 +561,7 @@ def run_all_suites(godot_path: Path, skip_build: bool, timeout: int) -> bool:
         return False
 
     success = run_workbench_suite("core", godot_path, True, timeout)
-    for suite in ("guide", "phantom", "demo"):
+    for suite in ("guide", "phantom", "friflo", "demo"):
         missing_dependencies = find_missing_optional_dependencies(SUITE_DEPENDENCIES[suite])
         if missing_dependencies:
             print(f"[SKIP] {suite} 集成验证未配置：")

@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Demo3D;
+using Friflo.Engine.ECS;
 using Godot;
 using GoDo;
 
@@ -55,6 +56,14 @@ public sealed partial class Demo3DFlowRegression : Node
             AssertTopView<GameplayHud>(ui, UiLayer.Scene, "Gameplay HUD");
             AssertNoTopView(ui, UiLayer.View, "进入 Gameplay 后主菜单 View 仍然打开");
             Assert(!tree.Paused, "进入 Gameplay 后 SceneTree 错误地处于暂停状态");
+            EcsSwarmDemo firstSwarm = RequireEcsSwarmDemo();
+            await WaitUntilAsync(
+                () => firstSwarm.VisualSyncCount >= 2,
+                "ECS 群体没有同步到 MultiMesh");
+            Assert(firstSwarm.Store.Count == EcsSwarmDemo.SwarmEntityCount,
+                "ECS 群体实体数量不正确");
+            Assert(firstSwarm.IsSimulationRunning, "ECS 群体宿主没有开始运行");
+            EntityStore firstSwarmStore = firstSwarm.Store;
 #if DEBUG
             AssertDebugState<GameplayProcedure>(
                 procedures,
@@ -69,6 +78,13 @@ public sealed partial class Demo3DFlowRegression : Node
             EventChannel.Emit<PauseRequestedEvent>();
             Assert(tree.Paused, "暂停请求没有暂停 SceneTree");
             AssertTopView<PauseModal>(ui, UiLayer.Modal, "Pause Modal");
+            int pausedSyncCount = firstSwarm.VisualSyncCount;
+            int pausedUpdateCount = firstSwarm.SimulationUpdateCount;
+            await ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+            Assert(firstSwarm.VisualSyncCount == pausedSyncCount,
+                "SceneTree 暂停后 ECS 可视同步仍在推进");
+            Assert(firstSwarm.SimulationUpdateCount == pausedUpdateCount,
+                "SceneTree 暂停后 ECS System 仍在推进");
 #if DEBUG
             AssertDebugState<GameplayProcedure>(
                 procedures,
@@ -84,6 +100,11 @@ public sealed partial class Demo3DFlowRegression : Node
             EventChannel.Emit<ResumeSelectedEvent>();
             Assert(!tree.Paused, "恢复请求没有恢复 SceneTree");
             AssertNoTopView(ui, UiLayer.Modal, "恢复后 Pause Modal 仍然打开");
+            await WaitUntilAsync(
+                () => firstSwarm.VisualSyncCount > pausedSyncCount,
+                "SceneTree 恢复后 ECS 可视同步没有继续");
+            Assert(firstSwarm.SimulationUpdateCount > pausedUpdateCount,
+                "SceneTree 恢复后 ECS System 没有继续");
 #if DEBUG
             AssertDebugState<GameplayProcedure>(
                 procedures,
@@ -118,6 +139,11 @@ public sealed partial class Demo3DFlowRegression : Node
             await WaitForProcedureAsync<GameplayProcedure>(procedures);
             Assert(!tree.Paused, "Retry 进入 Gameplay 后 SceneTree 仍然暂停");
             AssertNoTopView(ui, UiLayer.View, "Retry 后 Result View 仍然打开");
+            EcsSwarmDemo secondSwarm = RequireEcsSwarmDemo();
+            Assert(secondSwarm.Store.Count == EcsSwarmDemo.SwarmEntityCount,
+                "Retry 后 ECS 群体实体数量不正确");
+            Assert(!ReferenceEquals(firstSwarmStore, secondSwarm.Store),
+                "Retry 后 ECS 群体复用了旧场景 World");
 #if DEBUG
             AssertDebugState<GameplayProcedure>(
                 procedures,
@@ -225,6 +251,14 @@ public sealed partial class Demo3DFlowRegression : Node
         Assert(
             GodotObject.IsInstanceValid(scene) && scene!.Name == expectedName,
             $"当前主场景不是 {expectedName}");
+    }
+
+    private EcsSwarmDemo RequireEcsSwarmDemo()
+    {
+        EcsSwarmDemo? swarm = GetTree().CurrentScene?
+            .GetNodeOrNull<EcsSwarmDemo>("EcsSwarmDemo");
+        Assert(GodotObject.IsInstanceValid(swarm), "GameplayScene 缺少 EcsSwarmDemo");
+        return swarm!;
     }
 
     private static void AssertTopView<TView>(

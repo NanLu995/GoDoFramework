@@ -1,11 +1,11 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/install-upgrade-uninstall.md
-translation_source_hash: sha256:e9cf592703f17c0265ea0aad47a91e23fd7682a93ada18c20dca9ecdf74b8e99
+translation_source_hash: sha256:53d472eb56be081673020cda3a8c72ba1be2663315f032d73a7d6f0cac82c30e
 ---
 
 # Install, Upgrade, and Uninstall the Framework
 
-GoDoFramework is distributed as the complete `addons/godo_framework/` directory. Its editor plugin checks the environment and explicitly installs the single `GoDoRuntime` Autoload. It does not take ownership of the target project's `.csproj`, input map, export presets, or game scenes.
+GoDoFramework is distributed as the complete `addons/godo_framework/` directory. Its editor plugin checks the environment, explicitly installs the single `GoDoRuntime` Autoload, and can add missing GoDo-owned `.csproj` rules after confirmation. It does not take ownership of input mappings, export presets, or game scenes.
 
 This page covers adding a specific framework version to an existing Godot C# project, safely upgrading it, and removing it completely.
 
@@ -58,10 +58,12 @@ The target project must own its C# solution. Generate it through Godot's C# proj
 
 The framework does not automatically:
 
-- Create or modify `.csproj` and solution files.
+- Create `.csproj` or solution files.
 - Change the assembly name or target framework.
 - Add NuGet packages.
 - Copy build configuration from the workbench repository.
+
+Use **Project configuration → C# project** to inspect rules for installed GUIDE, Phantom Camera, and Friflo ECS adapters plus Release Debugger trimming. Repair is offered only for one ordinary root `.csproj` after showing the exact additions, and creates a non-overwriting `.godo-backup` first. Multiple projects, central package management, a non-Godot SDK, and conflicting rules remain read-only.
 
 Setup reports an error when the root has no `.csproj`, has several `.csproj` files, has no built Debug assembly, or contains framework source newer than that assembly.
 

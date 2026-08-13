@@ -19,16 +19,19 @@ INTEGRATIONS_ROOT = ADDON_ROOT / "Integrations"
 PLUGIN_CONFIG = ADDON_ROOT / "plugin.cfg"
 DIST_ROOT = Path(__file__).resolve().parent / "dist"
 INCLUDED_SUFFIXES = {".cfg", ".cs", ".gd", ".py", ".tscn", ".uid"}
+INCLUDED_NAMES = {"LICENSE"}
 EXCLUDED_NAMES = {".DS_Store", "Thumbs.db"}
 PACKAGE_ROOTS = {
     "core": ADDON_ROOT,
     "guide-input": INTEGRATIONS_ROOT / "GuideInput",
     "phantom-camera": INTEGRATIONS_ROOT / "PhantomCamera",
+    "friflo-ecs": INTEGRATIONS_ROOT / "FrifloEcs",
 }
 PACKAGE_ARCHIVE_NAMES = {
     "core": "GoDoFramework-v{version}.zip",
     "guide-input": "GoDoFramework-GuideInput-v{version}.zip",
     "phantom-camera": "GoDoFramework-PhantomCamera-v{version}.zip",
+    "friflo-ecs": "GoDoFramework-FrifloEcs-v{version}.zip",
 }
 
 
@@ -65,7 +68,7 @@ def collect_release_files(package: str) -> list[Path]:
         path
         for path in package_root.rglob("*")
         if path.is_file()
-        and path.suffix.lower() in INCLUDED_SUFFIXES
+        and (path.suffix.lower() in INCLUDED_SUFFIXES or path.name in INCLUDED_NAMES)
         and path.name not in EXCLUDED_NAMES
         and (package != "core" or not path.is_relative_to(INTEGRATIONS_ROOT))
     ]
@@ -101,7 +104,11 @@ def build_archive(
         invalid_entry = archive.testzip()
         if invalid_entry is not None:
             raise RuntimeError(f"ZIP 完整性校验失败：{invalid_entry}")
-        if any(Path(name).suffix.lower() not in INCLUDED_SUFFIXES for name in archive.namelist()):
+        if any(
+            Path(name).suffix.lower() not in INCLUDED_SUFFIXES
+            and Path(name).name not in INCLUDED_NAMES
+            for name in archive.namelist()
+        ):
             raise RuntimeError("ZIP 中包含不在发布白名单内的文件。")
 
     print(f"已生成 [{package}]：{archive_path}")

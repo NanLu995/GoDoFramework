@@ -1,11 +1,13 @@
 ---
 translation_of: Docs/Manual/zh-cn/integrations/index.md
-translation_source_hash: sha256:084d5ffdc0362b588e4c5b8bff78ad9e98410cec0ed9e842ce04e6f0a701d3ad
+translation_source_hash: sha256:30775f24cf5c5614674738ea3d55641a602a754cd3e0f5b5be792588227cb520
 ---
 
 # Integrations and extensions
 
 Optional GoDo integrations use adapter layers: the framework retains stable business interfaces while the project installs, upgrades, and validates the third-party plugin. Do not modify third-party source to adapt it to GoDo; validate upgrade risk and platform compatibility in the project.
+
+The Friflo ECS integration is an exception: GoDo provides only a scene-level lifecycle host and does not abstract Friflo Entity, Component, Query, or System APIs. Game code using this capability therefore depends directly on Friflo.
 
 ## G.U.I.D.E-CSharp: input backend
 
@@ -19,12 +21,22 @@ With Phantom Camera, register its rig through `PhantomCameraRig`, then let game 
 
 Without Phantom Camera, derive an adapter from `CameraRig` for the project's chosen backend. Business code should not depend directly on third-party camera nodes.
 
+## Friflo ECS: scene-level data processing
+
+Friflo ECS suits batch simulation of many homogeneous entities, such as unit movement, projectiles, or status effects. Menus, saves, scene changes, audio, and ordinary UI should continue to use GoDo services or Godot nodes. The core package does not depend on Friflo; only projects selecting this capability install its separate adapter package.
+
+Add `Friflo.Engine.ECS` 3.6.0 to the target `.csproj`, overlay `GoDoFramework-FrifloEcs-<version>.zip`, then restore and build again. The adapter archive does not bundle the NuGet assembly, but it includes the upstream MIT license. Add `EcsWorldHost` to the game scene that needs ECS, register game systems and entities, then explicitly set `IsRunning = true`. The World is released with its host when the scene exits and is not retained across scenes automatically.
+
+Keep game components and systems in the game's own namespace. `GoDo.Integrations.FrifloEcs` identifies the current backend adapter; it does not promise that game ECS code can move to another framework at zero cost.
+
+For a complete runnable path from components and systems to a game scene, see [Batch Scene Data with Friflo ECS](../guides/friflo-ecs/index.md).
+
 ## Integration checklist
 
 1. Pin and record the third-party plugin version; do not treat an unverified latest release as a framework prerequisite.
 2. Confirm that Godot recognizes the plugin, resources, and node types before installing the corresponding GoDo backend.
 3. Validate both Debug and target export platforms; an editor-ready third-party plugin is not necessarily export-ready.
-4. After upgrading either side, revalidate the smallest input or camera scene and consult [Troubleshooting](../troubleshooting/index.md).
+4. After upgrading either side, revalidate the smallest input, camera, or ECS scene and consult [Troubleshooting](../troubleshooting/index.md).
 
 ## Integration capability map
 
@@ -36,6 +48,9 @@ input.TryGetPromptQuery(out IInputPromptQuery prompts);</code></pre></section>
 <section><h4>Configure a Phantom Camera Rig</h4><p>Set its backend and active/inactive priorities; CameraService switches it by CameraId.</p><pre class="godo-capability-call"><code>rig.PhantomCameraNode = pcam;
 rig.ActivePriority = 20;
 rig.InactivePriority = 0;</code></pre></section>
+<section><h4>Start a scene-level ECS World</h4><p>Register game systems and entities before enabling updates; the World follows the host scene lifecycle.</p><pre class="godo-capability-call"><code>host.Systems.Add(new MovementSystem());
+host.Store.CreateEntity(new Position(), new Velocity());
+host.IsRunning = true;</code></pre></section>
 </div>
 
-See the [GuideInputBackendInstaller API](xref:GoDo.GuideInput.GuideInputBackendInstaller) and [PhantomCameraRig API](xref:GoDo.PhantomCameraRig).
+See the [GuideInputBackendInstaller API](xref:GoDo.GuideInput.GuideInputBackendInstaller), [PhantomCameraRig API](xref:GoDo.PhantomCameraRig), and [EcsWorldHost API](xref:GoDo.Integrations.FrifloEcs.EcsWorldHost).

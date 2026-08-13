@@ -21,6 +21,7 @@ OPTIONAL_DIRECTORIES = (
     "addons/phantom_camera",
     "addons/godo_framework/Integrations/GuideInput",
     "addons/godo_framework/Integrations/PhantomCamera",
+    "addons/godo_framework/Integrations/FrifloEcs",
 )
 
 
