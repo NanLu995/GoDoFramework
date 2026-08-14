@@ -64,6 +64,9 @@ public sealed partial class EcsWorldHost : Node
         _store = new EntityStore();
         _systems = new SystemRoot(_store);
         _elapsedTime = 0f;
+#if DEBUG
+        EcsWorldDebugRegistry.Register(this);
+#endif
     }
 
     /// <inheritdoc />
@@ -97,6 +100,9 @@ public sealed partial class EcsWorldHost : Node
     /// <summary>幂等关闭系统根并使 World 不再可访问；节点退出场景树时自动调用。</summary>
     public void Shutdown()
     {
+#if DEBUG
+        EcsWorldDebugRegistry.Unregister(this);
+#endif
         SetProcess(false);
         SetPhysicsProcess(false);
         _systems = null;

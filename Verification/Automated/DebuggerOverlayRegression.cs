@@ -444,11 +444,13 @@ public sealed partial class DebuggerOverlayRegression : Node
                 firstPerformanceMetric.GetTextAlignment(3) == HorizontalAlignment.Left,
                 "Performance 指标、数值和说明没有按规则对齐");
 
-            Assert(runtime.GetChildCount() == 10, "运行时二级页面错误");
             TreeItem scenePage = runtime.GetFirstChild().GetNext().GetNext().GetNext();
             TreeItem resourcesPage = scenePage.GetNext();
             TreeItem poolPage = resourcesPage.GetNext();
-            TreeItem dataTablePage = poolPage.GetNext();
+            TreeItem pageAfterPool = poolPage.GetNext();
+            bool hasEcsPage = pageAfterPool.GetText(0) == "ECS";
+            Assert(runtime.GetChildCount() == (hasEcsPage ? 11 : 10), "运行时二级页面错误");
+            TreeItem dataTablePage = hasEcsPage ? pageAfterPool.GetNext() : pageAfterPool;
             TreeItem uiPage = dataTablePage.GetNext();
             TreeItem procedurePage = uiPage.GetNext();
             TreeItem flowPage = procedurePage.GetNext();

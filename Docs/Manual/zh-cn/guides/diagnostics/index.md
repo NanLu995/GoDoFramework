@@ -159,7 +159,7 @@ Reporter 在错误分发调用栈上同步执行，因此禁止 `.Wait()`、`.Re
 启用 `GoDoRuntime.tscn` Autoload 后，Debug 构建会自动出现紧凑状态按钮，不需要配置快捷键。
 
 - 折叠状态只显示 FPS；出现 Warning 或 Error 时文字会按最高严重度变色，具体数量在概览中查看。
-- 点击后先看到卡片式运行概览，也可通过左侧树状导航查看 System、Performance、Services、Events、Input、Scheduler、Audio、Scene、Resources、Pool、DataTable、UI、Procedure、Flow 等结构化仪表盘和 Console 页面。
+- 点击后先看到卡片式运行概览，也可通过左侧树状导航查看 System、Performance、Services、Events、Input、Scheduler、Audio、Scene、Resources、Pool、DataTable、UI、Procedure、Flow，以及可选的 ECS 结构化仪表盘和 Console 页面。
 - 拖动标题栏可移动窗口，拖动右下角“拖动调整大小 ↘”可调整整个 Debugger 尺寸；位置或尺寸不合适时点击“重置”。
 - 展开时每 0.25 秒刷新当前页面；折叠时不会创建模块快照。
 - 面板只读，不允许修改服务或游戏数据。
@@ -184,6 +184,8 @@ Scene 页面用状态卡显示当前场景、节点数量、切换状态和进�
 Resources 页面用统计卡显示活动加载、同步/异步请求、同键合并和成功/失败数量。活动请求表按资源 key 稳定排序，最多显示前 32 条；最近请求在内存中保留 32 条，页面按最新优先显示 8 条。这里显示的是 ResourceHub 请求和有限历史，不代表 Godot 全局缓存，也不是永久资源日志。
 
 Pool 页面显示当前仍存活的 NodePool 类型、空闲数、活动数和空闲容量，以及所有已登记池的合计。它只在 Debug 构建中以弱引用观察 Pool，不会替你创建、关闭或回收节点；`Dispose()` 后对应 Pool 会立刻从页面消失。活动数量持续不回落时，应先检查所有权、归还路径和场景退出顺序。
+
+安装并编译 Friflo ECS 可选集成后，**运行时 / ECS** 页面会显示 World 总数、运行中宿主、Entity 和 Archetype 汇总，宿主表列出阶段、状态与容量，System 树列出启用状态和 Query 匹配数量。页面最多显示 32 个 World 和 128 个 System，不遍历单个 Entity。性能列只读取业务已经显式调用 `host.Systems.SetMonitorPerf(true)` 后产生的数据；Debugger 不会自动开启监控，也不能暂停宿主或修改 ECS 数据。
 
 DataTable 页面显示已发布数据集、缓存表、当前加载和累计失败数量。数据集树可以展开查看表 ID 与实际缓存类型，加载中数据集显示表级进度和运行时目录；最近结果记录加载成功、取消、失败与卸载。页面最多显示 32 个数据集和 64 张表，最近结果保留 16 条并显示最新 8 条。这些诊断只存在于 Debug 构建，不会让 Release 持有额外历史。
 

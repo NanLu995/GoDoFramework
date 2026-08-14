@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:a52084a2ead6ee310488ef90b9d35879e1703f16f3825d4bbee0300e6662f793
+translation_source_hash: sha256:71dc9246d21bba426ba9d42c8c6fde221fcbec314425b38a13f46d1343d430de
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
@@ -164,7 +164,7 @@ Before connecting a remote platform, the game project must define user consent, 
 After enabling the `GoDoRuntime.tscn` Autoload, Debug builds automatically show a compact health button with no shortcut configuration.
 
 - Collapsed mode shows only FPS. Warning or Error activity changes the text color according to the highest severity; inspect the Overview for exact counts.
-- Click it to open a card-based runtime overview, then use the navigation tree to inspect the structured System, Performance, Services, Events, Input, Scheduler, Audio, Scene, Resources, Pool, DataTable, UI, Procedure, and Flow dashboards, plus the Console page.
+- Click it to open a card-based runtime overview, then use the navigation tree to inspect the structured System, Performance, Services, Events, Input, Scheduler, Audio, Scene, Resources, Pool, DataTable, UI, Procedure, and Flow dashboards, the optional ECS dashboard, and the Console page.
 - Drag the title bar to move the window, drag the lower-right Resize Debugger handle to resize the entire panel, or click Reset to restore the default layout.
 - The current page refreshes every 0.25 seconds while expanded; collapsed mode creates no module snapshots.
 - The panel is read-only and cannot modify services or game data.
@@ -189,6 +189,8 @@ The Scene page uses status cards for the current scene, node count, transition s
 The Resources page uses summary cards for active loads, synchronous/asynchronous requests, same-key merges, and success/failure totals. Its active-request table is stably sorted by resource key and renders at most 32 entries. ResourceHub retains 32 recent requests in memory, while the page displays the newest eight first. These values describe ResourceHub requests and bounded history, not the global Godot cache or a persistent resource log.
 
 The Pool page shows every live NodePool's type, idle count, active count, and idle capacity, plus totals across registered pools. It observes Pools through Debug-only weak references; it never creates, closes, or returns Nodes for you. A Pool disappears immediately after `Dispose()`. If active counts do not fall, inspect ownership, return paths, and scene shutdown order first.
+
+When the optional Friflo ECS integration is installed and compiled, **Runtime / ECS** reports World count, running hosts, Entity and Archetype totals, host phase/state/capacity, and a System tree with enabled state and Query match count. It renders at most 32 Worlds and 128 Systems and never enumerates individual Entities. Performance columns appear only for data already enabled by game code through `host.Systems.SetMonitorPerf(true)`; the Debugger never enables monitoring, pauses hosts, or modifies ECS data.
 
 The DataTable page reports published data sets, cached tables, active loads, and cumulative failures. Expand a data-set row to inspect table IDs and actual cached types; loading rows show table-level progress and the runtime directory. Recent results cover successful loads, cancellation, failure, and unload operations. The page renders at most 32 data sets and 64 tables, retains 16 results, and displays the newest eight. This diagnostic state exists only in Debug builds and adds no Release history.
 

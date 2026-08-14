@@ -2300,6 +2300,153 @@ columns = 4
 column_titles_visible = true
 hide_root = true
 
+[node name="EcsDashboard" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="Summary" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/EcsDashboard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="WorldsCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary/WorldsCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary/WorldsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "World"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary/WorldsCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.49, 0.76, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="RunningCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary/RunningCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary/RunningCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "运行中"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary/RunningCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="EntitiesCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary/EntitiesCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary/EntitiesCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "Entity"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary/EntitiesCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="ArchetypesCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary/ArchetypesCard"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary/ArchetypesCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "Archetype"
+
+[node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/EcsDashboard/Summary/ArchetypesCard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.94, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
+
+[node name="WorldStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/EcsDashboard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "当前没有已登记的 EcsWorldHost。"
+
+[node name="WorldList" type="Tree" parent="Panel/Margin/VBox/Body/Page/EcsDashboard"]
+custom_minimum_size = Vector2(0, 104)
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 6
+column_titles_visible = true
+hide_root = true
+
+[node name="SystemStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/EcsDashboard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "当前没有可显示的 ECS System。"
+
+[node name="SystemList" type="Tree" parent="Panel/Margin/VBox/Body/Page/EcsDashboard"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 6
+column_titles_visible = true
+hide_root = true
+
 [node name="DataTableDashboard" type="VBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
 visible = false
 layout_mode = 2

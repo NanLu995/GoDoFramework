@@ -12,7 +12,7 @@ Release 构建不会由 GoDoRuntime 创建 Debugger 节点；Debugger 不是业�
 
 - 默认折叠，外框和紧凑按钮按 FPS 文本宽度自适应，最小宽度按 `FPS: 60` 计算，只显示 FPS；文字使用 1px 同色描边，最近 Warning/Error 仅通过文字颜色按最高严重度提示，具体数量在概览中查看。
 - 点击或触摸健康状态按钮展开或收起诊断窗口。
-- 展开后使用树状导航；高频使用的 `Console` 放在 `Performance` 下方，之后再按 `Runtime/Input`、`Runtime/Scheduler`、`Runtime/Audio`、`Runtime/Scene`、`Runtime/Resources`、`Runtime/Pool`、`Runtime/DataTable`、`Runtime/UI`、`Runtime/Procedure`、`Framework/Services`、`Framework/Events` 路径组织。
+- 展开后使用树状导航；高频使用的 `Console` 放在 `Performance` 下方，之后再按 `Runtime/Input`、`Runtime/Scheduler`、`Runtime/Audio`、`Runtime/Scene`、`Runtime/Resources`、`Runtime/Pool`、可选的 `Runtime/ECS`、`Runtime/DataTable`、`Runtime/UI`、`Runtime/Procedure`、`Framework/Services`、`Framework/Events` 路径组织。
 - 拖动标题栏可移动面板，拖动右下角“拖动调整大小 ↘”可缩放整个 Debugger；“重置”恢复默认位置与尺寸，移动和缩放结果始终限制在当前视口内。
 - 健康状态按钮、树状导航、内容区和普通操作按钮不取得键盘或手柄焦点；Input、Services、Events 与控制台搜索框仅在鼠标点击后取得焦点，提交搜索或离开对应页面时释放焦点。
 - 页面切换时立即刷新；保持展开时每 0.25 秒刷新当前页面。
@@ -25,6 +25,7 @@ Release 构建不会由 GoDoRuntime 创建 Debugger 节点；Debugger 不是业�
 - `运行时 / Input`：以结构化仪表盘显示后端、采样状态、活动设备、能力、采样序号、完整 Context 栈及有效性，以及 Action 当前值和边沿状态。采样序号在每次成功采样后递增，失败时保持不变，后端重装或服务关闭后归零；Action 搜索匹配名称或值类型。
 - `运行时 / Scheduler`：以结构化仪表盘显示任务数量、三种时钟在 Process/Physics 的分布、最近派发、下次触发与累计失败/取消统计。
 - `运行时 / Audio`：通过 `BgmPlaybackState` 区分 BGM 加载、播放、暂停、Crossfade、自然结束与停止，显示当前已提交资源键、非空间与 3D SFX 各自的活跃/等待/已准备声部、容量、累计拒绝/抢占，3D 目标跟随数量/独立上限，以及 Master、BGM、SFX 三组线性音量。
+- `运行时 / ECS`：仅在 Friflo ECS 集成参与编译时注册，汇总 World、运行中宿主、Entity 与 Archetype，并列出宿主生命周期状态和 System 树。性能列只读取业务已经通过 `Systems.SetMonitorPerf(true)` 开启的数据，Debugger 不会代替业务启用监控。
 - `运行时 / DataTable`：显示已发布数据集、缓存表、当前加载与失败数量，并分层列出数据集、表类型、表级进度、运行时目录和最近加载/取消/失败/卸载结果。
 - `运行时 / UI`：显示 Scene 界面数量、View/Modal 栈深度、当前顶层界面，以及各层由底到顶的节点、资源 Key 和显示状态。
 - `运行时 / Procedure`：显示当前流程、进入/退出阶段、待处理请求、被首请求仲裁拒绝的目标与原因、上一个流程、最近成功和最近失败。
@@ -84,6 +85,7 @@ Input、Scheduler、Audio 未注册时分别显示明确的“未注册”降级
 - Services、EventChannel、InputService、SchedulerService、SceneService、DataTableService、UiService、ProcedureService 与 ResourceHub 只暴露 `internal + DEBUG` 的快照入口；Audio 页面直接读取 `IAudioService` 的播放状态与突发准入统计，不维护第二套快照。
 - Debugger 内部按路径注册只读页面；当前不开放第三方 public 注册 API。
 - NodePool 在 Debug 构建以弱引用登记仍存活实例；`运行时 / Pool` 页面按需显示节点类型、空闲数、活动数和空闲容量。登记不控制 Pool 生命周期，`Dispose()` 后立即注销，Release 不包含该机制。
+- `EcsWorldHost` 在 Debug 构建以弱引用登记仍在场景树中的宿主；退出或 `Shutdown()` 时注销。该注册表和 ECS 页面都位于可选 Friflo 集成内，核心以 `GoDoIncludeFrifloEcs=false` 编译时不引用 Friflo 类型。
 
 ## 失败语义
 
@@ -96,7 +98,7 @@ Input、Scheduler、Audio 未注册时分别显示明确的“未注册”降级
 
 - 折叠时只刷新 FPS 与最近错误计数，继续收集 Warning 以上摘要，不创建模块快照。
 - 展开且未暂停时只生成当前页面所需的低频快照；控制台通过日志与错误摘要版本号跳过内容未变化的刷新，不重复复制历史、构建文本或更新 RichTextLabel。文件日志状态只读取原子计数与已缓存字符串，不读取磁盘。筛选和搜索扫描有界的 1000 条聚合历史，但 RichTextLabel 每次最多排版 100 条普通日志。滚到底部统一延迟到 GUI 完成本轮文本布局后执行，并合并同一轮的重复请求；滚动条变化信号也只安排一次延迟状态检查，不在原生回调内更新布局；不监听 RichTextLabel 的尺寸信号，避免滚动与重排形成反馈环。暂停停止新日志触发的自动刷新与滚动；切换页面、翻页、点击“最新日志”或提交搜索仍会按用户操作立即刷新。
-- Input、Services 与 Events 的小型数组分配仅存在于 Debug 构建；Input 的 Frame 状态可独立更新，Context / Action 及 Services / Events 快照未变化时不重建列表。System 的静态环境信息只读取一次，选中页面时只刷新少量动态窗口状态。Performance 只在选中页面时读取固定数量的引擎监控，趋势使用预分配环形数组和绘图点数组，指标表只更新已有行。Audio 页面每次只读取常量数量的属性并更新既有 Label，不创建历史或集合。ResourceHub 的活动请求数组只在 Resources 页面刷新时创建；历史采用固定 32 条队列，页面只排版前 32 条活动请求和最新 8 条历史。Pool 页面仅在选中时遍历 Debug-only 弱引用登记并创建当前池条目，不保留历史。DataTable 通过 Debug 版本号跳过状态未变化的快照与 Tree 重建，历史固定为 16 条，页面最多排版 32 个数据集、64 张表和最新 8 条结果。UI 页面仅在被选中时复制当前受管理界面列表，不保留历史，并最多排版顶部 64 项；其资源 Key 映射只存在于 Debug 构建。Scene 节点数采用无集合分配的子节点遍历，并限制为该页每秒一次。页面定义和导航树只在 Overlay 初始化时创建。
+- Input、Services 与 Events 的小型数组分配仅存在于 Debug 构建；Input 的 Frame 状态可独立更新，Context / Action 及 Services / Events 快照未变化时不重建列表。System 的静态环境信息只读取一次，选中页面时只刷新少量动态窗口状态。Performance 只在选中页面时读取固定数量的引擎监控，趋势使用预分配环形数组和绘图点数组，指标表只更新已有行。Audio 页面每次只读取常量数量的属性并更新既有 Label，不创建历史或集合。ResourceHub 的活动请求数组只在 Resources 页面刷新时创建；历史采用固定 32 条队列，页面只排版前 32 条活动请求和最新 8 条历史。Pool 页面仅在选中时遍历 Debug-only 弱引用登记并创建当前池条目，不保留历史。ECS 页面仅在选中时采集快照，汇总所有有效宿主，但最多排版 32 个 World 和 128 个 System；它不遍历 Entity，也不启用 Friflo 性能监控。DataTable 通过 Debug 版本号跳过状态未变化的快照与 Tree 重建，历史固定为 16 条，页面最多排版 32 个数据集、64 张表和最新 8 条结果。UI 页面仅在被选中时复制当前受管理界面列表，不保留历史，并最多排版顶部 64 项；其资源 Key 映射只存在于 Debug 构建。Scene 节点数采用无集合分配的子节点遍历，并限制为该页每秒一次。页面定义和导航树只在 Overlay 初始化时创建。
 - 不应把面板刷新频率提高到每帧，也不应在此实现完整性能分析器。
 
 ## 常见误用
@@ -116,4 +118,4 @@ Input、Scheduler、Audio 未注册时分别显示明确的“未注册”降级
 Verification/Automated/DebuggerOverlayRegression.tscn
 ```
 
-Windows Debug 回归覆盖默认折叠、点击展开、焦点策略、树状页面切换、Overview、System 环境分组、Performance 摘要/趋势/指标分组、Scene / Resources / DataTable / UI 结构化仪表盘、DataTable 加载中/发布/空集/卸载/失败及未注册降级、UI 三层栈顺序及未注册降级、Input 空布局、Input/Scheduler/Audio 未注册降级、Input/Scheduler/DataTable/UI 不支持 Debug 快照、Scheduler 旧数据清理、页面读取异常隔离与恢复、Scheduler 与 Audio 仪表盘、Services / Events 统计、搜索与选中详情、控制台空筛选结果、错误上下文与根因显示/搜索、文件日志状态与链接、文件/翻页按钮对齐、普通日志与 ErrorHub 摘要时间混排、Warning/Error 分级着色、等级多选、1000 条历史搜索、分页、搜索/暂停/复制、布局重置和再次折叠；`ResourceHubRegression.tscn` 同时验证资源诊断的合并、统计，以及写入 33 条记录后固定保留最新 32 条的淘汰顺序。同一场景使用 Release 程序集运行时，验证 GoDoRuntime 不创建 Debugger 节点。非空 Input 快照由 `InputServiceRegression.tscn` 覆盖后端、设备、Frame、Action 状态及 Context 有效性。系统页在非 Windows 平台的返回值、性能曲线的真实波动、窗口拖动与缩放的视觉手感、播放中的 Audio 状态、文件管理器定位、非空 Input 仪表盘、移动端触摸、窄视口和真实设备显示仍需在目标平台手动验证。
+Windows Debug 回归覆盖默认折叠、点击展开、焦点策略、树状页面切换、Overview、System 环境分组、Performance 摘要/趋势/指标分组、Scene / Resources / DataTable / UI 结构化仪表盘、DataTable 加载中/发布/空集/卸载/失败及未注册降级、UI 三层栈顺序及未注册降级、Input 空布局、Input/Scheduler/Audio 未注册降级、Input/Scheduler/DataTable/UI 不支持 Debug 快照、Scheduler 旧数据清理、页面读取异常隔离与恢复、Scheduler 与 Audio 仪表盘、Services / Events 统计、搜索与选中详情、控制台空筛选结果、错误上下文与根因显示/搜索、文件日志状态与链接、文件/翻页按钮对齐、普通日志与 ErrorHub 摘要时间混排、Warning/Error 分级着色、等级多选、1000 条历史搜索、分页、搜索/暂停/复制、布局重置和再次折叠；`FrifloEcsRegression.tscn` 在可选集成开启时验证 ECS 注册、快照、Perf 读取与页面渲染，`ResourceHubRegression.tscn` 同时验证资源诊断的合并、统计，以及写入 33 条记录后固定保留最新 32 条的淘汰顺序。同一场景使用 Release 程序集运行时，验证 GoDoRuntime 不创建 Debugger 节点。非空 Input 快照由 `InputServiceRegression.tscn` 覆盖后端、设备、Frame、Action 状态及 Context 有效性。系统页在非 Windows 平台的返回值、性能曲线的真实波动、窗口拖动与缩放的视觉手感、播放中的 Audio 状态、文件管理器定位、非空 Input 仪表盘、移动端触摸、窄视口和真实设备显示仍需在目标平台手动验证。

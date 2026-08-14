@@ -186,6 +186,14 @@ public void SetSimulationPaused(bool paused)
 
 `_Ready()` 时宿主已经进入树并完成初始化。请在 Inspector 设置，或在代码创建宿主时先赋值 `UpdatePhase`，再调用 `AddChild()`。
 
+### 如何查看运行中的 World 和 System
+
+Debug 构建中打开 GoDo Debugger 的 **运行时 / ECS**。页面只读显示 World/Entity/Archetype 汇总、宿主阶段与状态、System 层级、Query 匹配数量；最多显示 32 个 World 和 128 个 System。若需要 Last ms、Updates 和 Last alloc，在业务初始化时显式调用 `host.Systems.SetMonitorPerf(true)`；Debugger 不会自行开启有成本的性能监控。
+
+### 是否还需要安装 Friflo.EcGui
+
+通常不需要。GoDo Debugger 负责 Godot 游戏内的轻量运行状态，IDE 调试器负责逐 Entity/Component 深挖。`Friflo.EcGui` 更适合已有 ImGui/.NET 桌面 GUI 后端的工具；嵌入 Godot 需要额外处理渲染、输入和版本兼容。本集成不安装该依赖，也不重复实现实体编辑器。只有项目确实需要独立深度检查器，并愿意维护这层 GUI 桥接时再单独评估。
+
 ### 是否应该把角色 Node 全部替换成 Entity
 
 不应该默认替换。先用 ECS 承担被性能测量证明适合批处理的数据；动画、输入、碰撞节点和 UI 可以保留在 Godot 一侧，通过少量、明确的同步边界连接。

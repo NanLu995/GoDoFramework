@@ -84,13 +84,19 @@ public sealed partial class EcsWorldHost : Node
 
 2026-08-13 Windows、Godot 4.7.1 Mono Headless、.NET 8、Debug、20 个逻辑处理器的单线程 Position/Velocity 查询基准中，1 万实体连续更新 1,000 次平均约 0.044 ms/次，10 万实体连续更新 100 次平均约 0.338 ms/次，两档稳态当前线程托管分配均为 0 B。该数据只代表当前机器的简单纯数据系统，不包含 Godot Node 同步、物理查询、结构变更或渲染，不能作为跨设备性能保证。
 
-当前首版已完成。暂不提供多 World 管理、GoDo Debugger 页面、存档封装、编辑器实体检查器、自动 System 发现或复杂 `.csproj` 修改。
+Debug 构建启用本集成后，GoDo Debugger 会增加 `运行时 / ECS` 页面。页面汇总有效 `EcsWorldHost`、运行状态、Entity、Archetype 和容量，并显示 System 层级、启用状态、Query Entity 数量，以及可用的最近耗时、更新次数和托管分配。页面只读，不遍历 Entity，不保留历史，最多显示 32 个 World 和 128 个 System。
+
+Friflo 的 System 性能监控有自身运行成本，因此 Debugger 不会调用 `SetMonitorPerf(true)`。需要查看性能列时，由业务在初始化 System 后显式调用 `host.Systems.SetMonitorPerf(true)`；未开启时页面用 `—` 表示，而不是改变运行状态。
+
+`Friflo.EcGui` 主要面向 ImGui/.NET 桌面工具链中的深度 Entity/Component 检查。Godot 要嵌入它还需要额外 GUI 后端、渲染与输入桥接，并承担第三方升级兼容，当前不作为 GoDo 集成依赖。日常运行状态使用 GoDo Debugger；需要逐 Entity/Component 深挖时使用 IDE 调试器或独立 Friflo 工具。两者职责有交集但不等价，本集成不重复实现实体编辑器。
+
+当前首版已完成。暂不提供多 World 管理、存档封装、编辑器实体检查器、自动 System 发现或复杂 `.csproj` 修改。
 
 ## 验证
 
 - Friflo 开启：`dotnet build GoDoFramework.csproj -c Debug -p:GoDoIncludeFrifloEcs=true`。
 - 核心隔离：使用 `-p:GoDoIncludeFrifloEcs=false` 编译，确认核心不依赖 Friflo。
-- 生命周期：运行 `Verification/Automated/FrifloEcsRegression.tscn`，覆盖 Process、Physics、暂停、幂等关闭和重新进入场景树。
+- 生命周期与诊断：运行 `Verification/Automated/FrifloEcsRegression.tscn`，覆盖 Process、Physics、暂停、幂等关闭、重新进入场景树、Debug 注册与快照、性能读取和 Debugger ECS 页面渲染。
 - 性能：运行 `Verification/Performance/FrifloEcsBenchmark.tscn`，覆盖 1 万/10 万实体稳态更新与当前线程托管分配。
 - 项目依赖：运行 `Verification/Automated/FrifloEcsProjectDependencyRegression.gd`，覆盖直接引用、中央包版本、缺失/错误/变量版本、多个项目、条件引用、损坏 XML、确认安装、非覆盖备份、重复安装拒绝与中央管理写入拦截；`EditorExtensionUiRegression.gd` 验证统一窗口入口、安装按钮和确认预览。
 - Android、其他桌面平台、导出包和大规模实体性能仍待后续验证。

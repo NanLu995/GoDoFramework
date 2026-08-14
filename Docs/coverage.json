@@ -58,12 +58,12 @@
     "debugger": {
       "contract": "addons/godo_framework/Debugger/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖自动加载、只读与 Release 边界、System、Performance、各运行时模块、Procedure/Flow、Services、Events、Console、降级状态和单页失败恢复；仍等待目标平台显示与各页面的深度排障示例。",
+      "reason": "功能指南已覆盖自动加载、只读与 Release 边界、System、Performance、各运行时模块、可选 Friflo ECS 有界诊断、Procedure/Flow、Services、Events、Console、降级状态和单页失败恢复；仍等待目标平台显示与各页面的深度排障示例。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:45c9f4b0b01ed10430a0509c36c858605e56657a9bd9ecafdfce18d3c91af643"
+      "reviewed_contract_hash": "sha256:09413def305245f2da19e2a88b2432c3025893584cfd57b8cd2d675ef5498ccd"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
@@ -79,13 +79,13 @@
     "friflo-ecs": {
       "contract": "addons/godo_framework/Integrations/FrifloEcs/USAGE.md",
       "status": "documented",
-      "reason": "集成概览和上手教程已覆盖适用与非适用场景、独立发布包、手工 NuGet 安装、普通单项目确认安装与非覆盖备份、复杂项目只读边界、组件与 System、场景级 World 所有权、显式启动、暂停恢复、退出清理、Demo3D MultiMesh 可视同步、常见误用和后端替换边界；技术契约补充完整生命周期、线程、失败语义与规模基准。",
+      "reason": "集成概览和上手教程已覆盖适用与非适用场景、独立发布包、手工 NuGet 安装、普通单项目确认安装与非覆盖备份、复杂项目只读边界、组件与 System、场景级 World 所有权、显式启动、暂停恢复、退出清理、Demo3D MultiMesh 可视同步、GoDo Debugger 有界只读诊断、Friflo.EcGui 取舍、常见误用和后端替换边界；技术契约补充完整生命周期、线程、失败语义与规模基准。",
       "manual_pages": [
         "integrations/index.md",
         "guides/friflo-ecs/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:07fc6ab12b9f3eebc761d9add279d6e4aa8ab30ae9fd0a61901db0c724d7bd05"
+      "reviewed_contract_hash": "sha256:e1704c62f3b3ebd993981943c24ba060f0cab6b306565e27c3d516d18611f498"
     },
     "phantom-camera": {
       "contract": "addons/godo_framework/Integrations/PhantomCamera/USAGE.md",

@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/friflo-ecs/index.md
-translation_source_hash: sha256:83a564db0b19a7ebb453c7601d348ac3dd2ae479ae6affa7494f799866d4ca9e
+translation_source_hash: sha256:ed2095794e2f2d3c00018f1def3ee3a24502db7d02d280d807e4b0d42e656d56
 ---
 
 # Batch Scene Data with Friflo ECS
@@ -190,6 +190,14 @@ Confirm that `host.IsRunning = true` is set after systems and entities are regis
 ### Changing `UpdatePhase` in `_Ready()` throws
 
 The host has already entered the tree and initialized by `_Ready()`. Set it in the Inspector, or assign `UpdatePhase` before `AddChild()` when constructing the host in code.
+
+### How do I inspect live Worlds and Systems?
+
+In a Debug build, open **Runtime / ECS** in the GoDo Debugger. It provides read-only World/Entity/Archetype totals, host phase and state, the System hierarchy, and Query match counts, capped at 32 Worlds and 128 Systems. To populate Last ms, Updates, and Last alloc, explicitly call `host.Systems.SetMonitorPerf(true)` during game initialization; the Debugger never enables performance monitoring on its own.
+
+### Do I also need Friflo.EcGui?
+
+Usually not. The GoDo Debugger covers lightweight in-game state, while an IDE debugger handles deep per-Entity or per-Component inspection. `Friflo.EcGui` is a better fit for tools that already have an ImGui/.NET desktop GUI backend; embedding it in Godot adds rendering, input, and version-compatibility work. This integration neither installs that dependency nor recreates an entity editor. Evaluate it separately only when a dedicated deep inspector justifies maintaining that GUI bridge.
 
 ### Should every character Node become an Entity?
 

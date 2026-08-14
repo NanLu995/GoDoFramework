@@ -53,7 +53,7 @@ GoDoRuntime 不承载菜单、关卡、登录等具体游戏流程。业务场�
 
 具体输入插件通过 `addons/godo_framework/Integrations/` 下的 `IInputBackend` 适配包接入。例如 `GuideInput/` 依赖 GoDo Input、Save 与 G.U.I.D.E-CSharp，但 GoDo 运行时核心不反向依赖该包。业务只使用 GoDo 语义 ID、InputFrame、可选 `IInputRebinding` 与 `IInputRebindingPersistence`，不持有插件类型。适配包的编辑器检查器同样只通过通用扩展清单注册，不成为第二个 Godot EditorPlugin。
 
-Friflo ECS 通过 `Integrations/FrifloEcs/` 作为场景级可选业务能力接入。每个 `EcsWorldHost` 显式拥有一个 `EntityStore` 与 `SystemRoot`，由 Process 或 Physics Process 单阶段驱动，随宿主场景退出而关闭。该集成不注册到 Services、不进入 GoDoRuntime，也不把玩法组件放入 `GoDo.*`；未安装 Friflo NuGet 依赖时核心包仍可独立构建。
+Friflo ECS 通过 `Integrations/FrifloEcs/` 作为场景级可选业务能力接入。每个 `EcsWorldHost` 显式拥有一个 `EntityStore` 与 `SystemRoot`，由 Process 或 Physics Process 单阶段驱动，随宿主场景退出而关闭。Debug 构建由集成侧以弱引用向 Debugger 提供有界只读快照；Debugger 核心不引用 Friflo 类型，也不启用性能监控。该集成不注册到 Services、不进入 GoDoRuntime，也不把玩法组件放入 `GoDo.*`；未安装 Friflo NuGet 依赖时核心包仍可独立构建。
 
 所有直接操作 Godot 对象或框架共享状态的公共 API 默认限制在 GoDoRuntime 记录的主线程；具体约束以模块 `USAGE.md` 为准。
 
@@ -85,8 +85,8 @@ Friflo ECS 通过 `Integrations/FrifloEcs/` 作为场景级可选业务能力接
 | Service | Procedure | 顶层游戏流程阶段的串行切换、激活资源生命周期、首请求仲裁与可恢复失败通知 | Core、Services | `IProcedureService` / `ProcedureContext` | 首版完成 |
 | Foundation | Config | 强类型 Resource 校验与唯一键只读表 | ResourceHub | `ConfigHub` / `ConfigTable` | 稳定基线 |
 | Editor | Installer / Validator / Extension Host | 单入口项目管理窗口、GoDoRuntime Autoload 的显式安装与健康检查、普通单项目的 GoDo `.csproj` 规则检查/确认修复、ResourceManifest / UiConfig 管理，以及 Integrations / Tools 编辑器扩展的受控发现；框架导出过滤器自动从游戏导出移除编辑器工具，并仅在 Debug 导出保留游戏内 Debugger；DataTable 继续通过宿主执行离线检查、生成与目标导出过滤 | Godot Editor API、通用扩展清单 | 顶部 `GoDo Framework` 单入口 | 首版完成 |
-| Development | Debugger | Debug 构建的只读运行时仪表盘，含 Procedure / Scene / UI 联合 Flow 诊断 | 各模块 Debug 快照 | GoDoRuntime 自动创建 | 稳定基线 |
-| Integration | Friflo ECS | 场景级 EntityStore / SystemRoot 所有权、Process / Physics 单阶段驱动、项目依赖检查及受限确认安装 | Friflo.Engine.ECS 3.6.0、Godot Node 生命周期、Editor 扩展协议 | `EcsWorldHost` / 编辑器依赖检查 | 首版完成 |
+| Development | Debugger | Debug 构建的只读运行时仪表盘，含 Procedure / Scene / UI 联合 Flow 与可选 ECS 诊断 | 各模块 Debug 快照 | GoDoRuntime 自动创建 | 稳定基线 |
+| Integration | Friflo ECS | 场景级 EntityStore / SystemRoot 所有权、Process / Physics 单阶段驱动、Debug-only 有界快照、项目依赖检查及受限确认安装 | Friflo.Engine.ECS 3.6.0、Godot Node 生命周期、Editor / Debugger 扩展点 | `EcsWorldHost` / 编辑器依赖检查 | 首版完成 |
 
 模块的完整公共 API、失败语义、线程限制、性能注意事项和验证范围以各自 `USAGE.md` 为唯一详细来源。
 

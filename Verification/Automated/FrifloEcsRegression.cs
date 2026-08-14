@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using GoDo;
 using GoDo.Integrations.FrifloEcs;
 
 #nullable enable
@@ -24,8 +25,10 @@ public sealed partial class FrifloEcsRegression : Node
             Run("初始化后拒绝更改阶段", VerifyPhaseChangeRejected);
             Run("关闭幂等且拒绝继续访问", VerifyShutdown);
             Run("重新进入场景树创建新 World", VerifyReentryCreatesNewWorld);
+            Run("Debug 快照只读采集", VerifyDebugSnapshot);
+            Run("Debugger ECS 页面渲染", VerifyDebuggerPage);
 
-            GD.Print($"[FrifloEcsRegression] PASS ({_passed}/6)");
+            GD.Print($"[FrifloEcsRegression] PASS ({_passed}/8)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -167,6 +170,124 @@ public sealed partial class FrifloEcsRegression : Node
 
         ReleaseHost(host);
     }
+
+    private void VerifyDebugSnapshot()
+    {
+#if DEBUG
+        int baseline = EcsWorldDebugRegistry.GetSnapshot(32, 128).RegisteredWorldCount;
+        EcsWorldHost host = CreateDebugHost();
+        string hostPath = host.GetPath().ToString();
+        try
+        {
+            EcsWorldDebugSnapshot snapshot = EcsWorldDebugRegistry.GetSnapshot(32, 128);
+            Assert(snapshot.RegisteredWorldCount == baseline + 1, "Debug 注册表没有登记新宿主");
+            Assert(snapshot.RunningWorldCount >= 1, "Debug 快照没有统计运行中的宿主");
+
+            EcsWorldDebugEntry world = FindWorld(snapshot, hostPath);
+            Assert(world.EntityCount == 2, "Debug 快照 Entity 数量错误");
+            Assert(world.ArchetypeCount > 0, "Debug 快照没有采集 Archetype");
+            Assert(world.IsPerformanceMonitoringEnabled, "Debug 快照没有反映业务启用的性能监控");
+            Assert(world.SystemCount == 1, "Debug 快照 System 数量错误");
+
+            EcsSystemDebugEntry system = snapshot.Systems[world.SystemStartIndex];
+            Assert(system.HasEntityCount && system.EntityCount == 2, "Debug 快照 Query Entity 数量错误");
+            Assert(system.HasPerformance && system.UpdateCount >= 1, "Debug 快照没有读取性能计数");
+        }
+        finally
+        {
+            ReleaseHost(host);
+        }
+
+        Assert(
+            EcsWorldDebugRegistry.GetSnapshot(32, 128).RegisteredWorldCount == baseline,
+            "宿主释放后仍残留在 Debug 注册表");
+#endif
+    }
+
+    private void VerifyDebuggerPage()
+    {
+#if DEBUG
+        EcsWorldHost host = CreateDebugHost();
+        EcsWorldHost unmonitoredHost = CreateHost(EcsUpdatePhase.Physics);
+        unmonitoredHost.Systems.Add(new CountingSystem());
+        try
+        {
+            Assert(!unmonitoredHost.Systems.MonitorPerf, "测试宿主意外预先开启性能监控");
+            DebuggerOverlay overlay = GetNode<DebuggerOverlay>("/root/GoDoRuntime/GoDoDebugger");
+            Tree navigation = overlay.GetNode<Tree>("Panel/Margin/VBox/Body/Navigation");
+            TreeItem? ecsPage = FindTreeItemRecursive(navigation.GetRoot(), "ECS");
+            Assert(ecsPage is not null, "启用 Friflo 集成后没有注册 ECS 导航页");
+            ecsPage!.Select(0);
+            navigation.EmitSignal(Tree.SignalName.ItemSelected);
+
+            VBoxContainer dashboard = overlay.GetNode<VBoxContainer>(
+                "Panel/Margin/VBox/Body/Page/EcsDashboard");
+            Label worlds = dashboard.GetNode<Label>("Summary/WorldsCard/Content/Value");
+            Label entities = dashboard.GetNode<Label>("Summary/EntitiesCard/Content/Value");
+            Tree worldTree = dashboard.GetNode<Tree>("WorldList");
+            Tree systemTree = dashboard.GetNode<Tree>("SystemList");
+
+            Assert(dashboard.Visible, "选择 ECS 页面后面板没有显示");
+            Assert(int.TryParse(worlds.Text, out int worldCount) && worldCount >= 1,
+                "ECS 页面 World 汇总没有刷新");
+            Assert(int.TryParse(entities.Text, out int entityCount) && entityCount >= 2,
+                "ECS 页面 Entity 汇总没有刷新");
+            Assert(FindTreeItemRecursive(worldTree.GetRoot(), host.GetPath().ToString()) is not null,
+                "ECS 页面宿主表没有显示测试宿主");
+            Assert(FindTreeItemRecursive(systemTree.GetRoot(), nameof(CountingSystem)) is not null,
+                "ECS 页面系统树没有显示测试系统");
+            Assert(!unmonitoredHost.Systems.MonitorPerf, "Debugger ECS 页面擅自开启了性能监控");
+        }
+        finally
+        {
+            ReleaseHost(host);
+            ReleaseHost(unmonitoredHost);
+        }
+#endif
+    }
+
+#if DEBUG
+    private EcsWorldHost CreateDebugHost()
+    {
+        EcsWorldHost host = CreateHost(EcsUpdatePhase.Process);
+        host.Name = "EcsDebuggerHost";
+        host.Systems.Add(new CountingSystem());
+        host.Systems.SetMonitorPerf(true);
+        host.Store.CreateEntity(new CounterComponent());
+        host.Store.CreateEntity(new CounterComponent());
+        host.IsRunning = true;
+        host._Process(0.25d);
+        return host;
+    }
+
+    private static EcsWorldDebugEntry FindWorld(EcsWorldDebugSnapshot snapshot, string path)
+    {
+        for (int index = 0; index < snapshot.Worlds.Length; index++)
+        {
+            if (string.Equals(snapshot.Worlds[index].NodePath, path, StringComparison.Ordinal))
+                return snapshot.Worlds[index];
+        }
+
+        throw new InvalidOperationException($"Debug 快照找不到宿主：{path}");
+    }
+
+    private static TreeItem? FindTreeItemRecursive(TreeItem? parent, string text)
+    {
+        TreeItem? item = parent?.GetFirstChild();
+        while (item is not null)
+        {
+            if (item.GetText(0) == text)
+                return item;
+
+            TreeItem? child = FindTreeItemRecursive(item, text);
+            if (child is not null)
+                return child;
+            item = item.GetNext();
+        }
+
+        return null;
+    }
+#endif
 
     private EcsWorldHost CreateHost(EcsUpdatePhase updatePhase)
     {
