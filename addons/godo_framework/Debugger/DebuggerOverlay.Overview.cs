@@ -12,12 +12,16 @@ namespace GoDo;
 
 public sealed partial class DebuggerOverlay : CanvasLayer
 {
+    private Button? _overviewWarningButton;
+    private Button? _overviewErrorButton;
 
     private void CacheOverviewNodes()
     {
         _overviewFpsValue = GetOverviewLabel("Content/StatusGrid/FpsCard/Content/Value");
         _overviewWarningValue = GetOverviewLabel("Content/StatusGrid/WarningCard/Content/Value");
         _overviewErrorValue = GetOverviewLabel("Content/StatusGrid/ErrorCard/Content/Value");
+        _overviewWarningButton = GetOverviewButton("Content/StatusGrid/WarningCard");
+        _overviewErrorButton = GetOverviewButton("Content/StatusGrid/ErrorCard");
         _overviewServicesValue = GetOverviewLabel("Content/MetricGrid/ServicesCard/Content/Value");
         _overviewEventsValue = GetOverviewLabel("Content/MetricGrid/EventsCard/Content/Value");
         _overviewEventsDetail = GetOverviewLabel("Content/MetricGrid/EventsCard/Content/Detail");
@@ -40,6 +44,20 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             ? label
             : throw new InvalidOperationException($"DebuggerOverview 场景缺少节点：{path}");
     }
+
+    private Button GetOverviewButton(string path)
+    {
+        Button? button = _overviewDashboard!.GetNodeOrNull<Button>(path);
+        return IsInstanceValid(button)
+            ? button
+            : throw new InvalidOperationException($"DebuggerOverview 场景缺少节点：{path}");
+    }
+
+    private void OnOverviewWarningPressed() =>
+        OpenConsoleWithLevelFilter(ConsoleLevelFilter.Warning);
+
+    private void OnOverviewErrorPressed() =>
+        OpenConsoleWithLevelFilter(ConsoleLevelFilter.Error);
 
 
     private void RefreshOverviewDashboard()

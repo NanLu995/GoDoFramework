@@ -159,7 +159,7 @@ Reporter 在错误分发调用栈上同步执行，因此禁止 `.Wait()`、`.Re
 启用 `GoDoRuntime.tscn` Autoload 后，Debug 构建会自动出现紧凑状态按钮，不需要配置快捷键。
 
 - 折叠状态只显示 FPS；出现 Warning 或 Error 时文字会按最高严重度变色，具体数量在概览中查看。
-- 点击后先看到卡片式运行概览，也可通过左侧树状导航查看 System、Performance、Services、Events、Input、Scheduler、Audio、Scene、Resources、Pool、DataTable、UI、Procedure、可选的 ECS 结构化仪表盘和 Console 页面；独立顶层“运行链路”联合显示 Procedure、Scene 与 UI。
+- 点击后先看到卡片式运行概览；点击概览中的 Warning 或 Error 卡片会清空旧搜索并跳到 Console，只显示对应等级，同时保留暂停状态。也可通过左侧树状导航查看 System、Performance、Services、Events、Input、Scheduler、Audio、Scene、Resources、Pool、DataTable、UI、Procedure、可选的 ECS 结构化仪表盘和 Console 页面；独立顶层“运行链路”联合显示 Procedure、Scene 与 UI。
 - 拖动标题栏可移动窗口，拖动右下角“拖动调整大小 ↘”可调整整个 Debugger 尺寸；位置或尺寸不合适时点击“重置”。
 - 展开时每 0.25 秒刷新当前页面；折叠时不会创建模块快照。
 - 面板只读，不允许修改服务或游戏数据。

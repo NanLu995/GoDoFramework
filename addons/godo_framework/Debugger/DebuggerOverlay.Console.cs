@@ -159,6 +159,22 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private void OnErrorConsoleFilterPressed() =>
         ToggleConsoleFilter(ConsoleLevelFilter.Error);
 
+    private void OpenConsoleWithLevelFilter(ConsoleLevelFilter filter)
+    {
+        _consoleLevelFilter = filter;
+        _consoleSearchQuery = string.Empty;
+        _consolePageOffset = 0;
+        _consoleFollowLatest = true;
+        if (IsInstanceValid(_consoleSearch))
+        {
+            _consoleSearch.Text = string.Empty;
+            _consoleSearch.ReleaseFocus();
+        }
+
+        ApplyConsoleFilterButtonStates();
+        SelectPageByPath("Console", forceRefresh: true);
+    }
+
     private void ToggleConsoleFilter(ConsoleLevelFilter filter)
     {
         if (_consoleLevelFilter == ConsoleLevelFilter.All)

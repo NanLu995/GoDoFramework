@@ -493,6 +493,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _debuggerLabel.FocusMode = Control.FocusModeEnum.None;
         _toggleButton.Pressed += OnTogglePressed;
         _resetLayoutButton.Pressed += OnResetLayoutPressed;
+        _overviewWarningButton!.Pressed += OnOverviewWarningPressed;
+        _overviewErrorButton!.Pressed += OnOverviewErrorPressed;
         _navigationTree.ItemSelected += OnNavigationItemSelected;
         _inputActionsSearch!.TextChanged += OnInputActionsSearchChanged;
         _inputActionsSearch.TextSubmitted += OnInputActionsSearchSubmitted;
@@ -548,6 +550,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             _toggleButton.Pressed -= OnTogglePressed;
         if (IsInstanceValid(_resetLayoutButton))
             _resetLayoutButton.Pressed -= OnResetLayoutPressed;
+        if (IsInstanceValid(_overviewWarningButton))
+            _overviewWarningButton.Pressed -= OnOverviewWarningPressed;
+        if (IsInstanceValid(_overviewErrorButton))
+            _overviewErrorButton.Pressed -= OnOverviewErrorPressed;
         if (IsInstanceValid(_navigationTree))
             _navigationTree.ItemSelected -= OnNavigationItemSelected;
         if (IsInstanceValid(_inputActionsSearch))
@@ -615,6 +621,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _titleLabel = null;
         _navigationTree = null;
         _overviewDashboard = null;
+        _overviewWarningButton = null;
+        _overviewErrorButton = null;
         _overviewFpsValue = null;
         _overviewWarningValue = null;
         _overviewErrorValue = null;
@@ -1120,6 +1128,25 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         if (!page.IsConsole && IsInstanceValid(_consoleSearch))
             _consoleSearch.ReleaseFocus();
         RefreshDebugger(forceRefresh);
+    }
+
+    private void SelectPageByPath(string path, bool forceRefresh)
+    {
+        foreach ((TreeItem item, DebuggerPage page) in _pagesByTreeItem)
+        {
+            if (!string.Equals(page.Path, path, StringComparison.Ordinal))
+                continue;
+
+            bool wasSelected = ReferenceEquals(_selectedPage, page);
+            item.Select(0);
+            if (!ReferenceEquals(_selectedPage, page))
+                SelectPage(page, forceRefresh);
+            else if (wasSelected && forceRefresh)
+                RefreshDebugger(force: true);
+            return;
+        }
+
+        throw new InvalidOperationException($"Debugger 缺少页面：{path}");
     }
 
     private void ApplyPageContentVisibility(DebuggerPage page, bool showReadFailure)

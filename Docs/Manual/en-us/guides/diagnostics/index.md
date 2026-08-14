@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:89b0e07cf9e0ce79d898e83c6d0c80a8c40d19064a17fc9609ea0c586fe3218f
+translation_source_hash: sha256:0644d5cb4bfc661063f781df008cb025796ed0d8ecb705129a400f761d9728d7
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
@@ -164,7 +164,7 @@ Before connecting a remote platform, the game project must define user consent, 
 After enabling the `GoDoRuntime.tscn` Autoload, Debug builds automatically show a compact health button with no shortcut configuration.
 
 - Collapsed mode shows only FPS. Warning or Error activity changes the text color according to the highest severity; inspect the Overview for exact counts.
-- Click it to open a card-based runtime overview, then use the navigation tree to inspect the structured System, Performance, Services, Events, Input, Scheduler, Audio, Scene, Resources, Pool, DataTable, UI, and Procedure dashboards, the optional ECS dashboard, and the Console page. The separate top-level **Execution Flow** page combines Procedure, Scene, and UI state.
+- Click it to open a card-based runtime overview. Clicking the Warning or Error card clears the previous search, opens the Console with only that level selected, and preserves the paused state. You can also use the navigation tree to inspect the structured System, Performance, Services, Events, Input, Scheduler, Audio, Scene, Resources, Pool, DataTable, UI, and Procedure dashboards, the optional ECS dashboard, and the Console page. The separate top-level **Execution Flow** page combines Procedure, Scene, and UI state.
 - Drag the title bar to move the window, drag the lower-right Resize Debugger handle to resize the entire panel, or click Reset to restore the default layout.
 - The current page refreshes every 0.25 seconds while expanded; collapsed mode creates no module snapshots.
 - The panel is read-only and cannot modify services or game data.

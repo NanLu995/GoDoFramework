@@ -63,7 +63,7 @@
         "guides/diagnostics/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:c0d2204905ff1cd7e692b2eed7e88e35ee0f49af70fa770ad9f830febb1b84f3"
+      "reviewed_contract_hash": "sha256:a346ba7f458ec568a1689155e8ae174da145847737c62b49598d4b54bacda6dc"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",

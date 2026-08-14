@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1
+
+- Debugger 新增可选的 Friflo ECS 只读诊断页，汇总 World、宿主、Entity、Archetype 和 System 树，但不会代替业务启用性能监控。
+- 将 Procedure、Scene 与 UI 的联合诊断从 Runtime 子页调整为独立顶层“运行链路”，明确其只读组合视图边界。
+- 概览中的 Warning 与 Error 状态卡支持整卡点击，可清空旧搜索并跳转到控制台独显对应等级，同时保留暂停状态。
+
 ## 0.6.0
 
 - 编辑器插件收敛为项目设置式单窗口入口，按 Runtime、资源清单、UI 配置和编辑器扩展分页管理；资源与 UI 页面直接显示项目内现有配置列表。

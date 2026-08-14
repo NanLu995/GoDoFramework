@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://addons/godo_framework/Debugger/DebuggerOverlay.cs" id="1_debugger"]
 
@@ -197,6 +197,22 @@ border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.13, 0.17, 0.23, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_status_card_action"]
+content_margin_left = 12.0
+content_margin_top = 7.0
+content_margin_right = 12.0
+content_margin_bottom = 7.0
+bg_color = Color(0.065, 0.09, 0.125, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.25, 0.42, 0.62, 1)
 corner_radius_top_left = 7
 corner_radius_top_right = 7
 corner_radius_bottom_right = 7
@@ -402,19 +418,36 @@ theme_override_font_sizes/font_size = 21
 text = "0"
 vertical_alignment = 1
 
-[node name="WarningCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid"]
+[node name="WarningCard" type="Button" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid"]
 custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+focus_mode = 0
+mouse_default_cursor_shape = 2
+tooltip_text = "打开控制台并仅显示 Warning"
+theme_override_styles/normal = SubResource("StyleBoxFlat_status_card")
+theme_override_styles/hover = SubResource("StyleBoxFlat_status_card_action")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_status_card_action")
+theme_override_styles/focus = SubResource("StyleBoxFlat_status_card")
 
 [node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/WarningCard"]
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 7.0
+offset_right = -12.0
+offset_bottom = -7.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 theme_override_constants/separation = 8
 
 [node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/WarningCard/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
 theme_override_font_sizes/font_size = 10
 text = "Warning"
@@ -422,24 +455,42 @@ vertical_alignment = 1
 
 [node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/WarningCard/Content"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.58, 0.65, 0.73, 1)
 theme_override_font_sizes/font_size = 21
 text = "0"
 vertical_alignment = 1
 
-[node name="ErrorCard" type="PanelContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid"]
+[node name="ErrorCard" type="Button" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid"]
 custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+focus_mode = 0
+mouse_default_cursor_shape = 2
+tooltip_text = "打开控制台并仅显示 Error/Fatal"
+theme_override_styles/normal = SubResource("StyleBoxFlat_status_card")
+theme_override_styles/hover = SubResource("StyleBoxFlat_status_card_action")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_status_card_action")
+theme_override_styles/focus = SubResource("StyleBoxFlat_status_card")
 
 [node name="Content" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/ErrorCard"]
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 7.0
+offset_right = -12.0
+offset_bottom = -7.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 theme_override_constants/separation = 8
 
 [node name="Caption" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/ErrorCard/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
 theme_override_font_sizes/font_size = 10
 text = "Error"
@@ -447,6 +498,7 @@ vertical_alignment = 1
 
 [node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/OverviewDashboard/Content/StatusGrid/ErrorCard/Content"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.58, 0.65, 0.73, 1)
 theme_override_font_sizes/font_size = 21
 text = "0"

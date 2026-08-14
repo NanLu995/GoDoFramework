@@ -52,6 +52,10 @@ public sealed partial class DebuggerOverlayRegression : Node
                 overviewDashboard.GetNode<Label>("Content/StatusGrid/WarningCard/Content/Value");
             Label overviewErrors =
                 overviewDashboard.GetNode<Label>("Content/StatusGrid/ErrorCard/Content/Value");
+            Button overviewWarningButton =
+                overviewDashboard.GetNode<Button>("Content/StatusGrid/WarningCard");
+            Button overviewErrorButton =
+                overviewDashboard.GetNode<Button>("Content/StatusGrid/ErrorCard");
             Label overviewServices =
                 overviewDashboard.GetNode<Label>("Content/MetricGrid/ServicesCard/Content/Value");
             Label overviewEventsDetail =
@@ -289,6 +293,8 @@ public sealed partial class DebuggerOverlayRegression : Node
             Assert(toggle.FocusMode == Control.FocusModeEnum.None &&
                 navigation.FocusMode == Control.FocusModeEnum.None &&
                 overviewDashboard.FocusMode == Control.FocusModeEnum.None &&
+                overviewWarningButton.FocusMode == Control.FocusModeEnum.None &&
+                overviewErrorButton.FocusMode == Control.FocusModeEnum.None &&
                 systemDashboard.FocusMode == Control.FocusModeEnum.None &&
                 systemDetails.FocusMode == Control.FocusModeEnum.None &&
                 performanceDashboard.FocusMode == Control.FocusModeEnum.None &&
@@ -395,6 +401,45 @@ public sealed partial class DebuggerOverlayRegression : Node
                 overviewInput.Text.Length > 0 &&
                 overviewScheduler.Text.Length > 0,
                 "Overview 框架或活动指标未完整刷新");
+            Assert(overviewWarningButton.MouseDefaultCursorShape == Control.CursorShape.PointingHand &&
+                overviewErrorButton.MouseDefaultCursorShape == Control.CursorShape.PointingHand &&
+                overviewWarningButton.Size.X > 0f &&
+                overviewWarningButton.Size.Y >= 58f &&
+                overviewErrorButton.Size.X > 0f &&
+                overviewErrorButton.Size.Y >= 58f &&
+                overviewWarningButton.TooltipText.Contains("Warning", StringComparison.Ordinal) &&
+                overviewErrorButton.TooltipText.Contains("Error/Fatal", StringComparison.Ordinal),
+                "Overview Warning/Error 卡片缺少点击提示");
+
+            search.Text = "旧搜索";
+            pause.EmitSignal(BaseButton.SignalName.Pressed);
+            overviewWarningButton.EmitSignal(BaseButton.SignalName.Pressed);
+            Assert(title.Text == "控制台" &&
+                navigation.GetSelected() == console &&
+                debuggerLabel.Visible &&
+                search.Text.Length == 0 &&
+                warningFilter.ButtonPressed &&
+                !allFilter.ButtonPressed &&
+                !debugFilter.ButtonPressed &&
+                !infoFilter.ButtonPressed &&
+                !errorFilter.ButtonPressed &&
+                pause.Text == "继续",
+                "Overview Warning 卡片没有跳转控制台、清空搜索或独显 Warning");
+            pause.EmitSignal(BaseButton.SignalName.Pressed);
+            SelectNavigationItem(navigation, overview);
+            search.Text = "旧搜索";
+            overviewErrorButton.EmitSignal(BaseButton.SignalName.Pressed);
+            Assert(title.Text == "控制台" &&
+                navigation.GetSelected() == console &&
+                search.Text.Length == 0 &&
+                errorFilter.ButtonPressed &&
+                !allFilter.ButtonPressed &&
+                !debugFilter.ButtonPressed &&
+                !infoFilter.ButtonPressed &&
+                !warningFilter.ButtonPressed,
+                "Overview Error 卡片没有跳转控制台、清空搜索或独显 Error");
+            allFilter.EmitSignal(BaseButton.SignalName.Pressed);
+            SelectNavigationItem(navigation, overview);
 
             SelectNavigationItem(navigation, system);
             overlay._Process(0.3d);
