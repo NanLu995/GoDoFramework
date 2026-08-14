@@ -71,7 +71,7 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 | Config | 稳定基线 | Resource 强类型校验与唯一键表；大量外部表格数据由独立 DataTable 工具链处理，不把 CSV 解析与二进制索引塞入 ConfigHub |
 | DataTable | 首版完成 | 离线校验/生成/导出门禁与显式运行时 Service 已接通；Windows 完整 ExportRelease 和 10 万行峰值内存已验证，真实业务长期体验与移动端/AOT 后置 |
 | UI | 首版完成 | 已提供四层显示、Inspector UiConfig/UiId、同步/异步打开与取消、查询/批量关闭/CloseTo、焦点恢复、外部释放自恢复、`UiScope<TView>` 所有权及可选 Single 实例复用；下一步以真实项目使用反馈校验 API 与性能预算 |
-| Debugger | 稳定基线 | 紧凑健康入口、树状诊断导航、System/Performance、运行时模块快照、Procedure / Scene / UI 联合 Flow 及可选 Friflo ECS 页面；Release 不创建节点 |
+| Debugger | 稳定基线 | 紧凑健康入口、树状诊断导航、System/Performance、运行时模块快照、独立顶层“运行链路”（Procedure / Scene / UI 联合视图）及可选 Friflo ECS 页面；Release 不创建节点 |
 | EditorPlugin | 首版完成 | 单一 GoDo 插件入口；显式安装与检查 GoDoRuntime Autoload，检查并经确认补齐普通单项目的 GoDo 条件编译/Release 裁剪规则，并通过版本化清单发现 GUIDE Input、Phantom Camera 等可选编辑器扩展；复杂项目只读、扩展失败隔离，不进入运行时依赖 |
 | Procedure | 首版完成 | 顶层游戏流程状态机；已提供激活生命周期资源、首请求仲裁、结构化失败阶段和延迟请求失败通知，不内置具体业务流程 |
 | Friflo ECS 集成 | 首版完成 | 作为独立可选集成提供场景级 World 所有权、Process / Physics 单阶段驱动、Debug-only 有界只读诊断、项目依赖检查及普通单项目的确认安装与备份；复杂工程结构保持只读，不进入 GoDoRuntime。已完成生命周期/诊断回归、规模基准、核心隔离、Release / ExportRelease 编译、独立发布包、中英文上手教程及 Demo3D 的 512 实体 MultiMesh 展示；Android、AOT 与生产玩法仍随目标项目验证 |
@@ -82,7 +82,7 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 
 ### Debugger
 
-> **状态更新**：Debugger 已完成显示与交互优化，采用紧凑健康入口、树状只读页面和可拖动缩放面板；System、Performance、Input、Scheduler、Audio、Scene、Resources、DataTable、UI、Procedure、联合 Flow、Services、Events、可选 Friflo ECS 与可搜索控制台已接入。以下设计初衷作为历史决策记录保留。
+> **状态更新**：Debugger 已完成显示与交互优化，采用紧凑健康入口、树状只读页面和可拖动缩放面板；System、Performance、Input、Scheduler、Audio、Scene、Resources、DataTable、UI、Procedure、独立顶层“运行链路”、Services、Events、可选 Friflo ECS 与可搜索控制台已接入。以下设计初衷作为历史决策记录保留。
 
 借鉴 Game Framework 的可扩展 Debugger 思路，但只考虑编辑器或 Debug 构建中的只读诊断页：展示事件监听、资源请求、池占用、场景和长期服务状态。诊断优先复用已有公开状态，不接管模块逻辑，也不成为运行时反向依赖。
 

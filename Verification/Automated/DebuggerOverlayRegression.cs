@@ -365,18 +365,20 @@ public sealed partial class DebuggerOverlayRegression : Node
                 "Debugger 整体缩放入口不够明显");
 
             TreeItem root = navigation.GetRoot();
-            Assert(root.GetChildCount() == 6, "Debugger 一级分类数量错误");
+            Assert(root.GetChildCount() == 7, "Debugger 一级分类数量错误");
             TreeItem overview = root.GetFirstChild();
             TreeItem system = overview.GetNext();
             TreeItem performance = system.GetNext();
             TreeItem console = performance.GetNext();
             TreeItem runtime = console.GetNext();
-            TreeItem framework = runtime.GetNext();
+            TreeItem executionFlow = runtime.GetNext();
+            TreeItem framework = executionFlow.GetNext();
             Assert(overview.GetText(0) == "概览" &&
                 system.GetText(0) == "系统" &&
                 performance.GetText(0) == "性能" &&
                 console.GetText(0) == "控制台" &&
                 runtime.GetText(0) == "运行时" &&
+                executionFlow.GetText(0) == "运行链路" &&
                 framework.GetText(0) == "框架",
                 "Debugger 树状分类错误");
             Assert(overviewDashboard.Visible && !debuggerLabel.Visible,
@@ -449,11 +451,10 @@ public sealed partial class DebuggerOverlayRegression : Node
             TreeItem poolPage = resourcesPage.GetNext();
             TreeItem pageAfterPool = poolPage.GetNext();
             bool hasEcsPage = pageAfterPool.GetText(0) == "ECS";
-            Assert(runtime.GetChildCount() == (hasEcsPage ? 11 : 10), "运行时二级页面错误");
+            Assert(runtime.GetChildCount() == (hasEcsPage ? 10 : 9), "运行时二级页面错误");
             TreeItem dataTablePage = hasEcsPage ? pageAfterPool.GetNext() : pageAfterPool;
             TreeItem uiPage = dataTablePage.GetNext();
             TreeItem procedurePage = uiPage.GetNext();
-            TreeItem flowPage = procedurePage.GetNext();
             SelectNavigationItem(navigation, scenePage);
             Assert(title.Text == "Scene" &&
                 sceneDashboard.Visible &&
@@ -779,8 +780,8 @@ public sealed partial class DebuggerOverlayRegression : Node
                 failureDetail.Contains("Debugger.Failed", StringComparison.Ordinal),
                 "Procedure 进入失败没有显示最近失败");
 
-            SelectNavigationItem(navigation, flowPage);
-            Assert(title.Text == "Flow" &&
+            SelectNavigationItem(navigation, executionFlow);
+            Assert(title.Text == "运行链路" &&
                 procedureDashboard.Visible &&
                 !debuggerLabel.Visible &&
                 procedureCurrentTitle.Text == "Procedure" &&
@@ -795,13 +796,13 @@ public sealed partial class DebuggerOverlayRegression : Node
                 GetDetailValue(procedureDetails, "Procedure 最近结果") == "失败" &&
                 GetDetailValue(procedureDetails, "Scene 阶段").Length > 0 &&
                 GetDetailValue(procedureDetails, "UI 已打开").Length > 0,
-                "Flow 联合诊断页没有聚合 Procedure、Scene 与 UI 状态");
+                "运行链路联合诊断页没有聚合 Procedure、Scene 与 UI 状态");
             SelectNavigationItem(navigation, procedurePage);
             Assert(procedureCurrentTitle.Text == "当前流程" &&
                 procedureStateTitle.Text == "切换状态" &&
                 procedurePendingTitle.Text == "待处理请求" &&
                 procedureResultTitle.Text == "失败记录",
-                "从 Flow 返回 Procedure 后摘要标题没有恢复");
+                "从运行链路返回 Procedure 后摘要标题没有恢复");
 
             SelectNavigationItem(navigation, runtime.GetFirstChild());
             bool hasInputActionCount = int.TryParse(inputActions.Text, out int inputActionCount);

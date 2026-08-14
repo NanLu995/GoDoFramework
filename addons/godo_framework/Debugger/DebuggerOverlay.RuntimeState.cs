@@ -914,7 +914,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         AddProcedureDetail(root, "诊断", detail);
     }
 
-    private void RefreshFlowPage()
+    private void RefreshExecutionFlowPage()
     {
         SetProcedureCardTitles("Procedure", "Scene", "UI", "健康状态");
         if (!Services.TryGet<IProcedureService>(out IProcedureService? procedureContract) ||
@@ -924,7 +924,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             !Services.TryGet<IUiService>(out IUiService? uiContract) ||
             uiContract is not UiService uiService)
         {
-            SetProcedureUnavailable("不可用", "Flow 诊断需要内置 ProcedureService、SceneService 与 UiService");
+            SetProcedureUnavailable("不可用", "运行链路诊断需要内置 ProcedureService、SceneService 与 UiService");
             return;
         }
 

@@ -12,7 +12,7 @@ Release 构建不会由 GoDoRuntime 创建 Debugger 节点；Debugger 不是业�
 
 - 默认折叠，外框和紧凑按钮按 FPS 文本宽度自适应，最小宽度按 `FPS: 60` 计算，只显示 FPS；文字使用 1px 同色描边，最近 Warning/Error 仅通过文字颜色按最高严重度提示，具体数量在概览中查看。
 - 点击或触摸健康状态按钮展开或收起诊断窗口。
-- 展开后使用树状导航；高频使用的 `Console` 放在 `Performance` 下方，之后再按 `Runtime/Input`、`Runtime/Scheduler`、`Runtime/Audio`、`Runtime/Scene`、`Runtime/Resources`、`Runtime/Pool`、可选的 `Runtime/ECS`、`Runtime/DataTable`、`Runtime/UI`、`Runtime/Procedure`、`Framework/Services`、`Framework/Events` 路径组织。
+- 展开后使用树状导航；高频使用的 `Console` 放在 `Performance` 下方；运行时能力按 `Runtime/Input`、`Runtime/Scheduler`、`Runtime/Audio`、`Runtime/Scene`、`Runtime/Resources`、`Runtime/Pool`、可选的 `Runtime/ECS`、`Runtime/DataTable`、`Runtime/UI`、`Runtime/Procedure` 组织；只读联合诊断使用独立顶层页“运行链路”，框架状态使用 `Framework/Services` 与 `Framework/Events`。
 - 拖动标题栏可移动面板，拖动右下角“拖动调整大小 ↘”可缩放整个 Debugger；“重置”恢复默认位置与尺寸，移动和缩放结果始终限制在当前视口内。
 - 健康状态按钮、树状导航、内容区和普通操作按钮不取得键盘或手柄焦点；Input、Services、Events 与控制台搜索框仅在鼠标点击后取得焦点，提交搜索或离开对应页面时释放焦点。
 - 页面切换时立即刷新；保持展开时每 0.25 秒刷新当前页面。
@@ -29,7 +29,7 @@ Release 构建不会由 GoDoRuntime 创建 Debugger 节点；Debugger 不是业�
 - `运行时 / DataTable`：显示已发布数据集、缓存表、当前加载与失败数量，并分层列出数据集、表类型、表级进度、运行时目录和最近加载/取消/失败/卸载结果。
 - `运行时 / UI`：显示 Scene 界面数量、View/Modal 栈深度、当前顶层界面，以及各层由底到顶的节点、资源 Key 和显示状态。
 - `运行时 / Procedure`：显示当前流程、进入/退出阶段、待处理请求、被首请求仲裁拒绝的目标与原因、上一个流程、最近成功和最近失败。
-- `运行时 / Flow`：联合显示 Procedure、Scene 与 UI 的关键状态，便于从一次流程切换直接看到目标场景、进度、界面栈和最近失败，而不必在三个页面间来回切换。
+- `运行链路`：Debugger 自身提供的顶层联合诊断页，显示 Procedure、Scene 与 UI 的关键状态，便于从一次流程切换直接看到目标场景、进度、界面栈和最近失败；它不是 Runtime Service，也不提供业务 API。
 - `框架 / Services`：以结构化检查器显示注册接口数、实现类型数及每个“服务接口 → 当前实现”关系。搜索同时匹配接口和实现的短名称、完整类型名；选中列表项后在底部显示完整注册关系。
 - `框架 / Events`：以结构化检查器显示事件类型数、总监听器、事件名称及各事件监听数量。搜索同时匹配短名称和完整类型名；选中列表项后在底部显示完整类型名。
 - `控制台`：普通日志与 ErrorHub 摘要按时间顺序混排为一条连续日志流，不显示额外分区标题。页面提供 All、Debug、Info、Warning、Error 等级标签；默认 All，点击单个等级可快速独显，继续点击其他等级可组合筛选。Warning 整行使用黄色，Error/Fatal 整行使用红色，动态文本会先转义而不会被当作 BBCode。搜索会扫描完整内存历史，混排结果按每页 100 条显示，可用“上一页 / 下一页”翻页，或用独立的“最新日志”按钮直接返回最后一页并滚到底部。位于最新页且未暂停时，新日志会自动跟随到底部；手动向上滚动会停止跟随并启用“最新日志”，手动滚到底部或点击该按钮后恢复跟随。暂停后停止自动刷新和滚动。“复制”仅复制当前筛选、搜索与分页下正在显示的纯文本。分页状态旁显示可点击的当前日志文件名和状态；文件按钮与翻页按钮使用统一高度。悬停可查看完整路径、已刷新大小、累计丢弃数及失败原因，点击后由系统文件管理器定位该文件。
@@ -50,7 +50,7 @@ Input、Scheduler、Audio 未注册时分别显示明确的“未注册”降级
 - 框架内置 `DataTableService` 在 Debug 构建中提供当前加载进度、已发布数据集与缓存表的内部快照。数据集列表最多显示 32 个数据集和 64 张表；超过限制时显示省略行，避免业务 Schema 异常膨胀布局。
 - DataTable 最近结果固定保留 16 条，页面按最新优先显示 8 条，覆盖加载成功、取消、失败和卸载。失败记录只保存最多 512 个字符的消息，不持有原始 Exception；未注册和非内置实现分别显示“未注册”与“不支持 Debug 快照”。Release 不维护这些快照、计数或历史。
 - 框架内置 `UiService` 在 Debug 构建中记录受管理界面打开时的资源 Key。UI 页面将栈顶排在表格上方，并同时显示被覆盖 View 的“隐藏”状态；列表最多显示顶部 64 个界面，避免异常深栈制造无界布局。未注册和非内置实现分别显示“未注册”与“不支持 Debug 快照”。若业务绕过 UiService 直接释放受管理节点，条目会显示“已失效”，便于定位生命周期误用。Release 不记录这些 Key，也不包含快照代码。
-- Procedure、Scene 和 UI 的失败摘要包含结构化阶段；Flow 页面只组合已有 Debug 快照，不建立第二套运行时状态，也不在 Release 中产生额外持有。
+- Procedure、Scene 和 UI 的失败摘要包含结构化阶段；“运行链路”只组合已有 Debug 快照，不建立第二套运行时状态，也不在 Release 中产生额外持有。
 
 ### Performance 诊断
 

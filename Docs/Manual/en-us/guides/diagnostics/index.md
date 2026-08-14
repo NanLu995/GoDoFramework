@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:71dc9246d21bba426ba9d42c8c6fde221fcbec314425b38a13f46d1343d430de
+translation_source_hash: sha256:89b0e07cf9e0ce79d898e83c6d0c80a8c40d19064a17fc9609ea0c586fe3218f
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
@@ -164,7 +164,7 @@ Before connecting a remote platform, the game project must define user consent, 
 After enabling the `GoDoRuntime.tscn` Autoload, Debug builds automatically show a compact health button with no shortcut configuration.
 
 - Collapsed mode shows only FPS. Warning or Error activity changes the text color according to the highest severity; inspect the Overview for exact counts.
-- Click it to open a card-based runtime overview, then use the navigation tree to inspect the structured System, Performance, Services, Events, Input, Scheduler, Audio, Scene, Resources, Pool, DataTable, UI, Procedure, and Flow dashboards, the optional ECS dashboard, and the Console page.
+- Click it to open a card-based runtime overview, then use the navigation tree to inspect the structured System, Performance, Services, Events, Input, Scheduler, Audio, Scene, Resources, Pool, DataTable, UI, and Procedure dashboards, the optional ECS dashboard, and the Console page. The separate top-level **Execution Flow** page combines Procedure, Scene, and UI state.
 - Drag the title bar to move the window, drag the lower-right Resize Debugger handle to resize the entire panel, or click Reset to restore the default layout.
 - The current page refreshes every 0.25 seconds while expanded; collapsed mode creates no module snapshots.
 - The panel is read-only and cannot modify services or game data.
@@ -196,7 +196,7 @@ The DataTable page reports published data sets, cached tables, active loads, and
 
 The UI page reports the number of Scene-layer interfaces, View and Modal stack depths, and the current topmost View or Modal. Its list is ordered from top to bottom and shows each managed node, its opening resource key, and its visible or hidden state, making return-order and covered-View issues easy to inspect; an unusually deep stack renders only the top 64 entries. Missing UiService registration, custom implementations without snapshot support, and nodes released outside the service are shown explicitly. Resource keys for this page are recorded only in Debug builds.
 
-The Procedure page reports the current procedure, entering or exiting phase, pending request, and the target rejected by first-request arbitration. Details retain the previous procedure and the latest success and failure. The Flow page places key Procedure, Scene, and UI state in one view for cases where the flow changed but its scene or interface did not arrive. Failure summaries include structured phases, retain only bounded text, and never retain exception objects. This diagnostic state is absent from Release builds.
+The Procedure page reports the current procedure, entering or exiting phase, pending request, and the target rejected by first-request arbitration. Details retain the previous procedure and the latest success and failure. The separate top-level **Execution Flow** page places key Procedure, Scene, and UI state in one view for cases where the procedure changed but its scene or interface did not arrive. It is a read-only Debugger composition, not a Runtime Service. Failure summaries include structured phases, retain only bounded text, and never retain exception objects. This diagnostic state is absent from Release builds.
 
 The Console displays Debug, Info, Warning, Error, and Fatal entries as one chronological stream without a separate recent-errors heading. Its toolbar provides counted All, Debug, Info, Warning, and Error chips. All is selected by default. Click a level to show only that level, click additional levels to combine them, or click All to reset. Warning lines are yellow, while Error and Fatal lines are red. Search scans the complete in-memory history; when results span multiple pages, use Previous and Next, or click the separate Latest Logs button on the right to return directly to the final page and scroll to the bottom. While you remain on the latest page and refresh is not paused, new logs automatically follow the bottom. Scrolling upward stops following and enables Latest Logs; scrolling back to the bottom or clicking that button resumes following. Pause stops automatic refresh and scrolling. Copy copies only the plain text currently displayed by the active filters, search, and page. The search field captures input only after a click and releases focus when you submit the search or leave the Console. The filename beside the pagination status is clickable; on Windows it reveals and selects the active log in File Explorer. The file and pagination buttons share the same height. Hover the filename for the full path, write status, flushed size, cumulative dropped count, and failure reason.
 

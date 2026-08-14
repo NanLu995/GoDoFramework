@@ -58,12 +58,12 @@
     "debugger": {
       "contract": "addons/godo_framework/Debugger/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖自动加载、只读与 Release 边界、System、Performance、各运行时模块、可选 Friflo ECS 有界诊断、Procedure/Flow、Services、Events、Console、降级状态和单页失败恢复；仍等待目标平台显示与各页面的深度排障示例。",
+      "reason": "功能指南已覆盖自动加载、只读与 Release 边界、System、Performance、各运行时模块、可选 Friflo ECS 有界诊断、独立顶层运行链路、Services、Events、Console、降级状态和单页失败恢复；仍等待目标平台显示与各页面的深度排障示例。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:09413def305245f2da19e2a88b2432c3025893584cfd57b8cd2d675ef5498ccd"
+      "reviewed_contract_hash": "sha256:c0d2204905ff1cd7e692b2eed7e88e35ee0f49af70fa770ad9f830febb1b84f3"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
@@ -178,7 +178,7 @@
         "guides/procedure-recovery/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:71463c8f8cea25f6d9b59ca5ea2eaccbb7516bd7f837ae3b1b956d2087881dd7"
+      "reviewed_contract_hash": "sha256:fcf3896117a0370117a25cc72f06d0696743e9df8f7ada9a822b28ec5e301497"
     },
     "resources": {
       "contract": "addons/godo_framework/Runtime/Resources/USAGE.md",

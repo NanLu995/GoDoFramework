@@ -1022,7 +1022,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         RegisterPage("Runtime/DataTable", "运行时", "DataTable", RefreshDataTablePage);
         RegisterPage("Runtime/UI", "运行时", "UI", RefreshUiPage);
         RegisterPage("Runtime/Procedure", "运行时", "Procedure", RefreshProcedurePage);
-        RegisterPage("Runtime/Flow", "运行时", "Flow", RefreshFlowPage);
+        RegisterPage("ExecutionFlow", "运行链路", "运行链路", RefreshExecutionFlowPage);
         RegisterPage("Framework/Services", "框架", "Services", RefreshServicesDashboard);
         RegisterPage("Framework/Events", "框架", "Events", RefreshEventsDashboard);
     }
@@ -1220,7 +1220,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         public bool IsUi => string.Equals(Path, "Runtime/UI", StringComparison.Ordinal);
         public bool IsProcedure =>
             string.Equals(Path, "Runtime/Procedure", StringComparison.Ordinal) ||
-            string.Equals(Path, "Runtime/Flow", StringComparison.Ordinal);
+            string.Equals(Path, "ExecutionFlow", StringComparison.Ordinal);
         public bool IsServices => string.Equals(Path, "Framework/Services", StringComparison.Ordinal);
         public bool IsEvents => string.Equals(Path, "Framework/Events", StringComparison.Ordinal);
         public bool IsConsole => string.Equals(Path, "Console", StringComparison.Ordinal);
