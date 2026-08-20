@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Templates/Demo3D/Ui/PauseModal.cs" id="1_pause"]
+[ext_resource type="Script" path="res://Demo3D/Ui/PauseModal.cs" id="1_pause"]
 
 [node name="PauseModal" type="Control"]
 process_mode = 3

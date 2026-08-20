@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Templates/Demo3D/MainMenu/MainMenuView.cs" id="1_menu"]
+[ext_resource type="Script" path="res://Demo3D/MainMenu/MainMenuView.cs" id="1_menu"]
 
 [node name="MainMenuView" type="Control"]
 layout_mode = 3

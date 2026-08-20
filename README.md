@@ -43,5 +43,5 @@ python Tools/update_godot_version.py --check
 
 ## 运行 Demo3D
 
-- `Templates/Demo3D/`：框架能力验证 Demo，演示 Procedure、Scene、UI、Audio、Input、Camera、Save、Settings、Config、EventChannel、ErrorHub 和 Services 的组合用法；它依赖 GUIDE / G.U.I.D.E-CSharp 与 Phantom Camera。
+- `Demo3D/`：框架能力验证 Demo，演示 Procedure、Scene、UI、Audio、Input、Camera、Save、Settings、Config、EventChannel、ErrorHub 和 Services 的组合用法；它依赖 GUIDE / G.U.I.D.E-CSharp 与 Phantom Camera。
 - 仓库不再提供 Starter Template。新项目请按 `AI/AI_GAMEDEV_GUIDE.md` 和 `AI/PROJECT_STRUCTURE.md` 建立自己的业务目录与启动场景。

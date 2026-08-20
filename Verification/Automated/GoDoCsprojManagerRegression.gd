@@ -45,7 +45,7 @@ func _verify_repair_and_backup() -> bool:
 	for marker in ["GoDoIncludeGuideInput", "GoDoIncludePhantomCamera", "GoDoIncludeFrifloEcs", "DebuggerOverlay.cs"]:
 		if not updated.contains(marker):
 			return _fail("修复后缺少 %s。" % marker)
-	if updated.contains("Templates/Demo3D") or updated.contains("Verification/") or updated.contains("PackageReference"):
+	if updated.contains("Demo3D") or updated.contains("Verification/") or updated.contains("PackageReference"):
 		return _fail("修复错误写入了仓库专用规则或第三方包引用。")
 	_passed += 1
 	return true

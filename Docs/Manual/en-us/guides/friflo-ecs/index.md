@@ -149,9 +149,9 @@ Run the scene. A single `[ECS] First update matched 1000 entities` confirms that
 
 ### Inspect the visible Demo3D synchronization example
 
-`Templates/Demo3D/Gameplay/EcsSwarmDemo.cs` demonstrates the full boundary between ECS and Godot rendering. A Friflo World owns a fixed set of 512 position/velocity entities, while one `MultiMeshInstance3D` renders every visible instance without creating one Node per Entity. The host updates data at an earlier Process priority, then the game controller copies positions to the MultiMesh on the main thread.
+`Demo3D/Gameplay/EcsSwarmDemo.cs` demonstrates the full boundary between ECS and Godot rendering. A Friflo World owns a fixed set of 512 position/velocity entities, while one `MultiMeshInstance3D` renders every visible instance without creating one Node per Entity. The host updates data at an earlier Process priority, then the game controller copies positions to the MultiMesh on the main thread.
 
-Run `Templates/Demo3D/Boot/Boot.tscn` and enter Gameplay to see the blue swarm and its world-space status label on the right side of the arena. Pausing stops both the ECS System and visual synchronization. Leaving Gameplay destroys the World; entering again creates a new one. The 512 entities are a fixed regular-demo budget; the separate performance benchmark retains the 10,000/100,000-entity scale tests.
+Run `Demo3D/Boot/Boot.tscn` and enter Gameplay to see the blue swarm and its world-space status label on the right side of the arena. Pausing stops both the ECS System and visual synchronization. Leaving Gameplay destroys the World; entering again creates a new one. The 512 entities are a fixed regular-demo budget; the separate performance benchmark retains the 10,000/100,000-entity scale tests.
 
 ## 5. Pause, resume, and exit the scene
 

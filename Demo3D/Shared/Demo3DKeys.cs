@@ -5,7 +5,7 @@ namespace Demo3D;
 /// <summary>Demo3D 集中维护的业务资源键。</summary>
 internal static class Demo3DKeys
 {
-    private const string RootPath = "res://Templates/Demo3D";
+    private const string RootPath = "res://Demo3D";
 
     public static readonly ResourceKey MainMenuScene = Key("MainMenu/MainMenuScene.tscn");
     public static readonly ResourceKey MainMenuView = Key("MainMenu/MainMenuView.tscn");

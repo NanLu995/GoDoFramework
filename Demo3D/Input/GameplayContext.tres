@@ -13,10 +13,10 @@
 [ext_resource type="Script" uid="uid://c47lkb48itd6l" path="res://addons/guideCS/guide/modifiers/guide_modifier_deadzone.gd" id="11_deadzone"]
 [ext_resource type="Script" uid="uid://bjm4myqxg4phm" path="res://addons/guideCS/guide/modifiers/guide_modifier_scale.gd" id="12_scale"]
 [ext_resource type="Script" uid="uid://x74mnwgr08a7" path="res://addons/guideCS/guide/triggers/guide_trigger.gd" id="13_trigger"]
-[ext_resource type="Resource" path="res://Templates/Demo3D/Input/Move.tres" id="14_move"]
-[ext_resource type="Resource" path="res://Templates/Demo3D/Input/Look.tres" id="15_look"]
-[ext_resource type="Resource" path="res://Templates/Demo3D/Input/Jump.tres" id="16_jump"]
-[ext_resource type="Resource" path="res://Templates/Demo3D/Input/ReleasePointer.tres" id="17_release"]
+[ext_resource type="Resource" path="res://Demo3D/Input/Move.tres" id="14_move"]
+[ext_resource type="Resource" path="res://Demo3D/Input/Look.tres" id="15_look"]
+[ext_resource type="Resource" path="res://Demo3D/Input/Jump.tres" id="16_jump"]
+[ext_resource type="Resource" path="res://Demo3D/Input/ReleasePointer.tres" id="17_release"]
 
 [sub_resource type="Resource" id="MoveForwardInput"]
 script = ExtResource("4_key")

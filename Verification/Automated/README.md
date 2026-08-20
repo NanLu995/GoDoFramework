@@ -64,4 +64,4 @@ GitHub Actions 的 `Core Verification` 工作流从 `GoDoFramework.csproj` 读�
 
 已经完成编译时可使用 `--skip-build` 跳过集成工作区构建。每个场景默认超时 60 秒，可通过 `--timeout` 调整。
 
-SaveService runner 会在 `user://saves/` 创建随机 `godo-regression-*` 槽位，并在最外层 `finally` 清理；其他 runner 不写外部数据。InputService 与 InputRuntime runner 使用内存假后端；GuideInputBackend runner 使用仓库内 Fixture；Demo3DInputProfile runner 验证模板的真实 Profile、WASD、鼠标视角缩放、跳跃与 Result Context 隔离。输入回归不读取真实设备或写入改键配置。验证目录不进入框架发布 ZIP。
+SaveService runner 会在 `user://saves/` 创建随机 `godo-regression-*` 槽位，并在最外层 `finally` 清理；其他 runner 不写外部数据。InputService 与 InputRuntime runner 使用内存假后端；GuideInputBackend runner 使用仓库内 Fixture；Demo3DInputProfile runner 验证 Demo3D 的真实 Profile、WASD、鼠标视角缩放、跳跃与 Result Context 隔离。输入回归不读取真实设备或写入改键配置。验证目录不进入框架发布 ZIP。

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Verification/Automated/Demo3DFlowRegression.cs" id="1_test"]
 [ext_resource type="Script" path="res://addons/godo_framework/Integrations/GuideInput/Runtime/GuideInputBackendInstaller.cs" id="2_installer"]
-[ext_resource type="Resource" path="res://Templates/Demo3D/Input/Demo3DInputProfile.tres" id="3_profile"]
+[ext_resource type="Resource" path="res://Demo3D/Input/Demo3DInputProfile.tres" id="3_profile"]
 
 [node name="Demo3DFlowRegression" type="Node"]
 process_mode = 3

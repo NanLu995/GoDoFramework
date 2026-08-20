@@ -12,8 +12,8 @@ namespace GoDoFramework.Verification;
 /// <summary>验证 Demo3D 的真实 GUIDE Profile、语义映射与 Context 隔离。</summary>
 public sealed partial class Demo3DInputProfileRegression : Node
 {
-    private const string BootScenePath = "res://Templates/Demo3D/Boot/Boot.tscn";
-    private const string ProfilePath = "res://Templates/Demo3D/Input/Demo3DInputProfile.tres";
+    private const string BootScenePath = "res://Demo3D/Boot/Boot.tscn";
+    private const string ProfilePath = "res://Demo3D/Input/Demo3DInputProfile.tres";
     private const string ExpectedPersistenceSlot = "godo-input-bindings";
 
     private InputService? _service;

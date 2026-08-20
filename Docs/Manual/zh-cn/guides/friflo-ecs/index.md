@@ -144,9 +144,9 @@ public partial class BatchMovementDemo : Node
 
 ### 查看 Demo3D 的可见同步实例
 
-仓库内 `Templates/Demo3D/Gameplay/EcsSwarmDemo.cs` 展示了 ECS 与 Godot 渲染的完整边界：Friflo World 固定管理 512 个位置/速度实体，一个 `MultiMeshInstance3D` 负责全部可见实例，不为每个 Entity 创建 Node。宿主以更早的 Process 优先级先更新数据，业务控制器随后在主线程把位置同步到 MultiMesh。
+仓库内 `Demo3D/Gameplay/EcsSwarmDemo.cs` 展示了 ECS 与 Godot 渲染的完整边界：Friflo World 固定管理 512 个位置/速度实体，一个 `MultiMeshInstance3D` 负责全部可见实例，不为每个 Entity 创建 Node。宿主以更早的 Process 优先级先更新数据，业务控制器随后在主线程把位置同步到 MultiMesh。
 
-运行 `Templates/Demo3D/Boot/Boot.tscn` 并进入 Gameplay，可在场地右侧看到蓝色群体和运行状态标签。暂停会同时停止 ECS System 与可视同步；退出 Gameplay 后 World 销毁，再次进入时创建新 World。512 是普通展示的固定预算，1 万/10 万实体规模仍由独立性能基准验证。
+运行 `Demo3D/Boot/Boot.tscn` 并进入 Gameplay，可在场地右侧看到蓝色群体和运行状态标签。暂停会同时停止 ECS System 与可视同步；退出 Gameplay 后 World 销毁，再次进入时创建新 World。512 是普通展示的固定预算，1 万/10 万实体规模仍由独立性能基准验证。
 
 ## 5. 暂停、恢复与退出场景
 

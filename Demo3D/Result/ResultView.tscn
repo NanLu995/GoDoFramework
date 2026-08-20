@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Templates/Demo3D/Result/ResultView.cs" id="1_result"]
+[ext_resource type="Script" path="res://Demo3D/Result/ResultView.cs" id="1_result"]
 
 [node name="ResultView" type="Control"]
 process_mode = 3
