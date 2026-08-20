@@ -11,6 +11,18 @@ on:
       - "addons/**/*.cs"
       - "addons/**/USAGE.md"
       - "GoDoFramework.csproj"
+      - "Verification/ApiCompatibility/**"
+  pull_request:
+    branches:
+      - master
+    paths:
+      - ".config/dotnet-tools.json"
+      - ".github/workflows/docs.yml"
+      - "Docs/**"
+      - "addons/**/*.cs"
+      - "addons/**/USAGE.md"
+      - "GoDoFramework.csproj"
+      - "Verification/ApiCompatibility/**"
   workflow_dispatch:
 
 permissions:
@@ -19,14 +31,11 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -68,13 +77,27 @@ jobs:
       - name: Build and check documentation
         run: python Docs/build_docs.py check
 
+      - name: Verify public API compatibility
+        run: python Verification/ApiCompatibility/api_compatibility.py check
+
       - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: .artifacts/docs/site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
 
       - name: Deploy to GitHub Pages
         id: deployment

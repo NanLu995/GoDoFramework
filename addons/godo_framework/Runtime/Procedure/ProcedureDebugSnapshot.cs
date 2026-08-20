@@ -26,6 +26,7 @@ internal readonly struct ProcedureDebugSnapshot
     public string? TargetName { get; }
     public string? PendingName { get; }
     public ProcedureDebugPhase Phase { get; }
+    public ulong CurrentDurationMilliseconds { get; }
     public string? LastSucceededName { get; }
     public ProcedureDebugPhase LastPhase { get; }
     public ProcedureDebugResult LastResult { get; }
@@ -42,6 +43,7 @@ internal readonly struct ProcedureDebugSnapshot
         string? targetName,
         string? pendingName,
         ProcedureDebugPhase phase,
+        ulong currentDurationMilliseconds,
         string? lastSucceededName,
         ProcedureDebugPhase lastPhase,
         ProcedureDebugResult lastResult,
@@ -57,6 +59,7 @@ internal readonly struct ProcedureDebugSnapshot
         TargetName = targetName;
         PendingName = pendingName;
         Phase = phase;
+        CurrentDurationMilliseconds = currentDurationMilliseconds;
         LastSucceededName = lastSucceededName;
         LastPhase = lastPhase;
         LastResult = lastResult;

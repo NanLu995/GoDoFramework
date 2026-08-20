@@ -39,19 +39,22 @@ internal readonly struct ResourceDebugActiveEntry
     public ResourceLoadStatus Status { get; }
     public float Progress { get; }
     public int MergedRequestCount { get; }
+    public ulong AgeMilliseconds { get; }
 
     public ResourceDebugActiveEntry(
         ResourceKey key,
         Type resourceType,
         ResourceLoadStatus status,
         float progress,
-        int mergedRequestCount)
+        int mergedRequestCount,
+        ulong ageMilliseconds)
     {
         Key = key;
         ResourceType = resourceType;
         Status = status;
         Progress = progress;
         MergedRequestCount = mergedRequestCount;
+        AgeMilliseconds = ageMilliseconds;
     }
 }
 

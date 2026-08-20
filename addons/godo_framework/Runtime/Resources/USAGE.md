@@ -114,6 +114,7 @@ private void OnProgressChanged(float progress)
 - 每个异步操作复用进度数组，Update 复用缓冲列表；不要自行重复轮询 Godot API。
 - `ActiveOperationCount` 只表示 ResourceHub 当前活动请求，不代表 Godot 全局缓存数量。
 - 主线程和初始化检查通过后才更新 Debug 诊断统计；错误线程调用会被拒绝且不污染历史。
+- Debug 快照按唯一异步加载操作记录从首次请求开始的单调存活时间；同 Key、同类型的后续合并不会重置起点。该时间不表示 Resource 的引用寿命，也不能用于判断加载完成后谁仍持有资源。开始时间和快照字段仅存在于 Debug 构建。
 
 ## 自动回归验证
 
@@ -127,7 +128,7 @@ private void OnProgressChanged(float progress)
 
 `Verification/Automated/ResourceRegistryRegression.tscn` 验证未加载状态、清单加载、获取成功、获取失败、`TryGetKey`、重复 ID 覆盖、合并加载和清空语义。
 
-`Verification/Automated/ResourceHubRegression.tscn` 复用现有强类型 `.tres`，验证同步加载、无效与缺失资源、同步类型不匹配、异步请求合并、同路径类型冲突、异步期间同步冲突、进度监听者异常隔离、完成发布前清理活动表、错误线程不污染诊断，以及 Shutdown 取消、底层请求收尾和重新初始化。
+`Verification/Automated/ResourceHubRegression.tscn` 复用现有强类型 `.tres`，验证同步加载、无效与缺失资源、同步类型不匹配、异步请求合并且不重置诊断存活时间、同路径类型冲突、异步期间同步冲突、进度监听者异常隔离、完成发布前清理活动表、错误线程不污染诊断，以及 Shutdown 取消、底层请求收尾和重新初始化。
 
 ```powershell
 & $env:GODOT_PATH --headless --path . Verification/Automated/ResourceHubRegression.tscn

@@ -118,9 +118,10 @@ Friflo ECS 扩展检查根目录 `.csproj` 与可选 `Directory.Packages.props`�
 - 已在未创建 C# 解决方案、未编译的新建 .NET 项目中验证：复制框架后可直接启用插件并打开检查窗口。
 - `dotnet build GoDoFramework.sln`：验证运行时代码可编译。
 - `python Verification/Package/verify_core_package.py --godot <GodotMonoConsole>`：在临时干净项目中只复制 `addons/godo_framework/`，启用 EditorPlugin 后验证缺失可选集成目录不会报错，并验证核心运行时不依赖可选适配包或第三方插件。
+- `python Verification/Package/verify_core_package_lifecycle.py --godot <GodotMonoConsole>`：从真实核心 ZIP 创建临时项目，通过插件界面验证首次安装与幂等复查、9 项长期服务启动、整目录替换清除合成旧文件且保留 Autoload、错误路径拒绝卸载、精确卸载与插件禁用；删除框架后只验证已解除 `GoDo.*` 引用的中性宿主可编译运行。该夹具验证替换流程，不宣称覆盖任意历史版本兼容性。
 - 已在当前项目验证：启用插件后检查结果健康；禁用插件后菜单消失且 Autoload 保持不变。
 - 已在第二个小项目验证：未安装、安装、重复安装、名称冲突、重复路径和安全卸载。
 - `EditorExtensionUiRegression.gd` 会在 Headless Editor 中验证菜单分组、顺序和资源添加项前的分隔线，并真实触发已安装扩展的菜单，确认 GUIDE Input 与 Phantom Camera 报告非空、健康状态下修改按钮禁用，以及 Friflo ECS 能识别当前项目、按状态控制安装按钮并展示备份确认。
 - DataTable 阶段 C.2 / C.3 使用独立实验 Probe 真实执行检查、全量生成与单表选择生成，不加入永久 `run_all.py`。
 
-当前项目不自动执行安装或卸载测试，避免修改现有 `project.godot`。
+当前项目不自动执行安装或卸载测试，避免修改现有 `project.godot`；生命周期自动化只在系统临时项目中运行并清理其精确框架路径。

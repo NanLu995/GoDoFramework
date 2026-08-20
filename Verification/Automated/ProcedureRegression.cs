@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Godot;
 using GoDo;
@@ -136,11 +137,20 @@ public sealed partial class ProcedureRegression : Node
         Assert(rejectedSnapshot.Phase == ProcedureDebugPhase.Entering, "并发拒绝改变了当前切换阶段");
         Assert(rejectedSnapshot.LastPhase == ProcedureDebugPhase.Entering, "并发拒绝没有记录发生阶段");
         Assert(rejectedSnapshot.LastResult == ProcedureDebugResult.Rejected, "并发拒绝没有分类为 Rejected");
+        Thread.Sleep(5);
+        Assert(service.GetDebugSnapshot().CurrentDurationMilliseconds >= 1,
+            "阻塞 Enter 期间当前耗时没有持续增长");
 #endif
 
         blocker.ReleaseEnter();
         await changeTask;
         Assert(ReferenceEquals(blocker, service.Current), "阻塞流程完成后 Current 不正确");
+#if DEBUG
+        ProcedureDebugSnapshot completedSnapshot = service.GetDebugSnapshot();
+        Assert(completedSnapshot.Phase == ProcedureDebugPhase.Idle, "阻塞流程完成后阶段没有复位");
+        Assert(completedSnapshot.CurrentDurationMilliseconds == 0,
+            "阻塞流程完成后当前耗时没有清零");
+#endif
     }
 
     private static async Task VerifyExitFailureAsync()

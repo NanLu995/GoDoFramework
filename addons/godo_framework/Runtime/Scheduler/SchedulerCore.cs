@@ -3,6 +3,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+#if DEBUG
+using System.Diagnostics;
+#endif
 
 #nullable enable
 
@@ -14,6 +17,11 @@ internal sealed class SchedulerCore
     private const int ClockCount = 3;
     private const int PhaseCount = 2;
     private const int DefaultMaxCallbacksPerAdvance = 4096;
+#if DEBUG
+    private const int MaxDebugActiveEntries = 64;
+    private const int MaxDebugRecentResults = 16;
+    private const int MaxDebugTextLength = 256;
+#endif
 
     private readonly SchedulerQueue[,] _queues = new SchedulerQueue[ClockCount, PhaseCount];
     private readonly double[,] _currentTimes = new double[ClockCount, PhaseCount];
@@ -31,6 +39,7 @@ internal sealed class SchedulerCore
     private long _canceledCount;
     private long _ownerCanceledCount;
     private long _callbackFailedCount;
+    private readonly Queue<SchedulerDebugResultEntry> _recentDebugResults = new();
 #endif
 
     /// <summary>当前活动与独立暂停任务总数。</summary>
@@ -169,6 +178,11 @@ internal sealed class SchedulerCore
         _canceledCount++;
         if (ownerCancellation)
             _ownerCanceledCount++;
+        RecordDebugResult(
+            entry,
+            ownerCancellation
+                ? SchedulerDebugEndReason.OwnerExited
+                : SchedulerDebugEndReason.ExplicitCanceled);
 #endif
 
         if (entry.State == ScheduledState.Scheduled)
@@ -314,6 +328,8 @@ internal sealed class SchedulerCore
         int unscaledPhysicsCount = 0;
         int realPhysicsCount = 0;
         double nextRemainingSeconds = double.PositiveInfinity;
+        var activeEntries = new List<SchedulerDebugTaskEntry>(
+            Math.Min(_entries.Count, MaxDebugActiveEntries));
 
         foreach (ScheduledEntry entry in _entries.Values)
         {
@@ -348,7 +364,30 @@ internal sealed class SchedulerCore
                 ? entry.RemainingSeconds
                 : Math.Max(0d, entry.DueTime - GetCurrentTime(entry.Clock, entry.Phase));
             nextRemainingSeconds = Math.Min(nextRemainingSeconds, remainingSeconds);
+
+            if (activeEntries.Count < MaxDebugActiveEntries)
+            {
+                activeEntries.Add(new SchedulerDebugTaskEntry(
+                    entry.Handle.Value,
+                    entry.DebugLabel,
+                    entry.DebugOwnerName,
+                    entry.DebugOwnerPath,
+                    entry.DebugOwnerInstanceId,
+                    entry.Clock,
+                    entry.Phase,
+                    entry.State switch
+                    {
+                        ScheduledState.Paused => SchedulerDebugTaskState.Paused,
+                        ScheduledState.Executing => SchedulerDebugTaskState.Executing,
+                        _ => SchedulerDebugTaskState.Scheduled,
+                    },
+                    entry.IsRepeating,
+                    GetDebugAgeSeconds(entry),
+                    remainingSeconds));
+            }
         }
+
+        activeEntries.Sort(static (left, right) => left.HandleValue.CompareTo(right.HandleValue));
 
         return new SchedulerDebugSnapshot(
             _entries.Count,
@@ -365,7 +404,9 @@ internal sealed class SchedulerCore
             _canceledCount,
             _ownerCanceledCount,
             _callbackFailedCount,
-            double.IsPositiveInfinity(nextRemainingSeconds) ? null : nextRemainingSeconds);
+            double.IsPositiveInfinity(nextRemainingSeconds) ? null : nextRemainingSeconds,
+            activeEntries.ToArray(),
+            _recentDebugResults.ToArray());
     }
 #endif
 
@@ -378,6 +419,10 @@ internal sealed class SchedulerCore
         _isShutdown = true;
         ScheduledEntry[] entries = new ScheduledEntry[_entries.Count];
         _entries.Values.CopyTo(entries, 0);
+#if DEBUG
+        for (int index = 0; index < entries.Length; index++)
+            RecordDebugResult(entries[index], SchedulerDebugEndReason.Shutdown);
+#endif
         _entries.Clear();
         _ownerRegistry.Clear();
         for (int clock = 0; clock < ClockCount; clock++)
@@ -447,6 +492,9 @@ internal sealed class SchedulerCore
             delayCompletion,
             options.Clock,
             options.Phase);
+#if DEBUG
+        entry.InitializeDebug(options.Owner);
+#endif
         _entries.Add(handleValue, entry);
         _ownerRegistry.Track(options.Owner, entry.Handle);
         GetQueue(options.Clock, options.Phase).Enqueue(entry);
@@ -492,6 +540,7 @@ internal sealed class SchedulerCore
 
 #if DEBUG
             _canceledCount++;
+            RecordDebugResult(entry, SchedulerDebugEndReason.TokenCanceled);
 #endif
             CancelDelayCompletion(entry, request.CancellationToken, preserveToken: true);
         }
@@ -538,6 +587,9 @@ internal sealed class SchedulerCore
             entry.State = ScheduledState.Executing;
             if (entry.DelayCompletion is not null)
             {
+#if DEBUG
+                RecordDebugResult(entry, SchedulerDebugEndReason.Completed);
+#endif
                 RemoveEntry(entry);
                 entry.DisposeCancellationRegistration();
                 entry.DelayCompletion.TrySetResult();
@@ -553,6 +605,9 @@ internal sealed class SchedulerCore
             catch (Exception exception)
             {
                 callbackFailed = true;
+#if DEBUG
+                RecordDebugResult(entry, SchedulerDebugEndReason.CallbackFailed);
+#endif
                 RemoveEntry(entry);
 #if DEBUG
                 _canceledCount++;
@@ -573,6 +628,9 @@ internal sealed class SchedulerCore
 
             if (!entry.IsRepeating)
             {
+#if DEBUG
+                RecordDebugResult(entry, SchedulerDebugEndReason.Completed);
+#endif
                 RemoveEntry(entry);
                 entry.DisposeCancellationRegistration();
                 continue;
@@ -683,6 +741,30 @@ internal sealed class SchedulerCore
         _ownerRegistry.Untrack(entry.Handle);
         return true;
     }
+
+#if DEBUG
+    private void RecordDebugResult(ScheduledEntry entry, SchedulerDebugEndReason reason)
+    {
+        if (_recentDebugResults.Count == MaxDebugRecentResults)
+            _recentDebugResults.Dequeue();
+
+        _recentDebugResults.Enqueue(new SchedulerDebugResultEntry(
+            entry.Handle.Value,
+            entry.DebugLabel,
+            entry.DebugOwnerName,
+            entry.DebugOwnerPath,
+            entry.DebugOwnerInstanceId,
+            reason,
+            GetDebugAgeSeconds(entry)));
+    }
+
+    private static double GetDebugAgeSeconds(ScheduledEntry entry) =>
+        Stopwatch.GetElapsedTime(entry.DebugCreatedTimestamp).TotalSeconds;
+
+    private static string LimitDebugText(string value) => value.Length <= MaxDebugTextLength
+        ? value
+        : value[..MaxDebugTextLength];
+#endif
 
     private static double CalculateNextRepeatedDueTime(
         double previousDueTime,
@@ -802,6 +884,13 @@ internal sealed class SchedulerCore
         public bool PauseAfterDispatch { get; set; }
         private CancellationTokenRegistration _cancellationRegistration;
         private bool _hasCancellationRegistration;
+#if DEBUG
+        public long DebugCreatedTimestamp { get; private set; }
+        public string DebugLabel { get; private set; } = string.Empty;
+        public string DebugOwnerName { get; private set; } = string.Empty;
+        public string DebugOwnerPath { get; private set; } = string.Empty;
+        public ulong? DebugOwnerInstanceId { get; private set; }
+#endif
 
         public ScheduledEntry(
             ScheduleHandle handle,
@@ -822,6 +911,34 @@ internal sealed class SchedulerCore
             Clock = clock;
             Phase = phase;
         }
+
+#if DEBUG
+        public void InitializeDebug(Godot.Node? owner)
+        {
+            DebugCreatedTimestamp = Stopwatch.GetTimestamp();
+            string kind = DelayCompletion is not null
+                ? "DelayAsync"
+                : IsRepeating
+                    ? "Repeating"
+                    : "OneShot";
+            if (Callback is null)
+            {
+                DebugLabel = kind;
+            }
+            else
+            {
+                string declaringType = Callback.Method.DeclaringType?.Name ?? "UnknownType";
+                DebugLabel = LimitDebugText($"{kind}: {declaringType}.{Callback.Method.Name}");
+            }
+
+            if (owner is null)
+                return;
+
+            DebugOwnerName = LimitDebugText(owner.Name.ToString());
+            DebugOwnerPath = LimitDebugText(owner.GetPath().ToString());
+            DebugOwnerInstanceId = owner.GetInstanceId();
+        }
+#endif
 
         public void SetCancellationRegistration(CancellationTokenRegistration registration)
         {
@@ -911,5 +1028,50 @@ internal readonly record struct SchedulerDebugSnapshot(
     long CanceledCount,
     long OwnerCanceledCount,
     long CallbackFailedCount,
-    double? NextRemainingSeconds);
+    double? NextRemainingSeconds,
+    SchedulerDebugTaskEntry[] ActiveEntries,
+    SchedulerDebugResultEntry[] RecentResults);
+
+/// <summary>活动调度任务的 Debug-only 只读诊断条目。</summary>
+internal readonly record struct SchedulerDebugTaskEntry(
+    ulong HandleValue,
+    string Label,
+    string OwnerName,
+    string OwnerPath,
+    ulong? OwnerInstanceId,
+    ScheduleClock Clock,
+    SchedulePhase Phase,
+    SchedulerDebugTaskState State,
+    bool IsRepeating,
+    double AgeSeconds,
+    double RemainingSeconds);
+
+/// <summary>最近结束调度任务的 Debug-only 有界诊断条目。</summary>
+internal readonly record struct SchedulerDebugResultEntry(
+    ulong HandleValue,
+    string Label,
+    string OwnerName,
+    string OwnerPath,
+    ulong? OwnerInstanceId,
+    SchedulerDebugEndReason Reason,
+    double AgeSeconds);
+
+/// <summary>活动调度任务的 Debug-only 状态。</summary>
+internal enum SchedulerDebugTaskState
+{
+    Scheduled,
+    Paused,
+    Executing,
+}
+
+/// <summary>调度任务离开活动集合的 Debug-only 原因。</summary>
+internal enum SchedulerDebugEndReason
+{
+    Completed,
+    ExplicitCanceled,
+    OwnerExited,
+    TokenCanceled,
+    Shutdown,
+    CallbackFailed,
+}
 #endif

@@ -61,6 +61,10 @@ public sealed partial class AudioService : Node, IAudioService
 
     /// <summary>服务是否已经完成节点与对象池初始化。</summary>
     internal bool IsInitialized => _bgm != null && _sfx != null && _sfx3D != null;
+#if DEBUG
+    internal ulong? DebugBgmRequestAgeMilliseconds =>
+        _bgm?.DebugRequestAgeMilliseconds;
+#endif
 
     /// <inheritdoc />
     public ResourceKey? CurrentBgm => GetBgm().CurrentBgm;

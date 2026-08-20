@@ -32,6 +32,7 @@ internal readonly struct UiDebugSnapshot
 {
     public UiDebugEntry[] Entries { get; }
     public UiDebugOpeningEntry[] Openings { get; }
+    public int TotalOpeningRequestCount { get; }
     public UiId LastId { get; }
     public UiLayer LastLayer { get; }
     public ResourceKey LastKey { get; }
@@ -43,6 +44,7 @@ internal readonly struct UiDebugSnapshot
     public UiDebugSnapshot(
         UiDebugEntry[] entries,
         UiDebugOpeningEntry[] openings,
+        int totalOpeningRequestCount,
         UiId lastId,
         UiLayer lastLayer,
         ResourceKey lastKey,
@@ -53,6 +55,7 @@ internal readonly struct UiDebugSnapshot
     {
         Entries = entries;
         Openings = openings;
+        TotalOpeningRequestCount = totalOpeningRequestCount;
         LastId = lastId;
         LastLayer = lastLayer;
         LastKey = lastKey;
@@ -70,19 +73,28 @@ internal readonly struct UiDebugOpeningEntry
     public ResourceKey Key { get; }
     public int RequestCount { get; }
     public UiDebugOpenPhase Phase { get; }
+    public string SourceDisplayName { get; }
+    public string SourceFullName { get; }
+    public ulong AgeMilliseconds { get; }
 
     public UiDebugOpeningEntry(
         UiId id,
         UiLayer layer,
         ResourceKey key,
         int requestCount,
-        UiDebugOpenPhase phase)
+        UiDebugOpenPhase phase,
+        string sourceDisplayName,
+        string sourceFullName,
+        ulong ageMilliseconds)
     {
         Id = id;
         Layer = layer;
         Key = key;
         RequestCount = requestCount;
         Phase = phase;
+        SourceDisplayName = sourceDisplayName;
+        SourceFullName = sourceFullName;
+        AgeMilliseconds = ageMilliseconds;
     }
 }
 

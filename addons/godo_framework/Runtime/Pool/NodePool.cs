@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+#if DEBUG
+using System.Diagnostics;
+#endif
 using Godot;
 
 #nullable enable
@@ -26,6 +29,12 @@ public sealed class NodePool<T> : IDisposable
     private readonly Stack<T> _idleNodes;
     private readonly HashSet<T> _activeNodes = new(ReferenceEqualityComparer.Instance);
     private readonly int _idleCapacity;
+#if DEBUG
+    private const int MaxDebugTextLength = 256;
+    private readonly Dictionary<T, NodePoolDebugLease> _debugActiveNodes =
+        new(ReferenceEqualityComparer.Instance);
+    private readonly string _debugScenePath;
+#endif
     private bool _disposed;
 
     /// <summary>当前位于空闲区、可直接复用的节点数量。</summary>
@@ -68,6 +77,8 @@ public sealed class NodePool<T> : IDisposable
         }
 
 #if DEBUG
+        _debugScenePath = TruncateDebugText(
+            string.IsNullOrEmpty(_scene.ResourcePath) ? "<内存 PackedScene>" : _scene.ResourcePath);
         NodePoolDebugRegistry.Register(this);
 #endif
     }
@@ -171,6 +182,14 @@ public sealed class NodePool<T> : IDisposable
                 $"池化节点 {typeof(T).Name} 在 OnAcquire 后已失效或进入删除队列。");
         }
 
+#if DEBUG
+        _debugActiveNodes.Add(
+            node,
+            new NodePoolDebugLease(
+                TruncateDebugText(node.Name.ToString()),
+                node.GetInstanceId(),
+                Stopwatch.GetTimestamp()));
+#endif
         return node;
     }
 
@@ -199,6 +218,9 @@ public sealed class NodePool<T> : IDisposable
             return false;
         }
 
+#if DEBUG
+        _debugActiveNodes.Remove(node);
+#endif
         if (!GodotObject.IsInstanceValid(node))
         {
             ErrorHub.Warn(
@@ -265,6 +287,7 @@ public sealed class NodePool<T> : IDisposable
         _disposed = true;
 #if DEBUG
         NodePoolDebugRegistry.Unregister(this);
+        _debugActiveNodes.Clear();
 #endif
         FreeIdleNodes();
 
@@ -373,6 +396,80 @@ public sealed class NodePool<T> : IDisposable
             _idleNodes.Count,
             _activeNodes.Count,
             _idleCapacity);
+    }
+
+    void INodePoolDebugSource.AppendDebugActiveEntries(
+        List<NodePoolDebugActiveEntry> entries,
+        int maximumCount)
+    {
+        foreach (KeyValuePair<T, NodePoolDebugLease> pair in _debugActiveNodes)
+        {
+            if (entries.Count >= maximumCount)
+                return;
+
+            entries.Add(CreateDebugActiveEntry(pair.Key, pair.Value));
+        }
+    }
+
+    private NodePoolDebugActiveEntry CreateDebugActiveEntry(T node, NodePoolDebugLease lease)
+    {
+        string nodeName = lease.NodeName;
+        string parentName = string.Empty;
+        string parentPath = string.Empty;
+        ulong parentInstanceId = 0;
+        NodePoolDebugActiveStatus status;
+
+        if (!GodotObject.IsInstanceValid(node))
+        {
+            status = NodePoolDebugActiveStatus.Invalid;
+        }
+        else
+        {
+            nodeName = TruncateDebugText(node.Name.ToString());
+            Node? parent = node.GetParent();
+            bool hasValidParent = GodotObject.IsInstanceValid(parent);
+            if (hasValidParent)
+            {
+                parentName = TruncateDebugText(parent!.Name.ToString());
+                parentPath = TruncateDebugText(
+                    parent.IsInsideTree() ? parent.GetPath().ToString() : parentName);
+                parentInstanceId = parent.GetInstanceId();
+            }
+
+            status = node.IsQueuedForDeletion()
+                ? NodePoolDebugActiveStatus.QueuedForDeletion
+                : !hasValidParent
+                    ? NodePoolDebugActiveStatus.Detached
+                    : NodePoolDebugActiveStatus.Active;
+        }
+
+        return new NodePoolDebugActiveEntry(
+            typeof(T).Name,
+            _debugScenePath,
+            nodeName,
+            lease.NodeInstanceId,
+            parentName,
+            parentPath,
+            parentInstanceId,
+            status,
+            Stopwatch.GetElapsedTime(lease.AcquiredTimestamp));
+    }
+
+    private static string TruncateDebugText(string value) =>
+        value.Length <= MaxDebugTextLength ? value : value[..MaxDebugTextLength];
+
+    private readonly struct NodePoolDebugLease
+    {
+        public string NodeName { get; }
+        public ulong NodeInstanceId { get; }
+        public long AcquiredTimestamp { get; }
+
+        public NodePoolDebugLease(string nodeName, ulong nodeInstanceId, long acquiredTimestamp)
+        {
+            NodeName = nodeName;
+            NodeInstanceId = nodeInstanceId;
+            AcquiredTimestamp = acquiredTimestamp;
+        }
     }
 #endif
 }

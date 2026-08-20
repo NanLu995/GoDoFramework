@@ -28,7 +28,7 @@ addons/guideCS/
 addons/godo_framework/Integrations/GuideInput/
 ```
 
-当前验证组合是 GUIDE `0.13.0` 与 GUIDE-CSharp `0.3.7--0.13.0`。从 [官方 GitHub Release](https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7)取得该组合并确保最终路径为 `addons/guideCS/`。设置窗口的“打开已验证版本...”只会在系统浏览器中打开此页面，不会自动下载、解压或覆盖第三方文件。Godot 商店当前的 `0.3.7--0.14.0` 被发布者标记为 unstable，且下载包内基础 GUIDE 仍声明 `0.13.0`，因此 GoDo `0.6.1` 暂不将其列为已验证依赖。
+当前验证组合是 GUIDE `0.13.0` 与 GUIDE-CSharp `0.3.7--0.13.0`。从 [官方 GitHub Release](https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7)取得该组合并确保最终路径为 `addons/guideCS/`。设置窗口的“打开已验证版本...”只会在系统浏览器中打开此页面，不会自动下载、解压或覆盖第三方文件。Godot 商店当前的 `0.3.7--0.14.0` 被发布者标记为 unstable，且下载包内基础 GUIDE 仍声明 `0.13.0`，因此 GoDo `0.6.2` 暂不将其列为已验证依赖。
 
 复制依赖后先让 Godot 完成文件扫描和全局脚本类型缓存，再完成一次 C# 编译。随后打开：
 

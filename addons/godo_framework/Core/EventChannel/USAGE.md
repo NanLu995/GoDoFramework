@@ -100,9 +100,15 @@ public sealed class SessionObserver : IDisposable
 - 不要用 EventChannel 传递超大结构体；必要时传递轻量标识或稳定引用。
 - Debug 可用 `GetListenerCount<T>()` 和 `DumpRegistry()`；Release 不应依赖这些诊断结果。
 
+## Debugger 监听来源诊断
+
+Debug 构建的 Debugger `框架 / Events` 页面可在选中事件后显示最多 64 个当前监听来源，包括回调类型与方法、`On` / `Once` / `Bind` / `EventScope` 注册方式、Owner、优先级和已注册时长。`Bind` 会显示 Node 名称、实例 ID，并在 Tooltip 中提供路径；普通实例委托显示目标类型，静态回调明确标为静态。
+
+来源信息只保存有界文本、实例 ID 与单调时间戳，不保存调用栈，也不会额外持有回调目标或 Node。`Off`、`Once` 成功派发、Node 退出树和 `EventScope.Dispose()` 都会立即从来源快照移除对应监听。该能力只用于定位忘记解绑、Owner 不符合预期或优先级错误，不构成事件触发历史，Release 不包含这些元数据和快照入口。
+
 ## 自动回归验证
 
-`Verification/Automated/EventChannelRegression.tscn` 覆盖优先级与稳定顺序、重复监听去重、Once 重入、派发期间增删、嵌套派发的延迟提交、监听者异常隔离、EventScope 释放后拒绝注册、树外 Bind 拒绝注册、重复 Bind 和 Node 生命周期解绑。
+`Verification/Automated/EventChannelRegression.tscn` 覆盖优先级与稳定顺序、重复监听去重、Once 重入、派发期间增删、嵌套派发的延迟提交、监听者异常隔离、EventScope 释放后拒绝注册、树外 Bind 拒绝注册、重复 Bind、Node 生命周期解绑，以及 Debug 监听来源分类、Owner 信息、移除时机和 64 条上限。
 
 先完成 C# 编译，再设置 `GODOT_PATH` 指向项目声明版本的 Godot Mono Console：
 
@@ -110,7 +116,7 @@ public sealed class SessionObserver : IDisposable
 & $env:GODOT_PATH --headless --path . Verification/Automated/EventChannelRegression.tscn
 ```
 
-全部通过时进程退出码为 0；任一断言失败时退出码为 1。当前 runner 已通过 `dotnet build` 编译；本次新增无数据事件派发用例，完整 Headless 回归待运行环境恢复后执行。
+全部通过时进程退出码为 0；任一断言失败时退出码为 1。
 
 ## 常见误用
 

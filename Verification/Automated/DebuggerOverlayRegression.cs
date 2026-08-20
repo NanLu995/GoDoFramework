@@ -132,6 +132,8 @@ public sealed partial class DebuggerOverlayRegression : Node
                 overlay.GetNode<ScrollContainer>("Panel/Margin/VBox/Body/Page/AudioDashboard");
             Label audioBgmState =
                 audioDashboard.GetNode<Label>("Content/PlaybackGrid/BgmStateCard/Content/Value");
+            Label audioBgmStateDetail =
+                audioDashboard.GetNode<Label>("Content/PlaybackGrid/BgmStateCard/Content/Detail");
             Label audioBgmResource =
                 audioDashboard.GetNode<Label>("Content/BgmCard/Content/Value");
             Label audioSfx =
@@ -172,6 +174,8 @@ public sealed partial class DebuggerOverlayRegression : Node
             Label poolActive = poolDashboard.GetNode<Label>("Summary/ActiveCard/Content/Value");
             Label poolStatus = poolDashboard.GetNode<Label>("Status");
             Tree poolTree = poolDashboard.GetNode<Tree>("PoolList");
+            Label poolActiveRentalsStatus = poolDashboard.GetNode<Label>("ActiveRentalsStatus");
+            Tree poolActiveRentals = poolDashboard.GetNode<Tree>("ActiveRentals");
             VBoxContainer dataTableDashboard =
                 overlay.GetNode<VBoxContainer>("Panel/Margin/VBox/Body/Page/DataTableDashboard");
             Label dataTableLoaded =
@@ -241,6 +245,9 @@ public sealed partial class DebuggerOverlayRegression : Node
             Label eventsMatchStatus = eventsDashboard.GetNode<Label>("MatchStatus");
             Tree eventsTree = eventsDashboard.GetNode<Tree>("EventList");
             Label eventsSelectionDetail = eventsDashboard.GetNode<Label>("SelectionDetail");
+            Label eventsListenerSourcesStatus =
+                eventsDashboard.GetNode<Label>("ListenerSourcesStatus");
+            Tree eventsListenerSources = eventsDashboard.GetNode<Tree>("ListenerSources");
             Label schedulerActive =
                 schedulerDashboard.GetNode<Label>("Content/StatusGrid/ActiveCard/Content/Value");
             Label schedulerPaused =
@@ -277,6 +284,12 @@ public sealed partial class DebuggerOverlayRegression : Node
                 schedulerDashboard.GetNode<Label>("Content/LifetimeGrid/OwnerCard/Content/Value");
             Label schedulerFailed =
                 schedulerDashboard.GetNode<Label>("Content/LifetimeGrid/FailedCard/Content/Value");
+            Label schedulerActiveTasksStatus =
+                schedulerDashboard.GetNode<Label>("Content/ActiveTasksStatus");
+            Tree schedulerActiveTasks = schedulerDashboard.GetNode<Tree>("Content/ActiveTasks");
+            Label schedulerRecentResultsStatus =
+                schedulerDashboard.GetNode<Label>("Content/RecentResultsStatus");
+            Tree schedulerRecentResults = schedulerDashboard.GetNode<Tree>("Content/RecentResults");
             LineEdit search =
                 overlay.GetNode<LineEdit>("Panel/Margin/VBox/Body/Page/ConsoleToolbar/Search");
             Button pause =
@@ -302,16 +315,21 @@ public sealed partial class DebuggerOverlayRegression : Node
                 inputContextsTree.FocusMode == Control.FocusModeEnum.None &&
                 inputActionsTree.FocusMode == Control.FocusModeEnum.None &&
                 schedulerDashboard.FocusMode == Control.FocusModeEnum.None &&
+                schedulerActiveTasks.FocusMode == Control.FocusModeEnum.None &&
+                schedulerRecentResults.FocusMode == Control.FocusModeEnum.None &&
                 audioDashboard.FocusMode == Control.FocusModeEnum.None &&
                 sceneDetails.FocusMode == Control.FocusModeEnum.None &&
                 resourcesActiveTree.FocusMode == Control.FocusModeEnum.None &&
                 resourcesHistoryTree.FocusMode == Control.FocusModeEnum.None &&
+                poolTree.FocusMode == Control.FocusModeEnum.None &&
+                poolActiveRentals.FocusMode == Control.FocusModeEnum.None &&
                 dataTableDataSetTree.FocusMode == Control.FocusModeEnum.None &&
                 dataTableHistoryTree.FocusMode == Control.FocusModeEnum.None &&
                 uiStackTree.FocusMode == Control.FocusModeEnum.None &&
                 procedureDetails.FocusMode == Control.FocusModeEnum.None &&
                 servicesTree.FocusMode == Control.FocusModeEnum.None &&
                 eventsTree.FocusMode == Control.FocusModeEnum.None &&
+                eventsListenerSources.FocusMode == Control.FocusModeEnum.None &&
                 debuggerLabel.FocusMode == Control.FocusModeEnum.None &&
                 allFilter.FocusMode == Control.FocusModeEnum.None &&
                 debugFilter.FocusMode == Control.FocusModeEnum.None &&
@@ -344,7 +362,8 @@ public sealed partial class DebuggerOverlayRegression : Node
                 uiStackTree.GetThemeFontSize("title_button_font_size") == 11 &&
                 procedureDetails.GetThemeFontSize("title_button_font_size") == 11 &&
                 servicesTree.GetThemeFontSize("title_button_font_size") == 11 &&
-                eventsTree.GetThemeFontSize("title_button_font_size") == 11,
+                eventsTree.GetThemeFontSize("title_button_font_size") == 11 &&
+                eventsListenerSources.GetThemeFontSize("title_button_font_size") == 11,
                 "Debugger 表格表头字号没有统一为 11");
             Assert(!body.Visible && !title.Visible && !reset.Visible && !resizeRow.Visible,
                 "Debugger 默认未折叠");
@@ -509,8 +528,9 @@ public sealed partial class DebuggerOverlayRegression : Node
                 sceneNodeCount > 0 &&
                 sceneState.Text.Length > 0 &&
                 sceneProgress.Text.EndsWith('%') &&
-                sceneDetails.GetRoot()?.GetChildCount() >= 7 &&
+                sceneDetails.GetRoot()?.GetChildCount() >= 8 &&
                 GetDetailValue(sceneDetails, "当前阶段") == "空闲" &&
+                GetDetailValue(sceneDetails, "当前耗时") == "—" &&
                 GetDetailValue(sceneDetails, "最近结果") == "—" &&
                 GetDetailValue(sceneDetails, "最近耗时") == "—",
                 "Scene 结构化诊断页没有完整显示场景摘要与切换状态");
@@ -521,6 +541,8 @@ public sealed partial class DebuggerOverlayRegression : Node
                 int.TryParse(resourcesActive.Text, out _) &&
                 resourcesRequests.Text.Contains(" / ", StringComparison.Ordinal) &&
                 resourcesActiveStatus.Text.StartsWith("当前请求 ", StringComparison.Ordinal) &&
+                resourcesActiveTree.Columns == 6 &&
+                resourcesActiveTree.GetColumnTitle(5) == "存活" &&
                 resourcesActiveTree.GetRoot() is not null &&
                 resourcesHistoryStatus.Text.StartsWith("最近请求 ", StringComparison.Ordinal) &&
                 resourcesHistoryTree.GetRoot() is not null,
@@ -535,6 +557,35 @@ public sealed partial class DebuggerOverlayRegression : Node
                 poolStatus.Text.Contains("Debug 注册", StringComparison.Ordinal) &&
                 poolTree.GetRoot()?.GetChildCount() == registeredPoolCount,
                 "Pool 结构化诊断页没有完整渲染登记池汇总");
+
+            PackedScene poolDiagnosticScene = GD.Load<PackedScene>(
+                "res://Verification/Automated/PoolRegressionNode.tscn");
+            using (var diagnosticPool =
+                new NodePool<PoolRegressionNode>(poolDiagnosticScene, idleCapacity: 1))
+            {
+                PoolRegressionNode rentedNode = diagnosticPool.Acquire(this);
+                SelectNavigationItem(navigation, poolPage);
+                TreeItem? rentalItem = FindTreeItemContaining(
+                    poolActiveRentals,
+                    1,
+                    rentedNode.GetInstanceId().ToString());
+                Assert(poolActiveRentalsStatus.Text == "活动租借 1 / 上限 64" &&
+                    rentalItem is not null &&
+                    rentalItem.GetText(0) == nameof(PoolRegressionNode) &&
+                    rentalItem.GetText(1).Contains(rentedNode.Name.ToString(), StringComparison.Ordinal) &&
+                    rentalItem.GetText(2).Contains(Name.ToString(), StringComparison.Ordinal) &&
+                    rentalItem.GetText(3) == "活动" &&
+                    rentalItem.GetText(4).EndsWith(" ms", StringComparison.Ordinal) &&
+                    rentalItem.GetTooltipText(0).Contains("PoolRegressionNode.tscn", StringComparison.Ordinal) &&
+                    rentalItem.GetTooltipText(2).Contains(Name.ToString(), StringComparison.Ordinal),
+                    "Pool 活动租借没有显示节点、挂载位置、状态、时长与路径证据");
+
+                diagnosticPool.Release(rentedNode);
+                SelectNavigationItem(navigation, poolPage);
+                Assert(poolActiveRentalsStatus.Text == "活动租借 0 / 上限 64" &&
+                    poolActiveRentals.GetRoot()?.GetChildCount() == 0,
+                    "Pool Release 后活动租借诊断仍残留节点");
+            }
             SelectNavigationItem(navigation, dataTablePage);
             Assert(title.Text == "DataTable" &&
                 dataTableDashboard.Visible &&
@@ -564,15 +615,28 @@ public sealed partial class DebuggerOverlayRegression : Node
             Assert(!activeDataTableLoad.IsCompleted,
                 "DataTable 多表加载没有暴露可观察的加载中状态");
             SelectNavigationItem(navigation, dataTablePage);
+            TreeItem loadingDataSetItem =
+                dataTableDataSetTree.GetRoot()?.GetFirstChild() ??
+                throw new InvalidOperationException("DataTable 加载行不存在");
             Assert(dataTableLoading.Text == "1" &&
-                dataTableDataSetTree.GetRoot()?.GetFirstChild()?.GetText(3) == "50%",
+                loadingDataSetItem.GetText(3) == "50%" &&
+                loadingDataSetItem.GetText(4).Contains("存活", StringComparison.Ordinal),
                 "DataTable 加载中数量或表级进度没有显示");
+            int unchangedLoadingVersion = ((DataTableService)originalDataTable).DebugVersion;
+            string firstLoadingDetail = loadingDataSetItem.GetText(4);
+            Thread.Sleep(5);
+            overlay._Process(0.3d);
+            Assert(((DataTableService)originalDataTable).DebugVersion == unchangedLoadingVersion &&
+                loadingDataSetItem.GetText(4) != firstLoadingDetail,
+                "DataTable 同版本刷新没有原地更新加载年龄");
             await activeDataTableLoad;
             SelectNavigationItem(navigation, dataTablePage);
             Assert(dataTableLoaded.Text == "1" &&
                 dataTableTables.Text == "2" &&
                 dataTableLoading.Text == "0" &&
-                dataTableDataSetTree.GetRoot()?.GetFirstChild()?.GetChildCount() == 2,
+                dataTableDataSetTree.GetRoot()?.GetFirstChild()?.GetChildCount() == 2 &&
+                !dataTableDataSetTree.GetRoot()!.GetFirstChild()!.GetText(4)
+                    .Contains("存活", StringComparison.Ordinal),
                 "DataTable 已加载表清单没有完整显示");
             Assert(originalDataTable.Unload("debugger.loading"),
                 "DataTable Debugger 回归无法卸载多表数据集");
@@ -693,7 +757,10 @@ public sealed partial class DebuggerOverlayRegression : Node
                 ResourceKey.Create(
                     "res://Verification/Automated/Fixtures/UI/UiConfigurableControl.tscn");
             Task<Control> directOpeningUi =
-                originalUi.OpenAsync<Control>(directUiKey, UiLayer.Overlay);
+                originalUi.OpenAsync<Control>(
+                    directUiKey,
+                    UiLayer.Overlay,
+                    ConfigureDebuggerUiRequest);
             SelectNavigationItem(navigation, uiPage);
             topUiEntry = uiStackTree.GetRoot()?.GetFirstChild();
             Assert(uiScene.Text == "0" &&
@@ -706,7 +773,9 @@ public sealed partial class DebuggerOverlayRegression : Node
                 topUiEntry.GetText(1) == "—" &&
                 topUiEntry.GetText(2) == "Direct" &&
                 topUiEntry.GetText(3) == directUiKey.Value &&
-                topUiEntry.GetText(4) == "加载中",
+                topUiEntry.GetText(4) == "加载中" &&
+                topUiEntry.GetText(5) == nameof(DebuggerOverlayRegression) &&
+                !string.IsNullOrEmpty(topUiEntry.GetText(6)),
                 "ResourceKey 直接异步打开请求没有显示在诊断页");
             Control directUi = await directOpeningUi;
             SelectNavigationItem(navigation, uiPage);
@@ -737,7 +806,9 @@ public sealed partial class DebuggerOverlayRegression : Node
                 topUiEntry?.GetText(0) == "View" &&
                 topUiEntry.GetText(1) == "—" &&
                 topUiEntry.GetText(2) == "configured" &&
-                topUiEntry.GetText(4) == "加载中",
+                topUiEntry.GetText(4) == "加载中" &&
+                topUiEntry.GetText(5) == "未知" &&
+                !string.IsNullOrEmpty(topUiEntry.GetText(6)),
                 "UI 异步打开请求没有显示在诊断页");
             Control openedUi = await openingUi;
             originalUi.Close(openedUi);
@@ -793,7 +864,8 @@ public sealed partial class DebuggerOverlayRegression : Node
                 procedureCurrent.Text == "空闲" &&
                 procedureState.Text == "空闲" &&
                 procedureResult.Text == "—" &&
-                procedureDetails.GetRoot()?.GetChildCount() == 11 &&
+                procedureDetails.GetRoot()?.GetChildCount() == 12 &&
+                GetDetailValue(procedureDetails, "当前耗时") == "—" &&
                 GetDetailValue(procedureDetails, "最近结果") == "—" &&
                 GetDetailValue(procedureDetails, "最近耗时") == "—",
                 "Procedure 空状态诊断页没有完整渲染");
@@ -928,17 +1000,37 @@ public sealed partial class DebuggerOverlayRegression : Node
             Assert(ulong.TryParse(inputFrame.Text, out _),
                 "InputService 恢复后页面没有重新读取快照");
 
-            SelectNavigationItem(navigation, runtime.GetFirstChild().GetNext());
-            Assert(title.Text == "Scheduler", "Scheduler 页面切换失败");
-            Assert(schedulerDashboard.Visible && !debuggerLabel.Visible &&
-                int.TryParse(schedulerActive.Text, out _) &&
-                schedulerNext.Text.Length > 0 &&
-                int.TryParse(schedulerProcessDispatch.Text, out _) &&
-                int.TryParse(schedulerPhysicsDispatch.Text, out _) &&
-                int.TryParse(schedulerFailed.Text, out _),
-                "Scheduler 仪表盘没有完整渲染");
-
             ISchedulerService originalScheduler = Services.Get<ISchedulerService>();
+            ScheduleHandle diagnosticHandle = originalScheduler.Schedule(
+                60d,
+                static () => { },
+                new ScheduleOptions(owner: overlay));
+            try
+            {
+                SelectNavigationItem(navigation, runtime.GetFirstChild().GetNext());
+                TreeItem? activeTask = schedulerActiveTasks.GetRoot()?.GetFirstChild();
+                Assert(title.Text == "Scheduler", "Scheduler 页面切换失败");
+                Assert(schedulerDashboard.Visible && !debuggerLabel.Visible &&
+                    int.TryParse(schedulerActive.Text, out _) &&
+                    schedulerNext.Text.Length > 0 &&
+                    int.TryParse(schedulerProcessDispatch.Text, out _) &&
+                    int.TryParse(schedulerPhysicsDispatch.Text, out _) &&
+                    int.TryParse(schedulerFailed.Text, out _) &&
+                    schedulerActiveTasksStatus.Text.Contains("活动任务", StringComparison.Ordinal) &&
+                    activeTask is not null &&
+                    activeTask.GetText(1).Contains(overlay.Name.ToString(), StringComparison.Ordinal),
+                    "Scheduler 仪表盘没有完整渲染活动任务 Owner 诊断");
+            }
+            finally
+            {
+                originalScheduler.Cancel(diagnosticHandle);
+            }
+            overlay._Process(0.3d);
+            TreeItem? recentResult = schedulerRecentResults.GetRoot()?.GetFirstChild();
+            Assert(schedulerRecentResultsStatus.Text.Contains("最近结束", StringComparison.Ordinal) &&
+                recentResult is not null && recentResult.GetText(2) == "主动取消",
+                "Scheduler 仪表盘没有渲染最近结束原因");
+
             Assert(Services.Unregister(originalScheduler), "SchedulerService 测试注销失败");
             try
             {
@@ -964,7 +1056,11 @@ public sealed partial class DebuggerOverlayRegression : Node
                     schedulerFailed,
                 };
                 Assert(schedulerActive.Text == "未注册" &&
-                    Array.TrueForAll(unavailableSchedulerValues, label => label.Text == "—"),
+                    Array.TrueForAll(unavailableSchedulerValues, label => label.Text == "—") &&
+                    schedulerActiveTasksStatus.Text == "—" &&
+                    schedulerRecentResultsStatus.Text == "—" &&
+                    schedulerActiveTasks.GetRoot() is null &&
+                    schedulerRecentResults.GetRoot() is null,
                     "SchedulerService 未注册后仍残留旧指标");
 
                 var unsupportedScheduler = new UnsupportedSchedulerService();
@@ -1007,6 +1103,41 @@ public sealed partial class DebuggerOverlayRegression : Node
                 "Audio 仪表盘没有完整渲染");
 
             IAudioService originalAudio = Services.Get<IAudioService>();
+            Node runtimeNode = GetNode<Node>("/root/GoDoRuntime");
+            bool runtimeWasProcessing = runtimeNode.IsProcessing();
+            Task diagnosticBgmRequest;
+            runtimeNode.SetProcess(false);
+            try
+            {
+                ResourceKey diagnosticBgmKey = ResourceKey.Create(
+                    "res://Verification/Automated/Fixtures/Audio/LoopSilence.tres");
+                diagnosticBgmRequest = originalAudio.PlayBgmAsync(diagnosticBgmKey);
+                Thread.Sleep(5);
+                overlay._Process(0.3d);
+                Assert(audioBgmState.Text == "加载中" &&
+                    audioBgmStateDetail.Text.Contains("请求", StringComparison.Ordinal) &&
+                    audioBgmStateDetail.Text.Contains("ms", StringComparison.Ordinal),
+                    "Audio 仪表盘没有显示活动 BGM 请求存活时间");
+                originalAudio.StopBgm();
+                overlay._Process(0.3d);
+                Assert(!audioBgmStateDetail.Text.Contains("请求", StringComparison.Ordinal),
+                    "StopBgm 后 Audio 仪表盘仍显示请求存活时间");
+            }
+            finally
+            {
+                runtimeNode.SetProcess(runtimeWasProcessing);
+            }
+            bool diagnosticBgmCanceled = false;
+            try
+            {
+                await diagnosticBgmRequest;
+            }
+            catch (OperationCanceledException)
+            {
+                diagnosticBgmCanceled = true;
+            }
+            Assert(diagnosticBgmCanceled, "Debugger BGM 诊断请求在 Stop 后没有取消");
+
             Assert(Services.Unregister(originalAudio), "AudioService 测试注销失败");
             try
             {
@@ -1105,6 +1236,39 @@ public sealed partial class DebuggerOverlayRegression : Node
                 "Events 搜索空结果状态错误");
             eventsSearch.Text = string.Empty;
             eventsSearch.EmitSignal(LineEdit.SignalName.TextChanged, eventsSearch.Text);
+
+            EventChannel.On<DebuggerEventSourceEvent>(OnDebuggerEventSource, priority: -5);
+            bool sourceRegistered = true;
+            try
+            {
+                eventsSearch.EmitSignal(LineEdit.SignalName.TextChanged, eventsSearch.Text);
+                TreeItem? sourceEventItem =
+                    FindTreeItem(eventsTree, 0, nameof(DebuggerEventSourceEvent));
+                Assert(sourceEventItem is not null, "Events 未显示监听来源回归事件");
+                sourceEventItem!.Select(0);
+                eventsTree.EmitSignal(Tree.SignalName.ItemSelected);
+                TreeItem? sourceItem = eventsListenerSources.GetRoot()?.GetFirstChild();
+                Assert(eventsListenerSourcesStatus.Text == "监听来源 1 / 上限 64" &&
+                    sourceItem is not null &&
+                    sourceItem.GetText(0).Contains(nameof(OnDebuggerEventSource), StringComparison.Ordinal) &&
+                    sourceItem.GetText(1) == "On" &&
+                    sourceItem.GetText(2).Contains(nameof(DebuggerOverlayRegression), StringComparison.Ordinal) &&
+                    sourceItem.GetText(3) == "-5" &&
+                    !string.IsNullOrEmpty(sourceItem.GetText(4)),
+                    "Events 监听来源详情渲染错误");
+
+                EventChannel.Off<DebuggerEventSourceEvent>(OnDebuggerEventSource);
+                sourceRegistered = false;
+                eventsTree.EmitSignal(Tree.SignalName.ItemSelected);
+                Assert(eventsListenerSourcesStatus.Text == "监听来源 0 / 上限 64" &&
+                    eventsListenerSources.GetRoot()?.GetChildCount() == 0,
+                    "Events 监听来源没有在 Off 后立即移除");
+            }
+            finally
+            {
+                if (sourceRegistered)
+                    EventChannel.Off<DebuggerEventSourceEvent>(OnDebuggerEventSource);
+            }
 
             Assert(console.GetChildCount() == 0, "控制台仍保留旧的单选过滤子页面");
             SelectNavigationItem(navigation, console);
@@ -1729,6 +1893,20 @@ public sealed partial class DebuggerOverlayRegression : Node
     }
 #endif
 
+#if DEBUG
+    private void ConfigureDebuggerUiRequest(Control view)
+    {
+    }
+
+    private readonly struct DebuggerEventSourceEvent : IEventMessage
+    {
+    }
+
+    private void OnDebuggerEventSource(DebuggerEventSourceEvent message)
+    {
+    }
+#endif
+
     private static string GetDetailValue(Tree tree, string name)
     {
         TreeItem? item = tree.GetRoot()?.GetFirstChild();
@@ -1749,6 +1927,20 @@ public sealed partial class DebuggerOverlayRegression : Node
         while (item is not null)
         {
             if (item.GetText(column) == value)
+                return item;
+
+            item = item.GetNext();
+        }
+
+        return null;
+    }
+
+    private static TreeItem? FindTreeItemContaining(Tree tree, int column, string value)
+    {
+        TreeItem? item = tree.GetRoot()?.GetFirstChild();
+        while (item is not null)
+        {
+            if (item.GetText(column).Contains(value, StringComparison.Ordinal))
                 return item;
 
             item = item.GetNext();

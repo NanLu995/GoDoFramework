@@ -61,17 +61,17 @@ bool released = pool.Release(projectile);
 - 预热会立即实例化节点，避免首轮峰值，但会增加启动时间和常驻对象数量。
 - Release 后节点离开场景树，依赖 `_ExitTree()` 的逻辑会执行；复用时也会再次 `_EnterTree()`。
 - Pool 不支持多线程、纯 C# 对象、自动字段重置或复杂淘汰策略。
-- 仅 Debug 构建会以弱引用登记仍存活的 Pool，供 GoDo Debugger 的 `运行时 / Pool` 页面按需读取类型、空闲数、活动数和空闲容量；Release 不包含登记、快照或额外运行时分配。`Dispose()` 后会立即从该页面移除。
+- 仅 Debug 构建会以弱引用登记仍存活的 Pool，供 GoDo Debugger 的 `运行时 / Pool` 页面按需读取类型、空闲数、活动数和空闲容量，并最多列出 64 个活动租借的节点身份、当前父节点路径、状态和单调时钟存活时间。租借明细复用 Pool 已持有的活动节点，不采集调用栈、不保留历史，节点名称和路径限制为 256 字符；Release 不包含登记、时间戳、快照或额外运行时分配。`Release()` 后节点立即从明细移除，`Dispose()` 后 Pool 立即从页面移除。
 
 ## 自动回归验证
 
-`Verification/Automated/NodePoolRegression.tscn` 使用最小 PackedScene 和 IPoolable 测试节点，验证预热、Acquire/Release 与实例复用、空闲容量、重复和外部节点拒绝、Clear、Dispose 强制清理，以及跨线程、回调异常和关闭重入等失败路径。
+`Verification/Automated/NodePoolRegression.tscn` 使用最小 PackedScene 和 IPoolable 测试节点，验证预热、Acquire/Release 与实例复用、空闲容量、重复和外部节点拒绝、Clear、Dispose 强制清理、Debug 活动租借上限/路径/状态/移除，以及跨线程、回调异常和关闭重入等失败路径。
 
 ```powershell
 & $env:GODOT_PATH --headless --path . Verification/Automated/NodePoolRegression.tscn
 ```
 
-当前 runner 已通过 `dotnet build` 编译，并在项目声明的 Godot Mono Headless 版本中完成 13/13 项验证；成功退出码为 0，失败退出码为 1。测试节点只存在于 `Verification/Automated/`，不进入框架发布包。
+当前 runner 已通过 `dotnet build` 编译，并在项目声明的 Godot Mono Headless 版本中完成 14/14 项验证；成功退出码为 0，失败退出码为 1。测试节点只存在于 `Verification/Automated/`，不进入框架发布包。
 
 ## 常见误用
 

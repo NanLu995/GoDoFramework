@@ -39,6 +39,7 @@ internal readonly struct DataTableDebugDataSetEntry
     public int LoadedTableCount { get; }
     public int TotalTableCount { get; }
     public string? LastTableId { get; }
+    public ulong AgeMilliseconds { get; }
     public DataTableDebugTableEntry[] Tables { get; }
 
     public DataTableDebugDataSetEntry(
@@ -48,6 +49,7 @@ internal readonly struct DataTableDebugDataSetEntry
         int loadedTableCount,
         int totalTableCount,
         string? lastTableId,
+        ulong ageMilliseconds,
         DataTableDebugTableEntry[] tables)
     {
         DataSetId = dataSetId;
@@ -56,6 +58,7 @@ internal readonly struct DataTableDebugDataSetEntry
         LoadedTableCount = loadedTableCount;
         TotalTableCount = totalTableCount;
         LastTableId = lastTableId;
+        AgeMilliseconds = ageMilliseconds;
         Tables = tables;
     }
 }

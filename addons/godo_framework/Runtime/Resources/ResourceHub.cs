@@ -266,6 +266,7 @@ public static class ResourceHub
         ResourceLoadStatus DebugStatus { get; }
         float DebugProgress { get; }
         int DebugMergedRequestCount { get; }
+        ulong DebugStartedTicks { get; }
         void IncrementDebugMergedRequestCount();
 #endif
     }
@@ -292,6 +293,7 @@ public static class ResourceHub
         public ResourceLoadStatus DebugStatus => Operation.Status;
         public float DebugProgress => Operation.Progress;
         public int DebugMergedRequestCount { get; private set; } = 1;
+        public ulong DebugStartedTicks { get; } = Time.GetTicksMsec();
 
         public void IncrementDebugMergedRequestCount()
         {
@@ -306,6 +308,7 @@ public static class ResourceHub
         VerifyReady();
 
         var activeOperations = new ResourceDebugActiveEntry[_operations.Count];
+        ulong currentTicks = Time.GetTicksMsec();
         int index = 0;
         foreach (IResourceOperation operation in _operations.Values)
         {
@@ -314,7 +317,8 @@ public static class ResourceHub
                 operation.ResourceType,
                 operation.DebugStatus,
                 operation.DebugProgress,
-                operation.DebugMergedRequestCount);
+                operation.DebugMergedRequestCount,
+                currentTicks - operation.DebugStartedTicks);
         }
 
         return new ResourceDebugSnapshot(

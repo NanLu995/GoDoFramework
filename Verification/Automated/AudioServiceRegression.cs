@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using Godot;
 using GoDo;
@@ -228,6 +229,11 @@ public sealed partial class AudioServiceRegression : Node
         {
             firstRequest = _service.PlayBgmAsync(AudioKey);
             Assert(_service.IsBgmLoading, "BGM 请求没有进入加载状态");
+#if DEBUG
+            Thread.Sleep(5);
+            ulong? firstRequestAge = _service.DebugBgmRequestAgeMilliseconds;
+            Assert(firstRequestAge >= 1, "BGM 加载请求存活时间没有增长");
+#endif
 
             await AssertThrowsAsync<InvalidOperationException>(
                 () => _service.PlayBgmAsync(AlternateAudioKey),
@@ -235,9 +241,17 @@ public sealed partial class AudioServiceRegression : Node
 
             _service.StopBgm();
             Assert(!_service.IsBgmLoading, "StopBgm 没有立即释放加载状态");
+#if DEBUG
+            Assert(!_service.DebugBgmRequestAgeMilliseconds.HasValue,
+                "StopBgm 后仍保留活动请求存活时间");
+#endif
 
             replacementRequest = _service.PlayBgmAsync(AudioKey);
             Assert(_service.IsBgmLoading, "StopBgm 后无法立即开始新请求");
+#if DEBUG
+            Assert(_service.DebugBgmRequestAgeMilliseconds < firstRequestAge,
+                "替代 BGM 请求没有从新的起点计时");
+#endif
         }
         finally
         {
@@ -251,6 +265,10 @@ public sealed partial class AudioServiceRegression : Node
 
         AssertEqual(AudioKey, _service.CurrentBgm, "替代 BGM 请求没有提交");
         Assert(!_service.IsBgmLoading, "替代 BGM 请求完成后仍处于加载状态");
+#if DEBUG
+        Assert(!_service.DebugBgmRequestAgeMilliseconds.HasValue,
+            "BGM 请求完成后仍保留活动请求存活时间");
+#endif
         _service.StopBgm();
     }
 

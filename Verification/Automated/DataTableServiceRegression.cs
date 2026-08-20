@@ -24,10 +24,29 @@ public sealed partial class DataTableServiceRegression : Node
             var progress = new List<DataTableLoadProgress>();
             Task loading = BaseDataTables.LoadAsync(progress.Add);
             Assert(!loading.IsCompleted, "多表数据集没有在表之间让出帧。 ");
+#if DEBUG
+            Thread.Sleep(5);
+            DataTableDebugSnapshot loadingSnapshot =
+                ((DataTableService)service).GetDebugSnapshot();
+            DataTableDebugDataSetEntry loadingEntry = Array.Find(
+                loadingSnapshot.DataSets,
+                static entry => entry.DataSetId == "game.base");
+            Assert(loadingEntry.State == DataTableDebugState.Loading &&
+                loadingEntry.AgeMilliseconds >= 1,
+                "活动数据集加载年龄没有持续增长。");
+#endif
             AssertThrows<InvalidOperationException>(
                 () => { _ = BaseDataTables.Unload(); },
                 "正在加载的数据集可以被卸载。");
             await loading;
+#if DEBUG
+            DataTableDebugDataSetEntry loadedEntry = Array.Find(
+                ((DataTableService)service).GetDebugSnapshot().DataSets,
+                static entry => entry.DataSetId == "game.base");
+            Assert(loadedEntry.State == DataTableDebugState.Loaded &&
+                loadedEntry.AgeMilliseconds == 0,
+                "数据集加载完成后仍保留活动加载年龄。");
+#endif
 
             Assert(BaseDataTables.IsLoaded, "Base 数据集加载后未发布。");
             Assert(progress.Count == 4, "表级进度回调次数不正确。");

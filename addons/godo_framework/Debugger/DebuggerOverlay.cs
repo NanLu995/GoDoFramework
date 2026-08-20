@@ -177,6 +177,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private Label? _schedulerCanceledValue;
     private Label? _schedulerOwnerCanceledValue;
     private Label? _schedulerFailedValue;
+    private Label? _schedulerActiveTasksStatus;
+    private Tree? _schedulerActiveTasksTree;
+    private Label? _schedulerRecentResultsStatus;
+    private Tree? _schedulerRecentResultsTree;
     private Control? _audioDashboard;
     private Label? _audioBgmStateValue;
     private Label? _audioBgmStateDetail;
@@ -208,6 +212,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private Label? _poolActiveValue;
     private Label? _poolStatus;
     private Tree? _poolTree;
+    private Label? _poolActiveRentalsStatus;
+    private Tree? _poolActiveRentalsTree;
     private Control? _dataTableDashboard;
     private Label? _dataTableLoadedValue;
     private Label? _dataTableTablesValue;
@@ -250,6 +256,9 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private Label? _eventsMatchStatus;
     private Tree? _eventsTree;
     private Label? _eventsSelectionDetail;
+    private Label? _eventsListenerSourcesStatus;
+    private Tree? _eventsListenerSourcesTree;
+    private string _selectedEventTypeName = string.Empty;
     private RichTextLabel? _debuggerLabel;
     private VScrollBar? _consoleScrollBar;
     private Control? _consoleToolbar;
@@ -687,6 +696,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _schedulerCanceledValue = null;
         _schedulerOwnerCanceledValue = null;
         _schedulerFailedValue = null;
+        _schedulerActiveTasksStatus = null;
+        _schedulerActiveTasksTree = null;
+        _schedulerRecentResultsStatus = null;
+        _schedulerRecentResultsTree = null;
         _audioDashboard = null;
         _audioBgmStateValue = null;
         _audioBgmStateDetail = null;
@@ -712,6 +725,14 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _resourcesActiveTree = null;
         _resourcesHistoryStatus = null;
         _resourcesHistoryTree = null;
+        _poolDashboard = null;
+        _poolRegisteredValue = null;
+        _poolIdleValue = null;
+        _poolActiveValue = null;
+        _poolStatus = null;
+        _poolTree = null;
+        _poolActiveRentalsStatus = null;
+        _poolActiveRentalsTree = null;
         _uiDashboard = null;
         _uiSceneValue = null;
         _uiViewValue = null;
@@ -741,6 +762,9 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _eventsMatchStatus = null;
         _eventsTree = null;
         _eventsSelectionDetail = null;
+        _eventsListenerSourcesStatus = null;
+        _eventsListenerSourcesTree = null;
+        _selectedEventTypeName = string.Empty;
         _debuggerLabel = null;
         _consoleScrollBar = null;
         _consoleToolbar = null;

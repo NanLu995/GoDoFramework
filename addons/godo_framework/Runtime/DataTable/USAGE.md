@@ -63,7 +63,9 @@ Service 不调用 `ErrorHub` 后再抛出，异常只由决定重试、降级或
 
 ## Debugger 诊断
 
-Debug 构建中的框架内置 `DataTableService` 向只读 Debugger 提供 internal 快照，用于显示当前加载进度、已发布数据集、缓存表类型和最近加载结果。该能力不增加 public API，非框架内置的 `IDataTableService` 实现会显示“不支持 Debug 快照”。
+Debug 构建中的框架内置 `DataTableService` 向只读 Debugger 提供 internal 快照，用于显示当前加载进度、从数据集加载开始计算的单调存活时间、已发布数据集、缓存表类型和最近加载结果。成功、失败或取消后活动年龄立即移除。该能力不增加 public API，非框架内置的 `IDataTableService` 实现会显示“不支持 Debug 快照”。
+
+每个活动数据集只额外保存一个 Debug 起始时间。Debugger 在状态版本变化时重建快照和 Tree；版本未变化时不重新采集快照、不重建 Tree，只原地更新最多 32 个已显示顶层数据集中的加载行文本。Release 不包含起点、年龄或 Tree 元数据。
 
 - 当前加载记录表级进度、最近完成的表和运行时目录。
 - 已发布记录数据集、目录、表 ID 与实际缓存类型。
@@ -86,7 +88,7 @@ Debug 构建中的框架内置 `DataTableService` 向只读 Debugger 提供 inte
 
 ## 验证
 
-- `Verification/Automated/DataTableServiceRegression.tscn`：真实 Base Manifest 与三张 `.gdtb` 的逐表进度、强类型查询、重复加载、取消、失败不发布和卸载。
+- `Verification/Automated/DataTableServiceRegression.tscn`：真实 Base Manifest 与三张 `.gdtb` 的逐表进度、活动加载年龄与结束清理、强类型查询、重复加载、取消、失败不发布和卸载。
 - `Verification/Experimental/DataTable/DataTablePrototypeBenchmark.tscn`：绝对路径、`res://`、PCK、Zstd、损坏文件拒绝和查询性能。
 - `Verification/Experimental/DataTable/verify_prototype.py`：生成确定性、校验、单表生成、过期检查和 Manifest 契约。
 

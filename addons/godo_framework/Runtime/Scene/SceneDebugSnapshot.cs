@@ -24,6 +24,7 @@ internal readonly struct SceneDebugSnapshot
 {
     public ResourceKey? CurrentChangeKey { get; }
     public SceneDebugPhase CurrentPhase { get; }
+    public ulong CurrentDurationMilliseconds { get; }
     public ResourceKey? LastChangeKey { get; }
     public SceneDebugPhase LastPhase { get; }
     public SceneDebugResult LastResult { get; }
@@ -33,6 +34,7 @@ internal readonly struct SceneDebugSnapshot
     public SceneDebugSnapshot(
         ResourceKey? currentChangeKey,
         SceneDebugPhase currentPhase,
+        ulong currentDurationMilliseconds,
         ResourceKey? lastChangeKey,
         SceneDebugPhase lastPhase,
         SceneDebugResult lastResult,
@@ -41,6 +43,7 @@ internal readonly struct SceneDebugSnapshot
     {
         CurrentChangeKey = currentChangeKey;
         CurrentPhase = currentPhase;
+        CurrentDurationMilliseconds = currentDurationMilliseconds;
         LastChangeKey = lastChangeKey;
         LastPhase = lastPhase;
         LastResult = lastResult;

@@ -232,6 +232,9 @@ public sealed partial class SceneService : Node, ISceneService
         return new SceneDebugSnapshot(
             _currentChangeKey,
             _debugPhase,
+            _currentChangeKey.HasValue
+                ? Time.GetTicksMsec() - _debugStartedTicks
+                : 0UL,
             _lastChangeKey,
             _lastPhase,
             _lastResult,

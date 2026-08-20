@@ -66,7 +66,7 @@ public sealed partial class EcsWorldHost : Node
 - `Store` 和 `Systems` 只在节点位于场景树且尚未关闭时可用；否则抛出 `InvalidOperationException`。
 - `IsRunning` 默认是 `false`，避免尚未注册业务 System 时产生空转；添加完 System 后必须显式设为 `true`。
 - `IsRunning = false` 会关闭对应 Godot Process，只暂停系统更新，不删除实体或替换 World。
-- `Shutdown()` 幂等，停止两种 Godot Process 并释放宿主持有的 World 与系统根引用。
+- `Shutdown()` 幂等，停止两种 Godot Process 并释放宿主持有的 World 与 SystemRoot 引用。
 - 节点退出后重新进入场景树会创建全新的 World，旧 Entity 不得继续使用。
 
 ## 生命周期、线程与失败语义

@@ -44,11 +44,26 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _eventsMatchStatus = GetEventsNode<Label>("MatchStatus");
         _eventsTree = GetEventsNode<Tree>("EventList");
         _eventsSelectionDetail = GetEventsNode<Label>("SelectionDetail");
+        _eventsListenerSourcesStatus = GetEventsNode<Label>("ListenerSourcesStatus");
+        _eventsListenerSourcesTree = GetEventsNode<Tree>("ListenerSources");
         _eventsTree.SetColumnTitle(0, "事件");
         _eventsTree.SetColumnTitle(1, "监听器");
         _eventsTree.SetColumnExpand(0, true);
         _eventsTree.SetColumnExpand(1, false);
         _eventsTree.SetColumnCustomMinimumWidth(1, 72);
+        _eventsListenerSourcesTree.SetColumnTitle(0, "监听方法");
+        _eventsListenerSourcesTree.SetColumnTitle(1, "方式");
+        _eventsListenerSourcesTree.SetColumnTitle(2, "Owner");
+        _eventsListenerSourcesTree.SetColumnTitle(3, "优先级");
+        _eventsListenerSourcesTree.SetColumnTitle(4, "已注册");
+        _eventsListenerSourcesTree.SetColumnExpand(0, true);
+        _eventsListenerSourcesTree.SetColumnExpand(1, false);
+        _eventsListenerSourcesTree.SetColumnExpand(2, true);
+        _eventsListenerSourcesTree.SetColumnExpand(3, false);
+        _eventsListenerSourcesTree.SetColumnExpand(4, false);
+        _eventsListenerSourcesTree.SetColumnCustomMinimumWidth(1, 72);
+        _eventsListenerSourcesTree.SetColumnCustomMinimumWidth(3, 64);
+        _eventsListenerSourcesTree.SetColumnCustomMinimumWidth(4, 72);
     }
 
     private T GetEventsNode<T>(string path) where T : Node
@@ -107,9 +122,11 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             return;
 
         TreeItem? item = _eventsTree.GetSelected();
+        _selectedEventTypeName = item?.GetMetadata(0).AsString() ?? string.Empty;
         _eventsSelectionDetail.Text = item is null
             ? "选择事件查看完整类型名"
-            : item.GetMetadata(0).AsString();
+            : _selectedEventTypeName;
+        RefreshEventListenerSources();
     }
 
 
@@ -193,7 +210,9 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             !IsInstanceValid(_eventsListenersValue) ||
             !IsInstanceValid(_eventsMatchStatus) ||
             !IsInstanceValid(_eventsTree) ||
-            !IsInstanceValid(_eventsSelectionDetail))
+            !IsInstanceValid(_eventsSelectionDetail) ||
+            !IsInstanceValid(_eventsListenerSourcesStatus) ||
+            !IsInstanceValid(_eventsListenerSourcesTree))
         {
             return;
         }
@@ -221,25 +240,111 @@ public sealed partial class DebuggerOverlay : CanvasLayer
 
         int snapshotSignature = signature.ToHashCode();
         if (_eventsSnapshotSignature == snapshotSignature)
+        {
+            RefreshEventListenerSources();
             return;
+        }
 
         _eventsSnapshotSignature = snapshotSignature;
         _eventsTree.Clear();
-        _eventsSelectionDetail.Text = "选择事件查看完整类型名";
         TreeItem root = _eventsTree.CreateItem();
+        bool restoredSelection = false;
         for (int index = 0; index < events.Length; index++)
         {
             EventChannel.EventDebugEntry entry = events[index];
             if (!MatchesEventSearch(entry.EventType))
                 continue;
 
+            string eventTypeName = entry.EventType.FullName ?? entry.EventType.Name;
             TreeItem item = _eventsTree.CreateItem(root);
             item.SetText(0, entry.EventType.Name);
             item.SetText(1, entry.ListenerCount.ToString(CultureInfo.InvariantCulture));
             item.SetTextAlignment(1, HorizontalAlignment.Center);
-            item.SetTooltipText(0, entry.EventType.FullName ?? entry.EventType.Name);
-            item.SetMetadata(0, entry.EventType.FullName ?? entry.EventType.Name);
+            item.SetTooltipText(0, eventTypeName);
+            item.SetMetadata(0, eventTypeName);
+            if (eventTypeName == _selectedEventTypeName)
+            {
+                item.Select(0);
+                restoredSelection = true;
+            }
         }
+
+        if (!restoredSelection)
+            _selectedEventTypeName = string.Empty;
+        _eventsSelectionDetail.Text = restoredSelection
+            ? _selectedEventTypeName
+            : "选择事件查看完整类型名";
+        RefreshEventListenerSources();
+    }
+
+    private void RefreshEventListenerSources()
+    {
+        if (!IsInstanceValid(_eventsListenerSourcesStatus) ||
+            !IsInstanceValid(_eventsListenerSourcesTree))
+        {
+            return;
+        }
+
+        _eventsListenerSourcesTree.Clear();
+        TreeItem root = _eventsListenerSourcesTree.CreateItem();
+        if (string.IsNullOrEmpty(_selectedEventTypeName))
+        {
+            _eventsListenerSourcesStatus.Text = "选择事件查看监听来源";
+            return;
+        }
+
+        EventChannel.EventDebugEntry[] events = EventChannel.GetDebugSnapshot();
+        Type? selectedEventType = null;
+        int totalListenerCount = 0;
+        for (int index = 0; index < events.Length; index++)
+        {
+            Type eventType = events[index].EventType;
+            if ((eventType.FullName ?? eventType.Name) != _selectedEventTypeName)
+                continue;
+
+            selectedEventType = eventType;
+            totalListenerCount = events[index].ListenerCount;
+            break;
+        }
+
+        if (selectedEventType is null)
+        {
+            _selectedEventTypeName = string.Empty;
+            _eventsListenerSourcesStatus.Text = "选择事件查看监听来源";
+            return;
+        }
+
+        EventChannel.EventDebugListenerEntry[] listeners =
+            EventChannel.GetDebugListenerSnapshot(selectedEventType);
+        _eventsListenerSourcesStatus.Text = totalListenerCount > EventChannel.MaxDebugListenerEntries
+            ? $"监听来源 {totalListenerCount}，显示前 {EventChannel.MaxDebugListenerEntries}"
+            : $"监听来源 {totalListenerCount} / 上限 {EventChannel.MaxDebugListenerEntries}";
+
+        for (int index = 0; index < listeners.Length; index++)
+        {
+            EventChannel.EventDebugListenerEntry entry = listeners[index];
+            string owner = entry.OwnerInstanceId == 0
+                ? entry.OwnerName
+                : $"{entry.OwnerName} #{entry.OwnerInstanceId}";
+            TreeItem item = _eventsListenerSourcesTree.CreateItem(root);
+            item.SetText(0, entry.HandlerDisplayName);
+            item.SetText(1, entry.RegistrationKind.ToString());
+            item.SetText(2, owner);
+            item.SetText(3, entry.Priority.ToString(CultureInfo.InvariantCulture));
+            item.SetText(4, FormatEventListenerAge(entry.Age));
+            item.SetTooltipText(0, entry.HandlerFullName);
+            item.SetTooltipText(2, string.IsNullOrEmpty(entry.OwnerPath) ? owner : entry.OwnerPath);
+            item.SetTextAlignment(1, HorizontalAlignment.Center);
+            item.SetTextAlignment(3, HorizontalAlignment.Center);
+            item.SetTextAlignment(4, HorizontalAlignment.Right);
+        }
+    }
+
+    private static string FormatEventListenerAge(TimeSpan age)
+    {
+        return age.TotalSeconds < 1d
+            ? $"{Math.Max(0d, age.TotalMilliseconds).ToString("0", CultureInfo.InvariantCulture)} ms"
+            : $"{age.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture)} s";
     }
 
     private bool MatchesEventSearch(Type eventType)

@@ -39,7 +39,7 @@ namespace GoDo
             where T : struct, IEventMessage
         {
             ThrowIfDisposed();
-            EventChannel.On<T>(handler, priority);
+            EventChannel.OnFromScope<T>(handler, priority);
             _offActions.Add(() => EventChannel.Off<T>(handler));
             return this; // 支持链式调用
         }
@@ -57,7 +57,7 @@ namespace GoDo
             where T : struct, IEventMessage
         {
             ThrowIfDisposed();
-            EventChannel.Once<T>(handler);
+            EventChannel.OnceFromScope<T>(handler);
             _offActions.Add(() => EventChannel.Off<T>(handler));
             return this;
         }

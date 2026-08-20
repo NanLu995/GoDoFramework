@@ -592,10 +592,10 @@ public sealed partial class SchedulerCoreRegression : Node
     private void VerifyDebugSnapshot()
     {
         var core = new SchedulerCore(static _ => { });
-        ScheduleHandle game = core.Schedule(5d, static () => { });
+        ScheduleHandle game = core.Schedule(5d, DebugSnapshotCallback);
         core.ScheduleRepeating(
             4d,
-            static () => { },
+            DebugSnapshotCallback,
             ScheduleOptions.UnscaledGameTime);
         ScheduleHandle pausedPhysics = core.Schedule(
             3d,
@@ -605,7 +605,7 @@ public sealed partial class SchedulerCoreRegression : Node
                 SchedulePhase.Physics));
         Assert(core.Pause(pausedPhysics), "Debug 快照测试任务无法暂停");
 
-        var owner = new Node();
+        var owner = new Node { Name = "ExitedOwner" };
         AddChild(owner);
         core.Schedule(
             10d,
@@ -615,23 +615,34 @@ public sealed partial class SchedulerCoreRegression : Node
         owner.Free();
 
         core.Schedule(0d, static () => throw new InvalidOperationException("expected"));
+        core.Schedule(0d, DebugSnapshotCallback);
+        using var tokenCancellation = new CancellationTokenSource();
+        core.DelayAsync(10d, cancellationToken: tokenCancellation.Token);
+        tokenCancellation.Cancel();
         core.Advance(SchedulePhase.Process, 0d, 0d, false);
         Assert(core.Cancel(game), "Debug 快照测试任务无法取消");
 
+        var activeOwner = new Node { Name = "ActiveOwner" };
+        AddChild(activeOwner);
+        core.Schedule(
+            8d,
+            DebugSnapshotCallback,
+            new ScheduleOptions(owner: activeOwner));
+
         SchedulerDebugSnapshot snapshot = core.GetDebugSnapshot();
-        Assert(snapshot.ActiveCount == 2, "Debug 快照活动任务数不正确");
+        Assert(snapshot.ActiveCount == 3, "Debug 快照活动任务数不正确");
         Assert(snapshot.PausedCount == 1, "Debug 快照暂停任务数不正确");
         Assert(snapshot.RepeatingCount == 1, "Debug 快照重复任务数不正确");
         Assert(snapshot.UnscaledProcessCount == 1 && snapshot.RealPhysicsCount == 1,
             "Debug 快照六队列分布不正确");
-        Assert(snapshot.GameProcessCount == 0 &&
+        Assert(snapshot.GameProcessCount == 1 &&
                snapshot.RealProcessCount == 0 &&
                snapshot.GamePhysicsCount == 0 &&
                snapshot.UnscaledPhysicsCount == 0,
             "Debug 快照包含不存在的队列任务");
-        Assert(snapshot.LastProcessDispatchCount == 1 && snapshot.LastPhysicsDispatchCount == 0,
+        Assert(snapshot.LastProcessDispatchCount == 2 && snapshot.LastPhysicsDispatchCount == 0,
             "Debug 快照最近派发数不正确");
-        Assert(snapshot.CanceledCount == 3,
+        Assert(snapshot.CanceledCount == 4,
             "Debug 快照累计取消数不正确");
         Assert(snapshot.OwnerCanceledCount == 1,
             "Debug 快照 Owner 自动取消数不正确");
@@ -641,7 +652,50 @@ public sealed partial class SchedulerCoreRegression : Node
             "Debug 快照缺少下一任务剩余时间");
         AssertApproximately(snapshot.NextRemainingSeconds!.Value, 3d,
             "Debug 快照下一任务剩余时间不正确");
+
+        Assert(snapshot.ActiveEntries.Length == 3,
+            "Debug 快照没有返回全部活动任务明细");
+        Assert(Array.TrueForAll(snapshot.ActiveEntries,
+                entry => !string.IsNullOrWhiteSpace(entry.Label) && entry.AgeSeconds >= 0d),
+            "活动任务缺少自动标签或有效存活时间");
+        Assert(Array.Exists(snapshot.ActiveEntries,
+                entry => entry.OwnerName == "ActiveOwner" &&
+                         !string.IsNullOrWhiteSpace(entry.OwnerPath) &&
+                         entry.OwnerInstanceId.HasValue),
+            "活动任务没有保留 Owner 的只读身份快照");
+        Assert(Array.Exists(snapshot.ActiveEntries,
+                entry => entry.State == SchedulerDebugTaskState.Paused),
+            "活动任务明细没有区分暂停状态");
+
+        Assert(snapshot.RecentResults.Length == 5,
+            "Debug 快照最近结束记录数量不正确");
+        Assert(Array.Exists(snapshot.RecentResults,
+                entry => entry.Reason == SchedulerDebugEndReason.Completed),
+            "最近结束记录缺少正常完成原因");
+        Assert(Array.Exists(snapshot.RecentResults,
+                entry => entry.Reason == SchedulerDebugEndReason.OwnerExited &&
+                         entry.OwnerName == "ExitedOwner"),
+            "最近结束记录缺少 Owner 退出原因或 Owner 身份");
+        Assert(Array.Exists(snapshot.RecentResults,
+                entry => entry.Reason == SchedulerDebugEndReason.CallbackFailed),
+            "最近结束记录缺少回调失败原因");
+        Assert(Array.Exists(snapshot.RecentResults,
+                entry => entry.Reason == SchedulerDebugEndReason.ExplicitCanceled),
+            "最近结束记录缺少主动取消原因");
+        Assert(Array.Exists(snapshot.RecentResults,
+                entry => entry.Reason == SchedulerDebugEndReason.TokenCanceled),
+            "最近结束记录缺少 Token 取消原因");
+
         core.Shutdown();
+        SchedulerDebugSnapshot shutdownSnapshot = core.GetDebugSnapshot();
+        Assert(Array.Exists(shutdownSnapshot.RecentResults,
+                entry => entry.Reason == SchedulerDebugEndReason.Shutdown),
+            "最近结束记录缺少框架关闭原因");
+        activeOwner.Free();
+    }
+
+    private static void DebugSnapshotCallback()
+    {
     }
 #endif
 

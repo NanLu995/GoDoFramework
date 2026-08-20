@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2
+
+- 深化 Debugger 的运行时诊断视图，为 Scheduler、Pool、Resource、DataTable、Procedure、Scene、UI、Audio 与 EventChannel 补充有界活动明细、来源、存活时间和最近结果，并保持 Release 构建零额外诊断状态。
+- 将 Friflo ECS Debugger 扩展收敛到集成包自有目录，核心框架与可选集成继续保持独立发布边界。
+- 建立统一的 12 阶段本地发布门禁、public API 兼容基线、核心 ZIP 安装/替换升级/安全移除回归，以及 Core 与文档 Push/PR CI；编辑器回归使用隔离临时项目，避免继承本机编辑器布局和网络更新状态。
+
 ## 0.6.1
 
 - Debugger 新增可选的 Friflo ECS 只读诊断页，汇总 World、宿主、Entity、Archetype 和 System 树，但不会代替业务启用性能监控。

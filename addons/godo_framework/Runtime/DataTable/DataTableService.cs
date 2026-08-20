@@ -371,6 +371,7 @@ public sealed partial class DataTableService : Node, IDataTableService
     internal DataTableDebugSnapshot GetDebugSnapshot()
     {
         MainThreadGuard.VerifyAccess();
+        ulong currentTicks = Time.GetTicksMsec();
         var dataSets = new DataTableDebugDataSetEntry[
             _loadedDataSets.Count + _debugLoadingDataSets.Count];
         int dataSetIndex = 0;
@@ -393,6 +394,7 @@ public sealed partial class DataTableService : Node, IDataTableService
                 tables.Length,
                 tables.Length,
                 null,
+                0UL,
                 tables);
         }
 
@@ -405,6 +407,7 @@ public sealed partial class DataTableService : Node, IDataTableService
                 loading.LoadedTableCount,
                 loading.TotalTableCount,
                 loading.LastTableId,
+                currentTicks - loading.StartedTicks,
                 Array.Empty<DataTableDebugTableEntry>());
         }
         Array.Sort(
@@ -487,6 +490,7 @@ public sealed partial class DataTableService : Node, IDataTableService
         }
 
         internal string RuntimeDirectory { get; }
+        internal ulong StartedTicks { get; } = Time.GetTicksMsec();
         internal int LoadedTableCount { get; set; }
         internal int TotalTableCount { get; set; }
         internal string? LastTableId { get; set; }

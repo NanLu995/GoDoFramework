@@ -14,6 +14,9 @@ internal sealed class BgmPlaybackController : IDisposable
     {
         public TaskCompletionSource<bool> Cancellation { get; } = new(
             TaskCreationOptions.RunContinuationsAsynchronously);
+#if DEBUG
+        public ulong DebugStartedTicks { get; } = Time.GetTicksMsec();
+#endif
     }
 
     private readonly Node _owner;
@@ -35,6 +38,11 @@ internal sealed class BgmPlaybackController : IDisposable
     public bool IsPlaying => _players[0].Playing || _players[1].Playing;
     public bool IsLoading => _isLoading;
     public BgmPlaybackState State { get; private set; } = BgmPlaybackState.Stopped;
+#if DEBUG
+    internal ulong? DebugRequestAgeMilliseconds => _activeRequest is null
+        ? null
+        : Time.GetTicksMsec() - _activeRequest.DebugStartedTicks;
+#endif
 
     public BgmPlaybackController(
         Node owner,

@@ -161,7 +161,7 @@ Procedure 不会静默吞掉异常，也不会自动回滚旧流程。需要复�
 
 Procedure 切换不是高频路径。首版优先保证生命周期清楚和失败可见，不为每帧零分配做额外复杂化。不要在 `_Process` 中频繁调用 `ChangeAsync`。
 
-Debug 构建会保留上一个流程、当前目标、待处理请求、被仲裁拒绝的目标与原因、最近成功和最近一次失败的简短诊断。失败信息最多保存 256 个字符，不持有原始 Exception；只读 Debugger 仅在 Procedure 或“运行链路”页面被选中时读取。Release 构建不包含这些诊断状态。
+Debug 构建会保留上一个流程、当前目标、待处理请求、被仲裁拒绝的目标与原因、最近成功和最近一次失败的简短诊断。Entering/Exiting 期间还会使用已有单调起点报告当前切换耗时；并发拒绝不会重置正在进行的计时，切换结束后当前耗时归零，最近耗时保留本次总耗时。失败信息最多保存 256 个字符，不持有原始 Exception；只读 Debugger 仅在 Procedure 或“运行链路”页面被选中时读取。Release 构建不包含这些诊断状态。
 
 ## 常见误用
 
@@ -185,6 +185,7 @@ Verification/Automated/ProcedureRegression.tscn
 - 首次进入流程。
 - `ExitAsync` → `EnterAsync` 切换顺序。
 - 并发切换拒绝。
+- 阻塞 Enter 期间当前耗时增长，结束后清零。
 - `ExitAsync` 失败保留旧流程。
 - `EnterAsync` 失败后当前流程为空。
 - `ProcedureContext` 获取已注册服务。

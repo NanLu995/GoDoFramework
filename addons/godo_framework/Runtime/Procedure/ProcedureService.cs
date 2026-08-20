@@ -358,6 +358,9 @@ public sealed class ProcedureService : IProcedureService
             _debugTargetName,
             GetDebugName(_requestedProcedure),
             _debugPhase,
+            _debugPhase == ProcedureDebugPhase.Idle
+                ? 0UL
+                : GetDebugDurationMilliseconds(),
             _debugLastSucceededName,
             _debugLastPhase,
             _debugLastResult,

@@ -133,7 +133,7 @@ public sealed partial class FrifloEcsRegression : Node
             Assert(!host.IsProcessing(), "关闭后 Process 仍启用");
             Assert(!host.IsPhysicsProcessing(), "关闭后 Physics Process 仍启用");
             AssertThrows<InvalidOperationException>(() => _ = host.Store, "关闭后仍可获取 World");
-            AssertThrows<InvalidOperationException>(() => _ = host.Systems, "关闭后仍可获取系统根");
+            AssertThrows<InvalidOperationException>(() => _ = host.Systems, "关闭后仍可获取 SystemRoot");
         }
         finally
         {

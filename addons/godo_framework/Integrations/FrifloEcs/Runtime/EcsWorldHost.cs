@@ -8,8 +8,8 @@ using Godot;
 namespace GoDo.Integrations.FrifloEcs;
 
 /// <summary>
-/// 持有一个场景级 Friflo ECS World，并由指定 Godot 帧阶段驱动其系统根。
-/// 节点进入场景树时创建 World，退出时停止更新并释放系统根；节点可在不同场景中独立使用。
+/// 持有一个场景级 Friflo ECS World，并由指定 Godot 帧阶段驱动其 SystemRoot。
+/// 节点进入场景树时创建 World，退出时停止更新并释放 SystemRoot；节点可在不同场景中独立使用。
 /// </summary>
 public sealed partial class EcsWorldHost : Node
 {
@@ -48,11 +48,11 @@ public sealed partial class EcsWorldHost : Node
     /// <exception cref="InvalidOperationException">节点尚未进入场景树或已经退出。</exception>
     public EntityStore Store => _store ?? throw new InvalidOperationException("ECS World 尚未初始化或已经关闭。");
 
-    /// <summary>当前系统根；业务应在节点进入场景树后添加系统。</summary>
+    /// <summary>当前 SystemRoot；业务应在节点进入场景树后添加系统。</summary>
     /// <exception cref="InvalidOperationException">节点尚未进入场景树或已经退出。</exception>
-    public SystemRoot Systems => _systems ?? throw new InvalidOperationException("ECS 系统根尚未初始化或已经关闭。");
+    public SystemRoot Systems => _systems ?? throw new InvalidOperationException("ECS SystemRoot 尚未初始化或已经关闭。");
 
-    /// <summary>节点是否持有可用的 World 与系统根。</summary>
+    /// <summary>节点是否持有可用的 World 与 SystemRoot。</summary>
     public bool IsInitialized => _store != null && _systems != null;
 
     /// <inheritdoc />
@@ -76,7 +76,7 @@ public sealed partial class EcsWorldHost : Node
     }
 
     /// <inheritdoc />
-    /// <param name="delta">Godot Process 帧间隔秒数，将以单精度传入 Friflo 系统根。</param>
+    /// <param name="delta">Godot Process 帧间隔秒数，将以单精度传入 Friflo SystemRoot。</param>
     public override void _Process(double delta)
     {
         if (IsRunning)
@@ -84,7 +84,7 @@ public sealed partial class EcsWorldHost : Node
     }
 
     /// <inheritdoc />
-    /// <param name="delta">Godot Physics Process 固定帧间隔秒数，将以单精度传入 Friflo 系统根。</param>
+    /// <param name="delta">Godot Physics Process 固定帧间隔秒数，将以单精度传入 Friflo SystemRoot。</param>
     public override void _PhysicsProcess(double delta)
     {
         if (IsRunning)
@@ -97,7 +97,7 @@ public sealed partial class EcsWorldHost : Node
         Shutdown();
     }
 
-    /// <summary>幂等关闭系统根并使 World 不再可访问；节点退出场景树时自动调用。</summary>
+    /// <summary>幂等关闭 SystemRoot 并使 World 不再可访问；节点退出场景树时自动调用。</summary>
     public void Shutdown()
     {
 #if DEBUG

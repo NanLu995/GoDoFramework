@@ -134,8 +134,8 @@ float bgmVolume = audio.GetVolume(AudioGroup.Bgm);
 - 非空间与 3D SFX 分别使用 NodePool，空闲 Voice 保持在场景树外，不在每次播放时 Instantiate/QueueFree。
 - BGM 过渡不是高频调用；每次请求会创建异步等待状态和一个绑定 AudioService 生命周期的 Tween，空闲时不执行逐帧更新。
 - 跟随位置只在存在活动跟随 Voice 时由 `_PhysicsProcess` 更新；最后一个跟随停止后立即关闭物理处理。热路径只遍历受 `MaxFollowingSfx3DVoices` 限制的预分配容器，不创建 List/数组、不使用 LINQ，也不扫描静态 3D Voice。
-- Debug 构建可在 Debugger 的 `运行时 / Audio` 页面只读查看 BGM 状态与资源键，以及非空间/3D SFX 各自的活跃、等待、已准备、容量、跟随数量、累计拒绝和抢占；该页面直接读取现有接口，不维护音频历史或新增 AudioService 快照分配。
-- `Verification/Automated/AudioServiceRegression.tscn` 提供 19/19 组可重复验证，除既有 BGM 与非空间 SFX 契约外，还覆盖 3D 世界坐标、跟随移动、空闲停更、独立跟随容量、目标离树/加载期间失效、衰减参数、停止、Handle、抢占、预热、自然回收和服务退出。
+- Debug 构建可在 Debugger 的 `运行时 / Audio` 页面只读查看 BGM 状态与资源键，以及非空间/3D SFX 各自的活跃、等待、已准备、容量、跟随数量、累计拒绝和抢占。框架内置 AudioService 还会为当前 Play/Crossfade/FadeOut 请求显示从创建开始的单调存活时间；Stop、完成、取消或替代后立即移除。每个活动请求仅额外保存一个 Debug 起始时间，页面不维护音频历史或创建专用快照数组；Release 不包含该字段。
+- `Verification/Automated/AudioServiceRegression.tscn` 提供 19/19 组可重复验证，除既有 BGM 与非空间 SFX 契约外，还覆盖 BGM 请求计时增长、Stop 清理与替代重计时，以及 3D 世界坐标、跟随移动、空闲停更、独立跟随容量、目标离树/加载期间失效、衰减参数、停止、Handle、抢占、预热、自然回收和服务退出。
 - 2026-08-09 Windows Godot 4.7.1 Mono Headless Debug 的本批多次复跑中，100 路缓存突发约为 11–18 ms、当前线程累计分配约 128–130 KB，停止后活动 Voice 为 0；Runner 每次执行都会打印当前环境结果。
 - `Verification/Performance/AudioSfxBenchmark.tscn` 独立测量非空间首次播放、扩容、缓存批次、优先级抢占和预热，并测量 3D Voice 预热后的首次/稳定 32 路空间突发及 8/16/32 路跟随热更新；分开报告提交、Ready、更新耗时与当前线程分配，不设置跨机器耗时门槛。
 - 2026-08-09 同机加入句柄与突发准入后的多次 Debug 复跑中，默认播放提交 P95 观察区间为 0.032–0.068 / 0.081–0.214 / 0.423–0.717 ms（1/8/32 路），32 路当前线程托管分配约 18.3 KB。32 路满载 Critical 抢占的提交 P95 为 0.579–0.883 ms、Ready P95 为 7.804–8.164 ms、平均分配约 1.2 KB；没有逐帧扫描，仍不设置跨机器硬门槛。

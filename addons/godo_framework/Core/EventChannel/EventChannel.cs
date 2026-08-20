@@ -3,6 +3,9 @@
 // ==========================================
 using System;
 using System.Collections.Generic;
+#if DEBUG
+using System.Diagnostics;
+#endif
 using Godot;
 
 namespace GoDo
@@ -55,7 +58,15 @@ namespace GoDo
             where T : struct, IEventMessage
         {
             if (handler == null) throw new ArgumentNullException(nameof(handler));
+#if DEBUG
+            GetOrCreate<T>().Add(
+                handler,
+                priority,
+                once: false,
+                CreateDebugMetadata(handler, EventDebugRegistrationKind.On));
+#else
             GetOrCreate<T>().Add(handler, priority, once: false);
+#endif
         }
 
         /// <summary>
@@ -68,7 +79,45 @@ namespace GoDo
             where T : struct, IEventMessage
         {
             if (handler == null) throw new ArgumentNullException(nameof(handler));
+#if DEBUG
+            GetOrCreate<T>().Add(
+                handler,
+                priority: 0,
+                once: true,
+                CreateDebugMetadata(handler, EventDebugRegistrationKind.Once));
+#else
             GetOrCreate<T>().Add(handler, priority: 0, once: true);
+#endif
+        }
+
+        internal static void OnFromScope<T>(Action<T> handler, int priority)
+            where T : struct, IEventMessage
+        {
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+#if DEBUG
+            GetOrCreate<T>().Add(
+                handler,
+                priority,
+                once: false,
+                CreateDebugMetadata(handler, EventDebugRegistrationKind.EventScope));
+#else
+            GetOrCreate<T>().Add(handler, priority, once: false);
+#endif
+        }
+
+        internal static void OnceFromScope<T>(Action<T> handler)
+            where T : struct, IEventMessage
+        {
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+#if DEBUG
+            GetOrCreate<T>().Add(
+                handler,
+                priority: 0,
+                once: true,
+                CreateDebugMetadata(handler, EventDebugRegistrationKind.EventScope));
+#else
+            GetOrCreate<T>().Add(handler, priority: 0, once: true);
+#endif
         }
 
         /// <summary>
@@ -112,7 +161,15 @@ namespace GoDo
 
             // 注册与生命周期连接必须是一个整体。重复注册被拒绝时，不能再挂接
             // TreeExiting，否则节点退出时会误删之前已经存在的监听。
+#if DEBUG
+            if (!GetOrCreate<T>().Add(
+                handler,
+                priority,
+                once: false,
+                CreateDebugMetadata(handler, EventDebugRegistrationKind.Bind, node)))
+#else
             if (!GetOrCreate<T>().Add(handler, priority, once: false))
+#endif
                 return;
 
             void AutoOff()
@@ -143,7 +200,13 @@ namespace GoDo
 
 #if DEBUG
         // 让 DumpRegistry 可以统一调用 Count，无需知道泛型类型
-        private interface IHandlerGroup { int Count { get; } }
+        private interface IHandlerGroup
+        {
+            int Count { get; }
+            void AppendDebugListeners(List<EventDebugListenerEntry> entries, int maximumCount);
+        }
+
+        internal const int MaxDebugListenerEntries = 64;
 
         /// <summary>
         /// [仅 Debug 模式] 返回当前某事件类型的监听数量。
@@ -187,6 +250,20 @@ namespace GoDo
             return snapshot;
         }
 
+        internal static EventDebugListenerEntry[] GetDebugListenerSnapshot(Type eventType)
+        {
+            MainThreadGuard.VerifyAccess();
+            if (eventType == null)
+                throw new ArgumentNullException(nameof(eventType));
+            if (!_registry.TryGetValue(eventType, out object group))
+                return Array.Empty<EventDebugListenerEntry>();
+
+            var entries = new List<EventDebugListenerEntry>(MaxDebugListenerEntries);
+            ((IHandlerGroup)group).AppendDebugListeners(entries, MaxDebugListenerEntries);
+            entries.Sort(static (left, right) => right.Age.CompareTo(left.Age));
+            return entries.ToArray();
+        }
+
         private static int CompareDebugEntries(EventDebugEntry left, EventDebugEntry right) =>
             string.CompareOrdinal(left.EventType.FullName, right.EventType.FullName);
 
@@ -199,6 +276,126 @@ namespace GoDo
             {
                 EventType = eventType;
                 ListenerCount = listenerCount;
+            }
+        }
+
+        internal enum EventDebugRegistrationKind
+        {
+            On,
+            Once,
+            Bind,
+            EventScope,
+        }
+
+        internal readonly struct EventDebugListenerEntry
+        {
+            public Type EventType { get; }
+            public string HandlerDisplayName { get; }
+            public string HandlerFullName { get; }
+            public EventDebugRegistrationKind RegistrationKind { get; }
+            public string OwnerName { get; }
+            public string OwnerPath { get; }
+            public ulong OwnerInstanceId { get; }
+            public int Priority { get; }
+            public TimeSpan Age { get; }
+
+            public EventDebugListenerEntry(
+                Type eventType,
+                string handlerDisplayName,
+                string handlerFullName,
+                EventDebugRegistrationKind registrationKind,
+                string ownerName,
+                string ownerPath,
+                ulong ownerInstanceId,
+                int priority,
+                TimeSpan age)
+            {
+                EventType = eventType;
+                HandlerDisplayName = handlerDisplayName;
+                HandlerFullName = handlerFullName;
+                RegistrationKind = registrationKind;
+                OwnerName = ownerName;
+                OwnerPath = ownerPath;
+                OwnerInstanceId = ownerInstanceId;
+                Priority = priority;
+                Age = age;
+            }
+        }
+
+        private const int MaxDebugTextLength = 256;
+
+        private static EventDebugMetadata CreateDebugMetadata<T>(
+            Action<T> handler,
+            EventDebugRegistrationKind registrationKind,
+            Node owner = null)
+            where T : struct, IEventMessage
+        {
+            Type targetType = handler.Target?.GetType() ?? handler.Method.DeclaringType;
+            string targetTypeName = targetType?.Name ?? "<未知类型>";
+            string targetTypeFullName = targetType?.FullName ?? targetTypeName;
+            string methodName = handler.Method.Name;
+            string handlerDisplayName = TruncateDebugText($"{targetTypeName}.{methodName}");
+            string handlerFullName = TruncateDebugText($"{targetTypeFullName}.{methodName}");
+
+            string ownerName;
+            string ownerPath = string.Empty;
+            ulong ownerInstanceId = 0;
+            Node ownerNode = registrationKind == EventDebugRegistrationKind.Bind ? owner : null;
+            if (GodotObject.IsInstanceValid(ownerNode))
+            {
+                ownerName = TruncateDebugText(ownerNode!.Name.ToString());
+                ownerPath = TruncateDebugText(
+                    ownerNode.IsInsideTree() ? ownerNode.GetPath().ToString() : ownerName);
+                ownerInstanceId = ownerNode.GetInstanceId();
+            }
+            else if (handler.Target is null)
+            {
+                ownerName = "静态";
+            }
+            else
+            {
+                ownerName = TruncateDebugText(targetTypeFullName);
+            }
+
+            return new EventDebugMetadata(
+                handlerDisplayName,
+                handlerFullName,
+                registrationKind,
+                ownerName,
+                ownerPath,
+                ownerInstanceId,
+                Stopwatch.GetTimestamp());
+        }
+
+        private static string TruncateDebugText(string value) =>
+            value.Length <= MaxDebugTextLength ? value : value[..MaxDebugTextLength];
+
+        private readonly struct EventDebugMetadata
+        {
+            public string HandlerDisplayName { get; }
+            public string HandlerFullName { get; }
+            public EventDebugRegistrationKind RegistrationKind { get; }
+            public string OwnerName { get; }
+            public string OwnerPath { get; }
+            public ulong OwnerInstanceId { get; }
+            public long RegisteredTimestamp { get; }
+
+            public EventDebugMetadata(
+                string handlerDisplayName,
+                string handlerFullName,
+                EventDebugRegistrationKind registrationKind,
+                string ownerName,
+                string ownerPath,
+                ulong ownerInstanceId,
+                long registeredTimestamp)
+            {
+                HandlerDisplayName = handlerDisplayName;
+                HandlerFullName = handlerFullName;
+                RegistrationKind = registrationKind;
+                OwnerName = ownerName;
+                OwnerPath = ownerPath;
+                OwnerInstanceId = ownerInstanceId;
+                RegisteredTimestamp = registeredTimestamp;
             }
         }
 #endif
@@ -231,7 +428,14 @@ namespace GoDo
 
             public int Count => _handlers.Count;
 
-            public bool Add(Action<T> handler, int priority, bool once)
+            public bool Add(
+                Action<T> handler,
+                int priority,
+                bool once
+#if DEBUG
+                , EventDebugMetadata debugMetadata
+#endif
+                )
             {
                 // 重复注册会改变事件语义，因此所有构建配置必须保持相同行为。
                 for (int i = 0; i < _handlers.Count; i++)
@@ -252,7 +456,14 @@ namespace GoDo
                 }
 
                 // P2: HandlerEntry 改为 struct，避免堆分配
-                var entry = new HandlerEntry(handler, priority, once);
+                var entry = new HandlerEntry(
+                    handler,
+                    priority,
+                    once
+#if DEBUG
+                    , debugMetadata
+#endif
+                    );
                 if (_dispatchDepth > 0)
                     _pendingAdd.Add(entry);
                 else
@@ -349,18 +560,57 @@ namespace GoDo
                 _handlers.Insert(i, entry);
             }
 
+#if DEBUG
+            public void AppendDebugListeners(
+                List<EventDebugListenerEntry> entries,
+                int maximumCount)
+            {
+                for (int index = 0; index < _handlers.Count && entries.Count < maximumCount; index++)
+                {
+                    HandlerEntry entry = _handlers[index];
+                    if (Contains(_pendingRemove, entry.Handler))
+                        continue;
+
+                    EventDebugMetadata metadata = entry.DebugMetadata;
+                    entries.Add(new EventDebugListenerEntry(
+                        typeof(T),
+                        metadata.HandlerDisplayName,
+                        metadata.HandlerFullName,
+                        metadata.RegistrationKind,
+                        metadata.OwnerName,
+                        metadata.OwnerPath,
+                        metadata.OwnerInstanceId,
+                        entry.Priority,
+                        Stopwatch.GetElapsedTime(metadata.RegisteredTimestamp)));
+                }
+            }
+#endif
+
             // P2: 改为 struct，三个字段的值类型，零堆分配
             private struct HandlerEntry
             {
                 public readonly Action<T> Handler;
                 public readonly int Priority;
                 public readonly bool Once;
+#if DEBUG
+                public readonly EventDebugMetadata DebugMetadata;
+#endif
 
-                public HandlerEntry(Action<T> handler, int priority, bool once)
+                public HandlerEntry(
+                    Action<T> handler,
+                    int priority,
+                    bool once
+#if DEBUG
+                    , EventDebugMetadata debugMetadata
+#endif
+                    )
                 {
                     Handler = handler;
                     Priority = priority;
                     Once = once;
+#if DEBUG
+                    DebugMetadata = debugMetadata;
+#endif
                 }
             }
         }

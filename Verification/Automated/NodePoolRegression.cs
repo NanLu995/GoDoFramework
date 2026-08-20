@@ -39,6 +39,7 @@ public sealed partial class NodePoolRegression : Node
             Run("Dispose 拒绝回调重入", VerifyDisposeReentrancy);
 #if DEBUG
             Run("Debug 登记与注销", VerifyDebugRegistration);
+            Run("Debug 活动租借诊断", VerifyDebugActiveRentals);
 #endif
 
             GD.Print($"[NodePoolRegression] PASS ({_passed}/{_passed})");
@@ -275,6 +276,66 @@ public sealed partial class NodePoolRegression : Node
         for (int index = 0; index < entries.Length; index++)
         {
             if (entries[index].NodeTypeName == nameof(PoolRegressionNode))
+                return entries[index];
+        }
+
+        return null;
+    }
+
+    private void VerifyDebugActiveRentals()
+    {
+        using var pool = new NodePool<PoolRegressionNode>(TestNodeScene, idleCapacity: 64);
+        var activeNodes = new List<PoolRegressionNode>(65);
+        for (int index = 0; index < 65; index++)
+            activeNodes.Add(pool.Acquire(this));
+
+        NodePoolDebugActiveEntry[] activeEntries = NodePoolDebugRegistry.GetActiveSnapshot();
+        AssertEqual(64, activeEntries.Length, "Debug 活动租借快照没有遵守 64 条上限");
+
+        PoolRegressionNode first = activeNodes[0];
+        NodePoolDebugActiveEntry? firstEntry = FindDebugActiveEntry(first.GetInstanceId());
+        Assert(firstEntry.HasValue, "Debug 活动租借快照缺少已激活节点");
+        NodePoolDebugActiveEntry activeEntry = firstEntry.GetValueOrDefault();
+        AssertEqual(nameof(PoolRegressionNode), activeEntry.NodeTypeName, "Debug 租借节点类型错误");
+        AssertEqual(first.Name.ToString(), activeEntry.NodeName, "Debug 租借节点名称错误");
+        AssertEqual(GetInstanceId(), activeEntry.ParentInstanceId, "Debug 租借父节点实例 ID 错误");
+        Assert(activeEntry.ParentPath.Contains(Name.ToString(), StringComparison.Ordinal),
+            "Debug 租借父节点路径错误");
+        AssertEqual(NodePoolDebugActiveStatus.Active, activeEntry.Status,
+            "Debug 租借活动状态错误");
+        Assert(activeEntry.Age >= TimeSpan.Zero, "Debug 租借时长小于零");
+
+        RemoveChild(first);
+        NodePoolDebugActiveEntry detachedEntry = FindDebugActiveEntry(first.GetInstanceId())
+            ?? throw new InvalidOperationException("脱离场景树后 Debug 租借快照丢失节点");
+        AssertEqual(NodePoolDebugActiveStatus.Detached, detachedEntry.Status,
+            "Debug 租借没有识别脱离场景树的节点");
+        AssertEqual(0UL, detachedEntry.ParentInstanceId,
+            "脱离场景树的 Debug 租借仍保留当前父节点实例 ID");
+
+        Assert(pool.Release(first), "Debug 租借验证无法释放脱离场景树的节点");
+        Assert(!FindDebugActiveEntry(first.GetInstanceId()).HasValue,
+            "Release 后 Debug 活动租借快照仍残留节点");
+
+        PoolRegressionNode queued = activeNodes[1];
+        queued.QueueFree();
+        NodePoolDebugActiveEntry queuedEntry = FindDebugActiveEntry(queued.GetInstanceId())
+            ?? throw new InvalidOperationException("等待删除后 Debug 租借快照丢失节点");
+        AssertEqual(NodePoolDebugActiveStatus.QueuedForDeletion, queuedEntry.Status,
+            "Debug 租借没有识别等待删除的节点");
+
+        for (int index = 1; index < activeNodes.Count; index++)
+            pool.Release(activeNodes[index]);
+        AssertEqual(0, NodePoolDebugRegistry.GetActiveSnapshot().Length,
+            "全部 Release 后仍有 Debug 活动租借快照");
+    }
+
+    private static NodePoolDebugActiveEntry? FindDebugActiveEntry(ulong instanceId)
+    {
+        NodePoolDebugActiveEntry[] entries = NodePoolDebugRegistry.GetActiveSnapshot();
+        for (int index = 0; index < entries.Length; index++)
+        {
+            if (entries[index].NodeInstanceId == instanceId)
                 return entries[index];
         }
 

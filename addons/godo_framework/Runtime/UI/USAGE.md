@@ -146,13 +146,14 @@ View 与 Modal 必须按顶部顺序逐个关闭。`CloseAll` 和 `CloseTo` 会�
 - GoDoUI 位于 CurrentScene 外，Scene 层通过内部场景事件清理，不形成 SceneService 到 UiService 的直接依赖；
 - UiConfig 加载以 O(n) 建立索引，按 UiId 定位平均为 O(1)；打开、查询和关闭不应放在每帧路径；
 - View 栈和复用缓存以节点内存换取状态保留或减少重新实例化，应根据真实界面规模控制；
-- Debug 构建记录受管理实例、缓存和未完成请求，Debugger 的 UI 页按需生成快照；Release 不保留调试资源键和快照入口。
+- Debug 构建记录受管理实例、缓存和未完成请求，Debugger 的 UI 页按需生成快照；每个未完成请求独立显示 UiId/资源、层、阶段、存活时间及 `configure` 委托来源。实例委托显示目标类型，静态委托标记为静态，未提供 `configure` 时显示未知；来源只保存最多 256 个字符的文本，不额外持有委托目标，也不捕获调用栈。
+- 未完成请求快照最多返回 64 条明细，同时保留未截断总数；成功、失败和调用方/服务/场景生命周期取消后立即从明细移除。Release 不保留这些来源、时间、调试资源键或快照入口。
 
 ## 验证
 
 - `dotnet build GoDoFramework.csproj -c Debug --no-restore`：验证 C# API、Godot 绑定和场景资源引用；
-- `Verification/Automated/UiServiceRegression.tscn`：验证四层打开/关闭、UiConfig、查询与批量关闭、`CloseTo`、异步取消、场景清理、焦点、复用和失败回滚；
+- `Verification/Automated/UiServiceRegression.tscn`：验证四层打开/关闭、UiConfig、查询与批量关闭、`CloseTo`、异步取消、场景清理、焦点、复用、失败回滚，以及 Debug 打开请求的实例/静态/未知来源、独立行、存活时间、即时移除和 64 条上限；
 - `Verification/Automated/UiConfigEditorControllerRegression.gd`：验证编辑器配置发现、单配置直接显示与多配置管理；
-- `Verification/Automated/DebuggerOverlayRegression.tscn`：验证 UI 实例、缓存和打开中请求的只读诊断；
+- `Verification/Automated/DebuggerOverlayRegression.tscn`：验证 UI 实例、缓存和打开中请求的来源、存活时间及只读诊断；
 - `Verification/Performance/UiFirstOpenBenchmark.tscn`：记录首开、首次入树、首帧和缓存重开成本，不把单机测量值承诺为跨平台预算；
 - Modal 指针阻挡、Overlay 遮罩、键盘/手柄返回和焦点切换仍需在 Godot 中结合业务场景人工验证。

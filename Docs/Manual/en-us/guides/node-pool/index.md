@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/node-pool/index.md
-translation_source_hash: sha256:5c8cf74d80fa5ae9188f6dbd33a7824e865b361a7f8a28628b195dbfd624dbba
+translation_source_hash: sha256:23b97d92867776afd7a0518697c64b3527593537794c7a4fc085556a9e9a8903
 ---
 
 # Reuse High-Frequency Objects with NodePool
@@ -181,7 +181,7 @@ LogHub.Debug(
     context: $"active={_projectiles.ActiveCount} idle={_projectiles.IdleCount}");
 ```
 
-In a Debug build, **Runtime / Pool** in the GoDo Debugger also shows every live Pool's Node type, idle count, active count, and idle capacity. The page is read-only and retains no history; a Pool disappears immediately after `Dispose()`, and Release builds do not include this diagnostic.
+In a Debug build, **Runtime / Pool** in the GoDo Debugger also shows every live Pool's Node type, idle count, active count, and idle capacity. Its active-rental table lists at most 64 Nodes with instance identity, current parent, rental age, and active, detached, queued-for-deletion, or invalid state; hover the Pool and parent columns for the PackedScene and scene-tree paths. The page is read-only and retains no history. A Node disappears from the table immediately after `Release()`, a Pool disappears after `Dispose()`, and Release builds do not include this diagnostic.
 
 Use the common peak as a prewarm reference and choose idle capacity according to acceptable memory cost. Active count may exceed `idleCapacity`; those extra Nodes are simply not cached when returned.
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Godot;
 using GoDo;
@@ -118,6 +119,17 @@ public sealed partial class ResourceHubRegression : Node
             AssertEqual(1, activeSnapshot.ActiveOperations.Length, "活动请求快照数量错误");
             AssertEqual(2, activeSnapshot.ActiveOperations[0].MergedRequestCount,
                 "同键合并请求数没有写入快照");
+            Assert(activeSnapshot.ActiveOperations[0].AgeMilliseconds >= 0,
+                "活动请求存活时间为负数");
+            Thread.Sleep(5);
+            ResourceLoadOperation<ConfigTestResource> third =
+                ResourceHub.LoadAsync<ConfigTestResource>(ValidKey);
+            ResourceDebugSnapshot agedSnapshot = ResourceHub.GetDebugSnapshot();
+            Assert(ReferenceEquals(first, third), "再次合并没有返回原操作实例");
+            AssertEqual(3, agedSnapshot.ActiveOperations[0].MergedRequestCount,
+                "再次合并请求数没有写入快照");
+            Assert(agedSnapshot.ActiveOperations[0].AgeMilliseconds >= 1,
+                "合并请求重置了底层加载操作的开始时间");
 #endif
 
             AssertThrows<ResourceLoadException>(

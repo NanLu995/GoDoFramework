@@ -55,7 +55,7 @@
 
 - 类/方法 PascalCase，私有字段 `_camelCase`，常量 PascalCase；public API 必须提供面向 API 文档读者的 XML 注释，准确说明用途、参数、返回值、失败/异常与关键生命周期约束，不能只复述成员名称。
 - 类名、方法名、字段名、事件名、资源键、场景名和目录名优先使用计算机/工程语义，少用口语化自然语言；命名应表达类型、职责、生命周期或数据含义，例如 `ProcedureContext`、`SaveSlot`、`ResourceKey`，避免 `DoSomething`、`HandleStuff`、`GameThing`、`Shell` 这类含义松散或需要上下文猜测的名称。
-- 缩写遵循项目既有 C# 风格：类型和成员名使用 `Ui`、`Bgm`、`Sfx` 这类 PascalCase 形式；文档正文描述模块概念时可使用 `UI`、`BGM`、`SFX`。
+- 缩写命名遵循可读性与项目一致性原则：业界高度通用、具有独立语义且辨识度明确的短缩写保留全大写，如 `UI`、`HUD`、`AI`、`NPC`、`HP`、`MP`、`FPS`、`BGM`、`SFX`；已在 .NET/C# 生态中普遍按普通单词书写的技术术语遵循主流 C# 命名形式，如 `Http`、`Json`、`Uri`、`Guid`。同一术语在项目中必须保持唯一写法，禁止 `UI` / `Ui`、`Http` / `HTTP` 等形式混用。
 - `Hub`、`Service`、`Controller`、`Adapter`、`Factory`、`Codec`、`Operation`、`Status` 等后缀只在职责与生命周期确实匹配时使用；不要为听起来像框架而套后缀。
 - 重命名 public API、信号、资源键、场景名或目录名属于兼容性改动，必须先说明影响、迁移范围和验证方式，等待明确确认后再改。
 - 节点引用优先使用 `[Export]`；必须查找时用 `GetNodeOrNull<T>()` 并处理缺失，不硬编码脆弱路径。

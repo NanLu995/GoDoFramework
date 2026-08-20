@@ -176,7 +176,7 @@ LogHub.Debug(
     context: $"active={_projectiles.ActiveCount} idle={_projectiles.IdleCount}");
 ```
 
-Debug 构建也可打开 GoDo Debugger 的 **运行时 / Pool** 页面，同时查看所有仍存活 Pool 的节点类型、空闲数、活动数和空闲容量。该页面只读且不保留历史；`Dispose()` 后 Pool 会立即消失，Release 不包含这项诊断。
+Debug 构建也可打开 GoDo Debugger 的 **运行时 / Pool** 页面，同时查看所有仍存活 Pool 的节点类型、空闲数、活动数和空闲容量。下方活动租借表最多显示 64 个节点的实例 ID、当前父节点、租借时长及活动、已脱离、等待删除或已失效状态；悬停 Pool 和父节点列可查看 PackedScene 与场景树路径。该页面只读且不保留历史；`Release()` 后节点立即从表中消失，`Dispose()` 后 Pool 会立即消失，Release 不包含这项诊断。
 
 以常见峰值作为预热参考，以可接受的内存占用设置空闲容量。活动数量超过 `idleCapacity` 并不会拒绝生成；只是这些额外节点归还时不会进入缓存。
 

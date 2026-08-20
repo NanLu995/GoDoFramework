@@ -528,20 +528,35 @@ public sealed partial class UiServiceRegression : Node
         await NextFrame();
         _ui.LoadUiConfig(ValidUiConfigKey);
 
-        Task<Control> firstModal = _ui.OpenAsync<Control>(ConfigModalId);
+        Task<Control> firstModal =
+            _ui.OpenAsync<Control>(ConfigModalId, ConfigureDebugOpeningSource);
         Task<Control> secondModal = _ui.OpenAsync<Control>(ConfigModalId);
-        Assert(_ui.GetOpeningCount(ConfigModalId) == 2, "Multiple UI 加载中数量错误");
+        Task<Control> thirdModal =
+            _ui.OpenAsync<Control>(ConfigModalId, ConfigureStaticDebugOpeningSource);
+        Assert(_ui.GetOpeningCount(ConfigModalId) == 3, "Multiple UI 加载中数量错误");
 #if DEBUG
         UiDebugSnapshot openingSnapshot = ((UiService)_ui).GetDebugSnapshot();
         Assert(
-            openingSnapshot.Openings.Length == 1 &&
+            openingSnapshot.TotalOpeningRequestCount == 3 &&
+            openingSnapshot.Openings.Length == 3 &&
             openingSnapshot.Openings[0].Id == ConfigModalId &&
             openingSnapshot.Openings[0].Layer == UiLayer.Modal &&
-            openingSnapshot.Openings[0].RequestCount == 2 &&
-            openingSnapshot.Openings[0].Phase == UiDebugOpenPhase.Loading,
-            "Debug 快照没有按 UiId 聚合异步打开请求");
+            openingSnapshot.Openings[0].RequestCount == 1 &&
+            openingSnapshot.Openings[0].Phase == UiDebugOpenPhase.Loading &&
+            openingSnapshot.Openings[0].SourceDisplayName == nameof(UiServiceRegression) &&
+            openingSnapshot.Openings[0].SourceFullName.Contains(
+                nameof(UiServiceRegression),
+                StringComparison.Ordinal) &&
+            openingSnapshot.Openings[0].AgeMilliseconds < 60_000 &&
+            openingSnapshot.Openings[1].RequestCount == 1 &&
+            openingSnapshot.Openings[1].SourceDisplayName == "未知" &&
+            openingSnapshot.Openings[2].SourceDisplayName == "静态" &&
+            openingSnapshot.Openings[2].SourceFullName.Contains(
+                nameof(ConfigureStaticDebugOpeningSource),
+                StringComparison.Ordinal),
+            "Debug 快照没有逐条记录来源、阶段与存活时间");
 #endif
-        Control[] modalViews = await Task.WhenAll(firstModal, secondModal);
+        Control[] modalViews = await Task.WhenAll(firstModal, secondModal, thirdModal);
 #if DEBUG
         Assert(
             ((UiService)_ui).GetDebugSnapshot().Openings.Length == 0,
@@ -549,7 +564,7 @@ public sealed partial class UiServiceRegression : Node
 #endif
         Assert(_ui.GetOpeningCount(ConfigModalId) == 0, "Multiple UI 完成后加载中数量没有归零");
         Assert(modalViews[0] != modalViews[1], "并发打开 Multiple UI 没有创建独立实例");
-        Assert(_ui.CloseAll(ConfigModalId) == 2, "并发异步打开的 Multiple UI 没有完整登记");
+        Assert(_ui.CloseAll(ConfigModalId) == 3, "并发异步打开的 Multiple UI 没有完整登记");
         await NextFrame();
 
         Task<UiConfigurableControl> staleScene =
@@ -917,6 +932,26 @@ public sealed partial class UiServiceRegression : Node
 #endif
         Assert(!_ui.IsOpening(ConfigModalId), "按 UiId 取消后仍保留加载中状态");
         Assert(!_ui.IsOpen(ConfigModalId), "按 UiId 取消后仍然挂载了界面");
+
+#if DEBUG
+        var boundedRequests = new Task<Control>[65];
+        for (int index = 0; index < boundedRequests.Length; index++)
+            boundedRequests[index] = _ui.OpenAsync<Control>(ConfigModalId);
+        UiDebugSnapshot boundedSnapshot = ((UiService)_ui).GetDebugSnapshot();
+        Assert(boundedSnapshot.TotalOpeningRequestCount == boundedRequests.Length &&
+            boundedSnapshot.Openings.Length == UiService.MaxDebugOpeningEntries,
+            "UI 打开来源快照没有遵守 64 条上限或保留总数");
+        Assert(_ui.CancelOpenRequests(ConfigModalId) == boundedRequests.Length,
+            "UI 打开来源上限用例没有取消全部请求");
+        Assert(((UiService)_ui).GetDebugSnapshot().Openings.Length == 0,
+            "取消请求后 UI 打开来源没有立即移除");
+        for (int index = 0; index < boundedRequests.Length; index++)
+        {
+            await AssertThrowsAsync<OperationCanceledException>(
+                () => boundedRequests[index],
+                "UI 打开来源上限用例存在未取消请求");
+        }
+#endif
 
         Task<UiConfigurableControl> canceledView =
             _ui.OpenAsync<UiConfigurableControl>(ConfiguredViewId);
@@ -1337,6 +1372,14 @@ public sealed partial class UiServiceRegression : Node
         };
         parent.AddChild(button);
         return button;
+    }
+
+    private void ConfigureDebugOpeningSource(Control view)
+    {
+    }
+
+    private static void ConfigureStaticDebugOpeningSource(Control view)
+    {
     }
 
 #if DEBUG

@@ -9,6 +9,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -77,6 +78,18 @@ GUIDE_EDITOR_PLUGINS = (
 )
 PHANTOM_EDITOR_PLUGIN = "res://addons/phantom_camera/plugin.cfg"
 SUPPORTED_PHANTOM_VERSION = "0.11"
+PHANTOM_UPDATER_SETTING = "updater/updater_mode"
+ISOLATED_EDITOR_PROJECT_ITEMS = (
+    Path("addons"),
+    Path("DataTables"),
+    Path("Docs") / "coverage.json",
+    Path("Localization"),
+    Path("Templates") / "Demo3D",
+    Path("Verification") / "Automated",
+    Path("GoDoFramework.csproj"),
+    Path("default_bus_layout.tres"),
+    Path("project.godot"),
+)
 
 
 def read_godot_version() -> str:
@@ -315,7 +328,88 @@ def run_core_package(godot_path: Path, timeout: int) -> bool:
     return False
 
 
+def create_isolated_editor_project(
+    project_root: Path,
+    repository_root: Path = REPOSITORY_ROOT,
+) -> None:
+    project_root.mkdir(parents=True, exist_ok=True)
+    for relative_path in ISOLATED_EDITOR_PROJECT_ITEMS:
+        source = repository_root / relative_path
+        target = project_root / relative_path
+        if source.is_dir():
+            shutil.copytree(source, target)
+            continue
+        if not source.is_file():
+            raise RuntimeError(f"编辑器隔离项目缺少必需文件：{source}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+
+    if (project_root / ".godot").exists():
+        raise RuntimeError("编辑器隔离项目错误包含了工作区 .godot。")
+
+    project_config = project_root / "project.godot"
+    content = project_config.read_text(encoding="utf-8")
+    if re.search(r"(?m)^updater/updater_mode=", content):
+        content = re.sub(
+            r"(?m)^updater/updater_mode=.*$",
+            f"{PHANTOM_UPDATER_SETTING}=0",
+            content,
+        )
+    elif "[phantom_camera]" in content:
+        content = content.replace(
+            "[phantom_camera]",
+            f"[phantom_camera]\n\n{PHANTOM_UPDATER_SETTING}=0",
+            1,
+        )
+    else:
+        content += f"\n[phantom_camera]\n\n{PHANTOM_UPDATER_SETTING}=0\n"
+    project_config.write_text(content, encoding="utf-8")
+
+
+def build_isolated_editor_project(project_root: Path, timeout: int) -> bool:
+    print("[EDITOR] 构建隔离验证项目")
+    try:
+        result = subprocess.run(
+            [
+                "dotnet",
+                "build",
+                str(project_root / "GoDoFramework.csproj"),
+                "--configuration",
+                "Debug",
+                "--nologo",
+            ],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exception:
+        output = (exception.stdout or "") + (exception.stderr or "")
+        print(output + f"\n编辑器隔离项目构建超时：{timeout} 秒", file=sys.stderr)
+        return False
+    if result.returncode == 0:
+        return True
+    print(f"[EDITOR] 隔离项目构建 FAIL (exit={result.returncode})", file=sys.stderr)
+    print(result.stdout + result.stderr, file=sys.stderr)
+    return False
+
+
 def run_editor_extension_check(godot_path: Path, timeout: int) -> bool:
+    with tempfile.TemporaryDirectory(prefix="godo-editor-regression-") as temporary:
+        project_root = Path(temporary)
+        create_isolated_editor_project(project_root)
+        if not build_isolated_editor_project(project_root, timeout):
+            return False
+        return _run_editor_extension_check(project_root, godot_path, timeout)
+
+
+def _run_editor_extension_check(
+    project_root: Path,
+    godot_path: Path,
+    timeout: int,
+) -> bool:
     print("[EDITOR] 验证 GoDo 编辑器扩展")
     try:
         result = subprocess.run(
@@ -324,11 +418,11 @@ def run_editor_extension_check(godot_path: Path, timeout: int) -> bool:
                 "--headless",
                 "--editor",
                 "--path",
-                str(REPOSITORY_ROOT),
+                str(project_root),
                 "--script",
                 "res://Verification/Automated/EditorExtensionUiRegression.gd",
             ],
-            cwd=REPOSITORY_ROOT,
+            cwd=project_root,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -360,11 +454,11 @@ def run_editor_extension_check(godot_path: Path, timeout: int) -> bool:
                     "--headless",
                     "--editor",
                     "--path",
-                    str(REPOSITORY_ROOT),
+                    str(project_root),
                     "--script",
                     "res://Verification/Automated/FrifloEcsProjectDependencyRegression.gd",
                 ],
-                cwd=REPOSITORY_ROOT,
+                cwd=project_root,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -392,11 +486,11 @@ def run_editor_extension_check(godot_path: Path, timeout: int) -> bool:
                     "--headless",
                     "--editor",
                     "--path",
-                    str(REPOSITORY_ROOT),
+                    str(project_root),
                     "--script",
                     "res://Verification/Automated/GoDoCsprojManagerRegression.gd",
                 ],
-                cwd=REPOSITORY_ROOT,
+                cwd=project_root,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -424,11 +518,11 @@ def run_editor_extension_check(godot_path: Path, timeout: int) -> bool:
                     "--headless",
                     "--editor",
                     "--path",
-                    str(REPOSITORY_ROOT),
+                    str(project_root),
                     "--script",
                     "res://Verification/Automated/DataTableEditorTransportRegression.gd",
                 ],
-                cwd=REPOSITORY_ROOT,
+                cwd=project_root,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -452,11 +546,11 @@ def run_editor_extension_check(godot_path: Path, timeout: int) -> bool:
                         "--headless",
                         "--editor",
                         "--path",
-                        str(REPOSITORY_ROOT),
+                        str(project_root),
                         "--script",
                         "res://Verification/Automated/DataTableSchemaEditorSaveRegression.gd",
                     ],
-                    cwd=REPOSITORY_ROOT,
+                    cwd=project_root,
                     capture_output=True,
                     text=True,
                     encoding="utf-8",

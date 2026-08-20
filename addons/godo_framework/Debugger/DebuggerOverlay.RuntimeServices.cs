@@ -89,14 +89,58 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _schedulerOwnerCanceledValue =
             GetSchedulerLabel("Content/LifetimeGrid/OwnerCard/Content/Value");
         _schedulerFailedValue = GetSchedulerLabel("Content/LifetimeGrid/FailedCard/Content/Value");
+        _schedulerActiveTasksStatus = GetSchedulerLabel("Content/ActiveTasksStatus");
+        _schedulerActiveTasksTree = GetSchedulerNode<Tree>("Content/ActiveTasks");
+        _schedulerRecentResultsStatus = GetSchedulerLabel("Content/RecentResultsStatus");
+        _schedulerRecentResultsTree = GetSchedulerNode<Tree>("Content/RecentResults");
+
+        ConfigureSchedulerActiveTasksTree();
+        ConfigureSchedulerRecentResultsTree();
     }
 
     private Label GetSchedulerLabel(string path)
+        => GetSchedulerNode<Label>(path);
+
+    private T GetSchedulerNode<T>(string path) where T : Node
     {
-        Label? label = _schedulerDashboard!.GetNodeOrNull<Label>(path);
-        return IsInstanceValid(label)
-            ? label
+        T? node = _schedulerDashboard!.GetNodeOrNull<T>(path);
+        return IsInstanceValid(node)
+            ? node
             : throw new InvalidOperationException($"DebuggerScheduler 场景缺少节点：{path}");
+    }
+
+    private void ConfigureSchedulerActiveTasksTree()
+    {
+        Tree tree = _schedulerActiveTasksTree!;
+        string[] titles = { "任务", "Owner", "时钟", "状态", "存活", "剩余" };
+        for (int column = 0; column < titles.Length; column++)
+        {
+            tree.SetColumnTitle(column, titles[column]);
+            tree.SetColumnTitleAlignment(
+                column,
+                column < 2 ? HorizontalAlignment.Left : HorizontalAlignment.Center);
+            tree.SetColumnExpand(column, column < 2);
+        }
+        tree.SetColumnCustomMinimumWidth(2, 72);
+        tree.SetColumnCustomMinimumWidth(3, 78);
+        tree.SetColumnCustomMinimumWidth(4, 64);
+        tree.SetColumnCustomMinimumWidth(5, 64);
+    }
+
+    private void ConfigureSchedulerRecentResultsTree()
+    {
+        Tree tree = _schedulerRecentResultsTree!;
+        string[] titles = { "任务", "Owner", "结束原因", "存活" };
+        for (int column = 0; column < titles.Length; column++)
+        {
+            tree.SetColumnTitle(column, titles[column]);
+            tree.SetColumnTitleAlignment(
+                column,
+                column < 2 ? HorizontalAlignment.Left : HorizontalAlignment.Center);
+            tree.SetColumnExpand(column, column < 2);
+        }
+        tree.SetColumnCustomMinimumWidth(2, 88);
+        tree.SetColumnCustomMinimumWidth(3, 64);
     }
 
     private void CacheAudioNodes()
@@ -350,7 +394,11 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             !IsInstanceValid(_schedulerPhysicsDispatchValue) ||
             !IsInstanceValid(_schedulerCanceledValue) ||
             !IsInstanceValid(_schedulerOwnerCanceledValue) ||
-            !IsInstanceValid(_schedulerFailedValue))
+            !IsInstanceValid(_schedulerFailedValue) ||
+            !IsInstanceValid(_schedulerActiveTasksStatus) ||
+            !IsInstanceValid(_schedulerActiveTasksTree) ||
+            !IsInstanceValid(_schedulerRecentResultsStatus) ||
+            !IsInstanceValid(_schedulerRecentResultsTree))
             return;
 
         if (!Services.TryGet<ISchedulerService>(out ISchedulerService? scheduler) ||
@@ -398,7 +446,92 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             snapshot.CallbackFailedCount > 0
                 ? new Color(1f, 0.38f, 0.34f)
                 : new Color(0.86f, 0.91f, 0.97f));
+
+        RefreshSchedulerActiveTasks(snapshot);
+        RefreshSchedulerRecentResults(snapshot);
     }
+
+    private void RefreshSchedulerActiveTasks(SchedulerDebugSnapshot snapshot)
+    {
+        _schedulerActiveTasksStatus!.Text = snapshot.ActiveEntries.Length == snapshot.ActiveCount
+            ? $"活动任务 {snapshot.ActiveCount.ToString(CultureInfo.InvariantCulture)}"
+            : $"活动任务 {snapshot.ActiveCount.ToString(CultureInfo.InvariantCulture)}，显示前 " +
+              snapshot.ActiveEntries.Length.ToString(CultureInfo.InvariantCulture);
+        _schedulerActiveTasksTree!.Clear();
+        TreeItem root = _schedulerActiveTasksTree.CreateItem();
+        for (int index = 0; index < snapshot.ActiveEntries.Length; index++)
+        {
+            SchedulerDebugTaskEntry entry = snapshot.ActiveEntries[index];
+            TreeItem item = _schedulerActiveTasksTree.CreateItem(root);
+            item.SetText(0, entry.Label);
+            item.SetText(1, FormatSchedulerOwner(entry.OwnerName, entry.OwnerInstanceId));
+            item.SetText(2, entry.Clock.ToString());
+            item.SetText(3, FormatSchedulerTaskState(entry));
+            item.SetText(4, FormatSchedulerSeconds(entry.AgeSeconds));
+            item.SetText(5, FormatSchedulerSeconds(entry.RemainingSeconds));
+            item.SetTooltipText(0, entry.Label);
+            item.SetTooltipText(1, string.IsNullOrWhiteSpace(entry.OwnerPath)
+                ? "未绑定 Owner"
+                : entry.OwnerPath);
+            for (int column = 2; column < 6; column++)
+                item.SetTextAlignment(column, HorizontalAlignment.Center);
+        }
+    }
+
+    private void RefreshSchedulerRecentResults(SchedulerDebugSnapshot snapshot)
+    {
+        _schedulerRecentResultsStatus!.Text =
+            $"最近结束 {snapshot.RecentResults.Length.ToString(CultureInfo.InvariantCulture)} / 保留 16";
+        _schedulerRecentResultsTree!.Clear();
+        TreeItem root = _schedulerRecentResultsTree.CreateItem();
+        for (int index = snapshot.RecentResults.Length - 1; index >= 0; index--)
+        {
+            SchedulerDebugResultEntry entry = snapshot.RecentResults[index];
+            TreeItem item = _schedulerRecentResultsTree.CreateItem(root);
+            item.SetText(0, entry.Label);
+            item.SetText(1, FormatSchedulerOwner(entry.OwnerName, entry.OwnerInstanceId));
+            item.SetText(2, GetSchedulerEndReasonText(entry.Reason));
+            item.SetText(3, FormatSchedulerSeconds(entry.AgeSeconds));
+            item.SetTooltipText(0, entry.Label);
+            item.SetTooltipText(1, string.IsNullOrWhiteSpace(entry.OwnerPath)
+                ? "未绑定 Owner"
+                : entry.OwnerPath);
+            item.SetTextAlignment(2, HorizontalAlignment.Center);
+            item.SetTextAlignment(3, HorizontalAlignment.Center);
+        }
+    }
+
+    private static string FormatSchedulerOwner(string ownerName, ulong? ownerInstanceId)
+    {
+        if (string.IsNullOrWhiteSpace(ownerName) || !ownerInstanceId.HasValue)
+            return "—";
+        return $"{ownerName} #{ownerInstanceId.Value.ToString(CultureInfo.InvariantCulture)}";
+    }
+
+    private static string FormatSchedulerTaskState(SchedulerDebugTaskEntry entry)
+    {
+        string state = entry.State switch
+        {
+            SchedulerDebugTaskState.Paused => "暂停",
+            SchedulerDebugTaskState.Executing => "执行中",
+            _ => "等待",
+        };
+        return entry.IsRepeating ? $"{state} / 重复" : state;
+    }
+
+    private static string FormatSchedulerSeconds(double seconds) =>
+        $"{seconds.ToString("0.000", CultureInfo.InvariantCulture)}s";
+
+    private static string GetSchedulerEndReasonText(SchedulerDebugEndReason reason) => reason switch
+    {
+        SchedulerDebugEndReason.Completed => "正常完成",
+        SchedulerDebugEndReason.ExplicitCanceled => "主动取消",
+        SchedulerDebugEndReason.OwnerExited => "Owner 退出",
+        SchedulerDebugEndReason.TokenCanceled => "Token 取消",
+        SchedulerDebugEndReason.Shutdown => "框架关闭",
+        SchedulerDebugEndReason.CallbackFailed => "回调失败",
+        _ => "未知",
+    };
 
     private void SetSchedulerUnavailable(string state)
     {
@@ -418,6 +551,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _schedulerOwnerCanceledValue!.Text = "—";
         _schedulerFailedValue!.Text = "—";
         _schedulerFailedValue.RemoveThemeColorOverride("font_color");
+        _schedulerActiveTasksStatus!.Text = "—";
+        _schedulerActiveTasksTree!.Clear();
+        _schedulerRecentResultsStatus!.Text = "—";
+        _schedulerRecentResultsTree!.Clear();
     }
 
     private void RefreshAudioDashboard()
@@ -455,7 +592,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             BgmPlaybackState.Ended => "已结束",
             _ => "未知",
         };
-        _audioBgmStateDetail.Text = audio.BgmState switch
+        string bgmStateDetail = audio.BgmState switch
         {
             BgmPlaybackState.Loading => currentBgm.HasValue ? "旧音乐继续播放" : "等待首次播放",
             BgmPlaybackState.Transitioning => "双播放器交叉淡化",
@@ -464,6 +601,13 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             BgmPlaybackState.Ended => "资源保留，播放已结束",
             _ => "没有 BGM",
         };
+        if (audio is AudioService audioService &&
+            audioService.DebugBgmRequestAgeMilliseconds is ulong requestAgeMilliseconds)
+        {
+            bgmStateDetail =
+                $"{bgmStateDetail} · 请求 {FormatAgeMilliseconds(requestAgeMilliseconds)}";
+        }
+        _audioBgmStateDetail.Text = bgmStateDetail;
 
         string bgmResource = currentBgm?.Value ?? "无";
         _audioBgmResourceValue.Text = bgmResource;

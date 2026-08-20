@@ -1,0 +1,5166 @@
+{
+  "schema_version": 1,
+  "framework_version": "0.6.2",
+  "items": [
+    {
+      "uid": "GoDo.AudioGroup",
+      "kind": "Enum",
+      "signature": "public enum AudioGroup"
+    },
+    {
+      "uid": "GoDo.AudioGroup.Bgm",
+      "kind": "Field",
+      "signature": "Bgm = 1"
+    },
+    {
+      "uid": "GoDo.AudioGroup.Master",
+      "kind": "Field",
+      "signature": "Master = 0"
+    },
+    {
+      "uid": "GoDo.AudioGroup.Sfx",
+      "kind": "Field",
+      "signature": "Sfx = 2"
+    },
+    {
+      "uid": "GoDo.AudioPlaybackException",
+      "kind": "Class",
+      "signature": "public sealed class AudioPlaybackException : Exception"
+    },
+    {
+      "uid": "GoDo.AudioPlaybackException.#ctor(GoDo.ResourceKey,GoDo.AudioGroup,System.String,System.Exception)",
+      "kind": "Constructor",
+      "signature": "public AudioPlaybackException(ResourceKey key, AudioGroup group, string message, Exception? innerException = null)"
+    },
+    {
+      "uid": "GoDo.AudioPlaybackException.Group",
+      "kind": "Property",
+      "signature": "public AudioGroup Group { get; }"
+    },
+    {
+      "uid": "GoDo.AudioPlaybackException.Key",
+      "kind": "Property",
+      "signature": "public ResourceKey Key { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService",
+      "kind": "Class",
+      "signature": "public sealed class AudioService : Node, IAudioService"
+    },
+    {
+      "uid": "GoDo.AudioService.ActiveSfx3DCount",
+      "kind": "Property",
+      "signature": "public int ActiveSfx3DCount { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.ActiveSfxCount",
+      "kind": "Property",
+      "signature": "public int ActiveSfxCount { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.BgmPlayerPath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath BgmPlayerPath { get; set; }"
+    },
+    {
+      "uid": "GoDo.AudioService.BgmState",
+      "kind": "Property",
+      "signature": "public BgmPlaybackState BgmState { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.CrossfadeBgmAsync(GoDo.ResourceKey,System.Double,System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "public Task CrossfadeBgmAsync(ResourceKey key, double durationSeconds, CancellationToken cancellationToken = default)"
+    },
+    {
+      "uid": "GoDo.AudioService.CurrentBgm",
+      "kind": "Property",
+      "signature": "public ResourceKey? CurrentBgm { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.FadeOutBgmAsync(System.Double,System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "public Task FadeOutBgmAsync(double durationSeconds, CancellationToken cancellationToken = default)"
+    },
+    {
+      "uid": "GoDo.AudioService.FollowingSfx3DCount",
+      "kind": "Property",
+      "signature": "public int FollowingSfx3DCount { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.AudioService.GetVolume(GoDo.AudioGroup)",
+      "kind": "Method",
+      "signature": "public float GetVolume(AudioGroup group)"
+    },
+    {
+      "uid": "GoDo.AudioService.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.AudioService.InitialSfx3DVoices",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.Range, \"0,256,1\")] public int InitialSfx3DVoices { get; set; }"
+    },
+    {
+      "uid": "GoDo.AudioService.InitialSfxVoices",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.Range, \"0,256,1\")] public int InitialSfxVoices { get; set; }"
+    },
+    {
+      "uid": "GoDo.AudioService.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.AudioService.IsBgmLoading",
+      "kind": "Property",
+      "signature": "public bool IsBgmLoading { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.IsBgmPlaying",
+      "kind": "Property",
+      "signature": "public bool IsBgmPlaying { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.IsSfx3DPlaying(GoDo.Sfx3DPlaybackHandle)",
+      "kind": "Method",
+      "signature": "public bool IsSfx3DPlaying(Sfx3DPlaybackHandle handle)"
+    },
+    {
+      "uid": "GoDo.AudioService.IsSfxPlaying(GoDo.SfxPlaybackHandle)",
+      "kind": "Method",
+      "signature": "public bool IsSfxPlaying(SfxPlaybackHandle handle)"
+    },
+    {
+      "uid": "GoDo.AudioService.MaxFollowingSfx3DVoices",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.Range, \"0,256,1\")] public int MaxFollowingSfx3DVoices { get; set; }"
+    },
+    {
+      "uid": "GoDo.AudioService.MaxSfx3DVoices",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.Range, \"1,256,1\")] public int MaxSfx3DVoices { get; set; }"
+    },
+    {
+      "uid": "GoDo.AudioService.MaxSfxVoices",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.Range, \"1,256,1\")] public int MaxSfxVoices { get; set; }"
+    },
+    {
+      "uid": "GoDo.AudioService.PauseBgm",
+      "kind": "Method",
+      "signature": "public void PauseBgm()"
+    },
+    {
+      "uid": "GoDo.AudioService.PendingSfx3DCount",
+      "kind": "Property",
+      "signature": "public int PendingSfx3DCount { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.PendingSfxCount",
+      "kind": "Property",
+      "signature": "public int PendingSfxCount { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.PlayBgmAsync(GoDo.ResourceKey,System.Boolean)",
+      "kind": "Method",
+      "signature": "public Task PlayBgmAsync(ResourceKey key, bool restart = false)"
+    },
+    {
+      "uid": "GoDo.AudioService.PlaySfx3DAsync(GoDo.ResourceKey,Godot.Vector3,GoDo.Sfx3DPlaybackOptions)",
+      "kind": "Method",
+      "signature": "public Task<Sfx3DPlaybackResult> PlaySfx3DAsync(ResourceKey key, Vector3 globalPosition, Sfx3DPlaybackOptions options)"
+    },
+    {
+      "uid": "GoDo.AudioService.PlaySfx3DFollowAsync(GoDo.ResourceKey,Godot.Node3D,Godot.Vector3,GoDo.Sfx3DPlaybackOptions)",
+      "kind": "Method",
+      "signature": "public Task<Sfx3DPlaybackResult> PlaySfx3DFollowAsync(ResourceKey key, Node3D target, Vector3 localOffset, Sfx3DPlaybackOptions options)"
+    },
+    {
+      "uid": "GoDo.AudioService.PlaySfxAsync(GoDo.ResourceKey)",
+      "kind": "Method",
+      "signature": "public Task<bool> PlaySfxAsync(ResourceKey key)"
+    },
+    {
+      "uid": "GoDo.AudioService.PlaySfxAsync(GoDo.ResourceKey,GoDo.SfxPlaybackOptions)",
+      "kind": "Method",
+      "signature": "public Task<SfxPlaybackResult> PlaySfxAsync(ResourceKey key, SfxPlaybackOptions options)"
+    },
+    {
+      "uid": "GoDo.AudioService.PlaySfxAsync(GoDo.ResourceKey,System.Single,System.Single)",
+      "kind": "Method",
+      "signature": "public Task<bool> PlaySfxAsync(ResourceKey key, float volumeLinear, float pitchScale = 1)"
+    },
+    {
+      "uid": "GoDo.AudioService.PreemptedSfx3DCount",
+      "kind": "Property",
+      "signature": "public long PreemptedSfx3DCount { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.PreemptedSfxCount",
+      "kind": "Property",
+      "signature": "public long PreemptedSfxCount { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.PrepareSfxAsync(GoDo.ResourceKey,System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "public Task PrepareSfxAsync(ResourceKey key, CancellationToken cancellationToken = default)"
+    },
+    {
+      "uid": "GoDo.AudioService.PreparedSfx3DVoiceCount",
+      "kind": "Property",
+      "signature": "public int PreparedSfx3DVoiceCount { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.PreparedSfxVoiceCount",
+      "kind": "Property",
+      "signature": "public int PreparedSfxVoiceCount { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.PrewarmSfx3DVoices(System.Int32)",
+      "kind": "Method",
+      "signature": "public int PrewarmSfx3DVoices(int targetVoiceCount)"
+    },
+    {
+      "uid": "GoDo.AudioService.PrewarmSfxVoices(System.Int32)",
+      "kind": "Method",
+      "signature": "public int PrewarmSfxVoices(int targetVoiceCount)"
+    },
+    {
+      "uid": "GoDo.AudioService.RejectedSfx3DCount",
+      "kind": "Property",
+      "signature": "public long RejectedSfx3DCount { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.RejectedSfxCount",
+      "kind": "Property",
+      "signature": "public long RejectedSfxCount { get; }"
+    },
+    {
+      "uid": "GoDo.AudioService.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.AudioService.ResumeBgm",
+      "kind": "Method",
+      "signature": "public void ResumeBgm()"
+    },
+    {
+      "uid": "GoDo.AudioService.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.AudioService.SecondaryBgmPlayerPath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath SecondaryBgmPlayerPath { get; set; }"
+    },
+    {
+      "uid": "GoDo.AudioService.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.AudioService.SetVolume(GoDo.AudioGroup,System.Single)",
+      "kind": "Method",
+      "signature": "public void SetVolume(AudioGroup group, float linearVolume)"
+    },
+    {
+      "uid": "GoDo.AudioService.Sfx3DRootPath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath Sfx3DRootPath { get; set; }"
+    },
+    {
+      "uid": "GoDo.AudioService.Sfx3DVoiceScene",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public PackedScene Sfx3DVoiceScene { get; set; }"
+    },
+    {
+      "uid": "GoDo.AudioService.SfxRootPath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath SfxRootPath { get; set; }"
+    },
+    {
+      "uid": "GoDo.AudioService.SfxVoiceScene",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public PackedScene SfxVoiceScene { get; set; }"
+    },
+    {
+      "uid": "GoDo.AudioService.StopAllSfx",
+      "kind": "Method",
+      "signature": "public void StopAllSfx()"
+    },
+    {
+      "uid": "GoDo.AudioService.StopAllSfx3D",
+      "kind": "Method",
+      "signature": "public void StopAllSfx3D()"
+    },
+    {
+      "uid": "GoDo.AudioService.StopBgm",
+      "kind": "Method",
+      "signature": "public void StopBgm()"
+    },
+    {
+      "uid": "GoDo.AudioService.TryStopSfx(GoDo.SfxPlaybackHandle)",
+      "kind": "Method",
+      "signature": "public bool TryStopSfx(SfxPlaybackHandle handle)"
+    },
+    {
+      "uid": "GoDo.AudioService.TryStopSfx3D(GoDo.Sfx3DPlaybackHandle)",
+      "kind": "Method",
+      "signature": "public bool TryStopSfx3D(Sfx3DPlaybackHandle handle)"
+    },
+    {
+      "uid": "GoDo.AudioService._ExitTree",
+      "kind": "Method",
+      "signature": "public override void _ExitTree()"
+    },
+    {
+      "uid": "GoDo.AudioService._PhysicsProcess(System.Double)",
+      "kind": "Method",
+      "signature": "public override void _PhysicsProcess(double delta)"
+    },
+    {
+      "uid": "GoDo.AudioService._Ready",
+      "kind": "Method",
+      "signature": "public override void _Ready()"
+    },
+    {
+      "uid": "GoDo.BgmPlaybackState",
+      "kind": "Enum",
+      "signature": "public enum BgmPlaybackState"
+    },
+    {
+      "uid": "GoDo.BgmPlaybackState.Ended",
+      "kind": "Field",
+      "signature": "Ended = 5"
+    },
+    {
+      "uid": "GoDo.BgmPlaybackState.Loading",
+      "kind": "Field",
+      "signature": "Loading = 1"
+    },
+    {
+      "uid": "GoDo.BgmPlaybackState.Paused",
+      "kind": "Field",
+      "signature": "Paused = 3"
+    },
+    {
+      "uid": "GoDo.BgmPlaybackState.Playing",
+      "kind": "Field",
+      "signature": "Playing = 2"
+    },
+    {
+      "uid": "GoDo.BgmPlaybackState.Stopped",
+      "kind": "Field",
+      "signature": "Stopped = 0"
+    },
+    {
+      "uid": "GoDo.BgmPlaybackState.Transitioning",
+      "kind": "Field",
+      "signature": "Transitioning = 4"
+    },
+    {
+      "uid": "GoDo.CameraId",
+      "kind": "Struct",
+      "signature": "public readonly struct CameraId"
+    },
+    {
+      "uid": "GoDo.CameraId.Create(System.String)",
+      "kind": "Method",
+      "signature": "public static CameraId Create(string value)"
+    },
+    {
+      "uid": "GoDo.CameraId.Equals(GoDo.CameraId)",
+      "kind": "Method",
+      "signature": "public bool Equals(CameraId other)"
+    },
+    {
+      "uid": "GoDo.CameraId.Equals(System.Object)",
+      "kind": "Method",
+      "signature": "public override bool Equals(object? obj)"
+    },
+    {
+      "uid": "GoDo.CameraId.GetHashCode",
+      "kind": "Method",
+      "signature": "public override int GetHashCode()"
+    },
+    {
+      "uid": "GoDo.CameraId.IsEmpty",
+      "kind": "Property",
+      "signature": "public bool IsEmpty { get; }"
+    },
+    {
+      "uid": "GoDo.CameraId.ToString",
+      "kind": "Method",
+      "signature": "public override string ToString()"
+    },
+    {
+      "uid": "GoDo.CameraId.Value",
+      "kind": "Property",
+      "signature": "public string Value { get; }"
+    },
+    {
+      "uid": "GoDo.CameraId.op_Equality(GoDo.CameraId,GoDo.CameraId)",
+      "kind": "Operator",
+      "signature": "public static bool operator ==(CameraId left, CameraId right)"
+    },
+    {
+      "uid": "GoDo.CameraId.op_Inequality(GoDo.CameraId,GoDo.CameraId)",
+      "kind": "Operator",
+      "signature": "public static bool operator !=(CameraId left, CameraId right)"
+    },
+    {
+      "uid": "GoDo.CameraOperationException",
+      "kind": "Class",
+      "signature": "public sealed class CameraOperationException : Exception"
+    },
+    {
+      "uid": "GoDo.CameraOperationException.#ctor(GoDo.CameraId,System.String)",
+      "kind": "Constructor",
+      "signature": "public CameraOperationException(CameraId cameraId, string message)"
+    },
+    {
+      "uid": "GoDo.CameraOperationException.#ctor(GoDo.CameraId,System.String,System.Exception)",
+      "kind": "Constructor",
+      "signature": "public CameraOperationException(CameraId cameraId, string message, Exception innerException)"
+    },
+    {
+      "uid": "GoDo.CameraOperationException.CameraId",
+      "kind": "Property",
+      "signature": "public CameraId CameraId { get; }"
+    },
+    {
+      "uid": "GoDo.CameraRig",
+      "kind": "Class",
+      "signature": "public abstract class CameraRig : Node"
+    },
+    {
+      "uid": "GoDo.CameraRig.ActivateRig",
+      "kind": "Method",
+      "signature": "protected abstract void ActivateRig()"
+    },
+    {
+      "uid": "GoDo.CameraRig.DeactivateRig",
+      "kind": "Method",
+      "signature": "protected abstract void DeactivateRig()"
+    },
+    {
+      "uid": "GoDo.CameraRig.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.CameraRig.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.CameraRig.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.CameraRig.OnRigExitTree",
+      "kind": "Method",
+      "signature": "protected virtual void OnRigExitTree()"
+    },
+    {
+      "uid": "GoDo.CameraRig.OnRigReady",
+      "kind": "Method",
+      "signature": "protected virtual void OnRigReady()"
+    },
+    {
+      "uid": "GoDo.CameraRig.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.CameraRig.RigId",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public string RigId { get; set; }"
+    },
+    {
+      "uid": "GoDo.CameraRig.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.CameraRig.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.CameraRig._ExitTree",
+      "kind": "Method",
+      "signature": "public override sealed void _ExitTree()"
+    },
+    {
+      "uid": "GoDo.CameraRig._Ready",
+      "kind": "Method",
+      "signature": "public override sealed void _Ready()"
+    },
+    {
+      "uid": "GoDo.CameraService",
+      "kind": "Class",
+      "signature": "public sealed class CameraService : ICameraService"
+    },
+    {
+      "uid": "GoDo.CameraService.ActivatePrimary(GoDo.CameraId)",
+      "kind": "Method",
+      "signature": "public void ActivatePrimary(CameraId id)"
+    },
+    {
+      "uid": "GoDo.CameraService.ActivePrimary",
+      "kind": "Property",
+      "signature": "public CameraId? ActivePrimary { get; }"
+    },
+    {
+      "uid": "GoDo.CameraService.RestorePreviousPrimary",
+      "kind": "Method",
+      "signature": "public bool RestorePreviousPrimary()"
+    },
+    {
+      "uid": "GoDo.ConfigHub",
+      "kind": "Class",
+      "signature": "public static class ConfigHub"
+    },
+    {
+      "uid": "GoDo.ConfigHub.Load``1(GoDo.ResourceKey)",
+      "kind": "Method",
+      "signature": "public static T Load<T>(ResourceKey key) where T : Resource, IConfigResource"
+    },
+    {
+      "uid": "GoDo.ConfigTable`2",
+      "kind": "Class",
+      "signature": "public sealed class ConfigTable<TKey, TEntry> where TKey : notnull"
+    },
+    {
+      "uid": "GoDo.ConfigTable`2.#ctor(System.Collections.Generic.IEnumerable{`1},System.Func{`1,`0},System.Collections.Generic.IEqualityComparer{`0})",
+      "kind": "Constructor",
+      "signature": "public ConfigTable(IEnumerable<TEntry> entries, Func<TEntry, TKey> keySelector, IEqualityComparer<TKey>? comparer = null)"
+    },
+    {
+      "uid": "GoDo.ConfigTable`2.Count",
+      "kind": "Property",
+      "signature": "public int Count { get; }"
+    },
+    {
+      "uid": "GoDo.ConfigTable`2.Get(`0)",
+      "kind": "Method",
+      "signature": "public TEntry Get(TKey key)"
+    },
+    {
+      "uid": "GoDo.ConfigTable`2.TryGet(`0,`1@)",
+      "kind": "Method",
+      "signature": "public bool TryGet(TKey key, out TEntry? entry)"
+    },
+    {
+      "uid": "GoDo.ConfigValidationException",
+      "kind": "Class",
+      "signature": "public sealed class ConfigValidationException : Exception"
+    },
+    {
+      "uid": "GoDo.ConfigValidationException.#ctor(GoDo.ResourceKey,System.Type,System.String,System.Exception)",
+      "kind": "Constructor",
+      "signature": "public ConfigValidationException(ResourceKey key, Type configType, string message, Exception? innerException = null)"
+    },
+    {
+      "uid": "GoDo.ConfigValidationException.ConfigType",
+      "kind": "Property",
+      "signature": "public Type ConfigType { get; }"
+    },
+    {
+      "uid": "GoDo.ConfigValidationException.Key",
+      "kind": "Property",
+      "signature": "public ResourceKey Key { get; }"
+    },
+    {
+      "uid": "GoDo.DataTableDefinition",
+      "kind": "Class",
+      "signature": "public sealed class DataTableDefinition"
+    },
+    {
+      "uid": "GoDo.DataTableDefinition.#ctor(System.String,System.String,System.Func{System.String,System.Object})",
+      "kind": "Constructor",
+      "signature": "public DataTableDefinition(string id, string artifact, Func<string, object> loader)"
+    },
+    {
+      "uid": "GoDo.DataTableDefinition.Artifact",
+      "kind": "Property",
+      "signature": "public string Artifact { get; }"
+    },
+    {
+      "uid": "GoDo.DataTableDefinition.Id",
+      "kind": "Property",
+      "signature": "public string Id { get; }"
+    },
+    {
+      "uid": "GoDo.DataTableLoadException",
+      "kind": "Class",
+      "signature": "public sealed class DataTableLoadException : Exception"
+    },
+    {
+      "uid": "GoDo.DataTableLoadException.#ctor(System.String,System.String,System.Exception)",
+      "kind": "Constructor",
+      "signature": "public DataTableLoadException(string dataSetId, string message, Exception? innerException = null)"
+    },
+    {
+      "uid": "GoDo.DataTableLoadException.DataSetId",
+      "kind": "Property",
+      "signature": "public string DataSetId { get; }"
+    },
+    {
+      "uid": "GoDo.DataTableLoadProgress",
+      "kind": "Struct",
+      "signature": "public readonly record struct DataTableLoadProgress"
+    },
+    {
+      "uid": "GoDo.DataTableLoadProgress.#ctor(System.String,System.Int32,System.Int32,System.String)",
+      "kind": "Constructor",
+      "signature": "public DataTableLoadProgress(string DataSetId, int LoadedTableCount, int TotalTableCount, string? TableId)"
+    },
+    {
+      "uid": "GoDo.DataTableLoadProgress.DataSetId",
+      "kind": "Property",
+      "signature": "public string DataSetId { get; init; }"
+    },
+    {
+      "uid": "GoDo.DataTableLoadProgress.LoadedTableCount",
+      "kind": "Property",
+      "signature": "public int LoadedTableCount { get; init; }"
+    },
+    {
+      "uid": "GoDo.DataTableLoadProgress.Ratio",
+      "kind": "Property",
+      "signature": "public double Ratio { get; }"
+    },
+    {
+      "uid": "GoDo.DataTableLoadProgress.TableId",
+      "kind": "Property",
+      "signature": "public string? TableId { get; init; }"
+    },
+    {
+      "uid": "GoDo.DataTableLoadProgress.TotalTableCount",
+      "kind": "Property",
+      "signature": "public int TotalTableCount { get; init; }"
+    },
+    {
+      "uid": "GoDo.DataTableService",
+      "kind": "Class",
+      "signature": "public sealed class DataTableService : Node, IDataTableService"
+    },
+    {
+      "uid": "GoDo.DataTableService.GetTable``1(System.String,System.String)",
+      "kind": "Method",
+      "signature": "public TTable GetTable<TTable>(string dataSetId, string tableId) where TTable : class"
+    },
+    {
+      "uid": "GoDo.DataTableService.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.DataTableService.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.DataTableService.IsLoaded(System.String)",
+      "kind": "Method",
+      "signature": "public bool IsLoaded(string dataSetId)"
+    },
+    {
+      "uid": "GoDo.DataTableService.LoadAsync(GoDo.DataTableSetDefinition,System.String,System.Action{GoDo.DataTableLoadProgress},System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "public Task LoadAsync(DataTableSetDefinition definition, string runtimeDirectory, Action<DataTableLoadProgress>? progress = null, CancellationToken cancellationToken = default)"
+    },
+    {
+      "uid": "GoDo.DataTableService.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.DataTableService.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.DataTableService.Unload(System.String)",
+      "kind": "Method",
+      "signature": "public bool Unload(string dataSetId)"
+    },
+    {
+      "uid": "GoDo.DataTableSetDefinition",
+      "kind": "Class",
+      "signature": "public sealed class DataTableSetDefinition"
+    },
+    {
+      "uid": "GoDo.DataTableSetDefinition.#ctor(System.String,System.Int32,System.Int32,System.Collections.Generic.IReadOnlyList{GoDo.DataTableDefinition})",
+      "kind": "Constructor",
+      "signature": "public DataTableSetDefinition(string id, int formatVersion, int protocolVersion, IReadOnlyList<DataTableDefinition> tables)"
+    },
+    {
+      "uid": "GoDo.DataTableSetDefinition.FormatVersion",
+      "kind": "Property",
+      "signature": "public int FormatVersion { get; }"
+    },
+    {
+      "uid": "GoDo.DataTableSetDefinition.Id",
+      "kind": "Property",
+      "signature": "public string Id { get; }"
+    },
+    {
+      "uid": "GoDo.DataTableSetDefinition.ProtocolVersion",
+      "kind": "Property",
+      "signature": "public int ProtocolVersion { get; }"
+    },
+    {
+      "uid": "GoDo.DataTableSetDefinition.Tables",
+      "kind": "Property",
+      "signature": "public IReadOnlyList<DataTableDefinition> Tables { get; }"
+    },
+    {
+      "uid": "GoDo.ErrorHub",
+      "kind": "Class",
+      "signature": "public static class ErrorHub"
+    },
+    {
+      "uid": "GoDo.ErrorHub.AddReporter(GoDo.IErrorReporter)",
+      "kind": "Method",
+      "signature": "public static void AddReporter(IErrorReporter reporter)"
+    },
+    {
+      "uid": "GoDo.ErrorHub.Fatal(System.Exception,System.String,System.String)",
+      "kind": "Method",
+      "signature": "public static void Fatal(Exception exception, string module, string? context = null)"
+    },
+    {
+      "uid": "GoDo.ErrorHub.Fatal(System.String,System.String,System.String)",
+      "kind": "Method",
+      "signature": "public static void Fatal(string message, string module, string? context = null)"
+    },
+    {
+      "uid": "GoDo.ErrorHub.MinLevel",
+      "kind": "Property",
+      "signature": "public static ErrorLevel MinLevel { get; set; }"
+    },
+    {
+      "uid": "GoDo.ErrorHub.OnError",
+      "kind": "Event",
+      "signature": "public static event Action<ErrorReport>? OnError"
+    },
+    {
+      "uid": "GoDo.ErrorHub.RemoveReporter(GoDo.IErrorReporter)",
+      "kind": "Method",
+      "signature": "public static void RemoveReporter(IErrorReporter reporter)"
+    },
+    {
+      "uid": "GoDo.ErrorHub.Report(GoDo.ErrorLevel,System.String,System.String,System.String)",
+      "kind": "Method",
+      "signature": "public static void Report(ErrorLevel level, string message, string module, string? context = null)"
+    },
+    {
+      "uid": "GoDo.ErrorHub.Report(System.Exception,System.String,System.String)",
+      "kind": "Method",
+      "signature": "public static void Report(Exception exception, string module, string? context = null)"
+    },
+    {
+      "uid": "GoDo.ErrorHub.Warn(System.String,System.String,System.String)",
+      "kind": "Method",
+      "signature": "public static void Warn(string message, string module, string? context = null)"
+    },
+    {
+      "uid": "GoDo.ErrorLevel",
+      "kind": "Enum",
+      "signature": "public enum ErrorLevel"
+    },
+    {
+      "uid": "GoDo.ErrorLevel.Error",
+      "kind": "Field",
+      "signature": "Error = 2"
+    },
+    {
+      "uid": "GoDo.ErrorLevel.Fatal",
+      "kind": "Field",
+      "signature": "Fatal = 3"
+    },
+    {
+      "uid": "GoDo.ErrorLevel.Warning",
+      "kind": "Field",
+      "signature": "Warning = 1"
+    },
+    {
+      "uid": "GoDo.ErrorReport",
+      "kind": "Struct",
+      "signature": "public readonly struct ErrorReport"
+    },
+    {
+      "uid": "GoDo.ErrorReport.Context",
+      "kind": "Property",
+      "signature": "public string? Context { get; init; }"
+    },
+    {
+      "uid": "GoDo.ErrorReport.Exception",
+      "kind": "Property",
+      "signature": "public Exception? Exception { get; init; }"
+    },
+    {
+      "uid": "GoDo.ErrorReport.Level",
+      "kind": "Property",
+      "signature": "public ErrorLevel Level { get; init; }"
+    },
+    {
+      "uid": "GoDo.ErrorReport.Message",
+      "kind": "Property",
+      "signature": "public string Message { get; init; }"
+    },
+    {
+      "uid": "GoDo.ErrorReport.Module",
+      "kind": "Property",
+      "signature": "public string Module { get; init; }"
+    },
+    {
+      "uid": "GoDo.ErrorReport.StackTrace",
+      "kind": "Property",
+      "signature": "public string? StackTrace { get; init; }"
+    },
+    {
+      "uid": "GoDo.ErrorReport.Timestamp",
+      "kind": "Property",
+      "signature": "public DateTime Timestamp { get; init; }"
+    },
+    {
+      "uid": "GoDo.ErrorReport.ToString",
+      "kind": "Method",
+      "signature": "public override string ToString()"
+    },
+    {
+      "uid": "GoDo.EventChannel",
+      "kind": "Class",
+      "signature": "public static class EventChannel"
+    },
+    {
+      "uid": "GoDo.EventChannel.Bind``1(Godot.Node,System.Action{``0},System.Int32)",
+      "kind": "Method",
+      "signature": "public static void Bind<T>(Node node, Action<T> handler, int priority = 0) where T : struct, IEventMessage"
+    },
+    {
+      "uid": "GoDo.EventChannel.Emit``1",
+      "kind": "Method",
+      "signature": "public static void Emit<T>() where T : struct, IEventMessage"
+    },
+    {
+      "uid": "GoDo.EventChannel.Emit``1(``0)",
+      "kind": "Method",
+      "signature": "public static void Emit<T>(T evt) where T : struct, IEventMessage"
+    },
+    {
+      "uid": "GoDo.EventChannel.Off``1(System.Action{``0})",
+      "kind": "Method",
+      "signature": "public static void Off<T>(Action<T> handler) where T : struct, IEventMessage"
+    },
+    {
+      "uid": "GoDo.EventChannel.On``1(System.Action{``0},System.Int32)",
+      "kind": "Method",
+      "signature": "public static void On<T>(Action<T> handler, int priority = 0) where T : struct, IEventMessage"
+    },
+    {
+      "uid": "GoDo.EventChannel.Once``1(System.Action{``0})",
+      "kind": "Method",
+      "signature": "public static void Once<T>(Action<T> handler) where T : struct, IEventMessage"
+    },
+    {
+      "uid": "GoDo.EventScope",
+      "kind": "Class",
+      "signature": "public sealed class EventScope"
+    },
+    {
+      "uid": "GoDo.EventScope.Dispose",
+      "kind": "Method",
+      "signature": "public void Dispose()"
+    },
+    {
+      "uid": "GoDo.EventScope.Off``1(System.Action{``0})",
+      "kind": "Method",
+      "signature": "public void Off<T>(Action<T> handler) where T : struct, IEventMessage"
+    },
+    {
+      "uid": "GoDo.EventScope.On``1(System.Action{``0},System.Int32)",
+      "kind": "Method",
+      "signature": "public EventScope On<T>(Action<T> handler, int priority = 0) where T : struct, IEventMessage"
+    },
+    {
+      "uid": "GoDo.EventScope.Once``1(System.Action{``0})",
+      "kind": "Method",
+      "signature": "public EventScope Once<T>(Action<T> handler) where T : struct, IEventMessage"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime",
+      "kind": "Class",
+      "signature": "public sealed class GoDoRuntime : Node"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime.AudioServicePath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath AudioServicePath { get; set; }"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime.DataTableServicePath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath DataTableServicePath { get; set; }"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime.SceneServicePath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath SceneServicePath { get; set; }"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime.SchedulerServicePath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath SchedulerServicePath { get; set; }"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime.UiRootPath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath UiRootPath { get; set; }"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime.UiServicePath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath UiServicePath { get; set; }"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime._EnterTree",
+      "kind": "Method",
+      "signature": "public override void _EnterTree()"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime._ExitTree",
+      "kind": "Method",
+      "signature": "public override void _ExitTree()"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime._Process(System.Double)",
+      "kind": "Method",
+      "signature": "public override void _Process(double delta)"
+    },
+    {
+      "uid": "GoDo.GoDoRuntime._Ready",
+      "kind": "Method",
+      "signature": "public override void _Ready()"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputActionBinding",
+      "kind": "Class",
+      "signature": "[GlobalClass] public sealed class GuideInputActionBinding : Resource"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputActionBinding.ActionId",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public string ActionId { get; set; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputActionBinding.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputActionBinding.GuideActionResource",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public Resource GuideActionResource { get; set; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputActionBinding.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputActionBinding.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputActionBinding.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend",
+      "kind": "Class",
+      "signature": "public sealed class GuideInputBackend : IInputBackend, IInputRebindingBackend, IInputRebindingPersistenceBackend, IInputPromptBackend"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend.#ctor(GoDo.GuideInput.GuideInputProfile)",
+      "kind": "Constructor",
+      "signature": "public GuideInputBackend(GuideInputProfile profile)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend.#ctor(GoDo.GuideInput.GuideInputProfile,GoDo.ISaveService,GoDo.SaveSlot)",
+      "kind": "Constructor",
+      "signature": "public GuideInputBackend(GuideInputProfile profile, ISaveService saveService, SaveSlot persistenceSlot)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend.Actions",
+      "kind": "Property",
+      "signature": "public IReadOnlyList<InputActionDescriptor> Actions { get; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend.ActiveDevice",
+      "kind": "Property",
+      "signature": "public InputDeviceKind ActiveDevice { get; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend.ApplyContexts(System.ReadOnlySpan{GoDo.InputContextId})",
+      "kind": "Method",
+      "signature": "public void ApplyContexts(ReadOnlySpan<InputContextId> contexts)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend.Capabilities",
+      "kind": "Property",
+      "signature": "public InputBackendCapabilities Capabilities { get; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend.Contexts",
+      "kind": "Property",
+      "signature": "public IReadOnlyList<InputContextId> Contexts { get; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend.Initialize",
+      "kind": "Method",
+      "signature": "public void Initialize()"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend.PromptQuery",
+      "kind": "Property",
+      "signature": "public IInputPromptQuery PromptQuery { get; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend.Rebinding",
+      "kind": "Property",
+      "signature": "public IInputRebinding Rebinding { get; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend.RebindingPersistence",
+      "kind": "Property",
+      "signature": "public IInputRebindingPersistence RebindingPersistence { get; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend.Sample(System.Span{GoDo.InputActionSample})",
+      "kind": "Method",
+      "signature": "public void Sample(Span<InputActionSample> destination)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackend.Shutdown",
+      "kind": "Method",
+      "signature": "public void Shutdown()"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackendInstaller",
+      "kind": "Class",
+      "signature": "[GlobalClass] public sealed class GuideInputBackendInstaller : Node"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackendInstaller.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackendInstaller.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackendInstaller.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackendInstaller.PersistenceSlot",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public string PersistenceSlot { get; set; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackendInstaller.Profile",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public GuideInputProfile Profile { get; set; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackendInstaller.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackendInstaller.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackendInstaller.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBackendInstaller._Ready",
+      "kind": "Method",
+      "signature": "public override void _Ready()"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBindingDefinition",
+      "kind": "Class",
+      "signature": "[GlobalClass] public sealed class GuideInputBindingDefinition : Resource"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBindingDefinition.ActionId",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public string ActionId { get; set; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBindingDefinition.BindingId",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public string BindingId { get; set; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBindingDefinition.ContextId",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public string ContextId { get; set; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBindingDefinition.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBindingDefinition.MappingIndex",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.Range, \"0,64,1\")] public int MappingIndex { get; set; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBindingDefinition.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBindingDefinition.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputBindingDefinition.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputContextBinding",
+      "kind": "Class",
+      "signature": "[GlobalClass] public sealed class GuideInputContextBinding : Resource"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputContextBinding.ContextId",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public string ContextId { get; set; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputContextBinding.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputContextBinding.GuideContextResource",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public Resource GuideContextResource { get; set; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputContextBinding.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputContextBinding.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputContextBinding.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputProfile",
+      "kind": "Class",
+      "signature": "[GlobalClass] public sealed class GuideInputProfile : Resource"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputProfile.Actions",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public Array<GuideInputActionBinding> Actions { get; set; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputProfile.Bindings",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public Array<GuideInputBindingDefinition> Bindings { get; set; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputProfile.Contexts",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public Array<GuideInputContextBinding> Contexts { get; set; }"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputProfile.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputProfile.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputProfile.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.GuideInput.GuideInputProfile.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.IAudioService",
+      "kind": "Interface",
+      "signature": "public interface IAudioService"
+    },
+    {
+      "uid": "GoDo.IAudioService.ActiveSfx3DCount",
+      "kind": "Property",
+      "signature": "int ActiveSfx3DCount { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.ActiveSfxCount",
+      "kind": "Property",
+      "signature": "int ActiveSfxCount { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.BgmState",
+      "kind": "Property",
+      "signature": "BgmPlaybackState BgmState { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.CrossfadeBgmAsync(GoDo.ResourceKey,System.Double,System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "Task CrossfadeBgmAsync(ResourceKey key, double durationSeconds, CancellationToken cancellationToken = default)"
+    },
+    {
+      "uid": "GoDo.IAudioService.CurrentBgm",
+      "kind": "Property",
+      "signature": "ResourceKey? CurrentBgm { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.FadeOutBgmAsync(System.Double,System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "Task FadeOutBgmAsync(double durationSeconds, CancellationToken cancellationToken = default)"
+    },
+    {
+      "uid": "GoDo.IAudioService.FollowingSfx3DCount",
+      "kind": "Property",
+      "signature": "int FollowingSfx3DCount { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.GetVolume(GoDo.AudioGroup)",
+      "kind": "Method",
+      "signature": "float GetVolume(AudioGroup group)"
+    },
+    {
+      "uid": "GoDo.IAudioService.IsBgmLoading",
+      "kind": "Property",
+      "signature": "bool IsBgmLoading { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.IsBgmPlaying",
+      "kind": "Property",
+      "signature": "bool IsBgmPlaying { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.IsSfx3DPlaying(GoDo.Sfx3DPlaybackHandle)",
+      "kind": "Method",
+      "signature": "bool IsSfx3DPlaying(Sfx3DPlaybackHandle handle)"
+    },
+    {
+      "uid": "GoDo.IAudioService.IsSfxPlaying(GoDo.SfxPlaybackHandle)",
+      "kind": "Method",
+      "signature": "bool IsSfxPlaying(SfxPlaybackHandle handle)"
+    },
+    {
+      "uid": "GoDo.IAudioService.MaxFollowingSfx3DVoices",
+      "kind": "Property",
+      "signature": "int MaxFollowingSfx3DVoices { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.MaxSfx3DVoices",
+      "kind": "Property",
+      "signature": "int MaxSfx3DVoices { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.MaxSfxVoices",
+      "kind": "Property",
+      "signature": "int MaxSfxVoices { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.PauseBgm",
+      "kind": "Method",
+      "signature": "void PauseBgm()"
+    },
+    {
+      "uid": "GoDo.IAudioService.PendingSfx3DCount",
+      "kind": "Property",
+      "signature": "int PendingSfx3DCount { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.PendingSfxCount",
+      "kind": "Property",
+      "signature": "int PendingSfxCount { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.PlayBgmAsync(GoDo.ResourceKey,System.Boolean)",
+      "kind": "Method",
+      "signature": "Task PlayBgmAsync(ResourceKey key, bool restart = false)"
+    },
+    {
+      "uid": "GoDo.IAudioService.PlaySfx3DAsync(GoDo.ResourceKey,Godot.Vector3,GoDo.Sfx3DPlaybackOptions)",
+      "kind": "Method",
+      "signature": "Task<Sfx3DPlaybackResult> PlaySfx3DAsync(ResourceKey key, Vector3 globalPosition, Sfx3DPlaybackOptions options)"
+    },
+    {
+      "uid": "GoDo.IAudioService.PlaySfx3DFollowAsync(GoDo.ResourceKey,Godot.Node3D,Godot.Vector3,GoDo.Sfx3DPlaybackOptions)",
+      "kind": "Method",
+      "signature": "Task<Sfx3DPlaybackResult> PlaySfx3DFollowAsync(ResourceKey key, Node3D target, Vector3 localOffset, Sfx3DPlaybackOptions options)"
+    },
+    {
+      "uid": "GoDo.IAudioService.PlaySfxAsync(GoDo.ResourceKey)",
+      "kind": "Method",
+      "signature": "Task<bool> PlaySfxAsync(ResourceKey key)"
+    },
+    {
+      "uid": "GoDo.IAudioService.PlaySfxAsync(GoDo.ResourceKey,GoDo.SfxPlaybackOptions)",
+      "kind": "Method",
+      "signature": "Task<SfxPlaybackResult> PlaySfxAsync(ResourceKey key, SfxPlaybackOptions options)"
+    },
+    {
+      "uid": "GoDo.IAudioService.PlaySfxAsync(GoDo.ResourceKey,System.Single,System.Single)",
+      "kind": "Method",
+      "signature": "Task<bool> PlaySfxAsync(ResourceKey key, float volumeLinear, float pitchScale = 1)"
+    },
+    {
+      "uid": "GoDo.IAudioService.PreemptedSfx3DCount",
+      "kind": "Property",
+      "signature": "long PreemptedSfx3DCount { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.PreemptedSfxCount",
+      "kind": "Property",
+      "signature": "long PreemptedSfxCount { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.PrepareSfxAsync(GoDo.ResourceKey,System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "Task PrepareSfxAsync(ResourceKey key, CancellationToken cancellationToken = default)"
+    },
+    {
+      "uid": "GoDo.IAudioService.PreparedSfx3DVoiceCount",
+      "kind": "Property",
+      "signature": "int PreparedSfx3DVoiceCount { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.PreparedSfxVoiceCount",
+      "kind": "Property",
+      "signature": "int PreparedSfxVoiceCount { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.PrewarmSfx3DVoices(System.Int32)",
+      "kind": "Method",
+      "signature": "int PrewarmSfx3DVoices(int targetVoiceCount)"
+    },
+    {
+      "uid": "GoDo.IAudioService.PrewarmSfxVoices(System.Int32)",
+      "kind": "Method",
+      "signature": "int PrewarmSfxVoices(int targetVoiceCount)"
+    },
+    {
+      "uid": "GoDo.IAudioService.RejectedSfx3DCount",
+      "kind": "Property",
+      "signature": "long RejectedSfx3DCount { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.RejectedSfxCount",
+      "kind": "Property",
+      "signature": "long RejectedSfxCount { get; }"
+    },
+    {
+      "uid": "GoDo.IAudioService.ResumeBgm",
+      "kind": "Method",
+      "signature": "void ResumeBgm()"
+    },
+    {
+      "uid": "GoDo.IAudioService.SetVolume(GoDo.AudioGroup,System.Single)",
+      "kind": "Method",
+      "signature": "void SetVolume(AudioGroup group, float linearVolume)"
+    },
+    {
+      "uid": "GoDo.IAudioService.StopAllSfx",
+      "kind": "Method",
+      "signature": "void StopAllSfx()"
+    },
+    {
+      "uid": "GoDo.IAudioService.StopAllSfx3D",
+      "kind": "Method",
+      "signature": "void StopAllSfx3D()"
+    },
+    {
+      "uid": "GoDo.IAudioService.StopBgm",
+      "kind": "Method",
+      "signature": "void StopBgm()"
+    },
+    {
+      "uid": "GoDo.IAudioService.TryStopSfx(GoDo.SfxPlaybackHandle)",
+      "kind": "Method",
+      "signature": "bool TryStopSfx(SfxPlaybackHandle handle)"
+    },
+    {
+      "uid": "GoDo.IAudioService.TryStopSfx3D(GoDo.Sfx3DPlaybackHandle)",
+      "kind": "Method",
+      "signature": "bool TryStopSfx3D(Sfx3DPlaybackHandle handle)"
+    },
+    {
+      "uid": "GoDo.ICameraService",
+      "kind": "Interface",
+      "signature": "public interface ICameraService"
+    },
+    {
+      "uid": "GoDo.ICameraService.ActivatePrimary(GoDo.CameraId)",
+      "kind": "Method",
+      "signature": "void ActivatePrimary(CameraId id)"
+    },
+    {
+      "uid": "GoDo.ICameraService.ActivePrimary",
+      "kind": "Property",
+      "signature": "CameraId? ActivePrimary { get; }"
+    },
+    {
+      "uid": "GoDo.ICameraService.RestorePreviousPrimary",
+      "kind": "Method",
+      "signature": "bool RestorePreviousPrimary()"
+    },
+    {
+      "uid": "GoDo.IConfigResource",
+      "kind": "Interface",
+      "signature": "public interface IConfigResource"
+    },
+    {
+      "uid": "GoDo.IConfigResource.Validate",
+      "kind": "Method",
+      "signature": "void Validate()"
+    },
+    {
+      "uid": "GoDo.IDataTableService",
+      "kind": "Interface",
+      "signature": "public interface IDataTableService"
+    },
+    {
+      "uid": "GoDo.IDataTableService.GetTable``1(System.String,System.String)",
+      "kind": "Method",
+      "signature": "TTable GetTable<TTable>(string dataSetId, string tableId) where TTable : class"
+    },
+    {
+      "uid": "GoDo.IDataTableService.IsLoaded(System.String)",
+      "kind": "Method",
+      "signature": "bool IsLoaded(string dataSetId)"
+    },
+    {
+      "uid": "GoDo.IDataTableService.LoadAsync(GoDo.DataTableSetDefinition,System.String,System.Action{GoDo.DataTableLoadProgress},System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "Task LoadAsync(DataTableSetDefinition definition, string runtimeDirectory, Action<DataTableLoadProgress>? progress = null, CancellationToken cancellationToken = default)"
+    },
+    {
+      "uid": "GoDo.IDataTableService.Unload(System.String)",
+      "kind": "Method",
+      "signature": "bool Unload(string dataSetId)"
+    },
+    {
+      "uid": "GoDo.IErrorReporter",
+      "kind": "Interface",
+      "signature": "public interface IErrorReporter"
+    },
+    {
+      "uid": "GoDo.IErrorReporter.Report(GoDo.ErrorReport@)",
+      "kind": "Method",
+      "signature": "void Report(in ErrorReport report)"
+    },
+    {
+      "uid": "GoDo.IEventMessage",
+      "kind": "Interface",
+      "signature": "public interface IEventMessage"
+    },
+    {
+      "uid": "GoDo.IInputBackend",
+      "kind": "Interface",
+      "signature": "public interface IInputBackend"
+    },
+    {
+      "uid": "GoDo.IInputBackend.Actions",
+      "kind": "Property",
+      "signature": "IReadOnlyList<InputActionDescriptor> Actions { get; }"
+    },
+    {
+      "uid": "GoDo.IInputBackend.ActiveDevice",
+      "kind": "Property",
+      "signature": "InputDeviceKind ActiveDevice { get; }"
+    },
+    {
+      "uid": "GoDo.IInputBackend.ApplyContexts(System.ReadOnlySpan{GoDo.InputContextId})",
+      "kind": "Method",
+      "signature": "void ApplyContexts(ReadOnlySpan<InputContextId> contexts)"
+    },
+    {
+      "uid": "GoDo.IInputBackend.Capabilities",
+      "kind": "Property",
+      "signature": "InputBackendCapabilities Capabilities { get; }"
+    },
+    {
+      "uid": "GoDo.IInputBackend.Contexts",
+      "kind": "Property",
+      "signature": "IReadOnlyList<InputContextId> Contexts { get; }"
+    },
+    {
+      "uid": "GoDo.IInputBackend.Initialize",
+      "kind": "Method",
+      "signature": "void Initialize()"
+    },
+    {
+      "uid": "GoDo.IInputBackend.Sample(System.Span{GoDo.InputActionSample})",
+      "kind": "Method",
+      "signature": "void Sample(Span<InputActionSample> destination)"
+    },
+    {
+      "uid": "GoDo.IInputBackend.Shutdown",
+      "kind": "Method",
+      "signature": "void Shutdown()"
+    },
+    {
+      "uid": "GoDo.IInputPromptBackend",
+      "kind": "Interface",
+      "signature": "public interface IInputPromptBackend"
+    },
+    {
+      "uid": "GoDo.IInputPromptBackend.PromptQuery",
+      "kind": "Property",
+      "signature": "IInputPromptQuery PromptQuery { get; }"
+    },
+    {
+      "uid": "GoDo.IInputPromptQuery",
+      "kind": "Interface",
+      "signature": "public interface IInputPromptQuery"
+    },
+    {
+      "uid": "GoDo.IInputPromptQuery.GetPrompts(GoDo.InputContextId,GoDo.InputActionId,GoDo.InputDeviceKind)",
+      "kind": "Method",
+      "signature": "IReadOnlyList<InputPromptInfo> GetPrompts(InputContextId context, InputActionId action, InputDeviceKind device)"
+    },
+    {
+      "uid": "GoDo.IInputRebinding",
+      "kind": "Interface",
+      "signature": "public interface IInputRebinding"
+    },
+    {
+      "uid": "GoDo.IInputRebinding.Apply(GoDo.InputBindingId,GoDo.InputBindingCandidate)",
+      "kind": "Method",
+      "signature": "void Apply(InputBindingId binding, InputBindingCandidate candidate)"
+    },
+    {
+      "uid": "GoDo.IInputRebinding.CancelCapture",
+      "kind": "Method",
+      "signature": "void CancelCapture()"
+    },
+    {
+      "uid": "GoDo.IInputRebinding.CaptureAsync(GoDo.InputBindingId)",
+      "kind": "Method",
+      "signature": "Task<InputBindingCandidate?> CaptureAsync(InputBindingId binding)"
+    },
+    {
+      "uid": "GoDo.IInputRebinding.FindConflicts(GoDo.InputBindingId,GoDo.InputBindingCandidate)",
+      "kind": "Method",
+      "signature": "IReadOnlyList<InputBindingInfo> FindConflicts(InputBindingId binding, InputBindingCandidate candidate)"
+    },
+    {
+      "uid": "GoDo.IInputRebinding.GetBinding(GoDo.InputBindingId)",
+      "kind": "Method",
+      "signature": "InputBindingInfo GetBinding(InputBindingId binding)"
+    },
+    {
+      "uid": "GoDo.IInputRebinding.GetBindings(GoDo.InputContextId)",
+      "kind": "Method",
+      "signature": "IReadOnlyList<InputBindingInfo> GetBindings(InputContextId context)"
+    },
+    {
+      "uid": "GoDo.IInputRebinding.IsCapturing",
+      "kind": "Property",
+      "signature": "bool IsCapturing { get; }"
+    },
+    {
+      "uid": "GoDo.IInputRebinding.RestoreDefault(GoDo.InputBindingId)",
+      "kind": "Method",
+      "signature": "void RestoreDefault(InputBindingId binding)"
+    },
+    {
+      "uid": "GoDo.IInputRebindingBackend",
+      "kind": "Interface",
+      "signature": "public interface IInputRebindingBackend"
+    },
+    {
+      "uid": "GoDo.IInputRebindingBackend.Rebinding",
+      "kind": "Property",
+      "signature": "IInputRebinding Rebinding { get; }"
+    },
+    {
+      "uid": "GoDo.IInputRebindingPersistence",
+      "kind": "Interface",
+      "signature": "public interface IInputRebindingPersistence"
+    },
+    {
+      "uid": "GoDo.IInputRebindingPersistence.LoadAndApply",
+      "kind": "Method",
+      "signature": "InputBindingLoadStatus LoadAndApply()"
+    },
+    {
+      "uid": "GoDo.IInputRebindingPersistence.Save",
+      "kind": "Method",
+      "signature": "void Save()"
+    },
+    {
+      "uid": "GoDo.IInputRebindingPersistenceBackend",
+      "kind": "Interface",
+      "signature": "public interface IInputRebindingPersistenceBackend"
+    },
+    {
+      "uid": "GoDo.IInputRebindingPersistenceBackend.RebindingPersistence",
+      "kind": "Property",
+      "signature": "IInputRebindingPersistence RebindingPersistence { get; }"
+    },
+    {
+      "uid": "GoDo.IInputService",
+      "kind": "Interface",
+      "signature": "public interface IInputService"
+    },
+    {
+      "uid": "GoDo.IInputService.ActiveDevice",
+      "kind": "Property",
+      "signature": "InputDeviceKind ActiveDevice { get; }"
+    },
+    {
+      "uid": "GoDo.IInputService.Capabilities",
+      "kind": "Property",
+      "signature": "InputBackendCapabilities Capabilities { get; }"
+    },
+    {
+      "uid": "GoDo.IInputService.Frame",
+      "kind": "Property",
+      "signature": "InputFrame Frame { get; }"
+    },
+    {
+      "uid": "GoDo.IInputService.IsContextActive(GoDo.InputContextId)",
+      "kind": "Method",
+      "signature": "bool IsContextActive(InputContextId context)"
+    },
+    {
+      "uid": "GoDo.IInputService.IsReady",
+      "kind": "Property",
+      "signature": "bool IsReady { get; }"
+    },
+    {
+      "uid": "GoDo.IInputService.PopContext(GoDo.InputContextId)",
+      "kind": "Method",
+      "signature": "void PopContext(InputContextId expectedContext)"
+    },
+    {
+      "uid": "GoDo.IInputService.PushContext(GoDo.InputContextId,GoDo.InputContextMode)",
+      "kind": "Method",
+      "signature": "void PushContext(InputContextId context, InputContextMode mode = InputContextMode.Exclusive)"
+    },
+    {
+      "uid": "GoDo.IInputService.SetBaseContext(GoDo.InputContextId)",
+      "kind": "Method",
+      "signature": "void SetBaseContext(InputContextId context)"
+    },
+    {
+      "uid": "GoDo.IInputService.TryGetPromptQuery(GoDo.IInputPromptQuery@)",
+      "kind": "Method",
+      "signature": "bool TryGetPromptQuery(out IInputPromptQuery? promptQuery)"
+    },
+    {
+      "uid": "GoDo.IInputService.TryGetRebinding(GoDo.IInputRebinding@)",
+      "kind": "Method",
+      "signature": "bool TryGetRebinding(out IInputRebinding? rebinding)"
+    },
+    {
+      "uid": "GoDo.IInputService.TryGetRebindingPersistence(GoDo.IInputRebindingPersistence@)",
+      "kind": "Method",
+      "signature": "bool TryGetRebindingPersistence(out IInputRebindingPersistence? persistence)"
+    },
+    {
+      "uid": "GoDo.ILocalizationService",
+      "kind": "Interface",
+      "signature": "public interface ILocalizationService"
+    },
+    {
+      "uid": "GoDo.ILocalizationService.AvailableLocales",
+      "kind": "Property",
+      "signature": "IReadOnlyList<LocalizationLocale> AvailableLocales { get; }"
+    },
+    {
+      "uid": "GoDo.ILocalizationService.CurrentLocale",
+      "kind": "Property",
+      "signature": "string CurrentLocale { get; }"
+    },
+    {
+      "uid": "GoDo.ILocalizationService.DefaultLocale",
+      "kind": "Property",
+      "signature": "string DefaultLocale { get; }"
+    },
+    {
+      "uid": "GoDo.ILocalizationService.IsLocaleSupported(System.String)",
+      "kind": "Method",
+      "signature": "bool IsLocaleSupported(string locale)"
+    },
+    {
+      "uid": "GoDo.ILocalizationService.IsPseudolocalizationEnabled",
+      "kind": "Property",
+      "signature": "bool IsPseudolocalizationEnabled { get; }"
+    },
+    {
+      "uid": "GoDo.ILocalizationService.Translate(System.String,System.String)",
+      "kind": "Method",
+      "signature": "string Translate(string key, string? context = null)"
+    },
+    {
+      "uid": "GoDo.ILocalizationService.TranslatePlural(System.String,System.String,System.Int32,System.String)",
+      "kind": "Method",
+      "signature": "string TranslatePlural(string singularKey, string pluralKey, int count, string? context = null)"
+    },
+    {
+      "uid": "GoDo.IPoolable",
+      "kind": "Interface",
+      "signature": "public interface IPoolable"
+    },
+    {
+      "uid": "GoDo.IPoolable.OnAcquire",
+      "kind": "Method",
+      "signature": "void OnAcquire()"
+    },
+    {
+      "uid": "GoDo.IPoolable.OnRelease",
+      "kind": "Method",
+      "signature": "void OnRelease()"
+    },
+    {
+      "uid": "GoDo.IProcedure",
+      "kind": "Interface",
+      "signature": "public interface IProcedure"
+    },
+    {
+      "uid": "GoDo.IProcedure.EnterAsync(GoDo.ProcedureContext)",
+      "kind": "Method",
+      "signature": "Task EnterAsync(ProcedureContext context)"
+    },
+    {
+      "uid": "GoDo.IProcedure.ExitAsync(GoDo.ProcedureContext)",
+      "kind": "Method",
+      "signature": "Task ExitAsync(ProcedureContext context)"
+    },
+    {
+      "uid": "GoDo.IProcedure.Name",
+      "kind": "Property",
+      "signature": "string Name { get; }"
+    },
+    {
+      "uid": "GoDo.IProcedureService",
+      "kind": "Interface",
+      "signature": "public interface IProcedureService"
+    },
+    {
+      "uid": "GoDo.IProcedureService.ChangeAsync(GoDo.IProcedure)",
+      "kind": "Method",
+      "signature": "Task ChangeAsync(IProcedure next)"
+    },
+    {
+      "uid": "GoDo.IProcedureService.ChangeAsync``1",
+      "kind": "Method",
+      "signature": "Task ChangeAsync<TProcedure>() where TProcedure : IProcedure, new()"
+    },
+    {
+      "uid": "GoDo.IProcedureService.Current",
+      "kind": "Property",
+      "signature": "IProcedure? Current { get; }"
+    },
+    {
+      "uid": "GoDo.IProcedureService.IsChanging",
+      "kind": "Property",
+      "signature": "bool IsChanging { get; }"
+    },
+    {
+      "uid": "GoDo.IProcedureService.RequestedChangeFailed",
+      "kind": "Event",
+      "signature": "event Action<ProcedureChangeException>? RequestedChangeFailed"
+    },
+    {
+      "uid": "GoDo.ISaveCodec`1",
+      "kind": "Interface",
+      "signature": "public interface ISaveCodec<T>"
+    },
+    {
+      "uid": "GoDo.ISaveCodec`1.Decode(System.ReadOnlySpan{System.Byte},System.Int32)",
+      "kind": "Method",
+      "signature": "T Decode(ReadOnlySpan<byte> payload, int dataVersion)"
+    },
+    {
+      "uid": "GoDo.ISaveCodec`1.Encode(`0)",
+      "kind": "Method",
+      "signature": "byte[] Encode(T value)"
+    },
+    {
+      "uid": "GoDo.ISaveService",
+      "kind": "Interface",
+      "signature": "public interface ISaveService"
+    },
+    {
+      "uid": "GoDo.ISaveService.Delete(GoDo.SaveSlot)",
+      "kind": "Method",
+      "signature": "bool Delete(SaveSlot slot)"
+    },
+    {
+      "uid": "GoDo.ISaveService.Exists(GoDo.SaveSlot)",
+      "kind": "Method",
+      "signature": "bool Exists(SaveSlot slot)"
+    },
+    {
+      "uid": "GoDo.ISaveService.Load``1(GoDo.SaveSlot,GoDo.ISaveCodec{``0})",
+      "kind": "Method",
+      "signature": "SaveLoadResult<T> Load<T>(SaveSlot slot, ISaveCodec<T> codec)"
+    },
+    {
+      "uid": "GoDo.ISaveService.Save``1(GoDo.SaveSlot,``0,System.Int32,GoDo.ISaveCodec{``0})",
+      "kind": "Method",
+      "signature": "void Save<T>(SaveSlot slot, T value, int dataVersion, ISaveCodec<T> codec)"
+    },
+    {
+      "uid": "GoDo.ISceneService",
+      "kind": "Interface",
+      "signature": "public interface ISceneService"
+    },
+    {
+      "uid": "GoDo.ISceneService.ChangeAsync(GoDo.ResourceKey)",
+      "kind": "Method",
+      "signature": "Task<Node> ChangeAsync(ResourceKey key)"
+    },
+    {
+      "uid": "GoDo.ISceneService.ChangeAsync(GoDo.ResourceKey,System.Action{System.Single},System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "Task<Node> ChangeAsync(ResourceKey key, Action<float>? onProgress, CancellationToken cancellationToken = default)"
+    },
+    {
+      "uid": "GoDo.ISceneService.IsChanging",
+      "kind": "Property",
+      "signature": "bool IsChanging { get; }"
+    },
+    {
+      "uid": "GoDo.ISceneService.Progress",
+      "kind": "Property",
+      "signature": "float Progress { get; }"
+    },
+    {
+      "uid": "GoDo.ISchedulerService",
+      "kind": "Interface",
+      "signature": "public interface ISchedulerService"
+    },
+    {
+      "uid": "GoDo.ISchedulerService.Cancel(GoDo.ScheduleHandle)",
+      "kind": "Method",
+      "signature": "bool Cancel(ScheduleHandle handle)"
+    },
+    {
+      "uid": "GoDo.ISchedulerService.DelayAsync(System.Double,GoDo.ScheduleOptions,System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "Task DelayAsync(double delaySeconds, ScheduleOptions options = default, CancellationToken cancellationToken = default)"
+    },
+    {
+      "uid": "GoDo.ISchedulerService.IsScheduled(GoDo.ScheduleHandle)",
+      "kind": "Method",
+      "signature": "bool IsScheduled(ScheduleHandle handle)"
+    },
+    {
+      "uid": "GoDo.ISchedulerService.Pause(GoDo.ScheduleHandle)",
+      "kind": "Method",
+      "signature": "bool Pause(ScheduleHandle handle)"
+    },
+    {
+      "uid": "GoDo.ISchedulerService.Resume(GoDo.ScheduleHandle)",
+      "kind": "Method",
+      "signature": "bool Resume(ScheduleHandle handle)"
+    },
+    {
+      "uid": "GoDo.ISchedulerService.Schedule(System.Double,System.Action,GoDo.ScheduleOptions)",
+      "kind": "Method",
+      "signature": "ScheduleHandle Schedule(double delaySeconds, Action callback, ScheduleOptions options = default)"
+    },
+    {
+      "uid": "GoDo.ISchedulerService.ScheduleRepeating(System.Double,System.Action,GoDo.ScheduleOptions)",
+      "kind": "Method",
+      "signature": "ScheduleHandle ScheduleRepeating(double intervalSeconds, Action callback, ScheduleOptions options = default)"
+    },
+    {
+      "uid": "GoDo.ISchedulerService.ScheduleRepeating(System.Double,System.Double,System.Action,GoDo.ScheduleOptions)",
+      "kind": "Method",
+      "signature": "ScheduleHandle ScheduleRepeating(double initialDelaySeconds, double intervalSeconds, Action callback, ScheduleOptions options = default)"
+    },
+    {
+      "uid": "GoDo.ISchedulerService.TryGetRemainingSeconds(GoDo.ScheduleHandle,System.Double@)",
+      "kind": "Method",
+      "signature": "bool TryGetRemainingSeconds(ScheduleHandle handle, out double remainingSeconds)"
+    },
+    {
+      "uid": "GoDo.ISettingsService",
+      "kind": "Interface",
+      "signature": "public interface ISettingsService"
+    },
+    {
+      "uid": "GoDo.ISettingsService.Capabilities",
+      "kind": "Property",
+      "signature": "SettingsCapability Capabilities { get; }"
+    },
+    {
+      "uid": "GoDo.ISettingsService.Current",
+      "kind": "Property",
+      "signature": "SettingsSnapshot Current { get; }"
+    },
+    {
+      "uid": "GoDo.ISettingsService.LoadAndApply",
+      "kind": "Method",
+      "signature": "SettingsLoadStatus LoadAndApply()"
+    },
+    {
+      "uid": "GoDo.ISettingsService.Platform",
+      "kind": "Property",
+      "signature": "SettingsPlatform Platform { get; }"
+    },
+    {
+      "uid": "GoDo.ISettingsService.ResetToDefaults",
+      "kind": "Method",
+      "signature": "void ResetToDefaults()"
+    },
+    {
+      "uid": "GoDo.ISettingsService.Save",
+      "kind": "Method",
+      "signature": "void Save()"
+    },
+    {
+      "uid": "GoDo.ISettingsService.SetBgmVolume(System.Single)",
+      "kind": "Method",
+      "signature": "SettingsApplyResult SetBgmVolume(float linearVolume)"
+    },
+    {
+      "uid": "GoDo.ISettingsService.SetLocale(System.String)",
+      "kind": "Method",
+      "signature": "SettingsApplyResult SetLocale(string locale)"
+    },
+    {
+      "uid": "GoDo.ISettingsService.SetMasterVolume(System.Single)",
+      "kind": "Method",
+      "signature": "SettingsApplyResult SetMasterVolume(float linearVolume)"
+    },
+    {
+      "uid": "GoDo.ISettingsService.SetResolution(Godot.Vector2I)",
+      "kind": "Method",
+      "signature": "SettingsApplyResult SetResolution(Vector2I resolution)"
+    },
+    {
+      "uid": "GoDo.ISettingsService.SetSfxVolume(System.Single)",
+      "kind": "Method",
+      "signature": "SettingsApplyResult SetSfxVolume(float linearVolume)"
+    },
+    {
+      "uid": "GoDo.ISettingsService.SetVSync(System.Boolean)",
+      "kind": "Method",
+      "signature": "SettingsApplyResult SetVSync(bool enabled)"
+    },
+    {
+      "uid": "GoDo.ISettingsService.SetWindowMode(GoDo.SettingsWindowMode)",
+      "kind": "Method",
+      "signature": "SettingsApplyResult SetWindowMode(SettingsWindowMode mode)"
+    },
+    {
+      "uid": "GoDo.ISettingsService.Supports(GoDo.SettingsCapability)",
+      "kind": "Method",
+      "signature": "bool Supports(SettingsCapability capability)"
+    },
+    {
+      "uid": "GoDo.IUiService",
+      "kind": "Interface",
+      "signature": "public interface IUiService"
+    },
+    {
+      "uid": "GoDo.IUiService.CancelOpenRequests(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "int CancelOpenRequests(UiId id)"
+    },
+    {
+      "uid": "GoDo.IUiService.CancelOpenRequests(GoDo.UiLayer)",
+      "kind": "Method",
+      "signature": "int CancelOpenRequests(UiLayer layer)"
+    },
+    {
+      "uid": "GoDo.IUiService.ClearCachedInstance(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "bool ClearCachedInstance(UiId id)"
+    },
+    {
+      "uid": "GoDo.IUiService.ClearCachedInstances",
+      "kind": "Method",
+      "signature": "int ClearCachedInstances()"
+    },
+    {
+      "uid": "GoDo.IUiService.Close(Godot.Control)",
+      "kind": "Method",
+      "signature": "void Close(Control view)"
+    },
+    {
+      "uid": "GoDo.IUiService.CloseAll(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "int CloseAll(UiId id)"
+    },
+    {
+      "uid": "GoDo.IUiService.CloseAll(GoDo.UiLayer)",
+      "kind": "Method",
+      "signature": "int CloseAll(UiLayer layer)"
+    },
+    {
+      "uid": "GoDo.IUiService.CloseTo(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "int CloseTo(UiId id)"
+    },
+    {
+      "uid": "GoDo.IUiService.CloseTo(Godot.Control)",
+      "kind": "Method",
+      "signature": "int CloseTo(Control view)"
+    },
+    {
+      "uid": "GoDo.IUiService.GetOpenCount(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "int GetOpenCount(UiId id)"
+    },
+    {
+      "uid": "GoDo.IUiService.GetOpeningCount(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "int GetOpeningCount(UiId id)"
+    },
+    {
+      "uid": "GoDo.IUiService.HasCachedInstance(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "bool HasCachedInstance(UiId id)"
+    },
+    {
+      "uid": "GoDo.IUiService.IsOpen(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "bool IsOpen(UiId id)"
+    },
+    {
+      "uid": "GoDo.IUiService.IsOpening(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "bool IsOpening(UiId id)"
+    },
+    {
+      "uid": "GoDo.IUiService.LoadUiConfig(GoDo.ResourceKey)",
+      "kind": "Method",
+      "signature": "void LoadUiConfig(ResourceKey key)"
+    },
+    {
+      "uid": "GoDo.IUiService.Open(GoDo.ResourceKey,GoDo.UiLayer)",
+      "kind": "Method",
+      "signature": "Control Open(ResourceKey key, UiLayer layer)"
+    },
+    {
+      "uid": "GoDo.IUiService.Open(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "Control Open(UiId id)"
+    },
+    {
+      "uid": "GoDo.IUiService.OpenAsync``1(GoDo.ResourceKey,GoDo.UiLayer,System.Action{``0},System.Action{System.Single},System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "Task<TView> OpenAsync<TView>(ResourceKey key, UiLayer layer, Action<TView>? configure = null, Action<float>? onProgress = null, CancellationToken cancellationToken = default) where TView : Control"
+    },
+    {
+      "uid": "GoDo.IUiService.OpenAsync``1(GoDo.UiId,System.Action{``0},System.Action{System.Single},System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "Task<TView> OpenAsync<TView>(UiId id, Action<TView>? configure = null, Action<float>? onProgress = null, CancellationToken cancellationToken = default) where TView : Control"
+    },
+    {
+      "uid": "GoDo.IUiService.Open``1(GoDo.ResourceKey,GoDo.UiLayer,System.Action{``0})",
+      "kind": "Method",
+      "signature": "TView Open<TView>(ResourceKey key, UiLayer layer, Action<TView>? configure = null) where TView : Control"
+    },
+    {
+      "uid": "GoDo.IUiService.Open``1(GoDo.UiId,System.Action{``0})",
+      "kind": "Method",
+      "signature": "TView Open<TView>(UiId id, Action<TView>? configure = null) where TView : Control"
+    },
+    {
+      "uid": "GoDo.IUiService.TryClose(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "bool TryClose(UiId id)"
+    },
+    {
+      "uid": "GoDo.IUiService.TryClose(Godot.Control)",
+      "kind": "Method",
+      "signature": "bool TryClose(Control view)"
+    },
+    {
+      "uid": "GoDo.IUiService.TryGetTop(GoDo.UiId,Godot.Control@)",
+      "kind": "Method",
+      "signature": "bool TryGetTop(UiId id, out Control? view)"
+    },
+    {
+      "uid": "GoDo.IUiService.TryGetTop(GoDo.UiLayer,Godot.Control@)",
+      "kind": "Method",
+      "signature": "bool TryGetTop(UiLayer layer, out Control? view)"
+    },
+    {
+      "uid": "GoDo.IUiService.TryGetTop``1(GoDo.UiId,``0@)",
+      "kind": "Method",
+      "signature": "bool TryGetTop<TView>(UiId id, out TView? view) where TView : Control"
+    },
+    {
+      "uid": "GoDo.IUiService.TryGoBack",
+      "kind": "Method",
+      "signature": "bool TryGoBack()"
+    },
+    {
+      "uid": "GoDo.InputActionDescriptor",
+      "kind": "Struct",
+      "signature": "public readonly struct InputActionDescriptor"
+    },
+    {
+      "uid": "GoDo.InputActionDescriptor.#ctor(GoDo.InputActionId,GoDo.InputActionValueType)",
+      "kind": "Constructor",
+      "signature": "public InputActionDescriptor(InputActionId actionId, InputActionValueType valueType)"
+    },
+    {
+      "uid": "GoDo.InputActionDescriptor.ActionId",
+      "kind": "Property",
+      "signature": "public InputActionId ActionId { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionDescriptor.ValueType",
+      "kind": "Property",
+      "signature": "public InputActionValueType ValueType { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionId",
+      "kind": "Struct",
+      "signature": "public readonly struct InputActionId"
+    },
+    {
+      "uid": "GoDo.InputActionId.Create(System.String)",
+      "kind": "Method",
+      "signature": "public static InputActionId Create(string value)"
+    },
+    {
+      "uid": "GoDo.InputActionId.Equals(GoDo.InputActionId)",
+      "kind": "Method",
+      "signature": "public bool Equals(InputActionId other)"
+    },
+    {
+      "uid": "GoDo.InputActionId.Equals(System.Object)",
+      "kind": "Method",
+      "signature": "public override bool Equals(object? obj)"
+    },
+    {
+      "uid": "GoDo.InputActionId.GetHashCode",
+      "kind": "Method",
+      "signature": "public override int GetHashCode()"
+    },
+    {
+      "uid": "GoDo.InputActionId.IsEmpty",
+      "kind": "Property",
+      "signature": "public bool IsEmpty { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionId.ToString",
+      "kind": "Method",
+      "signature": "public override string ToString()"
+    },
+    {
+      "uid": "GoDo.InputActionId.Value",
+      "kind": "Property",
+      "signature": "public string Value { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionId.op_Equality(GoDo.InputActionId,GoDo.InputActionId)",
+      "kind": "Operator",
+      "signature": "public static bool operator ==(InputActionId left, InputActionId right)"
+    },
+    {
+      "uid": "GoDo.InputActionId.op_Inequality(GoDo.InputActionId,GoDo.InputActionId)",
+      "kind": "Operator",
+      "signature": "public static bool operator !=(InputActionId left, InputActionId right)"
+    },
+    {
+      "uid": "GoDo.InputActionSample",
+      "kind": "Struct",
+      "signature": "public readonly struct InputActionSample"
+    },
+    {
+      "uid": "GoDo.InputActionSample.#ctor(Godot.Vector3,System.Boolean)",
+      "kind": "Constructor",
+      "signature": "public InputActionSample(Vector3 value, bool pressed)"
+    },
+    {
+      "uid": "GoDo.InputActionSample.Pressed",
+      "kind": "Property",
+      "signature": "public bool Pressed { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionSample.Value",
+      "kind": "Property",
+      "signature": "public Vector3 Value { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionValueType",
+      "kind": "Enum",
+      "signature": "public enum InputActionValueType"
+    },
+    {
+      "uid": "GoDo.InputActionValueType.Axis1D",
+      "kind": "Field",
+      "signature": "Axis1D = 1"
+    },
+    {
+      "uid": "GoDo.InputActionValueType.Axis2D",
+      "kind": "Field",
+      "signature": "Axis2D = 2"
+    },
+    {
+      "uid": "GoDo.InputActionValueType.Axis3D",
+      "kind": "Field",
+      "signature": "Axis3D = 3"
+    },
+    {
+      "uid": "GoDo.InputActionValueType.Bool",
+      "kind": "Field",
+      "signature": "Bool = 0"
+    },
+    {
+      "uid": "GoDo.InputBackendCapabilities",
+      "kind": "Enum",
+      "signature": "[Flags] public enum InputBackendCapabilities"
+    },
+    {
+      "uid": "GoDo.InputBackendCapabilities.DeviceTracking",
+      "kind": "Field",
+      "signature": "DeviceTracking = 2"
+    },
+    {
+      "uid": "GoDo.InputBackendCapabilities.None",
+      "kind": "Field",
+      "signature": "None = 0"
+    },
+    {
+      "uid": "GoDo.InputBackendCapabilities.PromptQuery",
+      "kind": "Field",
+      "signature": "PromptQuery = 16"
+    },
+    {
+      "uid": "GoDo.InputBackendCapabilities.Rebinding",
+      "kind": "Field",
+      "signature": "Rebinding = 1"
+    },
+    {
+      "uid": "GoDo.InputBackendCapabilities.RebindingPersistence",
+      "kind": "Field",
+      "signature": "RebindingPersistence = 8"
+    },
+    {
+      "uid": "GoDo.InputBackendCapabilities.Rumble",
+      "kind": "Field",
+      "signature": "Rumble = 4"
+    },
+    {
+      "uid": "GoDo.InputBindingCandidate",
+      "kind": "Class",
+      "signature": "public abstract class InputBindingCandidate"
+    },
+    {
+      "uid": "GoDo.InputBindingCandidate.#ctor(GoDo.InputDeviceKind,System.String)",
+      "kind": "Constructor",
+      "signature": "protected InputBindingCandidate(InputDeviceKind device, string displayText)"
+    },
+    {
+      "uid": "GoDo.InputBindingCandidate.Device",
+      "kind": "Property",
+      "signature": "public InputDeviceKind Device { get; }"
+    },
+    {
+      "uid": "GoDo.InputBindingCandidate.DisplayText",
+      "kind": "Property",
+      "signature": "public string DisplayText { get; }"
+    },
+    {
+      "uid": "GoDo.InputBindingId",
+      "kind": "Struct",
+      "signature": "public readonly struct InputBindingId"
+    },
+    {
+      "uid": "GoDo.InputBindingId.Create(System.String)",
+      "kind": "Method",
+      "signature": "public static InputBindingId Create(string value)"
+    },
+    {
+      "uid": "GoDo.InputBindingId.Equals(GoDo.InputBindingId)",
+      "kind": "Method",
+      "signature": "public bool Equals(InputBindingId other)"
+    },
+    {
+      "uid": "GoDo.InputBindingId.Equals(System.Object)",
+      "kind": "Method",
+      "signature": "public override bool Equals(object? obj)"
+    },
+    {
+      "uid": "GoDo.InputBindingId.GetHashCode",
+      "kind": "Method",
+      "signature": "public override int GetHashCode()"
+    },
+    {
+      "uid": "GoDo.InputBindingId.IsEmpty",
+      "kind": "Property",
+      "signature": "public bool IsEmpty { get; }"
+    },
+    {
+      "uid": "GoDo.InputBindingId.ToString",
+      "kind": "Method",
+      "signature": "public override string ToString()"
+    },
+    {
+      "uid": "GoDo.InputBindingId.Value",
+      "kind": "Property",
+      "signature": "public string Value { get; }"
+    },
+    {
+      "uid": "GoDo.InputBindingId.op_Equality(GoDo.InputBindingId,GoDo.InputBindingId)",
+      "kind": "Operator",
+      "signature": "public static bool operator ==(InputBindingId left, InputBindingId right)"
+    },
+    {
+      "uid": "GoDo.InputBindingId.op_Inequality(GoDo.InputBindingId,GoDo.InputBindingId)",
+      "kind": "Operator",
+      "signature": "public static bool operator !=(InputBindingId left, InputBindingId right)"
+    },
+    {
+      "uid": "GoDo.InputBindingInfo",
+      "kind": "Struct",
+      "signature": "public readonly struct InputBindingInfo"
+    },
+    {
+      "uid": "GoDo.InputBindingInfo.#ctor(GoDo.InputBindingId,GoDo.InputContextId,GoDo.InputActionId,System.String,System.String,GoDo.InputDeviceKind,System.String,System.String,System.Boolean)",
+      "kind": "Constructor",
+      "signature": "public InputBindingInfo(InputBindingId bindingId, InputContextId contextId, InputActionId actionId, string displayName, string displayCategory, InputDeviceKind device, string currentDisplayText, string defaultDisplayText, bool isDefault)"
+    },
+    {
+      "uid": "GoDo.InputBindingInfo.ActionId",
+      "kind": "Property",
+      "signature": "public InputActionId ActionId { get; }"
+    },
+    {
+      "uid": "GoDo.InputBindingInfo.BindingId",
+      "kind": "Property",
+      "signature": "public InputBindingId BindingId { get; }"
+    },
+    {
+      "uid": "GoDo.InputBindingInfo.ContextId",
+      "kind": "Property",
+      "signature": "public InputContextId ContextId { get; }"
+    },
+    {
+      "uid": "GoDo.InputBindingInfo.CurrentDisplayText",
+      "kind": "Property",
+      "signature": "public string CurrentDisplayText { get; }"
+    },
+    {
+      "uid": "GoDo.InputBindingInfo.DefaultDisplayText",
+      "kind": "Property",
+      "signature": "public string DefaultDisplayText { get; }"
+    },
+    {
+      "uid": "GoDo.InputBindingInfo.Device",
+      "kind": "Property",
+      "signature": "public InputDeviceKind Device { get; }"
+    },
+    {
+      "uid": "GoDo.InputBindingInfo.DisplayCategory",
+      "kind": "Property",
+      "signature": "public string DisplayCategory { get; }"
+    },
+    {
+      "uid": "GoDo.InputBindingInfo.DisplayName",
+      "kind": "Property",
+      "signature": "public string DisplayName { get; }"
+    },
+    {
+      "uid": "GoDo.InputBindingInfo.IsDefault",
+      "kind": "Property",
+      "signature": "public bool IsDefault { get; }"
+    },
+    {
+      "uid": "GoDo.InputBindingLoadStatus",
+      "kind": "Enum",
+      "signature": "public enum InputBindingLoadStatus"
+    },
+    {
+      "uid": "GoDo.InputBindingLoadStatus.DefaultsApplied",
+      "kind": "Field",
+      "signature": "DefaultsApplied = 0"
+    },
+    {
+      "uid": "GoDo.InputBindingLoadStatus.Loaded",
+      "kind": "Field",
+      "signature": "Loaded = 1"
+    },
+    {
+      "uid": "GoDo.InputBindingLoadStatus.RecoveredFromBackup",
+      "kind": "Field",
+      "signature": "RecoveredFromBackup = 2"
+    },
+    {
+      "uid": "GoDo.InputBindingsChangedEvent",
+      "kind": "Struct",
+      "signature": "public readonly struct InputBindingsChangedEvent : IEventMessage"
+    },
+    {
+      "uid": "GoDo.InputContextId",
+      "kind": "Struct",
+      "signature": "public readonly struct InputContextId"
+    },
+    {
+      "uid": "GoDo.InputContextId.Create(System.String)",
+      "kind": "Method",
+      "signature": "public static InputContextId Create(string value)"
+    },
+    {
+      "uid": "GoDo.InputContextId.Equals(GoDo.InputContextId)",
+      "kind": "Method",
+      "signature": "public bool Equals(InputContextId other)"
+    },
+    {
+      "uid": "GoDo.InputContextId.Equals(System.Object)",
+      "kind": "Method",
+      "signature": "public override bool Equals(object? obj)"
+    },
+    {
+      "uid": "GoDo.InputContextId.GetHashCode",
+      "kind": "Method",
+      "signature": "public override int GetHashCode()"
+    },
+    {
+      "uid": "GoDo.InputContextId.IsEmpty",
+      "kind": "Property",
+      "signature": "public bool IsEmpty { get; }"
+    },
+    {
+      "uid": "GoDo.InputContextId.ToString",
+      "kind": "Method",
+      "signature": "public override string ToString()"
+    },
+    {
+      "uid": "GoDo.InputContextId.Value",
+      "kind": "Property",
+      "signature": "public string Value { get; }"
+    },
+    {
+      "uid": "GoDo.InputContextId.op_Equality(GoDo.InputContextId,GoDo.InputContextId)",
+      "kind": "Operator",
+      "signature": "public static bool operator ==(InputContextId left, InputContextId right)"
+    },
+    {
+      "uid": "GoDo.InputContextId.op_Inequality(GoDo.InputContextId,GoDo.InputContextId)",
+      "kind": "Operator",
+      "signature": "public static bool operator !=(InputContextId left, InputContextId right)"
+    },
+    {
+      "uid": "GoDo.InputContextMode",
+      "kind": "Enum",
+      "signature": "public enum InputContextMode"
+    },
+    {
+      "uid": "GoDo.InputContextMode.Exclusive",
+      "kind": "Field",
+      "signature": "Exclusive = 1"
+    },
+    {
+      "uid": "GoDo.InputContextMode.Overlay",
+      "kind": "Field",
+      "signature": "Overlay = 0"
+    },
+    {
+      "uid": "GoDo.InputDeviceChangedEvent",
+      "kind": "Struct",
+      "signature": "public readonly struct InputDeviceChangedEvent : IEventMessage"
+    },
+    {
+      "uid": "GoDo.InputDeviceChangedEvent.#ctor(GoDo.InputDeviceKind,GoDo.InputDeviceKind)",
+      "kind": "Constructor",
+      "signature": "public InputDeviceChangedEvent(InputDeviceKind previous, InputDeviceKind current)"
+    },
+    {
+      "uid": "GoDo.InputDeviceChangedEvent.Current",
+      "kind": "Property",
+      "signature": "public InputDeviceKind Current { get; }"
+    },
+    {
+      "uid": "GoDo.InputDeviceChangedEvent.Previous",
+      "kind": "Property",
+      "signature": "public InputDeviceKind Previous { get; }"
+    },
+    {
+      "uid": "GoDo.InputDeviceKind",
+      "kind": "Enum",
+      "signature": "public enum InputDeviceKind"
+    },
+    {
+      "uid": "GoDo.InputDeviceKind.Gamepad",
+      "kind": "Field",
+      "signature": "Gamepad = 2"
+    },
+    {
+      "uid": "GoDo.InputDeviceKind.KeyboardMouse",
+      "kind": "Field",
+      "signature": "KeyboardMouse = 1"
+    },
+    {
+      "uid": "GoDo.InputDeviceKind.Touch",
+      "kind": "Field",
+      "signature": "Touch = 3"
+    },
+    {
+      "uid": "GoDo.InputDeviceKind.Unknown",
+      "kind": "Field",
+      "signature": "Unknown = 0"
+    },
+    {
+      "uid": "GoDo.InputFrame",
+      "kind": "Struct",
+      "signature": "public readonly struct InputFrame"
+    },
+    {
+      "uid": "GoDo.InputFrame.Axis1(GoDo.InputActionId)",
+      "kind": "Method",
+      "signature": "public float Axis1(InputActionId action)"
+    },
+    {
+      "uid": "GoDo.InputFrame.Axis2(GoDo.InputActionId)",
+      "kind": "Method",
+      "signature": "public Vector2 Axis2(InputActionId action)"
+    },
+    {
+      "uid": "GoDo.InputFrame.Axis3(GoDo.InputActionId)",
+      "kind": "Method",
+      "signature": "public Vector3 Axis3(InputActionId action)"
+    },
+    {
+      "uid": "GoDo.InputFrame.JustPressed(GoDo.InputActionId)",
+      "kind": "Method",
+      "signature": "public bool JustPressed(InputActionId action)"
+    },
+    {
+      "uid": "GoDo.InputFrame.JustReleased(GoDo.InputActionId)",
+      "kind": "Method",
+      "signature": "public bool JustReleased(InputActionId action)"
+    },
+    {
+      "uid": "GoDo.InputFrame.Pressed(GoDo.InputActionId)",
+      "kind": "Method",
+      "signature": "public bool Pressed(InputActionId action)"
+    },
+    {
+      "uid": "GoDo.InputFrame.Sequence",
+      "kind": "Property",
+      "signature": "public ulong Sequence { get; }"
+    },
+    {
+      "uid": "GoDo.InputOperationException",
+      "kind": "Class",
+      "signature": "public sealed class InputOperationException : Exception"
+    },
+    {
+      "uid": "GoDo.InputOperationException.#ctor(System.String)",
+      "kind": "Constructor",
+      "signature": "public InputOperationException(string message)"
+    },
+    {
+      "uid": "GoDo.InputOperationException.#ctor(System.String,System.Exception)",
+      "kind": "Constructor",
+      "signature": "public InputOperationException(string message, Exception innerException)"
+    },
+    {
+      "uid": "GoDo.InputPromptInfo",
+      "kind": "Struct",
+      "signature": "public readonly struct InputPromptInfo"
+    },
+    {
+      "uid": "GoDo.InputPromptInfo.#ctor(GoDo.InputBindingId,GoDo.InputContextId,GoDo.InputActionId,GoDo.InputDeviceKind,System.String,System.Boolean)",
+      "kind": "Constructor",
+      "signature": "public InputPromptInfo(InputBindingId bindingId, InputContextId contextId, InputActionId actionId, InputDeviceKind device, string displayText, bool isBound)"
+    },
+    {
+      "uid": "GoDo.InputPromptInfo.ActionId",
+      "kind": "Property",
+      "signature": "public InputActionId ActionId { get; }"
+    },
+    {
+      "uid": "GoDo.InputPromptInfo.BindingId",
+      "kind": "Property",
+      "signature": "public InputBindingId BindingId { get; }"
+    },
+    {
+      "uid": "GoDo.InputPromptInfo.ContextId",
+      "kind": "Property",
+      "signature": "public InputContextId ContextId { get; }"
+    },
+    {
+      "uid": "GoDo.InputPromptInfo.Device",
+      "kind": "Property",
+      "signature": "public InputDeviceKind Device { get; }"
+    },
+    {
+      "uid": "GoDo.InputPromptInfo.DisplayText",
+      "kind": "Property",
+      "signature": "public string DisplayText { get; }"
+    },
+    {
+      "uid": "GoDo.InputPromptInfo.IsBound",
+      "kind": "Property",
+      "signature": "public bool IsBound { get; }"
+    },
+    {
+      "uid": "GoDo.InputService",
+      "kind": "Class",
+      "signature": "public sealed class InputService : IInputService"
+    },
+    {
+      "uid": "GoDo.InputService.ActiveDevice",
+      "kind": "Property",
+      "signature": "public InputDeviceKind ActiveDevice { get; }"
+    },
+    {
+      "uid": "GoDo.InputService.Capabilities",
+      "kind": "Property",
+      "signature": "public InputBackendCapabilities Capabilities { get; }"
+    },
+    {
+      "uid": "GoDo.InputService.Frame",
+      "kind": "Property",
+      "signature": "public InputFrame Frame { get; }"
+    },
+    {
+      "uid": "GoDo.InputService.IsContextActive(GoDo.InputContextId)",
+      "kind": "Method",
+      "signature": "public bool IsContextActive(InputContextId context)"
+    },
+    {
+      "uid": "GoDo.InputService.IsReady",
+      "kind": "Property",
+      "signature": "public bool IsReady { get; }"
+    },
+    {
+      "uid": "GoDo.InputService.PopContext(GoDo.InputContextId)",
+      "kind": "Method",
+      "signature": "public void PopContext(InputContextId expectedContext)"
+    },
+    {
+      "uid": "GoDo.InputService.PushContext(GoDo.InputContextId,GoDo.InputContextMode)",
+      "kind": "Method",
+      "signature": "public void PushContext(InputContextId context, InputContextMode mode = InputContextMode.Exclusive)"
+    },
+    {
+      "uid": "GoDo.InputService.SetBaseContext(GoDo.InputContextId)",
+      "kind": "Method",
+      "signature": "public void SetBaseContext(InputContextId context)"
+    },
+    {
+      "uid": "GoDo.InputService.TryGetPromptQuery(GoDo.IInputPromptQuery@)",
+      "kind": "Method",
+      "signature": "public bool TryGetPromptQuery(out IInputPromptQuery? promptQuery)"
+    },
+    {
+      "uid": "GoDo.InputService.TryGetRebinding(GoDo.IInputRebinding@)",
+      "kind": "Method",
+      "signature": "public bool TryGetRebinding(out IInputRebinding? rebinding)"
+    },
+    {
+      "uid": "GoDo.InputService.TryGetRebindingPersistence(GoDo.IInputRebindingPersistence@)",
+      "kind": "Method",
+      "signature": "public bool TryGetRebindingPersistence(out IInputRebindingPersistence? persistence)"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsUpdatePhase",
+      "kind": "Enum",
+      "signature": "public enum EcsUpdatePhase"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsUpdatePhase.Physics",
+      "kind": "Field",
+      "signature": "Physics = 1"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsUpdatePhase.Process",
+      "kind": "Field",
+      "signature": "Process = 0"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost",
+      "kind": "Class",
+      "signature": "public sealed class EcsWorldHost : Node"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost.IsInitialized",
+      "kind": "Property",
+      "signature": "public bool IsInitialized { get; }"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost.IsRunning",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public bool IsRunning { get; set; }"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost.Shutdown",
+      "kind": "Method",
+      "signature": "public void Shutdown()"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost.Store",
+      "kind": "Property",
+      "signature": "public EntityStore Store { get; }"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost.Systems",
+      "kind": "Property",
+      "signature": "public SystemRoot Systems { get; }"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost.UpdatePhase",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public EcsUpdatePhase UpdatePhase { get; set; }"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost._EnterTree",
+      "kind": "Method",
+      "signature": "public override void _EnterTree()"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost._ExitTree",
+      "kind": "Method",
+      "signature": "public override void _ExitTree()"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost._PhysicsProcess(System.Double)",
+      "kind": "Method",
+      "signature": "public override void _PhysicsProcess(double delta)"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost._Process(System.Double)",
+      "kind": "Method",
+      "signature": "public override void _Process(double delta)"
+    },
+    {
+      "uid": "GoDo.Integrations.FrifloEcs.EcsWorldHost._Ready",
+      "kind": "Method",
+      "signature": "public override void _Ready()"
+    },
+    {
+      "uid": "GoDo.LocaleChangedEvent",
+      "kind": "Struct",
+      "signature": "public readonly struct LocaleChangedEvent : IEventMessage"
+    },
+    {
+      "uid": "GoDo.LocaleChangedEvent.#ctor(System.String,System.String)",
+      "kind": "Constructor",
+      "signature": "public LocaleChangedEvent(string previousLocale, string currentLocale)"
+    },
+    {
+      "uid": "GoDo.LocaleChangedEvent.CurrentLocale",
+      "kind": "Property",
+      "signature": "public string CurrentLocale { get; }"
+    },
+    {
+      "uid": "GoDo.LocaleChangedEvent.PreviousLocale",
+      "kind": "Property",
+      "signature": "public string PreviousLocale { get; }"
+    },
+    {
+      "uid": "GoDo.LocalizationLocale",
+      "kind": "Struct",
+      "signature": "public readonly record struct LocalizationLocale"
+    },
+    {
+      "uid": "GoDo.LocalizationLocale.#ctor(System.String,System.String,System.Boolean)",
+      "kind": "Constructor",
+      "signature": "public LocalizationLocale(string code, string displayName, bool isDefault)"
+    },
+    {
+      "uid": "GoDo.LocalizationLocale.Code",
+      "kind": "Property",
+      "signature": "public string Code { get; }"
+    },
+    {
+      "uid": "GoDo.LocalizationLocale.DisplayName",
+      "kind": "Property",
+      "signature": "public string DisplayName { get; }"
+    },
+    {
+      "uid": "GoDo.LocalizationLocale.IsDefault",
+      "kind": "Property",
+      "signature": "public bool IsDefault { get; }"
+    },
+    {
+      "uid": "GoDo.LocalizationService",
+      "kind": "Class",
+      "signature": "public sealed class LocalizationService : ILocalizationService"
+    },
+    {
+      "uid": "GoDo.LocalizationService.#ctor",
+      "kind": "Constructor",
+      "signature": "public LocalizationService()"
+    },
+    {
+      "uid": "GoDo.LocalizationService.AvailableLocales",
+      "kind": "Property",
+      "signature": "public IReadOnlyList<LocalizationLocale> AvailableLocales { get; }"
+    },
+    {
+      "uid": "GoDo.LocalizationService.CurrentLocale",
+      "kind": "Property",
+      "signature": "public string CurrentLocale { get; }"
+    },
+    {
+      "uid": "GoDo.LocalizationService.DefaultLocale",
+      "kind": "Property",
+      "signature": "public string DefaultLocale { get; }"
+    },
+    {
+      "uid": "GoDo.LocalizationService.IsLocaleSupported(System.String)",
+      "kind": "Method",
+      "signature": "public bool IsLocaleSupported(string locale)"
+    },
+    {
+      "uid": "GoDo.LocalizationService.IsPseudolocalizationEnabled",
+      "kind": "Property",
+      "signature": "public bool IsPseudolocalizationEnabled { get; }"
+    },
+    {
+      "uid": "GoDo.LocalizationService.Translate(System.String,System.String)",
+      "kind": "Method",
+      "signature": "public string Translate(string key, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LocalizationService.TranslatePlural(System.String,System.String,System.Int32,System.String)",
+      "kind": "Method",
+      "signature": "public string TranslatePlural(string singularKey, string pluralKey, int count, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogChannel",
+      "kind": "Struct",
+      "signature": "public readonly struct LogChannel"
+    },
+    {
+      "uid": "GoDo.LogChannel.Debug(System.String,System.String)",
+      "kind": "Method",
+      "signature": "[Conditional(\"DEBUG\")] public void Debug(string message, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogChannel.Error(System.Exception,System.String)",
+      "kind": "Method",
+      "signature": "public void Error(Exception exception, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogChannel.Error(System.String,System.String)",
+      "kind": "Method",
+      "signature": "public void Error(string message, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogChannel.Fatal(System.Exception,System.String)",
+      "kind": "Method",
+      "signature": "public void Fatal(Exception exception, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogChannel.Fatal(System.String,System.String)",
+      "kind": "Method",
+      "signature": "public void Fatal(string message, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogChannel.Info(System.String,System.String)",
+      "kind": "Method",
+      "signature": "[Conditional(\"DEBUG\")] public void Info(string message, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogChannel.Warn(System.String,System.String)",
+      "kind": "Method",
+      "signature": "public void Warn(string message, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogHub",
+      "kind": "Class",
+      "signature": "public static class LogHub"
+    },
+    {
+      "uid": "GoDo.LogHub.Debug(System.String,System.String,System.String)",
+      "kind": "Method",
+      "signature": "[Conditional(\"DEBUG\")] public static void Debug(string message, string module, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogHub.Error(System.Exception,System.String,System.String)",
+      "kind": "Method",
+      "signature": "public static void Error(Exception exception, string module, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogHub.Error(System.String,System.String,System.String)",
+      "kind": "Method",
+      "signature": "public static void Error(string message, string module, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogHub.Fatal(System.Exception,System.String,System.String)",
+      "kind": "Method",
+      "signature": "public static void Fatal(Exception exception, string module, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogHub.Fatal(System.String,System.String,System.String)",
+      "kind": "Method",
+      "signature": "public static void Fatal(string message, string module, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogHub.For(System.String)",
+      "kind": "Method",
+      "signature": "public static LogChannel For(string module)"
+    },
+    {
+      "uid": "GoDo.LogHub.Info(System.String,System.String,System.String)",
+      "kind": "Method",
+      "signature": "[Conditional(\"DEBUG\")] public static void Info(string message, string module, string? context = null)"
+    },
+    {
+      "uid": "GoDo.LogHub.Warn(System.String,System.String,System.String)",
+      "kind": "Method",
+      "signature": "public static void Warn(string message, string module, string? context = null)"
+    },
+    {
+      "uid": "GoDo.NodePool`1",
+      "kind": "Class",
+      "signature": "public sealed class NodePool<T> where T : Node"
+    },
+    {
+      "uid": "GoDo.NodePool`1.#ctor(Godot.PackedScene,System.Int32,System.Int32)",
+      "kind": "Constructor",
+      "signature": "public NodePool(PackedScene scene, int initialSize = 0, int idleCapacity = 32)"
+    },
+    {
+      "uid": "GoDo.NodePool`1.Acquire(Godot.Node)",
+      "kind": "Method",
+      "signature": "public T Acquire(Node parent)"
+    },
+    {
+      "uid": "GoDo.NodePool`1.ActiveCount",
+      "kind": "Property",
+      "signature": "public int ActiveCount { get; }"
+    },
+    {
+      "uid": "GoDo.NodePool`1.Clear",
+      "kind": "Method",
+      "signature": "public void Clear()"
+    },
+    {
+      "uid": "GoDo.NodePool`1.Dispose",
+      "kind": "Method",
+      "signature": "public void Dispose()"
+    },
+    {
+      "uid": "GoDo.NodePool`1.IdleCount",
+      "kind": "Property",
+      "signature": "public int IdleCount { get; }"
+    },
+    {
+      "uid": "GoDo.NodePool`1.Release(`0)",
+      "kind": "Method",
+      "signature": "public bool Release(T node)"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig",
+      "kind": "Class",
+      "signature": "public sealed class PhantomCameraRig : CameraRig"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig.ActivateRig",
+      "kind": "Method",
+      "signature": "protected override void ActivateRig()"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig.ActivePriority",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public int ActivePriority { get; set; }"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig.DeactivateRig",
+      "kind": "Method",
+      "signature": "protected override void DeactivateRig()"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig.InactivePriority",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public int InactivePriority { get; set; }"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig.OnRigExitTree",
+      "kind": "Method",
+      "signature": "protected override void OnRigExitTree()"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig.OnRigReady",
+      "kind": "Method",
+      "signature": "protected override void OnRigReady()"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig.PhantomCameraNode",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public Node3D PhantomCameraNode { get; set; }"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.PhantomCameraRig.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.ProcedureChangeException",
+      "kind": "Class",
+      "signature": "public sealed class ProcedureChangeException : Exception"
+    },
+    {
+      "uid": "GoDo.ProcedureChangeException.#ctor(System.String,GoDo.ProcedureChangePhase,System.String,System.Exception)",
+      "kind": "Constructor",
+      "signature": "public ProcedureChangeException(string procedureName, ProcedureChangePhase phase, string message, Exception? innerException = null)"
+    },
+    {
+      "uid": "GoDo.ProcedureChangeException.#ctor(System.String,System.String,System.Exception)",
+      "kind": "Constructor",
+      "signature": "public ProcedureChangeException(string procedureName, string message, Exception? innerException = null)"
+    },
+    {
+      "uid": "GoDo.ProcedureChangeException.Phase",
+      "kind": "Property",
+      "signature": "public ProcedureChangePhase Phase { get; }"
+    },
+    {
+      "uid": "GoDo.ProcedureChangeException.ProcedureName",
+      "kind": "Property",
+      "signature": "public string ProcedureName { get; }"
+    },
+    {
+      "uid": "GoDo.ProcedureChangePhase",
+      "kind": "Enum",
+      "signature": "public enum ProcedureChangePhase"
+    },
+    {
+      "uid": "GoDo.ProcedureChangePhase.Cleanup",
+      "kind": "Field",
+      "signature": "Cleanup = 3"
+    },
+    {
+      "uid": "GoDo.ProcedureChangePhase.Entering",
+      "kind": "Field",
+      "signature": "Entering = 4"
+    },
+    {
+      "uid": "GoDo.ProcedureChangePhase.Exiting",
+      "kind": "Field",
+      "signature": "Exiting = 2"
+    },
+    {
+      "uid": "GoDo.ProcedureChangePhase.Requesting",
+      "kind": "Field",
+      "signature": "Requesting = 1"
+    },
+    {
+      "uid": "GoDo.ProcedureChangePhase.Unknown",
+      "kind": "Field",
+      "signature": "Unknown = 0"
+    },
+    {
+      "uid": "GoDo.ProcedureContext",
+      "kind": "Class",
+      "signature": "public sealed class ProcedureContext"
+    },
+    {
+      "uid": "GoDo.ProcedureContext.Events",
+      "kind": "Property",
+      "signature": "public EventScope Events { get; }"
+    },
+    {
+      "uid": "GoDo.ProcedureContext.GetService``1",
+      "kind": "Method",
+      "signature": "public TService GetService<TService>() where TService : class"
+    },
+    {
+      "uid": "GoDo.ProcedureContext.IsActive",
+      "kind": "Property",
+      "signature": "public bool IsActive { get; }"
+    },
+    {
+      "uid": "GoDo.ProcedureContext.LifetimeToken",
+      "kind": "Property",
+      "signature": "public CancellationToken LifetimeToken { get; }"
+    },
+    {
+      "uid": "GoDo.ProcedureContext.RegisterCleanup(System.Action)",
+      "kind": "Method",
+      "signature": "public void RegisterCleanup(Action cleanup)"
+    },
+    {
+      "uid": "GoDo.ProcedureContext.RegisterCleanup(System.IDisposable)",
+      "kind": "Method",
+      "signature": "public void RegisterCleanup(IDisposable disposable)"
+    },
+    {
+      "uid": "GoDo.ProcedureContext.RequestChange(GoDo.IProcedure)",
+      "kind": "Method",
+      "signature": "public void RequestChange(IProcedure next)"
+    },
+    {
+      "uid": "GoDo.ProcedureContext.RequestChange``1",
+      "kind": "Method",
+      "signature": "public void RequestChange<TProcedure>() where TProcedure : IProcedure, new()"
+    },
+    {
+      "uid": "GoDo.ProcedureContext.TryGetService``1(``0@)",
+      "kind": "Method",
+      "signature": "public bool TryGetService<TService>(out TService? service) where TService : class"
+    },
+    {
+      "uid": "GoDo.ProcedureContext.TryRequestChange(GoDo.IProcedure)",
+      "kind": "Method",
+      "signature": "public bool TryRequestChange(IProcedure next)"
+    },
+    {
+      "uid": "GoDo.ProcedureContext.TryRequestChange``1",
+      "kind": "Method",
+      "signature": "public bool TryRequestChange<TProcedure>() where TProcedure : IProcedure, new()"
+    },
+    {
+      "uid": "GoDo.ProcedureService",
+      "kind": "Class",
+      "signature": "public sealed class ProcedureService : IProcedureService"
+    },
+    {
+      "uid": "GoDo.ProcedureService.#ctor",
+      "kind": "Constructor",
+      "signature": "public ProcedureService()"
+    },
+    {
+      "uid": "GoDo.ProcedureService.ChangeAsync(GoDo.IProcedure)",
+      "kind": "Method",
+      "signature": "public Task ChangeAsync(IProcedure next)"
+    },
+    {
+      "uid": "GoDo.ProcedureService.ChangeAsync``1",
+      "kind": "Method",
+      "signature": "public Task ChangeAsync<TProcedure>() where TProcedure : IProcedure, new()"
+    },
+    {
+      "uid": "GoDo.ProcedureService.Current",
+      "kind": "Property",
+      "signature": "public IProcedure? Current { get; }"
+    },
+    {
+      "uid": "GoDo.ProcedureService.IsChanging",
+      "kind": "Property",
+      "signature": "public bool IsChanging { get; }"
+    },
+    {
+      "uid": "GoDo.ProcedureService.RequestedChangeFailed",
+      "kind": "Event",
+      "signature": "public event Action<ProcedureChangeException>? RequestedChangeFailed"
+    },
+    {
+      "uid": "GoDo.RemoteErrorReporterTemplate",
+      "kind": "Class",
+      "signature": "public sealed class RemoteErrorReporterTemplate : IErrorReporter"
+    },
+    {
+      "uid": "GoDo.RemoteErrorReporterTemplate.#ctor(System.String)",
+      "kind": "Constructor",
+      "signature": "public RemoteErrorReporterTemplate(string endpoint)"
+    },
+    {
+      "uid": "GoDo.RemoteErrorReporterTemplate.Report(GoDo.ErrorReport@)",
+      "kind": "Method",
+      "signature": "public void Report(in ErrorReport report)"
+    },
+    {
+      "uid": "GoDo.ResourceHub",
+      "kind": "Class",
+      "signature": "public static class ResourceHub"
+    },
+    {
+      "uid": "GoDo.ResourceHub.ActiveOperationCount",
+      "kind": "Property",
+      "signature": "public static int ActiveOperationCount { get; }"
+    },
+    {
+      "uid": "GoDo.ResourceHub.LoadAsync``1(GoDo.ResourceKey)",
+      "kind": "Method",
+      "signature": "public static ResourceLoadOperation<T> LoadAsync<T>(ResourceKey key) where T : Resource"
+    },
+    {
+      "uid": "GoDo.ResourceHub.Load``1(GoDo.ResourceKey)",
+      "kind": "Method",
+      "signature": "public static T Load<T>(ResourceKey key) where T : Resource"
+    },
+    {
+      "uid": "GoDo.ResourceKey",
+      "kind": "Struct",
+      "signature": "public readonly struct ResourceKey"
+    },
+    {
+      "uid": "GoDo.ResourceKey.Create(System.String)",
+      "kind": "Method",
+      "signature": "public static ResourceKey Create(string path)"
+    },
+    {
+      "uid": "GoDo.ResourceKey.Equals(GoDo.ResourceKey)",
+      "kind": "Method",
+      "signature": "public bool Equals(ResourceKey other)"
+    },
+    {
+      "uid": "GoDo.ResourceKey.Equals(System.Object)",
+      "kind": "Method",
+      "signature": "public override bool Equals(object? obj)"
+    },
+    {
+      "uid": "GoDo.ResourceKey.FromPath(System.String)",
+      "kind": "Method",
+      "signature": "public static ResourceKey FromPath(string resPath)"
+    },
+    {
+      "uid": "GoDo.ResourceKey.FromUid(System.String)",
+      "kind": "Method",
+      "signature": "public static ResourceKey FromUid(string uidText)"
+    },
+    {
+      "uid": "GoDo.ResourceKey.GetHashCode",
+      "kind": "Method",
+      "signature": "public override int GetHashCode()"
+    },
+    {
+      "uid": "GoDo.ResourceKey.IsUid",
+      "kind": "Property",
+      "signature": "public bool IsUid { get; }"
+    },
+    {
+      "uid": "GoDo.ResourceKey.IsValid",
+      "kind": "Property",
+      "signature": "public bool IsValid { get; }"
+    },
+    {
+      "uid": "GoDo.ResourceKey.ResolveUid(System.String)",
+      "kind": "Method",
+      "signature": "public static ResourceKey ResolveUid(string resPath)"
+    },
+    {
+      "uid": "GoDo.ResourceKey.ToString",
+      "kind": "Method",
+      "signature": "public override string ToString()"
+    },
+    {
+      "uid": "GoDo.ResourceKey.Value",
+      "kind": "Property",
+      "signature": "public string Value { get; }"
+    },
+    {
+      "uid": "GoDo.ResourceKey.op_Equality(GoDo.ResourceKey,GoDo.ResourceKey)",
+      "kind": "Operator",
+      "signature": "public static bool operator ==(ResourceKey left, ResourceKey right)"
+    },
+    {
+      "uid": "GoDo.ResourceKey.op_Inequality(GoDo.ResourceKey,GoDo.ResourceKey)",
+      "kind": "Operator",
+      "signature": "public static bool operator !=(ResourceKey left, ResourceKey right)"
+    },
+    {
+      "uid": "GoDo.ResourceLoadException",
+      "kind": "Class",
+      "signature": "public sealed class ResourceLoadException : Exception"
+    },
+    {
+      "uid": "GoDo.ResourceLoadException.#ctor(GoDo.ResourceKey,System.Type,System.String,System.Nullable{Godot.Error},System.Exception)",
+      "kind": "Constructor",
+      "signature": "public ResourceLoadException(ResourceKey key, Type requestedType, string message, Error? errorCode = null, Exception? innerException = null)"
+    },
+    {
+      "uid": "GoDo.ResourceLoadException.ErrorCode",
+      "kind": "Property",
+      "signature": "public Error? ErrorCode { get; }"
+    },
+    {
+      "uid": "GoDo.ResourceLoadException.Key",
+      "kind": "Property",
+      "signature": "public ResourceKey Key { get; }"
+    },
+    {
+      "uid": "GoDo.ResourceLoadException.RequestedType",
+      "kind": "Property",
+      "signature": "public Type RequestedType { get; }"
+    },
+    {
+      "uid": "GoDo.ResourceLoadOperation`1",
+      "kind": "Class",
+      "signature": "public sealed class ResourceLoadOperation<T> where T : Resource"
+    },
+    {
+      "uid": "GoDo.ResourceLoadOperation`1.Completion",
+      "kind": "Property",
+      "signature": "public Task<T> Completion { get; }"
+    },
+    {
+      "uid": "GoDo.ResourceLoadOperation`1.Key",
+      "kind": "Property",
+      "signature": "public ResourceKey Key { get; }"
+    },
+    {
+      "uid": "GoDo.ResourceLoadOperation`1.Progress",
+      "kind": "Property",
+      "signature": "public float Progress { get; }"
+    },
+    {
+      "uid": "GoDo.ResourceLoadOperation`1.ProgressChanged",
+      "kind": "Event",
+      "signature": "public event Action<float>? ProgressChanged"
+    },
+    {
+      "uid": "GoDo.ResourceLoadOperation`1.Status",
+      "kind": "Property",
+      "signature": "public ResourceLoadStatus Status { get; }"
+    },
+    {
+      "uid": "GoDo.ResourceLoadStatus",
+      "kind": "Enum",
+      "signature": "public enum ResourceLoadStatus"
+    },
+    {
+      "uid": "GoDo.ResourceLoadStatus.Completed",
+      "kind": "Field",
+      "signature": "Completed = 1"
+    },
+    {
+      "uid": "GoDo.ResourceLoadStatus.Failed",
+      "kind": "Field",
+      "signature": "Failed = 2"
+    },
+    {
+      "uid": "GoDo.ResourceLoadStatus.Loading",
+      "kind": "Field",
+      "signature": "Loading = 0"
+    },
+    {
+      "uid": "GoDo.ResourceManifest",
+      "kind": "Class",
+      "signature": "[GlobalClass] public class ResourceManifest : Resource"
+    },
+    {
+      "uid": "GoDo.ResourceManifest.Entries",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public Array<ResourceManifestEntry> Entries { get; set; }"
+    },
+    {
+      "uid": "GoDo.ResourceManifest.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.ResourceManifest.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.ResourceManifest.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.ResourceManifest.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.ResourceManifestEntry",
+      "kind": "Class",
+      "signature": "[GlobalClass] public class ResourceManifestEntry : Resource"
+    },
+    {
+      "uid": "GoDo.ResourceManifestEntry.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.ResourceManifestEntry.Id",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public string Id { get; set; }"
+    },
+    {
+      "uid": "GoDo.ResourceManifestEntry.Locator",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public string Locator { get; set; }"
+    },
+    {
+      "uid": "GoDo.ResourceManifestEntry.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.ResourceManifestEntry.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.ResourceManifestEntry.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.ResourceRegistry",
+      "kind": "Class",
+      "signature": "public static class ResourceRegistry"
+    },
+    {
+      "uid": "GoDo.ResourceRegistry.Clear",
+      "kind": "Method",
+      "signature": "public static void Clear()"
+    },
+    {
+      "uid": "GoDo.ResourceRegistry.Count",
+      "kind": "Property",
+      "signature": "public static int Count { get; }"
+    },
+    {
+      "uid": "GoDo.ResourceRegistry.GetKey(System.String)",
+      "kind": "Method",
+      "signature": "public static ResourceKey GetKey(string id)"
+    },
+    {
+      "uid": "GoDo.ResourceRegistry.Load(GoDo.ResourceManifest)",
+      "kind": "Method",
+      "signature": "public static void Load(ResourceManifest manifest)"
+    },
+    {
+      "uid": "GoDo.ResourceRegistry.LoadMerge(System.Collections.Generic.IEnumerable{GoDo.ResourceManifest})",
+      "kind": "Method",
+      "signature": "public static void LoadMerge(IEnumerable<ResourceManifest> manifests)"
+    },
+    {
+      "uid": "GoDo.ResourceRegistry.TryGetKey(System.String,GoDo.ResourceKey@)",
+      "kind": "Method",
+      "signature": "public static bool TryGetKey(string id, out ResourceKey key)"
+    },
+    {
+      "uid": "GoDo.SaveException",
+      "kind": "Class",
+      "signature": "public sealed class SaveException : Exception"
+    },
+    {
+      "uid": "GoDo.SaveException.#ctor(GoDo.SaveSlot,GoDo.SaveOperation,System.String,System.Exception)",
+      "kind": "Constructor",
+      "signature": "public SaveException(SaveSlot slot, SaveOperation operation, string message, Exception? innerException = null)"
+    },
+    {
+      "uid": "GoDo.SaveException.Operation",
+      "kind": "Property",
+      "signature": "public SaveOperation Operation { get; }"
+    },
+    {
+      "uid": "GoDo.SaveException.Slot",
+      "kind": "Property",
+      "signature": "public SaveSlot Slot { get; }"
+    },
+    {
+      "uid": "GoDo.SaveLoadResult`1",
+      "kind": "Struct",
+      "signature": "public readonly struct SaveLoadResult<T>"
+    },
+    {
+      "uid": "GoDo.SaveLoadResult`1.DataVersion",
+      "kind": "Property",
+      "signature": "public int DataVersion { get; }"
+    },
+    {
+      "uid": "GoDo.SaveLoadResult`1.HasValue",
+      "kind": "Property",
+      "signature": "public bool HasValue { get; }"
+    },
+    {
+      "uid": "GoDo.SaveLoadResult`1.SavedAtUtc",
+      "kind": "Property",
+      "signature": "public DateTimeOffset? SavedAtUtc { get; }"
+    },
+    {
+      "uid": "GoDo.SaveLoadResult`1.Status",
+      "kind": "Property",
+      "signature": "public SaveLoadStatus Status { get; }"
+    },
+    {
+      "uid": "GoDo.SaveLoadResult`1.Value",
+      "kind": "Property",
+      "signature": "public T Value { get; }"
+    },
+    {
+      "uid": "GoDo.SaveLoadStatus",
+      "kind": "Enum",
+      "signature": "public enum SaveLoadStatus"
+    },
+    {
+      "uid": "GoDo.SaveLoadStatus.Loaded",
+      "kind": "Field",
+      "signature": "Loaded = 1"
+    },
+    {
+      "uid": "GoDo.SaveLoadStatus.NotFound",
+      "kind": "Field",
+      "signature": "NotFound = 0"
+    },
+    {
+      "uid": "GoDo.SaveLoadStatus.RecoveredFromBackup",
+      "kind": "Field",
+      "signature": "RecoveredFromBackup = 2"
+    },
+    {
+      "uid": "GoDo.SaveOperation",
+      "kind": "Enum",
+      "signature": "public enum SaveOperation"
+    },
+    {
+      "uid": "GoDo.SaveOperation.Delete",
+      "kind": "Field",
+      "signature": "Delete = 2"
+    },
+    {
+      "uid": "GoDo.SaveOperation.Load",
+      "kind": "Field",
+      "signature": "Load = 1"
+    },
+    {
+      "uid": "GoDo.SaveOperation.Save",
+      "kind": "Field",
+      "signature": "Save = 0"
+    },
+    {
+      "uid": "GoDo.SaveService",
+      "kind": "Class",
+      "signature": "public sealed class SaveService : ISaveService"
+    },
+    {
+      "uid": "GoDo.SaveService.Delete(GoDo.SaveSlot)",
+      "kind": "Method",
+      "signature": "public bool Delete(SaveSlot slot)"
+    },
+    {
+      "uid": "GoDo.SaveService.Exists(GoDo.SaveSlot)",
+      "kind": "Method",
+      "signature": "public bool Exists(SaveSlot slot)"
+    },
+    {
+      "uid": "GoDo.SaveService.Load``1(GoDo.SaveSlot,GoDo.ISaveCodec{``0})",
+      "kind": "Method",
+      "signature": "public SaveLoadResult<T> Load<T>(SaveSlot slot, ISaveCodec<T> codec)"
+    },
+    {
+      "uid": "GoDo.SaveService.Save``1(GoDo.SaveSlot,``0,System.Int32,GoDo.ISaveCodec{``0})",
+      "kind": "Method",
+      "signature": "public void Save<T>(SaveSlot slot, T value, int dataVersion, ISaveCodec<T> codec)"
+    },
+    {
+      "uid": "GoDo.SaveSlot",
+      "kind": "Struct",
+      "signature": "public readonly struct SaveSlot"
+    },
+    {
+      "uid": "GoDo.SaveSlot.Create(System.String)",
+      "kind": "Method",
+      "signature": "public static SaveSlot Create(string value)"
+    },
+    {
+      "uid": "GoDo.SaveSlot.Equals(GoDo.SaveSlot)",
+      "kind": "Method",
+      "signature": "public bool Equals(SaveSlot other)"
+    },
+    {
+      "uid": "GoDo.SaveSlot.Equals(System.Object)",
+      "kind": "Method",
+      "signature": "public override bool Equals(object? obj)"
+    },
+    {
+      "uid": "GoDo.SaveSlot.GetHashCode",
+      "kind": "Method",
+      "signature": "public override int GetHashCode()"
+    },
+    {
+      "uid": "GoDo.SaveSlot.IsValid",
+      "kind": "Property",
+      "signature": "public bool IsValid { get; }"
+    },
+    {
+      "uid": "GoDo.SaveSlot.ToString",
+      "kind": "Method",
+      "signature": "public override string ToString()"
+    },
+    {
+      "uid": "GoDo.SaveSlot.Value",
+      "kind": "Property",
+      "signature": "public string Value { get; }"
+    },
+    {
+      "uid": "GoDo.SaveSlot.op_Equality(GoDo.SaveSlot,GoDo.SaveSlot)",
+      "kind": "Operator",
+      "signature": "public static bool operator ==(SaveSlot left, SaveSlot right)"
+    },
+    {
+      "uid": "GoDo.SaveSlot.op_Inequality(GoDo.SaveSlot,GoDo.SaveSlot)",
+      "kind": "Operator",
+      "signature": "public static bool operator !=(SaveSlot left, SaveSlot right)"
+    },
+    {
+      "uid": "GoDo.SceneChangeException",
+      "kind": "Class",
+      "signature": "public sealed class SceneChangeException : Exception"
+    },
+    {
+      "uid": "GoDo.SceneChangeException.#ctor(GoDo.ResourceKey,GoDo.SceneChangePhase,System.String,System.Exception)",
+      "kind": "Constructor",
+      "signature": "public SceneChangeException(ResourceKey key, SceneChangePhase phase, string message, Exception? innerException = null)"
+    },
+    {
+      "uid": "GoDo.SceneChangeException.#ctor(GoDo.ResourceKey,System.String,System.Exception)",
+      "kind": "Constructor",
+      "signature": "public SceneChangeException(ResourceKey key, string message, Exception? innerException = null)"
+    },
+    {
+      "uid": "GoDo.SceneChangeException.Key",
+      "kind": "Property",
+      "signature": "public ResourceKey Key { get; }"
+    },
+    {
+      "uid": "GoDo.SceneChangeException.Phase",
+      "kind": "Property",
+      "signature": "public SceneChangePhase Phase { get; }"
+    },
+    {
+      "uid": "GoDo.SceneChangePhase",
+      "kind": "Enum",
+      "signature": "public enum SceneChangePhase"
+    },
+    {
+      "uid": "GoDo.SceneChangePhase.Committing",
+      "kind": "Field",
+      "signature": "Committing = 3"
+    },
+    {
+      "uid": "GoDo.SceneChangePhase.Instantiating",
+      "kind": "Field",
+      "signature": "Instantiating = 2"
+    },
+    {
+      "uid": "GoDo.SceneChangePhase.Loading",
+      "kind": "Field",
+      "signature": "Loading = 1"
+    },
+    {
+      "uid": "GoDo.SceneChangePhase.Unknown",
+      "kind": "Field",
+      "signature": "Unknown = 0"
+    },
+    {
+      "uid": "GoDo.SceneService",
+      "kind": "Class",
+      "signature": "public sealed class SceneService : Node, ISceneService"
+    },
+    {
+      "uid": "GoDo.SceneService.ChangeAsync(GoDo.ResourceKey)",
+      "kind": "Method",
+      "signature": "public Task<Node> ChangeAsync(ResourceKey key)"
+    },
+    {
+      "uid": "GoDo.SceneService.ChangeAsync(GoDo.ResourceKey,System.Action{System.Single},System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "public Task<Node> ChangeAsync(ResourceKey key, Action<float>? onProgress, CancellationToken cancellationToken = default)"
+    },
+    {
+      "uid": "GoDo.SceneService.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.SceneService.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.SceneService.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.SceneService.IsChanging",
+      "kind": "Property",
+      "signature": "public bool IsChanging { get; }"
+    },
+    {
+      "uid": "GoDo.SceneService.Progress",
+      "kind": "Property",
+      "signature": "public float Progress { get; }"
+    },
+    {
+      "uid": "GoDo.SceneService.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.SceneService.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.SceneService.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.SceneService._EnterTree",
+      "kind": "Method",
+      "signature": "public override void _EnterTree()"
+    },
+    {
+      "uid": "GoDo.SceneService._ExitTree",
+      "kind": "Method",
+      "signature": "public override void _ExitTree()"
+    },
+    {
+      "uid": "GoDo.ScheduleClock",
+      "kind": "Enum",
+      "signature": "public enum ScheduleClock"
+    },
+    {
+      "uid": "GoDo.ScheduleClock.GameTime",
+      "kind": "Field",
+      "signature": "GameTime = 0"
+    },
+    {
+      "uid": "GoDo.ScheduleClock.RealTime",
+      "kind": "Field",
+      "signature": "RealTime = 2"
+    },
+    {
+      "uid": "GoDo.ScheduleClock.UnscaledGameTime",
+      "kind": "Field",
+      "signature": "UnscaledGameTime = 1"
+    },
+    {
+      "uid": "GoDo.ScheduleHandle",
+      "kind": "Struct",
+      "signature": "public readonly struct ScheduleHandle"
+    },
+    {
+      "uid": "GoDo.ScheduleHandle.Equals(GoDo.ScheduleHandle)",
+      "kind": "Method",
+      "signature": "public bool Equals(ScheduleHandle other)"
+    },
+    {
+      "uid": "GoDo.ScheduleHandle.Equals(System.Object)",
+      "kind": "Method",
+      "signature": "public override bool Equals(object? obj)"
+    },
+    {
+      "uid": "GoDo.ScheduleHandle.GetHashCode",
+      "kind": "Method",
+      "signature": "public override int GetHashCode()"
+    },
+    {
+      "uid": "GoDo.ScheduleHandle.IsValid",
+      "kind": "Property",
+      "signature": "public bool IsValid { get; }"
+    },
+    {
+      "uid": "GoDo.ScheduleHandle.ToString",
+      "kind": "Method",
+      "signature": "public override string ToString()"
+    },
+    {
+      "uid": "GoDo.ScheduleHandle.op_Equality(GoDo.ScheduleHandle,GoDo.ScheduleHandle)",
+      "kind": "Operator",
+      "signature": "public static bool operator ==(ScheduleHandle left, ScheduleHandle right)"
+    },
+    {
+      "uid": "GoDo.ScheduleHandle.op_Inequality(GoDo.ScheduleHandle,GoDo.ScheduleHandle)",
+      "kind": "Operator",
+      "signature": "public static bool operator !=(ScheduleHandle left, ScheduleHandle right)"
+    },
+    {
+      "uid": "GoDo.ScheduleOptions",
+      "kind": "Struct",
+      "signature": "public readonly struct ScheduleOptions"
+    },
+    {
+      "uid": "GoDo.ScheduleOptions.#ctor(GoDo.ScheduleClock,GoDo.SchedulePhase,Godot.Node)",
+      "kind": "Constructor",
+      "signature": "public ScheduleOptions(ScheduleClock clock = ScheduleClock.GameTime, SchedulePhase phase = SchedulePhase.Process, Node? owner = null)"
+    },
+    {
+      "uid": "GoDo.ScheduleOptions.Clock",
+      "kind": "Property",
+      "signature": "public ScheduleClock Clock { get; }"
+    },
+    {
+      "uid": "GoDo.ScheduleOptions.Default",
+      "kind": "Property",
+      "signature": "public static ScheduleOptions Default { get; }"
+    },
+    {
+      "uid": "GoDo.ScheduleOptions.Owner",
+      "kind": "Property",
+      "signature": "public Node? Owner { get; }"
+    },
+    {
+      "uid": "GoDo.ScheduleOptions.Phase",
+      "kind": "Property",
+      "signature": "public SchedulePhase Phase { get; }"
+    },
+    {
+      "uid": "GoDo.ScheduleOptions.RealTime",
+      "kind": "Property",
+      "signature": "public static ScheduleOptions RealTime { get; }"
+    },
+    {
+      "uid": "GoDo.ScheduleOptions.UnscaledGameTime",
+      "kind": "Property",
+      "signature": "public static ScheduleOptions UnscaledGameTime { get; }"
+    },
+    {
+      "uid": "GoDo.SchedulePhase",
+      "kind": "Enum",
+      "signature": "public enum SchedulePhase"
+    },
+    {
+      "uid": "GoDo.SchedulePhase.Physics",
+      "kind": "Field",
+      "signature": "Physics = 1"
+    },
+    {
+      "uid": "GoDo.SchedulePhase.Process",
+      "kind": "Field",
+      "signature": "Process = 0"
+    },
+    {
+      "uid": "GoDo.SchedulerService",
+      "kind": "Class",
+      "signature": "public sealed class SchedulerService : Node, ISchedulerService"
+    },
+    {
+      "uid": "GoDo.SchedulerService.#ctor",
+      "kind": "Constructor",
+      "signature": "public SchedulerService()"
+    },
+    {
+      "uid": "GoDo.SchedulerService.Cancel(GoDo.ScheduleHandle)",
+      "kind": "Method",
+      "signature": "public bool Cancel(ScheduleHandle handle)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.DelayAsync(System.Double,GoDo.ScheduleOptions,System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "public Task DelayAsync(double delaySeconds, ScheduleOptions options = default, CancellationToken cancellationToken = default)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.IsScheduled(GoDo.ScheduleHandle)",
+      "kind": "Method",
+      "signature": "public bool IsScheduled(ScheduleHandle handle)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.Pause(GoDo.ScheduleHandle)",
+      "kind": "Method",
+      "signature": "public bool Pause(ScheduleHandle handle)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.Resume(GoDo.ScheduleHandle)",
+      "kind": "Method",
+      "signature": "public bool Resume(ScheduleHandle handle)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.Schedule(System.Double,System.Action,GoDo.ScheduleOptions)",
+      "kind": "Method",
+      "signature": "public ScheduleHandle Schedule(double delaySeconds, Action callback, ScheduleOptions options = default)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.ScheduleRepeating(System.Double,System.Action,GoDo.ScheduleOptions)",
+      "kind": "Method",
+      "signature": "public ScheduleHandle ScheduleRepeating(double intervalSeconds, Action callback, ScheduleOptions options = default)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.ScheduleRepeating(System.Double,System.Double,System.Action,GoDo.ScheduleOptions)",
+      "kind": "Method",
+      "signature": "public ScheduleHandle ScheduleRepeating(double initialDelaySeconds, double intervalSeconds, Action callback, ScheduleOptions options = default)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.SchedulerService.TryGetRemainingSeconds(GoDo.ScheduleHandle,System.Double@)",
+      "kind": "Method",
+      "signature": "public bool TryGetRemainingSeconds(ScheduleHandle handle, out double remainingSeconds)"
+    },
+    {
+      "uid": "GoDo.SchedulerService._EnterTree",
+      "kind": "Method",
+      "signature": "public override void _EnterTree()"
+    },
+    {
+      "uid": "GoDo.SchedulerService._ExitTree",
+      "kind": "Method",
+      "signature": "public override void _ExitTree()"
+    },
+    {
+      "uid": "GoDo.SchedulerService._PhysicsProcess(System.Double)",
+      "kind": "Method",
+      "signature": "public override void _PhysicsProcess(double delta)"
+    },
+    {
+      "uid": "GoDo.SchedulerService._Process(System.Double)",
+      "kind": "Method",
+      "signature": "public override void _Process(double delta)"
+    },
+    {
+      "uid": "GoDo.Services",
+      "kind": "Class",
+      "signature": "public static class Services"
+    },
+    {
+      "uid": "GoDo.Services.Get``1",
+      "kind": "Method",
+      "signature": "public static TService Get<TService>() where TService : class"
+    },
+    {
+      "uid": "GoDo.Services.Register``1(``0)",
+      "kind": "Method",
+      "signature": "public static void Register<TService>(TService service) where TService : class"
+    },
+    {
+      "uid": "GoDo.Services.TryGet``1(``0@)",
+      "kind": "Method",
+      "signature": "public static bool TryGet<TService>(out TService? service) where TService : class"
+    },
+    {
+      "uid": "GoDo.Services.Unregister``1(``0)",
+      "kind": "Method",
+      "signature": "public static bool Unregister<TService>(TService service) where TService : class"
+    },
+    {
+      "uid": "GoDo.SettingsApplyResult",
+      "kind": "Enum",
+      "signature": "public enum SettingsApplyResult"
+    },
+    {
+      "uid": "GoDo.SettingsApplyResult.Applied",
+      "kind": "Field",
+      "signature": "Applied = 0"
+    },
+    {
+      "uid": "GoDo.SettingsApplyResult.Unsupported",
+      "kind": "Field",
+      "signature": "Unsupported = 1"
+    },
+    {
+      "uid": "GoDo.SettingsCapability",
+      "kind": "Enum",
+      "signature": "[Flags] public enum SettingsCapability"
+    },
+    {
+      "uid": "GoDo.SettingsCapability.AudioVolume",
+      "kind": "Field",
+      "signature": "AudioVolume = 1"
+    },
+    {
+      "uid": "GoDo.SettingsCapability.Locale",
+      "kind": "Field",
+      "signature": "Locale = 2"
+    },
+    {
+      "uid": "GoDo.SettingsCapability.None",
+      "kind": "Field",
+      "signature": "None = 0"
+    },
+    {
+      "uid": "GoDo.SettingsCapability.Resolution",
+      "kind": "Field",
+      "signature": "Resolution = 8"
+    },
+    {
+      "uid": "GoDo.SettingsCapability.VSync",
+      "kind": "Field",
+      "signature": "VSync = 16"
+    },
+    {
+      "uid": "GoDo.SettingsCapability.WindowMode",
+      "kind": "Field",
+      "signature": "WindowMode = 4"
+    },
+    {
+      "uid": "GoDo.SettingsLoadStatus",
+      "kind": "Enum",
+      "signature": "public enum SettingsLoadStatus"
+    },
+    {
+      "uid": "GoDo.SettingsLoadStatus.DefaultsApplied",
+      "kind": "Field",
+      "signature": "DefaultsApplied = 0"
+    },
+    {
+      "uid": "GoDo.SettingsLoadStatus.Loaded",
+      "kind": "Field",
+      "signature": "Loaded = 1"
+    },
+    {
+      "uid": "GoDo.SettingsLoadStatus.RecoveredFromBackup",
+      "kind": "Field",
+      "signature": "RecoveredFromBackup = 2"
+    },
+    {
+      "uid": "GoDo.SettingsPlatform",
+      "kind": "Enum",
+      "signature": "public enum SettingsPlatform"
+    },
+    {
+      "uid": "GoDo.SettingsPlatform.CommonOnly",
+      "kind": "Field",
+      "signature": "CommonOnly = 2"
+    },
+    {
+      "uid": "GoDo.SettingsPlatform.Mobile",
+      "kind": "Field",
+      "signature": "Mobile = 1"
+    },
+    {
+      "uid": "GoDo.SettingsPlatform.WindowsDesktop",
+      "kind": "Field",
+      "signature": "WindowsDesktop = 0"
+    },
+    {
+      "uid": "GoDo.SettingsService",
+      "kind": "Class",
+      "signature": "public sealed class SettingsService : ISettingsService"
+    },
+    {
+      "uid": "GoDo.SettingsService.#ctor(GoDo.IAudioService,GoDo.ISaveService)",
+      "kind": "Constructor",
+      "signature": "[Obsolete(\"请显式传入 LocalizationService，以便 Settings 与业务翻译查询共享同一实例。\")] public SettingsService(IAudioService audioService, ISaveService saveService)"
+    },
+    {
+      "uid": "GoDo.SettingsService.#ctor(GoDo.IAudioService,GoDo.ISaveService,GoDo.LocalizationService)",
+      "kind": "Constructor",
+      "signature": "public SettingsService(IAudioService audioService, ISaveService saveService, LocalizationService localization)"
+    },
+    {
+      "uid": "GoDo.SettingsService.Capabilities",
+      "kind": "Property",
+      "signature": "public SettingsCapability Capabilities { get; }"
+    },
+    {
+      "uid": "GoDo.SettingsService.Current",
+      "kind": "Property",
+      "signature": "public SettingsSnapshot Current { get; }"
+    },
+    {
+      "uid": "GoDo.SettingsService.LoadAndApply",
+      "kind": "Method",
+      "signature": "public SettingsLoadStatus LoadAndApply()"
+    },
+    {
+      "uid": "GoDo.SettingsService.Platform",
+      "kind": "Property",
+      "signature": "public SettingsPlatform Platform { get; }"
+    },
+    {
+      "uid": "GoDo.SettingsService.ResetToDefaults",
+      "kind": "Method",
+      "signature": "public void ResetToDefaults()"
+    },
+    {
+      "uid": "GoDo.SettingsService.Save",
+      "kind": "Method",
+      "signature": "public void Save()"
+    },
+    {
+      "uid": "GoDo.SettingsService.SetBgmVolume(System.Single)",
+      "kind": "Method",
+      "signature": "public SettingsApplyResult SetBgmVolume(float linearVolume)"
+    },
+    {
+      "uid": "GoDo.SettingsService.SetLocale(System.String)",
+      "kind": "Method",
+      "signature": "public SettingsApplyResult SetLocale(string locale)"
+    },
+    {
+      "uid": "GoDo.SettingsService.SetMasterVolume(System.Single)",
+      "kind": "Method",
+      "signature": "public SettingsApplyResult SetMasterVolume(float linearVolume)"
+    },
+    {
+      "uid": "GoDo.SettingsService.SetResolution(Godot.Vector2I)",
+      "kind": "Method",
+      "signature": "public SettingsApplyResult SetResolution(Vector2I resolution)"
+    },
+    {
+      "uid": "GoDo.SettingsService.SetSfxVolume(System.Single)",
+      "kind": "Method",
+      "signature": "public SettingsApplyResult SetSfxVolume(float linearVolume)"
+    },
+    {
+      "uid": "GoDo.SettingsService.SetVSync(System.Boolean)",
+      "kind": "Method",
+      "signature": "public SettingsApplyResult SetVSync(bool enabled)"
+    },
+    {
+      "uid": "GoDo.SettingsService.SetWindowMode(GoDo.SettingsWindowMode)",
+      "kind": "Method",
+      "signature": "public SettingsApplyResult SetWindowMode(SettingsWindowMode mode)"
+    },
+    {
+      "uid": "GoDo.SettingsService.Supports(GoDo.SettingsCapability)",
+      "kind": "Method",
+      "signature": "public bool Supports(SettingsCapability capability)"
+    },
+    {
+      "uid": "GoDo.SettingsSnapshot",
+      "kind": "Class",
+      "signature": "public sealed record SettingsSnapshot"
+    },
+    {
+      "uid": "GoDo.SettingsSnapshot.BgmVolume",
+      "kind": "Property",
+      "signature": "public float BgmVolume { get; init; }"
+    },
+    {
+      "uid": "GoDo.SettingsSnapshot.Locale",
+      "kind": "Property",
+      "signature": "public string Locale { get; init; }"
+    },
+    {
+      "uid": "GoDo.SettingsSnapshot.MasterVolume",
+      "kind": "Property",
+      "signature": "public float MasterVolume { get; init; }"
+    },
+    {
+      "uid": "GoDo.SettingsSnapshot.Resolution",
+      "kind": "Property",
+      "signature": "public Vector2I Resolution { get; init; }"
+    },
+    {
+      "uid": "GoDo.SettingsSnapshot.SfxVolume",
+      "kind": "Property",
+      "signature": "public float SfxVolume { get; init; }"
+    },
+    {
+      "uid": "GoDo.SettingsSnapshot.VSyncEnabled",
+      "kind": "Property",
+      "signature": "public bool VSyncEnabled { get; init; }"
+    },
+    {
+      "uid": "GoDo.SettingsSnapshot.WindowMode",
+      "kind": "Property",
+      "signature": "public SettingsWindowMode WindowMode { get; init; }"
+    },
+    {
+      "uid": "GoDo.SettingsWindowMode",
+      "kind": "Enum",
+      "signature": "public enum SettingsWindowMode"
+    },
+    {
+      "uid": "GoDo.SettingsWindowMode.Borderless",
+      "kind": "Field",
+      "signature": "Borderless = 1"
+    },
+    {
+      "uid": "GoDo.SettingsWindowMode.Fullscreen",
+      "kind": "Field",
+      "signature": "Fullscreen = 2"
+    },
+    {
+      "uid": "GoDo.SettingsWindowMode.Windowed",
+      "kind": "Field",
+      "signature": "Windowed = 0"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackHandle",
+      "kind": "Struct",
+      "signature": "public readonly struct Sfx3DPlaybackHandle"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackHandle.Equals(GoDo.Sfx3DPlaybackHandle)",
+      "kind": "Method",
+      "signature": "public bool Equals(Sfx3DPlaybackHandle other)"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackHandle.Equals(System.Object)",
+      "kind": "Method",
+      "signature": "public override bool Equals(object? obj)"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackHandle.GetHashCode",
+      "kind": "Method",
+      "signature": "public override int GetHashCode()"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackHandle.IsValid",
+      "kind": "Property",
+      "signature": "public bool IsValid { get; }"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackHandle.op_Equality(GoDo.Sfx3DPlaybackHandle,GoDo.Sfx3DPlaybackHandle)",
+      "kind": "Operator",
+      "signature": "public static bool operator ==(Sfx3DPlaybackHandle left, Sfx3DPlaybackHandle right)"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackHandle.op_Inequality(GoDo.Sfx3DPlaybackHandle,GoDo.Sfx3DPlaybackHandle)",
+      "kind": "Operator",
+      "signature": "public static bool operator !=(Sfx3DPlaybackHandle left, Sfx3DPlaybackHandle right)"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackOptions",
+      "kind": "Struct",
+      "signature": "public readonly struct Sfx3DPlaybackOptions"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackOptions.#ctor(System.Single,System.Single,System.Single,System.Single,Godot.AudioStreamPlayer3D.AttenuationModelEnum,GoDo.SfxPriority,System.Int32,System.Boolean)",
+      "kind": "Constructor",
+      "signature": "public Sfx3DPlaybackOptions(float maxDistance, float unitSize = 10, float volumeLinear = 1, float pitchScale = 1, AudioStreamPlayer3D.AttenuationModelEnum attenuationModel = AttenuationModelEnum.InverseDistance, SfxPriority priority = SfxPriority.Normal, int maxConcurrentPerKey = 0, bool allowStealLowerPriority = false)"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackOptions.AllowStealLowerPriority",
+      "kind": "Property",
+      "signature": "public bool AllowStealLowerPriority { get; }"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackOptions.AttenuationModel",
+      "kind": "Property",
+      "signature": "public AudioStreamPlayer3D.AttenuationModelEnum AttenuationModel { get; }"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackOptions.MaxConcurrentPerKey",
+      "kind": "Property",
+      "signature": "public int MaxConcurrentPerKey { get; }"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackOptions.MaxDistance",
+      "kind": "Property",
+      "signature": "public float MaxDistance { get; }"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackOptions.PitchScale",
+      "kind": "Property",
+      "signature": "public float PitchScale { get; }"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackOptions.Priority",
+      "kind": "Property",
+      "signature": "public SfxPriority Priority { get; }"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackOptions.UnitSize",
+      "kind": "Property",
+      "signature": "public float UnitSize { get; }"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackOptions.VolumeLinear",
+      "kind": "Property",
+      "signature": "public float VolumeLinear { get; }"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackResult",
+      "kind": "Struct",
+      "signature": "public readonly struct Sfx3DPlaybackResult"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackResult.Handle",
+      "kind": "Property",
+      "signature": "public Sfx3DPlaybackHandle Handle { get; }"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackResult.Started",
+      "kind": "Property",
+      "signature": "public bool Started { get; }"
+    },
+    {
+      "uid": "GoDo.Sfx3DPlaybackResult.Status",
+      "kind": "Property",
+      "signature": "public SfxPlaybackStatus Status { get; }"
+    },
+    {
+      "uid": "GoDo.Sfx3DVoice",
+      "kind": "Class",
+      "signature": "public sealed class Sfx3DVoice : AudioStreamPlayer3D, IPoolable"
+    },
+    {
+      "uid": "GoDo.Sfx3DVoice.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.Sfx3DVoice.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.Sfx3DVoice.OnAcquire",
+      "kind": "Method",
+      "signature": "public void OnAcquire()"
+    },
+    {
+      "uid": "GoDo.Sfx3DVoice.OnRelease",
+      "kind": "Method",
+      "signature": "public void OnRelease()"
+    },
+    {
+      "uid": "GoDo.Sfx3DVoice.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.Sfx3DVoice.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackHandle",
+      "kind": "Struct",
+      "signature": "public readonly struct SfxPlaybackHandle"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackHandle.Equals(GoDo.SfxPlaybackHandle)",
+      "kind": "Method",
+      "signature": "public bool Equals(SfxPlaybackHandle other)"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackHandle.Equals(System.Object)",
+      "kind": "Method",
+      "signature": "public override bool Equals(object? obj)"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackHandle.GetHashCode",
+      "kind": "Method",
+      "signature": "public override int GetHashCode()"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackHandle.IsValid",
+      "kind": "Property",
+      "signature": "public bool IsValid { get; }"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackHandle.op_Equality(GoDo.SfxPlaybackHandle,GoDo.SfxPlaybackHandle)",
+      "kind": "Operator",
+      "signature": "public static bool operator ==(SfxPlaybackHandle left, SfxPlaybackHandle right)"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackHandle.op_Inequality(GoDo.SfxPlaybackHandle,GoDo.SfxPlaybackHandle)",
+      "kind": "Operator",
+      "signature": "public static bool operator !=(SfxPlaybackHandle left, SfxPlaybackHandle right)"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackOptions",
+      "kind": "Struct",
+      "signature": "public readonly struct SfxPlaybackOptions"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackOptions.#ctor",
+      "kind": "Constructor",
+      "signature": "public SfxPlaybackOptions()"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackOptions.#ctor(System.Single,System.Single,GoDo.SfxPriority,System.Int32,System.Boolean)",
+      "kind": "Constructor",
+      "signature": "public SfxPlaybackOptions(float volumeLinear, float pitchScale = 1, SfxPriority priority = SfxPriority.Normal, int maxConcurrentPerKey = 0, bool allowStealLowerPriority = false)"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackOptions.AllowStealLowerPriority",
+      "kind": "Property",
+      "signature": "public bool AllowStealLowerPriority { get; }"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackOptions.MaxConcurrentPerKey",
+      "kind": "Property",
+      "signature": "public int MaxConcurrentPerKey { get; }"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackOptions.PitchScale",
+      "kind": "Property",
+      "signature": "public float PitchScale { get; }"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackOptions.Priority",
+      "kind": "Property",
+      "signature": "public SfxPriority Priority { get; }"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackOptions.VolumeLinear",
+      "kind": "Property",
+      "signature": "public float VolumeLinear { get; }"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackResult",
+      "kind": "Struct",
+      "signature": "public readonly struct SfxPlaybackResult"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackResult.Handle",
+      "kind": "Property",
+      "signature": "public SfxPlaybackHandle Handle { get; }"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackResult.Started",
+      "kind": "Property",
+      "signature": "public bool Started { get; }"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackResult.Status",
+      "kind": "Property",
+      "signature": "public SfxPlaybackStatus Status { get; }"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackStatus",
+      "kind": "Enum",
+      "signature": "public enum SfxPlaybackStatus"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackStatus.FollowCapacityReached",
+      "kind": "Field",
+      "signature": "FollowCapacityReached = 6"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackStatus.GlobalCapacityReached",
+      "kind": "Field",
+      "signature": "GlobalCapacityReached = 2"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackStatus.None",
+      "kind": "Field",
+      "signature": "None = 0"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackStatus.PerKeyLimitReached",
+      "kind": "Field",
+      "signature": "PerKeyLimitReached = 3"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackStatus.PreemptedBeforeStart",
+      "kind": "Field",
+      "signature": "PreemptedBeforeStart = 4"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackStatus.Started",
+      "kind": "Field",
+      "signature": "Started = 1"
+    },
+    {
+      "uid": "GoDo.SfxPlaybackStatus.TargetUnavailableBeforeStart",
+      "kind": "Field",
+      "signature": "TargetUnavailableBeforeStart = 5"
+    },
+    {
+      "uid": "GoDo.SfxPriority",
+      "kind": "Enum",
+      "signature": "public enum SfxPriority"
+    },
+    {
+      "uid": "GoDo.SfxPriority.Critical",
+      "kind": "Field",
+      "signature": "Critical = 3"
+    },
+    {
+      "uid": "GoDo.SfxPriority.High",
+      "kind": "Field",
+      "signature": "High = 2"
+    },
+    {
+      "uid": "GoDo.SfxPriority.Low",
+      "kind": "Field",
+      "signature": "Low = 0"
+    },
+    {
+      "uid": "GoDo.SfxPriority.Normal",
+      "kind": "Field",
+      "signature": "Normal = 1"
+    },
+    {
+      "uid": "GoDo.SfxVoice",
+      "kind": "Class",
+      "signature": "public sealed class SfxVoice : AudioStreamPlayer, IPoolable"
+    },
+    {
+      "uid": "GoDo.SfxVoice.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.SfxVoice.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.SfxVoice.OnAcquire",
+      "kind": "Method",
+      "signature": "public void OnAcquire()"
+    },
+    {
+      "uid": "GoDo.SfxVoice.OnRelease",
+      "kind": "Method",
+      "signature": "public void OnRelease()"
+    },
+    {
+      "uid": "GoDo.SfxVoice.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.SfxVoice.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.UiConfig",
+      "kind": "Class",
+      "signature": "[GlobalClass] public class UiConfig : Resource, IConfigResource"
+    },
+    {
+      "uid": "GoDo.UiConfig.Entries",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public Array<UiConfigEntry> Entries { get; set; }"
+    },
+    {
+      "uid": "GoDo.UiConfig.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.UiConfig.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.UiConfig.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.UiConfig.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.UiConfig.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.UiConfig.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.UiConfig.Validate",
+      "kind": "Method",
+      "signature": "public void Validate()"
+    },
+    {
+      "uid": "GoDo.UiConfigEntry",
+      "kind": "Class",
+      "signature": "[GlobalClass] public class UiConfigEntry : Resource"
+    },
+    {
+      "uid": "GoDo.UiConfigEntry.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.UiConfigEntry.Id",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public string Id { get; set; }"
+    },
+    {
+      "uid": "GoDo.UiConfigEntry.InstanceMode",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public UiInstanceMode InstanceMode { get; set; }"
+    },
+    {
+      "uid": "GoDo.UiConfigEntry.Layer",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public UiLayer Layer { get; set; }"
+    },
+    {
+      "uid": "GoDo.UiConfigEntry.Locator",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.File, \"*.tscn\")] public string Locator { get; set; }"
+    },
+    {
+      "uid": "GoDo.UiConfigEntry.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.UiConfigEntry.ReuseInstance",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public bool ReuseInstance { get; set; }"
+    },
+    {
+      "uid": "GoDo.UiConfigEntry.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.UiConfigEntry.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.UiId",
+      "kind": "Struct",
+      "signature": "public readonly struct UiId"
+    },
+    {
+      "uid": "GoDo.UiId.Create(System.String)",
+      "kind": "Method",
+      "signature": "public static UiId Create(string value)"
+    },
+    {
+      "uid": "GoDo.UiId.Equals(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "public bool Equals(UiId other)"
+    },
+    {
+      "uid": "GoDo.UiId.Equals(System.Object)",
+      "kind": "Method",
+      "signature": "public override bool Equals(object? obj)"
+    },
+    {
+      "uid": "GoDo.UiId.GetHashCode",
+      "kind": "Method",
+      "signature": "public override int GetHashCode()"
+    },
+    {
+      "uid": "GoDo.UiId.IsValid",
+      "kind": "Property",
+      "signature": "public bool IsValid { get; }"
+    },
+    {
+      "uid": "GoDo.UiId.ToString",
+      "kind": "Method",
+      "signature": "public override string ToString()"
+    },
+    {
+      "uid": "GoDo.UiId.Value",
+      "kind": "Property",
+      "signature": "public string Value { get; }"
+    },
+    {
+      "uid": "GoDo.UiId.op_Equality(GoDo.UiId,GoDo.UiId)",
+      "kind": "Operator",
+      "signature": "public static bool operator ==(UiId left, UiId right)"
+    },
+    {
+      "uid": "GoDo.UiId.op_Inequality(GoDo.UiId,GoDo.UiId)",
+      "kind": "Operator",
+      "signature": "public static bool operator !=(UiId left, UiId right)"
+    },
+    {
+      "uid": "GoDo.UiInstanceMode",
+      "kind": "Enum",
+      "signature": "public enum UiInstanceMode"
+    },
+    {
+      "uid": "GoDo.UiInstanceMode.Multiple",
+      "kind": "Field",
+      "signature": "Multiple = 1"
+    },
+    {
+      "uid": "GoDo.UiInstanceMode.Single",
+      "kind": "Field",
+      "signature": "Single = 0"
+    },
+    {
+      "uid": "GoDo.UiLayer",
+      "kind": "Enum",
+      "signature": "public enum UiLayer"
+    },
+    {
+      "uid": "GoDo.UiLayer.Modal",
+      "kind": "Field",
+      "signature": "Modal = 2"
+    },
+    {
+      "uid": "GoDo.UiLayer.Overlay",
+      "kind": "Field",
+      "signature": "Overlay = 3"
+    },
+    {
+      "uid": "GoDo.UiLayer.Scene",
+      "kind": "Field",
+      "signature": "Scene = 0"
+    },
+    {
+      "uid": "GoDo.UiLayer.View",
+      "kind": "Field",
+      "signature": "View = 1"
+    },
+    {
+      "uid": "GoDo.UiOpenException",
+      "kind": "Class",
+      "signature": "public sealed class UiOpenException : Exception"
+    },
+    {
+      "uid": "GoDo.UiOpenException.#ctor(GoDo.ResourceKey,GoDo.UiOpenPhase,System.String,System.Exception)",
+      "kind": "Constructor",
+      "signature": "public UiOpenException(ResourceKey key, UiOpenPhase phase, string message, Exception? innerException = null)"
+    },
+    {
+      "uid": "GoDo.UiOpenException.#ctor(GoDo.ResourceKey,System.String,System.Exception)",
+      "kind": "Constructor",
+      "signature": "public UiOpenException(ResourceKey key, string message, Exception? innerException = null)"
+    },
+    {
+      "uid": "GoDo.UiOpenException.Key",
+      "kind": "Property",
+      "signature": "public ResourceKey Key { get; }"
+    },
+    {
+      "uid": "GoDo.UiOpenException.Phase",
+      "kind": "Property",
+      "signature": "public UiOpenPhase Phase { get; }"
+    },
+    {
+      "uid": "GoDo.UiOpenPhase",
+      "kind": "Enum",
+      "signature": "public enum UiOpenPhase"
+    },
+    {
+      "uid": "GoDo.UiOpenPhase.Committing",
+      "kind": "Field",
+      "signature": "Committing = 3"
+    },
+    {
+      "uid": "GoDo.UiOpenPhase.Loading",
+      "kind": "Field",
+      "signature": "Loading = 1"
+    },
+    {
+      "uid": "GoDo.UiOpenPhase.Preparing",
+      "kind": "Field",
+      "signature": "Preparing = 2"
+    },
+    {
+      "uid": "GoDo.UiOpenPhase.Unknown",
+      "kind": "Field",
+      "signature": "Unknown = 0"
+    },
+    {
+      "uid": "GoDo.UiRoot",
+      "kind": "Class",
+      "signature": "public sealed class UiRoot : Node"
+    },
+    {
+      "uid": "GoDo.UiRoot.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.UiRoot.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.UiRoot.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.UiRoot.ModalRootPath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath ModalRootPath { get; set; }"
+    },
+    {
+      "uid": "GoDo.UiRoot.OverlayRootPath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath OverlayRootPath { get; set; }"
+    },
+    {
+      "uid": "GoDo.UiRoot.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.UiRoot.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.UiRoot.SceneRootPath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath SceneRootPath { get; set; }"
+    },
+    {
+      "uid": "GoDo.UiRoot.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.UiRoot.ViewRootPath",
+      "kind": "Property",
+      "signature": "[Export(PropertyHint.None, \"\")] public NodePath ViewRootPath { get; set; }"
+    },
+    {
+      "uid": "GoDo.UiRoot._Ready",
+      "kind": "Method",
+      "signature": "public override void _Ready()"
+    },
+    {
+      "uid": "GoDo.UiScope`1",
+      "kind": "Class",
+      "signature": "public sealed class UiScope<TView> where TView : Control"
+    },
+    {
+      "uid": "GoDo.UiScope`1.Dispose",
+      "kind": "Method",
+      "signature": "public void Dispose()"
+    },
+    {
+      "uid": "GoDo.UiScope`1.IsDisposed",
+      "kind": "Property",
+      "signature": "public bool IsDisposed { get; }"
+    },
+    {
+      "uid": "GoDo.UiScope`1.View",
+      "kind": "Property",
+      "signature": "public TView View { get; }"
+    },
+    {
+      "uid": "GoDo.UiService",
+      "kind": "Class",
+      "signature": "public sealed class UiService : Node, IUiService"
+    },
+    {
+      "uid": "GoDo.UiService.CancelOpenRequests(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "public int CancelOpenRequests(UiId id)"
+    },
+    {
+      "uid": "GoDo.UiService.CancelOpenRequests(GoDo.UiLayer)",
+      "kind": "Method",
+      "signature": "public int CancelOpenRequests(UiLayer layer)"
+    },
+    {
+      "uid": "GoDo.UiService.ClearCachedInstance(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "public bool ClearCachedInstance(UiId id)"
+    },
+    {
+      "uid": "GoDo.UiService.ClearCachedInstances",
+      "kind": "Method",
+      "signature": "public int ClearCachedInstances()"
+    },
+    {
+      "uid": "GoDo.UiService.Close(Godot.Control)",
+      "kind": "Method",
+      "signature": "public void Close(Control view)"
+    },
+    {
+      "uid": "GoDo.UiService.CloseAll(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "public int CloseAll(UiId id)"
+    },
+    {
+      "uid": "GoDo.UiService.CloseAll(GoDo.UiLayer)",
+      "kind": "Method",
+      "signature": "public int CloseAll(UiLayer layer)"
+    },
+    {
+      "uid": "GoDo.UiService.CloseTo(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "public int CloseTo(UiId id)"
+    },
+    {
+      "uid": "GoDo.UiService.CloseTo(Godot.Control)",
+      "kind": "Method",
+      "signature": "public int CloseTo(Control view)"
+    },
+    {
+      "uid": "GoDo.UiService.GetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool GetGodotClassPropertyValue(in godot_string_name name, out godot_variant value)"
+    },
+    {
+      "uid": "GoDo.UiService.GetOpenCount(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "public int GetOpenCount(UiId id)"
+    },
+    {
+      "uid": "GoDo.UiService.GetOpeningCount(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "public int GetOpeningCount(UiId id)"
+    },
+    {
+      "uid": "GoDo.UiService.HasCachedInstance(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "public bool HasCachedInstance(UiId id)"
+    },
+    {
+      "uid": "GoDo.UiService.HasGodotClassMethod(Godot.NativeInterop.godot_string_name@)",
+      "kind": "Method",
+      "signature": "protected override bool HasGodotClassMethod(in godot_string_name method)"
+    },
+    {
+      "uid": "GoDo.UiService.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.NativeVariantPtrArgs,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool InvokeGodotClassMethod(in godot_string_name method, NativeVariantPtrArgs args, out godot_variant ret)"
+    },
+    {
+      "uid": "GoDo.UiService.IsOpen(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "public bool IsOpen(UiId id)"
+    },
+    {
+      "uid": "GoDo.UiService.IsOpening(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "public bool IsOpening(UiId id)"
+    },
+    {
+      "uid": "GoDo.UiService.LoadUiConfig(GoDo.ResourceKey)",
+      "kind": "Method",
+      "signature": "public void LoadUiConfig(ResourceKey key)"
+    },
+    {
+      "uid": "GoDo.UiService.Open(GoDo.ResourceKey,GoDo.UiLayer)",
+      "kind": "Method",
+      "signature": "public Control Open(ResourceKey key, UiLayer layer)"
+    },
+    {
+      "uid": "GoDo.UiService.Open(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "public Control Open(UiId id)"
+    },
+    {
+      "uid": "GoDo.UiService.OpenAsync``1(GoDo.ResourceKey,GoDo.UiLayer,System.Action{``0},System.Action{System.Single},System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "public Task<TView> OpenAsync<TView>(ResourceKey key, UiLayer layer, Action<TView>? configure = null, Action<float>? onProgress = null, CancellationToken cancellationToken = default) where TView : Control"
+    },
+    {
+      "uid": "GoDo.UiService.OpenAsync``1(GoDo.UiId,System.Action{``0},System.Action{System.Single},System.Threading.CancellationToken)",
+      "kind": "Method",
+      "signature": "public Task<TView> OpenAsync<TView>(UiId id, Action<TView>? configure = null, Action<float>? onProgress = null, CancellationToken cancellationToken = default) where TView : Control"
+    },
+    {
+      "uid": "GoDo.UiService.Open``1(GoDo.ResourceKey,GoDo.UiLayer,System.Action{``0})",
+      "kind": "Method",
+      "signature": "public TView Open<TView>(ResourceKey key, UiLayer layer, Action<TView>? configure = null) where TView : Control"
+    },
+    {
+      "uid": "GoDo.UiService.Open``1(GoDo.UiId,System.Action{``0})",
+      "kind": "Method",
+      "signature": "public TView Open<TView>(UiId id, Action<TView>? configure = null) where TView : Control"
+    },
+    {
+      "uid": "GoDo.UiService.RestoreGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void RestoreGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.UiService.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
+      "kind": "Method",
+      "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.UiService.SetGodotClassPropertyValue(Godot.NativeInterop.godot_string_name@,Godot.NativeInterop.godot_variant@)",
+      "kind": "Method",
+      "signature": "protected override bool SetGodotClassPropertyValue(in godot_string_name name, in godot_variant value)"
+    },
+    {
+      "uid": "GoDo.UiService.TryClose(GoDo.UiId)",
+      "kind": "Method",
+      "signature": "public bool TryClose(UiId id)"
+    },
+    {
+      "uid": "GoDo.UiService.TryClose(Godot.Control)",
+      "kind": "Method",
+      "signature": "public bool TryClose(Control view)"
+    },
+    {
+      "uid": "GoDo.UiService.TryGetTop(GoDo.UiId,Godot.Control@)",
+      "kind": "Method",
+      "signature": "public bool TryGetTop(UiId id, out Control? view)"
+    },
+    {
+      "uid": "GoDo.UiService.TryGetTop(GoDo.UiLayer,Godot.Control@)",
+      "kind": "Method",
+      "signature": "public bool TryGetTop(UiLayer layer, out Control? view)"
+    },
+    {
+      "uid": "GoDo.UiService.TryGetTop``1(GoDo.UiId,``0@)",
+      "kind": "Method",
+      "signature": "public bool TryGetTop<TView>(UiId id, out TView? view) where TView : Control"
+    },
+    {
+      "uid": "GoDo.UiService.TryGoBack",
+      "kind": "Method",
+      "signature": "public bool TryGoBack()"
+    },
+    {
+      "uid": "GoDo.UiService._ExitTree",
+      "kind": "Method",
+      "signature": "public override void _ExitTree()"
+    },
+    {
+      "uid": "GoDo.UiServiceExtensions",
+      "kind": "Class",
+      "signature": "public static class UiServiceExtensions"
+    },
+    {
+      "uid": "GoDo.UiServiceExtensions.OpenScoped``1(GoDo.IUiService,GoDo.ResourceKey,GoDo.UiLayer,System.Action{``0})",
+      "kind": "Method",
+      "signature": "public static UiScope<TView> OpenScoped<TView>(this IUiService service, ResourceKey key, UiLayer layer, Action<TView>? configure = null) where TView : Control"
+    },
+    {
+      "uid": "GoDo.UiServiceExtensions.OpenScoped``1(GoDo.IUiService,GoDo.UiId,System.Action{``0})",
+      "kind": "Method",
+      "signature": "public static UiScope<TView> OpenScoped<TView>(this IUiService service, UiId id, Action<TView>? configure = null) where TView : Control"
+    }
+  ]
+}

@@ -50,10 +50,11 @@ if (scenes.IsChanging)
 - 必须启用 `GoDoRuntime.tscn` Autoload，使 ResourceHub、Services 和 SceneService 按顺序初始化。
 - 不要在业务场景中再创建第二个 SceneService，也不要重复初始化框架。
 - SceneService 的失败异常由业务流程边界捕获并补充上下文，模块内部不重复 ErrorHub.Report。
+- Debug 快照在切换期间使用单调时钟报告从当前请求开始的耗时，切换结束后当前耗时立即归零；最近耗时继续保留最近一次成功、失败或取消请求的总耗时。起始时间和快照字段只存在于 Debug 构建，不进入 Release。
 
 ## 自动回归验证
 
-`Verification/Automated/SceneServiceRegression.tscn` 验证资源失败保留旧场景、并发拒绝、成功提交、离树立即取消、重新入树恢复、挂载期取消、取消后再次切换和结构化失败阶段。测试目标场景只位于 `Verification/Automated/`，不进入框架发布包。
+`Verification/Automated/SceneServiceRegression.tscn` 验证资源失败保留旧场景、并发拒绝、成功提交、离树立即取消、重新入树恢复、挂载期取消、取消后再次切换、结构化失败阶段，以及当前切换耗时增长和结束清理。测试目标场景只位于 `Verification/Automated/`，不进入框架发布包。
 
 ## 常见误用
 

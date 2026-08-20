@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/scheduler/index.md
-translation_source_hash: sha256:02112e5e36c97e3c095995e9920957ef40dd8b9831cdac8c8f04d990b3f59138
+translation_source_hash: sha256:cc61bc1bf2d210564fa632fe30cfdec3344b4435d36bbfdbd6ac768bc94c7392
 ---
 
 # Schedule Delays, Repeating Tasks, and Async Waits
@@ -172,6 +172,10 @@ In a Debug build, open **Runtime / Scheduler** in the GoDo Debugger to inspect:
 - Last dispatch and cumulative cancellation counts.
 - Owner-driven and callback-exception cancellation counts.
 - Remaining time for the next task in each time domain.
+- Automatic label, Owner, state, age, and remaining time for up to 64 active tasks.
+- The latest 16 endings, distinguishing normal completion, explicit cancellation, Owner exit, Token cancellation, framework shutdown, and callback failure.
+
+Labels are generated from the scheduling kind and callback method. Owner paths are retained only as bounded text, so diagnostic history does not keep an exited Node alive. Age uses a monotonic clock for diagnosis and does not affect the selected ScheduleClock's due-time semantics.
 
 Snapshots are generated at low frequency only while the page is visible and are not Release API. If task count keeps growing, inspect ownerless repeating work, undisposed Procedure tokens, and cross-scene waits that are created without cancellation.
 

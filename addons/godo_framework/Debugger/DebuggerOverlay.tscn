@@ -1719,7 +1719,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.42, 0.51, 0.62, 1)
 theme_override_font_sizes/font_size = 10
-text = "主动取消"
+text = "取消总数"
 vertical_alignment = 1
 
 [node name="Value" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content/LifetimeGrid/CanceledCard/Content"]
@@ -1776,6 +1776,48 @@ theme_override_colors/font_color = Color(0.86, 0.91, 0.97, 1)
 theme_override_font_sizes/font_size = 18
 text = "0"
 vertical_alignment = 1
+
+[node name="ActiveTasksStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "活动任务 0"
+
+[node name="ActiveTasks" type="Tree" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content"]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 6
+column_titles_visible = true
+hide_root = true
+
+[node name="RecentResultsStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "最近结束 0 / 保留 16"
+
+[node name="RecentResults" type="Tree" parent="Panel/Margin/VBox/Body/Page/SchedulerDashboard/Content"]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 4
+column_titles_visible = true
+hide_root = true
 
 [node name="AudioDashboard" type="ScrollContainer" parent="Panel/Margin/VBox/Body/Page"]
 visible = false
@@ -2224,7 +2266,7 @@ theme_override_font_sizes/title_button_font_size = 11
 theme_override_styles/panel = SubResource("StyleBoxFlat_content")
 theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
 theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
-columns = 5
+columns = 6
 column_titles_visible = true
 hide_root = true
 
@@ -2338,7 +2380,7 @@ theme_override_font_sizes/font_size = 11
 text = "当前没有已登记的 NodePool。"
 
 [node name="PoolList" type="Tree" parent="Panel/Margin/VBox/Body/Page/PoolDashboard"]
-custom_minimum_size = Vector2(0, 132)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 size_flags_vertical = 3
 focus_mode = 0
@@ -2349,6 +2391,28 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_content")
 theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
 theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
 columns = 4
+column_titles_visible = true
+hide_root = true
+
+[node name="ActiveRentalsStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/PoolDashboard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.57, 0.68, 0.81, 1)
+theme_override_font_sizes/font_size = 11
+text = "活动租借 0 / 上限 64"
+
+[node name="ActiveRentals" type="Tree" parent="Panel/Margin/VBox/Body/Page/PoolDashboard"]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 5
 column_titles_visible = true
 hide_root = true
 
@@ -2798,7 +2862,7 @@ theme_override_font_sizes/title_button_font_size = 11
 theme_override_styles/panel = SubResource("StyleBoxFlat_content")
 theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
 theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
-columns = 5
+columns = 7
 column_titles_visible = true
 hide_root = true
 
@@ -3081,6 +3145,7 @@ text = "全部 0 个事件类型"
 
 [node name="EventList" type="Tree" parent="Panel/Margin/VBox/Body/Page/EventsDashboard"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 112)
 size_flags_vertical = 3
 focus_mode = 0
 theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
@@ -3103,6 +3168,30 @@ theme_override_colors/font_color = Color(0.53, 0.63, 0.74, 1)
 theme_override_font_sizes/font_size = 11
 text = "选择事件查看完整类型名"
 text_overrun_behavior = 3
+
+[node name="ListenerSourcesStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/EventsDashboard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "选择事件查看监听来源"
+
+[node name="ListenerSources" type="Tree" parent="Panel/Margin/VBox/Body/Page/EventsDashboard"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 112)
+size_flags_vertical = 3
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_colors/font_selected_color = Color(0.96, 0.98, 1, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+theme_override_styles/selected = SubResource("StyleBoxFlat_navigation_selected")
+theme_override_styles/hovered = SubResource("StyleBoxFlat_navigation_hover")
+columns = 5
+column_titles_visible = true
+hide_root = true
+select_mode = 1
 
 [node name="ConsoleToolbar" type="HBoxContainer" parent="Panel/Margin/VBox/Body/Page"]
 visible = false

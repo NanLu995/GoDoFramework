@@ -137,6 +137,10 @@ public sealed partial class SceneServiceRegression : Node
             SceneDebugPhase.Loading,
             _service.GetDebugSnapshot().CurrentPhase,
             "异步加载启动后的 Debug 阶段错误");
+        Thread.Sleep(5);
+        Assert(
+            _service.GetDebugSnapshot().CurrentDurationMilliseconds >= 1,
+            "当前场景切换耗时没有从首次请求开始增长");
 #endif
         await AssertThrowsAsync<InvalidOperationException>(
             () => _service.ChangeAsync(TargetKey),
@@ -155,6 +159,7 @@ public sealed partial class SceneServiceRegression : Node
         Assert(instantiatingObserved, "目标场景实例化时没有进入 Instantiating 阶段");
         Assert(committingObserved, "目标场景 Ready 时没有进入 Committing 阶段");
         AssertEqual(SceneDebugPhase.Idle, snapshot.CurrentPhase, "成功后 Debug 阶段没有复位");
+        AssertEqual(0UL, snapshot.CurrentDurationMilliseconds, "成功后当前切换耗时没有清零");
         AssertEqual(SceneDebugResult.Succeeded, snapshot.LastResult, "成功结果分类错误");
         AssertEqual(SceneDebugPhase.Committing, snapshot.LastPhase, "成功记录的最终阶段错误");
         Assert(snapshot.LastDetail is null, "成功切换错误地保留了失败详情");

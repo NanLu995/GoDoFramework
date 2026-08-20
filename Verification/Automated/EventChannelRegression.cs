@@ -35,8 +35,12 @@ public sealed partial class EventChannelRegression : Node
             await RunAsync("重复 Bind 保持生命周期解绑", VerifyDuplicateBindLifecycleAsync);
             Run("嵌套派发延迟提交新增监听", VerifyNestedMutationCommit);
             await RunAsync("Bind 跟随 Node 退出树解绑", VerifyNodeBindingAsync);
+#if DEBUG
+            await RunAsync("Debug 监听来源与解绑", VerifyDebugListenerSourcesAsync);
+            Run("Debug 监听来源上限", VerifyDebugListenerLimit);
+#endif
 
-            GD.Print($"[EventChannelRegression] PASS ({_passed}/12)");
+            GD.Print($"[EventChannelRegression] PASS ({_passed}/{_passed})");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -353,6 +357,142 @@ public sealed partial class EventChannelRegression : Node
         }
     }
 
+#if DEBUG
+    private async Task VerifyDebugListenerSourcesAsync()
+    {
+        void OnHandler(DebugSourceEvent _) { }
+        void OnceHandler(DebugSourceEvent _)
+        {
+            Assert(!ContainsDebugHandler(nameof(OnceHandler)),
+                "Once 回调执行期间仍暴露为 Debug 监听来源");
+        }
+        void ScopeHandler(DebugSourceEvent _) { }
+        void BoundHandler(DebugSourceEvent _) { }
+
+        var owner = new Node { Name = "DebugBoundOwner" };
+        var scope = new EventScope();
+        AddChild(owner);
+        try
+        {
+            EventChannel.On<DebugSourceEvent>(OnHandler, priority: -3);
+            EventChannel.Once<DebugSourceEvent>(OnceHandler);
+            scope.On<DebugSourceEvent>(ScopeHandler, priority: 7);
+            EventChannel.Bind<DebugSourceEvent>(owner, BoundHandler, priority: 2);
+
+            EventChannel.EventDebugListenerEntry[] listeners =
+                EventChannel.GetDebugListenerSnapshot(typeof(DebugSourceEvent));
+            AssertEqual(4, listeners.Length, "Debug 监听来源数量错误");
+
+            EventChannel.EventDebugListenerEntry onEntry = FindDebugListener(
+                listeners,
+                EventChannel.EventDebugRegistrationKind.On);
+            EventChannel.EventDebugListenerEntry onceEntry = FindDebugListener(
+                listeners,
+                EventChannel.EventDebugRegistrationKind.Once);
+            EventChannel.EventDebugListenerEntry scopeEntry = FindDebugListener(
+                listeners,
+                EventChannel.EventDebugRegistrationKind.EventScope);
+            EventChannel.EventDebugListenerEntry bindEntry = FindDebugListener(
+                listeners,
+                EventChannel.EventDebugRegistrationKind.Bind);
+
+            Assert(onEntry.HandlerDisplayName.Contains(nameof(OnHandler), StringComparison.Ordinal) &&
+                onEntry.Priority == -3 &&
+                onEntry.Age >= TimeSpan.Zero &&
+                onEntry.OwnerName == "静态",
+                "On 监听来源缺少方法、优先级、注册时长或静态标记");
+            Assert(onceEntry.HandlerDisplayName.Contains(nameof(OnceHandler), StringComparison.Ordinal),
+                "Once 监听来源方法错误");
+            Assert(scopeEntry.HandlerDisplayName.Contains(nameof(ScopeHandler), StringComparison.Ordinal) &&
+                scopeEntry.Priority == 7,
+                "EventScope 监听来源方法或优先级错误");
+            Assert(bindEntry.HandlerDisplayName.Contains(nameof(BoundHandler), StringComparison.Ordinal) &&
+                bindEntry.OwnerName == owner.Name.ToString() &&
+                bindEntry.OwnerInstanceId == owner.GetInstanceId() &&
+                bindEntry.OwnerPath.Contains(owner.Name.ToString(), StringComparison.Ordinal),
+                "Bind 监听来源缺少 Node 身份或路径");
+
+            EventChannel.Off<DebugSourceEvent>(OnHandler);
+            Assert(!ContainsDebugHandler(nameof(OnHandler)), "Off 后仍残留 Debug 监听来源");
+
+            EventChannel.Emit(new DebugSourceEvent());
+            Assert(!ContainsDebugHandler(nameof(OnceHandler)), "Once 派发后仍残留 Debug 监听来源");
+
+            scope.Dispose();
+            Assert(!ContainsDebugHandler(nameof(ScopeHandler)),
+                "EventScope.Dispose 后仍残留 Debug 监听来源");
+
+            owner.QueueFree();
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            Assert(!ContainsDebugHandler(nameof(BoundHandler)),
+                "Bind Owner 退出树后仍残留 Debug 监听来源");
+        }
+        finally
+        {
+            EventChannel.Off<DebugSourceEvent>(OnHandler);
+            EventChannel.Off<DebugSourceEvent>(OnceHandler);
+            EventChannel.Off<DebugSourceEvent>(ScopeHandler);
+            EventChannel.Off<DebugSourceEvent>(BoundHandler);
+            scope.Dispose();
+            if (IsInstanceValid(owner))
+                owner.QueueFree();
+        }
+    }
+
+    private static void VerifyDebugListenerLimit()
+    {
+        var handlers = new List<Action<DebugLimitEvent>>(65);
+        try
+        {
+            for (int index = 0; index < 65; index++)
+            {
+                Action<DebugLimitEvent> handler = CreateDebugLimitHandler(index);
+                handlers.Add(handler);
+                EventChannel.On(handler);
+            }
+
+            AssertEqual(
+                EventChannel.MaxDebugListenerEntries,
+                EventChannel.GetDebugListenerSnapshot(typeof(DebugLimitEvent)).Length,
+                "Debug 监听来源快照没有遵守上限");
+        }
+        finally
+        {
+            for (int index = 0; index < handlers.Count; index++)
+                EventChannel.Off(handlers[index]);
+        }
+    }
+
+    private static Action<DebugLimitEvent> CreateDebugLimitHandler(int marker) =>
+        _ => GC.KeepAlive(marker);
+
+    private static EventChannel.EventDebugListenerEntry FindDebugListener(
+        EventChannel.EventDebugListenerEntry[] listeners,
+        EventChannel.EventDebugRegistrationKind kind)
+    {
+        for (int index = 0; index < listeners.Length; index++)
+        {
+            if (listeners[index].RegistrationKind == kind)
+                return listeners[index];
+        }
+
+        throw new InvalidOperationException($"Debug 监听来源缺少注册方式 {kind}");
+    }
+
+    private static bool ContainsDebugHandler(string methodName)
+    {
+        EventChannel.EventDebugListenerEntry[] listeners =
+            EventChannel.GetDebugListenerSnapshot(typeof(DebugSourceEvent));
+        for (int index = 0; index < listeners.Length; index++)
+        {
+            if (listeners[index].HandlerDisplayName.Contains(methodName, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
+    }
+#endif
+
     private static void Assert(bool condition, string message)
     {
         if (!condition)
@@ -384,6 +524,10 @@ public sealed partial class EventChannelRegression : Node
     private readonly struct ExceptionEvent : IEventMessage;
     private readonly struct ScopeEvent : IEventMessage;
     private readonly struct BoundEvent : IEventMessage;
+#if DEBUG
+    private readonly struct DebugSourceEvent : IEventMessage;
+    private readonly struct DebugLimitEvent : IEventMessage;
+#endif
 
     private readonly struct NestedMutationEvent : IEventMessage
     {

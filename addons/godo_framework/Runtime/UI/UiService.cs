@@ -28,6 +28,8 @@ public sealed partial class UiService : Node, IUiService
     private readonly Dictionary<UiId, Control> _cachedUiInstances = new();
     private readonly Dictionary<Control, Control> _lastFocusedControls = new();
 #if DEBUG
+    internal const int MaxDebugOpeningEntries = 64;
+    private const int MaxDebugSourceTextLength = 256;
     private readonly Dictionary<Control, ResourceKey> _debugKeys = new();
     private UiId _debugLastOpenId;
     private UiLayer _debugLastOpenLayer;
@@ -163,7 +165,8 @@ public sealed partial class UiService : Node, IUiService
             ResourceHub.LoadAsync<PackedScene>(entry.Key);
         if (onProgress is not null)
             resourceOperation.ProgressChanged += onProgress;
-        var cancellation = new UiOpenCancellation(cancellationToken);
+        UiOpenCancellation cancellation =
+            CreateUiOpenCancellation(cancellationToken, configure);
         AddOpening(id, cancellation);
         int sceneVersion = entry.Layer == UiLayer.Scene ? _sceneVersion : -1;
 
@@ -224,7 +227,8 @@ public sealed partial class UiService : Node, IUiService
         if (onProgress is not null)
             resourceOperation.ProgressChanged += onProgress;
         int sceneVersion = layer == UiLayer.Scene ? _sceneVersion : -1;
-        var cancellation = new UiOpenCancellation(cancellationToken);
+        UiOpenCancellation cancellation =
+            CreateUiOpenCancellation(cancellationToken, configure);
         AddDirectOpening(layer, key, cancellation);
         return CompleteDirectOpenAsync(
             resourceOperation,
@@ -302,7 +306,8 @@ public sealed partial class UiService : Node, IUiService
         CancellationToken cancellationToken)
         where TView : Control
     {
-        var cancellation = new UiOpenCancellation(cancellationToken);
+        UiOpenCancellation cancellation =
+            CreateUiOpenCancellation(cancellationToken, configure);
         AddOpening(id, cancellation);
         try
         {
@@ -580,12 +585,27 @@ public sealed partial class UiService : Node, IUiService
         public UiDebugOpenPhase DebugPhase { get; private set; } = UiDebugOpenPhase.Loading;
         public UiDebugOpenCancellationOrigin DebugCancellationOrigin { get; private set; }
         public ulong DebugStartedTicks { get; } = Time.GetTicksMsec();
+        public string DebugSourceDisplayName { get; }
+        public string DebugSourceFullName { get; }
+        public bool DebugIsCancellationRequested => Volatile.Read(ref _requested) != 0;
 #endif
 
+#if DEBUG
+        public UiOpenCancellation(
+            CancellationToken callerToken,
+            string debugSourceDisplayName,
+            string debugSourceFullName)
+        {
+            _callerToken = callerToken;
+            DebugSourceDisplayName = debugSourceDisplayName;
+            DebugSourceFullName = debugSourceFullName;
+        }
+#else
         public UiOpenCancellation(CancellationToken callerToken)
         {
             _callerToken = callerToken;
         }
+#endif
 
         public Task Completion => _completion.Task;
 
@@ -649,6 +669,48 @@ public sealed partial class UiService : Node, IUiService
         }
 #endif
     }
+
+    private static UiOpenCancellation CreateUiOpenCancellation<TView>(
+        CancellationToken cancellationToken,
+        Action<TView>? configure)
+        where TView : Control
+    {
+#if DEBUG
+        (string displayName, string fullName) = GetDebugOpeningSource(configure);
+        return new UiOpenCancellation(cancellationToken, displayName, fullName);
+#else
+        return new UiOpenCancellation(cancellationToken);
+#endif
+    }
+
+#if DEBUG
+    private static (string DisplayName, string FullName) GetDebugOpeningSource<TView>(
+        Action<TView>? configure)
+        where TView : Control
+    {
+        if (configure is null)
+            return ("未知", "未提供 configure 委托");
+
+        Type? sourceType = configure.Target?.GetType() ?? configure.Method.DeclaringType;
+        string typeName = sourceType?.Name ?? "<未知类型>";
+        string fullTypeName = sourceType?.FullName ?? typeName;
+        if (configure.Target is null)
+        {
+            return (
+                "静态",
+                TruncateDebugSource($"静态 · {fullTypeName}.{configure.Method.Name}"));
+        }
+
+        return (
+            TruncateDebugSource(typeName),
+            TruncateDebugSource(fullTypeName));
+    }
+
+    private static string TruncateDebugSource(string value) =>
+        value.Length <= MaxDebugSourceTextLength
+            ? value
+            : value[..MaxDebugSourceTextLength];
+#endif
 
     private static void VerifyLayer(UiLayer layer)
     {
@@ -1847,49 +1909,62 @@ public sealed partial class UiService : Node, IUiService
                 isCached: true);
         }
 
-        var openings = new List<UiDebugOpeningEntry>(_openingCancellations.Count);
+        var openings = new List<UiDebugOpeningEntry>(
+            Math.Min(MaxDebugOpeningEntries, _openingCancellations.Count));
+        int totalOpeningRequestCount = 0;
+        ulong currentTicks = Time.GetTicksMsec();
         foreach (KeyValuePair<UiId, List<UiOpenCancellation>> pair in _openingCancellations)
         {
             UiRuntimeConfigEntry configEntry = _uiConfigEntries[pair.Key];
-            openings.Add(new UiDebugOpeningEntry(
-                pair.Key,
-                configEntry.Layer,
-                configEntry.Key,
-                pair.Value.Count,
-                GetDebugOpeningPhase(pair.Value)));
+            for (int index = 0; index < pair.Value.Count; index++)
+            {
+                UiOpenCancellation cancellation = pair.Value[index];
+                if (cancellation.DebugIsCancellationRequested)
+                    continue;
+
+                totalOpeningRequestCount++;
+                if (openings.Count >= MaxDebugOpeningEntries)
+                    continue;
+                openings.Add(new UiDebugOpeningEntry(
+                    pair.Key,
+                    configEntry.Layer,
+                    configEntry.Key,
+                    1,
+                    cancellation.DebugPhase,
+                    cancellation.DebugSourceDisplayName,
+                    cancellation.DebugSourceFullName,
+                    currentTicks - cancellation.DebugStartedTicks));
+            }
         }
 
-        var directOpeningCounts =
-            new Dictionary<
-                (UiLayer Layer, ResourceKey Key),
-                (int Count, UiDebugOpenPhase Phase)>();
         foreach (KeyValuePair<UiLayer, List<DirectUiOpenRequest>> pair in _directOpeningRequests)
         {
             for (int index = 0; index < pair.Value.Count; index++)
             {
-                var openingKey = (pair.Key, pair.Value[index].Key);
-                directOpeningCounts.TryGetValue(openingKey, out var state);
-                UiDebugOpenPhase phase = pair.Value[index].Cancellation.DebugPhase;
-                directOpeningCounts[openingKey] = (
-                    state.Count + 1,
-                    phase > state.Phase ? phase : state.Phase);
+                DirectUiOpenRequest request = pair.Value[index];
+                UiOpenCancellation cancellation = request.Cancellation;
+                if (cancellation.DebugIsCancellationRequested)
+                    continue;
+
+                totalOpeningRequestCount++;
+                if (openings.Count >= MaxDebugOpeningEntries)
+                    continue;
+                openings.Add(new UiDebugOpeningEntry(
+                    default,
+                    pair.Key,
+                    request.Key,
+                    1,
+                    cancellation.DebugPhase,
+                    cancellation.DebugSourceDisplayName,
+                    cancellation.DebugSourceFullName,
+                    currentTicks - cancellation.DebugStartedTicks));
             }
-        }
-        foreach (KeyValuePair<
-                     (UiLayer Layer, ResourceKey Key),
-                     (int Count, UiDebugOpenPhase Phase)> pair in directOpeningCounts)
-        {
-            openings.Add(new UiDebugOpeningEntry(
-                default,
-                pair.Key.Layer,
-                pair.Key.Key,
-                pair.Value.Count,
-                pair.Value.Phase));
         }
 
         return new UiDebugSnapshot(
             entries,
             openings.ToArray(),
+            totalOpeningRequestCount,
             _debugLastOpenId,
             _debugLastOpenLayer,
             _debugLastOpenKey,
@@ -1897,19 +1972,6 @@ public sealed partial class UiService : Node, IUiService
             _debugLastOpenResult,
             _debugLastOpenDetail,
             _debugLastOpenDurationMilliseconds);
-    }
-
-    private static UiDebugOpenPhase GetDebugOpeningPhase(
-        List<UiOpenCancellation> cancellations)
-    {
-        UiDebugOpenPhase phase = UiDebugOpenPhase.Loading;
-        for (int index = 0; index < cancellations.Count; index++)
-        {
-            if (cancellations[index].DebugPhase > phase)
-                phase = cancellations[index].DebugPhase;
-        }
-
-        return phase;
     }
 
     private void RecordDebugOpenSuccess(

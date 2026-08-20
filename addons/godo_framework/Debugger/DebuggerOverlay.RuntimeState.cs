@@ -47,14 +47,15 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _resourcesHistoryStatus = GetResourcesNode<Label>("HistoryStatus");
         _resourcesHistoryTree = GetResourcesNode<Tree>("HistoryList");
 
-        ConfigureResourceTree(_resourcesActiveTree, "资源 Key");
+        ConfigureResourceTree(_resourcesActiveTree, "资源 Key", 6);
         _resourcesActiveTree.SetColumnTitle(0, "资源 Key");
         _resourcesActiveTree.SetColumnTitle(1, "类型");
         _resourcesActiveTree.SetColumnTitle(2, "状态");
         _resourcesActiveTree.SetColumnTitle(3, "进度");
         _resourcesActiveTree.SetColumnTitle(4, "请求");
+        _resourcesActiveTree.SetColumnTitle(5, "存活");
 
-        ConfigureResourceTree(_resourcesHistoryTree, "资源 Key");
+        ConfigureResourceTree(_resourcesHistoryTree, "资源 Key", 5);
         _resourcesHistoryTree.SetColumnTitle(0, "资源 Key");
         _resourcesHistoryTree.SetColumnTitle(1, "类型");
         _resourcesHistoryTree.SetColumnTitle(2, "方式");
@@ -62,12 +63,12 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _resourcesHistoryTree.SetColumnTitle(4, "请求");
     }
 
-    private static void ConfigureResourceTree(Tree tree, string firstColumnTitle)
+    private static void ConfigureResourceTree(Tree tree, string firstColumnTitle, int columnCount)
     {
         tree.SetColumnTitle(0, firstColumnTitle);
         tree.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
         tree.SetColumnExpand(0, true);
-        for (int column = 1; column < 5; column++)
+        for (int column = 1; column < columnCount; column++)
         {
             tree.SetColumnTitleAlignment(column, HorizontalAlignment.Center);
             tree.SetColumnExpand(column, false);
@@ -76,6 +77,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         tree.SetColumnCustomMinimumWidth(2, 64);
         tree.SetColumnCustomMinimumWidth(3, 64);
         tree.SetColumnCustomMinimumWidth(4, 54);
+        if (columnCount > 5)
+            tree.SetColumnCustomMinimumWidth(5, 64);
     }
 
     private T GetResourcesNode<T>(string path) where T : Node
@@ -93,6 +96,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _poolActiveValue = GetPoolNode<Label>("Summary/ActiveCard/Content/Value");
         _poolStatus = GetPoolNode<Label>("Status");
         _poolTree = GetPoolNode<Tree>("PoolList");
+        _poolActiveRentalsStatus = GetPoolNode<Label>("ActiveRentalsStatus");
+        _poolActiveRentalsTree = GetPoolNode<Tree>("ActiveRentals");
         _poolTree.SetColumnTitle(0, "节点类型");
         _poolTree.SetColumnTitle(1, "空闲");
         _poolTree.SetColumnTitle(2, "活动");
@@ -104,6 +109,21 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             _poolTree.SetColumnExpand(column, false);
             _poolTree.SetColumnCustomMinimumWidth(column, 68);
         }
+
+        _poolActiveRentalsTree.SetColumnTitle(0, "Pool");
+        _poolActiveRentalsTree.SetColumnTitle(1, "节点");
+        _poolActiveRentalsTree.SetColumnTitle(2, "当前父节点");
+        _poolActiveRentalsTree.SetColumnTitle(3, "状态");
+        _poolActiveRentalsTree.SetColumnTitle(4, "租借");
+        _poolActiveRentalsTree.SetColumnExpand(0, true);
+        _poolActiveRentalsTree.SetColumnExpand(1, true);
+        _poolActiveRentalsTree.SetColumnExpand(2, true);
+        _poolActiveRentalsTree.SetColumnExpand(3, false);
+        _poolActiveRentalsTree.SetColumnExpand(4, false);
+        _poolActiveRentalsTree.SetColumnCustomMinimumWidth(3, 72);
+        _poolActiveRentalsTree.SetColumnCustomMinimumWidth(4, 72);
+        for (int column = 3; column < 5; column++)
+            _poolActiveRentalsTree.SetColumnTitleAlignment(column, HorizontalAlignment.Center);
     }
 
     private T GetPoolNode<T>(string path) where T : Node
@@ -184,19 +204,26 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _uiStackTree.SetColumnTitle(2, "UI / 节点");
         _uiStackTree.SetColumnTitle(3, "资源 Key");
         _uiStackTree.SetColumnTitle(4, "状态");
+        _uiStackTree.SetColumnTitle(5, "来源");
+        _uiStackTree.SetColumnTitle(6, "存活");
         _uiStackTree.SetColumnTitleAlignment(0, HorizontalAlignment.Center);
         _uiStackTree.SetColumnTitleAlignment(1, HorizontalAlignment.Center);
         _uiStackTree.SetColumnTitleAlignment(2, HorizontalAlignment.Left);
         _uiStackTree.SetColumnTitleAlignment(3, HorizontalAlignment.Left);
         _uiStackTree.SetColumnTitleAlignment(4, HorizontalAlignment.Center);
+        _uiStackTree.SetColumnTitleAlignment(5, HorizontalAlignment.Left);
+        _uiStackTree.SetColumnTitleAlignment(6, HorizontalAlignment.Right);
         _uiStackTree.SetColumnExpand(0, false);
         _uiStackTree.SetColumnExpand(1, false);
         _uiStackTree.SetColumnExpand(2, true);
         _uiStackTree.SetColumnExpand(3, true);
         _uiStackTree.SetColumnExpand(4, false);
+        _uiStackTree.SetColumnExpand(5, true);
+        _uiStackTree.SetColumnExpand(6, false);
         _uiStackTree.SetColumnCustomMinimumWidth(0, 58);
         _uiStackTree.SetColumnCustomMinimumWidth(1, 54);
         _uiStackTree.SetColumnCustomMinimumWidth(4, 88);
+        _uiStackTree.SetColumnCustomMinimumWidth(6, 72);
     }
 
     private T GetUiNode<T>(string path) where T : Node
@@ -289,6 +316,9 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _sceneStateValue.Text = GetScenePhaseText(snapshot.CurrentPhase);
         AddSceneDetail(root, "正在加载", snapshot.CurrentChangeKey?.Value ?? "—");
         AddSceneDetail(root, "当前阶段", GetScenePhaseText(snapshot.CurrentPhase));
+        AddSceneDetail(root, "当前耗时", snapshot.CurrentChangeKey.HasValue
+            ? FormatAgeMilliseconds(snapshot.CurrentDurationMilliseconds)
+            : "—");
         AddSceneDetail(root, "最近切换", snapshot.LastChangeKey?.Value ?? "—");
         AddSceneDetail(root, "最近阶段", snapshot.LastChangeKey.HasValue
             ? GetScenePhaseText(snapshot.LastPhase)
@@ -393,8 +423,9 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             item.SetText(3,
                 $"{Mathf.RoundToInt(entry.Progress * 100f).ToString(CultureInfo.InvariantCulture)}%");
             item.SetText(4, entry.MergedRequestCount.ToString(CultureInfo.InvariantCulture));
+            item.SetText(5, FormatAgeMilliseconds(entry.AgeMilliseconds));
             item.SetTooltipText(0, entry.Key.Value);
-            for (int column = 1; column < 5; column++)
+            for (int column = 1; column < 6; column++)
                 item.SetTextAlignment(column, HorizontalAlignment.Center);
         }
 
@@ -427,11 +458,14 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private void RefreshPoolPage()
     {
         NodePoolDebugEntry[] entries = NodePoolDebugRegistry.GetSnapshot();
+        NodePoolDebugActiveEntry[] activeEntries = NodePoolDebugRegistry.GetActiveSnapshot();
         if (!IsInstanceValid(_poolRegisteredValue) ||
             !IsInstanceValid(_poolIdleValue) ||
             !IsInstanceValid(_poolActiveValue) ||
             !IsInstanceValid(_poolStatus) ||
-            !IsInstanceValid(_poolTree))
+            !IsInstanceValid(_poolTree) ||
+            !IsInstanceValid(_poolActiveRentalsStatus) ||
+            !IsInstanceValid(_poolActiveRentalsTree))
             return;
 
         int idleCount = 0;
@@ -459,6 +493,47 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _poolStatus.Text = entries.Length == 0
             ? "当前没有已登记的 NodePool。"
             : "仅显示仍存活的 Debug 注册；Dispose 后立即移除。";
+
+        _poolActiveRentalsStatus.Text = activeCount <= NodePoolDebugRegistry.MaxActiveEntries
+            ? $"活动租借 {activeEntries.Length} / 上限 {NodePoolDebugRegistry.MaxActiveEntries}"
+            : $"活动租借 {activeCount}，显示前 {activeEntries.Length}";
+        _poolActiveRentalsTree.Clear();
+        TreeItem activeRoot = _poolActiveRentalsTree.CreateItem();
+        for (int index = 0; index < activeEntries.Length; index++)
+        {
+            NodePoolDebugActiveEntry entry = activeEntries[index];
+            TreeItem item = _poolActiveRentalsTree.CreateItem(activeRoot);
+            item.SetText(0, entry.NodeTypeName);
+            item.SetText(1, $"{entry.NodeName} #{entry.NodeInstanceId}");
+            item.SetText(2, entry.ParentInstanceId == 0
+                ? "—"
+                : $"{entry.ParentName} #{entry.ParentInstanceId}");
+            item.SetText(3, FormatPoolActiveStatus(entry.Status));
+            item.SetText(4, FormatPoolAge(entry.Age));
+            item.SetTooltipText(0, entry.ScenePath);
+            item.SetTooltipText(1, $"{entry.NodeName} #{entry.NodeInstanceId}");
+            item.SetTooltipText(2,
+                string.IsNullOrEmpty(entry.ParentPath) ? "无当前父节点" : entry.ParentPath);
+            item.SetTextAlignment(3, HorizontalAlignment.Center);
+            item.SetTextAlignment(4, HorizontalAlignment.Center);
+        }
+    }
+
+    private static string FormatPoolActiveStatus(NodePoolDebugActiveStatus status) => status switch
+    {
+        NodePoolDebugActiveStatus.Active => "活动",
+        NodePoolDebugActiveStatus.Detached => "已脱离",
+        NodePoolDebugActiveStatus.QueuedForDeletion => "等待删除",
+        NodePoolDebugActiveStatus.Invalid => "已失效",
+        _ => status.ToString(),
+    };
+
+    private static string FormatPoolAge(TimeSpan age)
+    {
+        if (age.TotalSeconds >= 1d)
+            return $"{age.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture)} s";
+
+        return $"{Math.Max(0d, Math.Round(age.TotalMilliseconds)).ToString("0", CultureInfo.InvariantCulture)} ms";
     }
 
     private void RefreshDataTablePage()
@@ -486,7 +561,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
 
         int snapshotVersion = dataTableService.DebugVersion;
         if (_dataTableSnapshotVersion == snapshotVersion)
+        {
+            RefreshDataTableLoadingAges();
             return;
+        }
 
         DataTableDebugSnapshot snapshot = dataTableService.GetDebugSnapshot();
         _dataTableLoadedValue.Text =
@@ -506,6 +584,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
                 : $"当前数据集 {snapshot.DataSets.Length}，显示前 {displayedDataSetCount}";
         _dataTableDataSetTree.Clear();
         TreeItem dataSetRoot = _dataTableDataSetTree.CreateItem();
+        ulong snapshotTicks = Time.GetTicksMsec();
         int remainingDisplayedTables = MaxDisplayedDataTableTables;
         for (int index = 0; index < displayedDataSetCount; index++)
         {
@@ -522,7 +601,19 @@ public sealed partial class DebuggerOverlay : CanvasLayer
                 entry.State == DataTableDebugState.Loading && entry.LastTableId is not null
                     ? $"{entry.RuntimeDirectory} · 最近 {entry.LastTableId}"
                     : entry.RuntimeDirectory;
-            dataSetItem.SetText(4, dataSetDetail);
+            if (entry.State == DataTableDebugState.Loading)
+            {
+                dataSetItem.SetMetadata(0, (long)entry.AgeMilliseconds);
+                dataSetItem.SetMetadata(1, (long)snapshotTicks);
+                dataSetItem.SetMetadata(4, dataSetDetail);
+                dataSetItem.SetText(
+                    4,
+                    $"{dataSetDetail} · 存活 {FormatAgeMilliseconds(entry.AgeMilliseconds)}");
+            }
+            else
+            {
+                dataSetItem.SetText(4, dataSetDetail);
+            }
             dataSetItem.SetCustomColor(1, GetDataTableStateColor(entry.State));
             dataSetItem.SetTooltipText(0, entry.DataSetId);
             dataSetItem.SetTooltipText(4, entry.RuntimeDirectory);
@@ -577,6 +668,34 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             item.SetTextAlignment(2, HorizontalAlignment.Center);
         }
         _dataTableSnapshotVersion = snapshotVersion;
+    }
+
+    private void RefreshDataTableLoadingAges()
+    {
+        TreeItem? item = _dataTableDataSetTree!.GetRoot()?.GetFirstChild();
+        if (item is null)
+            return;
+
+        ulong currentTicks = Time.GetTicksMsec();
+        while (item is not null)
+        {
+            Variant ageMetadata = item.GetMetadata(0);
+            Variant ticksMetadata = item.GetMetadata(1);
+            Variant detailMetadata = item.GetMetadata(4);
+            if (ageMetadata.VariantType == Variant.Type.Int &&
+                ticksMetadata.VariantType == Variant.Type.Int &&
+                detailMetadata.VariantType == Variant.Type.String)
+            {
+                ulong baselineAge = (ulong)Math.Max(0L, ageMetadata.AsInt64());
+                ulong baselineTicks = (ulong)Math.Max(0L, ticksMetadata.AsInt64());
+                ulong age = baselineAge + currentTicks - baselineTicks;
+                item.SetText(
+                    4,
+                    $"{detailMetadata.AsString()} · 存活 {FormatAgeMilliseconds(age)}");
+            }
+
+            item = item.GetNext();
+        }
     }
 
     private void SetDataTableUnavailable(string state, string detail)
@@ -653,10 +772,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         int overlayCount = 0;
         int cachedCount = 0;
         int invalidCount = 0;
-        int openingRequestCount = 0;
+        int openingRequestCount = snapshot.TotalOpeningRequestCount;
         UiDebugEntry? current = null;
-        for (int index = 0; index < snapshot.Openings.Length; index++)
-            openingRequestCount += snapshot.Openings[index].RequestCount;
 
         for (int index = 0; index < snapshot.Entries.Length; index++)
         {
@@ -702,7 +819,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         int displayedEntryCount = Math.Min(
             snapshot.Entries.Length,
             MaxDisplayedUiEntries - displayedOpeningCount);
-        int totalRowCount = snapshot.Openings.Length + snapshot.Entries.Length;
+        int totalRowCount = snapshot.TotalOpeningRequestCount + snapshot.Entries.Length;
         int displayedRowCount = displayedOpeningCount + displayedEntryCount;
         string displayDetail = totalRowCount <= MaxDisplayedUiEntries
             ? string.Empty
@@ -726,11 +843,9 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             item.SetText(1, "—");
             item.SetText(2, opening.Id.IsValid ? opening.Id.Value : "Direct");
             item.SetText(3, opening.Key.Value);
-            item.SetText(
-                4,
-                opening.RequestCount == 1
-                    ? GetUiOpeningPhaseText(opening.Phase)
-                    : $"{GetUiOpeningPhaseText(opening.Phase)} ×{opening.RequestCount.ToString(CultureInfo.InvariantCulture)}");
+            item.SetText(4, GetUiOpeningPhaseText(opening.Phase));
+            item.SetText(5, opening.SourceDisplayName);
+            item.SetText(6, FormatAgeMilliseconds(opening.AgeMilliseconds));
             item.SetTooltipText(
                 2,
                 opening.Id.IsValid
@@ -738,9 +853,11 @@ public sealed partial class DebuggerOverlay : CanvasLayer
                     : "通过 ResourceKey 直接打开");
             item.SetTooltipText(3, opening.Key.Value);
             item.SetTooltipText(4, $"异步打开请求尚未完成：{GetUiOpeningPhaseText(opening.Phase)}");
+            item.SetTooltipText(5, opening.SourceFullName);
             item.SetTextAlignment(0, HorizontalAlignment.Center);
             item.SetTextAlignment(1, HorizontalAlignment.Center);
             item.SetTextAlignment(4, HorizontalAlignment.Center);
+            item.SetTextAlignment(6, HorizontalAlignment.Right);
             item.SetCustomColor(4, new Color(0.96f, 0.75f, 0.32f));
         }
 
@@ -758,6 +875,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
                     : entry.NodeName);
             item.SetText(3, entry.Key.Value);
             item.SetText(4, GetUiStateText(entry));
+            item.SetText(5, "—");
+            item.SetText(6, "—");
             item.SetTooltipText(2, entry.NodeName);
             item.SetTooltipText(3, entry.Key.Value);
             item.SetTooltipText(
@@ -790,6 +909,10 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             item.SetText(2, target);
             item.SetText(3, snapshot.LastKey.Value);
             item.SetText(4, result);
+            item.SetText(5, "—");
+            item.SetText(
+                6,
+                $"{snapshot.LastDurationMilliseconds.ToString(CultureInfo.InvariantCulture)} ms");
             item.SetTooltipText(4, detail);
             item.SetTextAlignment(0, HorizontalAlignment.Center);
             item.SetTextAlignment(1, HorizontalAlignment.Center);
@@ -842,6 +965,11 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _ => "加载中",
     };
 
+    private static string FormatAgeMilliseconds(ulong ageMilliseconds) =>
+        ageMilliseconds < 1000
+            ? $"{ageMilliseconds.ToString(CultureInfo.InvariantCulture)} ms"
+            : $"{(ageMilliseconds / 1000d).ToString("0.0", CultureInfo.InvariantCulture)} s";
+
     private static string GetUiOpenResultText(UiDebugOpenResult result) => result switch
     {
         UiDebugOpenResult.Succeeded => "成功",
@@ -887,6 +1015,9 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         TreeItem root = _procedureDetailsTree.CreateItem();
         AddProcedureDetail(root, "上一个流程", snapshot.PreviousName ?? "—");
         AddProcedureDetail(root, "切换目标", snapshot.TargetName ?? "—");
+        AddProcedureDetail(root, "当前耗时", snapshot.Phase == ProcedureDebugPhase.Idle
+            ? "—"
+            : FormatAgeMilliseconds(snapshot.CurrentDurationMilliseconds));
         AddProcedureDetail(root, "激活 Context", snapshot.HasActiveContext ? "有效" : "无");
         AddProcedureDetail(root, "待清理项", snapshot.CleanupCount.ToString());
         AddProcedureDetail(root, "最近成功", snapshot.LastSucceededName ?? "—");
@@ -932,14 +1063,12 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         SceneDebugSnapshot scene = sceneService.GetDebugSnapshot();
         UiDebugSnapshot ui = uiService.GetDebugSnapshot();
         int openUiCount = 0;
-        int openingUiCount = 0;
+        int openingUiCount = ui.TotalOpeningRequestCount;
         for (int index = 0; index < ui.Entries.Length; index++)
         {
             if (!ui.Entries[index].IsCached)
                 openUiCount++;
         }
-        for (int index = 0; index < ui.Openings.Length; index++)
-            openingUiCount += ui.Openings[index].RequestCount;
 
         bool isChanging = procedureContract.IsChanging ||
             sceneContract.IsChanging ||

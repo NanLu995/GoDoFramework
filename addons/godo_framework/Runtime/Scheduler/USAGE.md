@@ -101,9 +101,13 @@ Debug 构建中的 `SchedulerService` 提供 internal 只读快照，包含：
 - 三种时钟与 Process/Physics 的六组任务分布；
 - 最近一次 Process/Physics 派发数量；
 - 累计取消、其中 Owner 自动取消与 callback 异常取消数量；
-- 下一任务在自身时钟中的剩余时间。
+- 下一任务在自身时钟中的剩余时间；
+- 最多 64 条活动任务明细，包括自动生成的任务标签、Owner 名称/路径/实例 ID、时钟、阶段、等待/暂停/执行状态、是否重复、单调时钟存活时间和剩余时间；
+- 最近 16 条结束记录，区分正常完成、主动取消、Owner 退出、Token 取消、框架关闭和 callback 异常。
 
-快照只在被查询时 O(n) 遍历活动条目，不在每帧维护分组统计。类型和入口都位于 `#if DEBUG`，Release 不包含。GoDo Debugger 的 `运行时 / Scheduler` 页面每 0.25 秒按需读取一次当前快照，折叠或查看其他页面时不查询。
+任务标签由调度类型与 callback 方法自动生成，`DelayAsync` 使用固定标签，不增加 public API。Owner 身份在任务创建时复制为最多 256 字符的诊断文本，快照和结束历史不会额外持有 Node；存活时间来自单调时钟，只用于观察，不参与到期计算。
+
+快照只在被查询时 O(n) 遍历活动条目，不在每帧维护分组统计。类型、字符串和历史入口都位于 `#if DEBUG`，Release 不包含。GoDo Debugger 的 `运行时 / Scheduler` 页面每 0.25 秒按需读取一次当前快照，折叠或查看其他页面时不查询。
 
 ## 当前验证
 
@@ -119,6 +123,7 @@ Debug 构建中的 `SchedulerService` 提供 internal 只读快照，包含：
 - 取消、自取消、暂停、恢复和剩余时间；
 - callback 异常隔离、派发上限和失效队列压缩；
 - Debug-only 快照的状态分布、最近派发与取消原因；
+- 活动任务自动标签、Owner 身份、存活时间、暂停状态和最近结束原因；
 - DelayAsync 正常完成、主线程 continuation、后台 Token 取消和预取消；
 - Owner 入树校验、同 Owner 绑定复用、任务结束解绑与退出树自动取消；
 - Shutdown 取消未完成等待并拒绝新任务；

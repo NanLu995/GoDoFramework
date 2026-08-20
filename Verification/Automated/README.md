@@ -2,6 +2,8 @@
 
 `run_all.py` 会先执行 `dotnet build`，再依次启动全部独立 Godot Headless 回归场景。每个场景使用独立进程和退出码，单项失败后仍继续执行剩余场景，最后返回整体结果。
 
+编辑器扩展回归会在系统临时目录创建隔离项目，只复制验证所需的框架、工程配置、回归脚本和 Fixture，不复制工作区 `.godot/` 与用户编辑器布局。隔离项目会单独执行 Debug 构建，并仅在临时 `project.godot` 中将 Phantom Camera 更新器设为关闭，避免回归依赖网络；插件本身仍保持启用。无论通过或失败，临时项目都会自动清理，工作区配置不会被修改。
+
 `Verification/Package/verify_core_package.py` 则在系统临时目录创建干净的 Godot C# 项目，只复制 `addons/godo_framework/`，验证核心包不依赖 GUIDE、Phantom Camera 或任何 `godo_*` 适配包：
 
 ```powershell
@@ -12,6 +14,12 @@ python Verification/Package/verify_core_package.py --godot $env:GODOT_PATH
 
 ```powershell
 python Verification/Automated/run_all.py --godot $env:GODOT_PATH
+```
+
+隔离项目复制规则可独立验证：
+
+```powershell
+python Verification/Automated/test_run_all.py
 ```
 
 也可以设置环境变量后省略参数：
