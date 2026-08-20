@@ -30,8 +30,8 @@ func _initialize() -> void:
 			_fail("UiConfig 资源发现返回了非 Resource 文件")
 			return
 	if not controller._should_skip_ui_config_directory(
-		"res://Templates",
-		"GoDoTemplate"):
+		"res://Verification/Automated/Fixtures",
+		"NestedGodotProject"):
 		_fail("UiConfig 资源发现没有识别嵌套 Godot 项目边界")
 		return
 	if controller._should_skip_ui_config_directory(
@@ -40,8 +40,8 @@ func _initialize() -> void:
 		_fail("UiConfig 资源发现错误跳过了普通资源目录")
 		return
 	var root_configs: PackedStringArray = controller._find_ui_config_paths("res://")
-	if root_configs.has("res://Templates/GoDoTemplate/Ui/UiConfig.tres"):
-		_fail("UiConfig 资源发现进入了嵌套 GoDoTemplate 项目")
+	if root_configs.has("res://Verification/Automated/Fixtures/NestedGodotProject/UiConfig.tres"):
+		_fail("UiConfig 资源发现进入了嵌套 Godot 项目")
 		return
 	var prepared_paths: PackedStringArray = controller._prepare_config_paths(
 		PackedStringArray([

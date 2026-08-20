@@ -7,8 +7,8 @@ const CONTROLLER_SCRIPT := preload(
 func _initialize() -> void:
 	var controller: RefCounted = CONTROLLER_SCRIPT.new()
 	if not controller._should_skip_resource_manifest_directory(
-		"res://Templates",
-		"GoDoTemplate"):
+		"res://Verification/Automated/Fixtures",
+		"NestedGodotProject"):
 		_fail("资源清单发现没有识别嵌套 Godot 项目边界")
 		return
 	if controller._should_skip_resource_manifest_directory(
@@ -18,8 +18,8 @@ func _initialize() -> void:
 		return
 	var root_manifests: PackedStringArray = controller._find_resource_manifest_paths("res://")
 	for manifest_path in root_manifests:
-		if manifest_path.begins_with("res://Templates/GoDoTemplate/"):
-			_fail("资源清单发现进入了嵌套 GoDoTemplate 项目")
+		if manifest_path.begins_with("res://Verification/Automated/Fixtures/NestedGodotProject/"):
+			_fail("资源清单发现进入了嵌套 Godot 项目")
 			return
 
 	print("[ResourceManifestEditorControllerRegression] PASS")

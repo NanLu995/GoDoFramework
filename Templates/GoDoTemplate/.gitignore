@@ -1,9 +1,0 @@
-# Godot 4+ generated files
-.godot/
-
-# Build outputs
-bin/
-obj/
-
-# Optional third-party plugins are installed by the project owner.
-/addons/guideCS/

@@ -163,7 +163,7 @@ enabled = true
 - C# / .NET 8
 - 框架根命名空间为 GoDo
 - 框架源码位于 addons/godo_framework
-- Templates 和 Demo3D 是框架 public API 的使用者
+- Demo3D 是框架 public API 的使用者
 
 你的职责：
 1. 根据明确提供的目标和文件进行源码分析。

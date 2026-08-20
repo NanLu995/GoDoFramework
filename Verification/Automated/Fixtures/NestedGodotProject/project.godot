@@ -1,0 +1,6 @@
+; Minimal nested-project fixture used by editor directory-scan regressions.
+config_version=5
+
+[application]
+
+config/name="NestedGodotProjectFixture"

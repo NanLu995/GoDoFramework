@@ -1,5 +1,0 @@
-[gd_scene format=3]
-
-[node name="MainMenuScene" type="Node"]
-
-[node name="ExampleContentRoot" type="Node" parent="."]
