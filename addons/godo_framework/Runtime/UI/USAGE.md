@@ -26,7 +26,7 @@ Node2D/Node3D 世界空间 UI 依赖业务坐标和摄像机，由业务场景�
 
 ## 配置与打开
 
-在 Godot Inspector 中创建 `UiConfig` Resource；也可通过 GoDo 菜单的 UI 配置管理弹窗创建、定位和校验当前项目中的配置。每个 `UiConfigEntry` 包含：
+在 Godot Inspector 中创建 `UiConfig` Resource；也可在 GoDo Framework 统一窗口的 UI 配置主页刷新、创建、选择和校验项目配置，再在管理弹窗中定位当前配置并维护条目。管理表格将 `Layer`、`Instance Mode`、`Reuse` 和 `Status` 四列居中显示，`Reuse` 使用 `True / False`，Layer 使用 `Scene / View / Modal / Overlay`。新增、编辑和删除都会复制 `Entries` 后保存，并从磁盘重新加载核对内容；保存结果不一致时不会显示仅存在于内存的条目。创建或保存窗口取消后主页列表会主动刷新；文件选择、校验与失败提示作为当前窗口的模态上层显示，关闭后仍保留原管理窗口。每个 `UiConfigEntry` 包含：
 
 - `Id`：业务使用的区分大小写语义标识；
 - `Locator`：UI PackedScene 的 `res://` 路径或 `uid://` 定位；
@@ -153,7 +153,7 @@ View 与 Modal 必须按顶部顺序逐个关闭。`CloseAll` 和 `CloseTo` 会�
 
 - `dotnet build GoDoFramework.csproj -c Debug --no-restore`：验证 C# API、Godot 绑定和场景资源引用；
 - `Verification/Automated/UiServiceRegression.tscn`：验证四层打开/关闭、UiConfig、查询与批量关闭、`CloseTo`、异步取消、场景清理、焦点、复用、失败回滚，以及 Debug 打开请求的实例/静态/未知来源、独立行、存活时间、即时移除和 64 条上限；
-- `Verification/Automated/UiConfigEditorControllerRegression.gd`：验证编辑器配置发现、单配置直接显示与多配置管理；
+- `Verification/Automated/UiConfigEditorControllerRegression.gd`：验证编辑器配置发现、校验，以及条目新增、编辑、删除后的磁盘重载持久化；
 - `Verification/Automated/DebuggerOverlayRegression.tscn`：验证 UI 实例、缓存和打开中请求的来源、存活时间及只读诊断；
 - `Verification/Performance/UiFirstOpenBenchmark.tscn`：记录首开、首次入树、首帧和缓存重开成本，不把单机测量值承诺为跨平台预算；
 - Modal 指针阻挡、Overlay 遮罩、键盘/手柄返回和焦点切换仍需在 Godot 中结合业务场景人工验证。

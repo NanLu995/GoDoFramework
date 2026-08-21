@@ -173,7 +173,7 @@ func _open_runtime_page() -> Window:
         return null
     var runtime_item := _find_tree_item_by_metadata(navigation.get_root(), "runtime")
     if runtime_item == null:
-        _fail("GoDo Framework 窗口缺少 Runtime 页面。")
+        _fail("GoDo Framework 窗口缺少项目配置页面。")
         return null
     navigation.set_selected(runtime_item, 0)
     navigation.item_selected.emit()
@@ -218,7 +218,8 @@ func _verify_health() -> void:
         or not install_button.disabled
         or uninstall_button == null
         or uninstall_button.disabled
-        or not _report_text(window).contains("已正确安装")
+        or not _report_text(window).contains("Autoload：GoDoRuntime")
+        or not _report_text(window).contains(RUNTIME_SCENE_PATH)
     ):
         _fail("完整替换后插件未识别已有 Runtime：%s" % _report_text(window))
         return
@@ -289,7 +290,7 @@ func _runtime_registration_count() -> int:
 
 
 func _report_text(window: Window) -> String:
-    var report := window.find_child("GoDoRuntimeReport", true, false) as RichTextLabel
+    var report := window.find_child("GoDoProjectConfigReport", true, false) as RichTextLabel
     return "<missing>" if report == null else report.get_parsed_text()
 
 

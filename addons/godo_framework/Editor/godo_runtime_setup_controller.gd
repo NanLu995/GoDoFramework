@@ -1,6 +1,8 @@
 @tool
 extends RefCounted
 
+signal state_changed(message: String, level: int)
+
 const AUTOLOAD_NAME := "GoDoRuntime"
 const AUTOLOAD_SETTING := "autoload/GoDoRuntime"
 const RUNTIME_SCENE_PATH := "res://addons/godo_framework/Core/GoDoRuntime.tscn"
@@ -29,6 +31,9 @@ var _uninstall_button: Button
 func initialize(plugin: EditorPlugin) -> void:
 	_plugin = plugin
 	_uninstall_dialog = ConfirmationDialog.new()
+	_uninstall_dialog.name = "GoDoRuntimeUninstallDialog"
+	_uninstall_dialog.exclusive = true
+	_uninstall_dialog.transient_to_focused = true
 	_uninstall_dialog.title = "卸载 GoDoRuntime"
 	_uninstall_dialog.dialog_text = "只会移除正确匹配的 GoDoRuntime Autoload，不会删除任何框架或业务文件。是否继续？"
 	_uninstall_dialog.ok_button_text = "卸载"
@@ -36,9 +41,19 @@ func initialize(plugin: EditorPlugin) -> void:
 	_uninstall_dialog.confirmed.connect(_on_uninstall_confirmed)
 	_plugin.get_editor_interface().get_base_control().add_child(_uninstall_dialog)
 
+
+func set_window_parent(window_parent: Window) -> void:
+	_uninstall_dialog.reparent(window_parent)
+
 func dispose() -> void:
 	if is_instance_valid(_uninstall_dialog):
 		_uninstall_dialog.queue_free()
+	_plugin = null
+	_uninstall_dialog = null
+	_report_label = null
+	_message_label = null
+	_install_button = null
+	_uninstall_button = null
 
 func bind_view(
 	report_label: RichTextLabel,
@@ -57,6 +72,18 @@ func refresh() -> void:
 	_show_status_advice(report)
 
 
+func inspect() -> Dictionary:
+	return _check_health()
+
+
+func get_status(report: Dictionary) -> Dictionary:
+	return _framework_status(report)
+
+
+func can_install(report: Dictionary) -> bool:
+	return _can_install(report)
+
+
 func _ensure_content() -> bool:
 	return is_instance_valid(_report_label) and is_instance_valid(_message_label)
 
@@ -70,29 +97,39 @@ func check() -> void:
 func install() -> void:
 	var report := _check_health()
 	if report.autoload_healthy and not report.has_duplicate:
-		_show_message("GoDoRuntime 已正确安装，无需重复操作。", HealthLevel.NORMAL)
+		var message := "GoDoRuntime 已正确安装，无需重复操作。"
+		_show_message(message, HealthLevel.NORMAL)
+		state_changed.emit(message, HealthLevel.NORMAL)
 		return
 	if not _can_install(report):
-		_show_message("当前状态不能安全安装，请先处理上方检查项。", HealthLevel.ERROR)
+		var message := "当前状态不能安全安装，请先处理上方检查项。"
+		_show_message(message, HealthLevel.ERROR)
+		state_changed.emit(message, HealthLevel.ERROR)
 		return
 
 	_plugin.add_autoload_singleton(AUTOLOAD_NAME, RUNTIME_SCENE_PATH)
 	var result := _refresh_report()
-	_show_message(
+	var message := (
 		"GoDoRuntime 安装成功。" if result.autoload_healthy
-		else "安装调用已完成，但复查未通过，请查看上方检查结果和编辑器输出。",
-		HealthLevel.NORMAL if result.autoload_healthy else HealthLevel.ERROR
+		else "安装调用已完成，但复查未通过，请查看上方检查结果和编辑器输出。"
 	)
+	var level := HealthLevel.NORMAL if result.autoload_healthy else HealthLevel.ERROR
+	_show_message(message, level)
+	state_changed.emit(message, level)
 
 
 func request_uninstall() -> void:
 	var report := _check_health()
 	if not report.autoload_healthy:
 		_refresh_report()
-		_show_message("当前 GoDoRuntime Autoload 不存在或路径不匹配，插件不会执行卸载。", HealthLevel.ERROR)
+		var message := "当前 GoDoRuntime Autoload 不存在或路径不匹配，插件不会执行卸载。"
+		_show_message(message, HealthLevel.ERROR)
+		state_changed.emit(message, HealthLevel.ERROR)
 		return
 	if not report.project_config_readable:
-		_show_message("无法读取 project.godot，插件不会执行卸载。", HealthLevel.ERROR)
+		var message := "无法读取 project.godot，插件不会执行卸载。"
+		_show_message(message, HealthLevel.ERROR)
+		state_changed.emit(message, HealthLevel.ERROR)
 		return
 	_show_uninstall_dialog.call_deferred()
 
@@ -104,17 +141,21 @@ func _show_uninstall_dialog() -> void:
 func _on_uninstall_confirmed() -> void:
 	var report := _check_health()
 	if not report.project_config_readable or not report.autoload_healthy:
-		_show_message("项目配置或 Autoload 状态已变化，已取消卸载。", HealthLevel.ERROR)
+		var message := "项目配置或 Autoload 状态已变化，已取消卸载。"
+		_show_message(message, HealthLevel.ERROR)
 		_refresh_report()
+		state_changed.emit(message, HealthLevel.ERROR)
 		return
 
 	_plugin.remove_autoload_singleton(AUTOLOAD_NAME)
 	var result := _refresh_report()
-	_show_message(
+	var message := (
 		"GoDoRuntime Autoload 已卸载，框架文件未删除。" if result.autoload_missing
-		else "卸载调用已完成，但复查未通过，请查看上方检查结果和编辑器输出。",
-		HealthLevel.NORMAL if result.autoload_missing else HealthLevel.ERROR
+		else "卸载调用已完成，但复查未通过，请查看上方检查结果和编辑器输出。"
 	)
+	var level := HealthLevel.NORMAL if result.autoload_missing else HealthLevel.ERROR
+	_show_message(message, level)
+	state_changed.emit(message, level)
 
 
 func _refresh_report() -> Dictionary:
@@ -176,7 +217,15 @@ func _check_version(report: Dictionary) -> void:
 		or minimum_version.x != tested_version.x
 		or _compare_versions(minimum_version, tested_version) > 0
 	):
-		_add_item(report, HealthLevel.ERROR, "Godot 兼容性", "plugin.cfg 中的最低版本或已验证版本无效")
+		_add_item(
+			report,
+			HealthLevel.ERROR,
+			"Godot 兼容性",
+			"plugin.cfg 兼容版本必须使用 major.minor.patch，且最低版本不能高于已验证版本：%s～%s" % [
+				report.min_godot_version,
+				report.tested_godot_version,
+			]
+		)
 		return
 
 	var compatibility := _evaluate_version(current_version, minimum_version, tested_version)
@@ -358,11 +407,9 @@ func _render_report(report: Dictionary) -> void:
 		return
 	_report_label.clear()
 	var status := _framework_status(report)
-	_report_label.push_font_size(18)
 	_report_label.add_text("当前状态：")
 	_report_label.push_color(_level_color(status.level))
 	_report_label.add_text(status.name)
-	_report_label.pop()
 	_report_label.pop()
 	_report_label.add_text("\n\n")
 	for item in report.items:

@@ -18,8 +18,16 @@ func add_menu_action(action_id: String, label: String, callback: Callable) -> Er
 	return _host.register_menu_action(_extension_id, action_id, label, callback)
 
 
+func register_embedded_page(factory: Callable, refresh_callback: Callable) -> Error:
+	return _host.register_embedded_page(_extension_id, factory, refresh_callback)
+
+
 func get_editor_interface():
 	return _editor_interface
+
+
+func get_window_parent() -> Window:
+	return _host.get_window_parent()
 
 
 func add_export_plugin(plugin: EditorExportPlugin) -> void:

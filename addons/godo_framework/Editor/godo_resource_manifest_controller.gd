@@ -1,6 +1,8 @@
 @tool
 extends RefCounted
 
+signal manifest_paths_changed(preferred_path: String)
+
 const MANIFEST_ACTION_VALIDATE := "validate"
 const MANIFEST_ACTION_CREATE := "create"
 const MANIFEST_ACTION_ADD_SELECTED := "add_selected"
@@ -35,11 +37,12 @@ var _manifest_edit_dialog: ConfirmationDialog
 var _manifest_uid_confirm_dialog: ConfirmationDialog
 var _manifest_report_dialog: AcceptDialog
 var _manifest_report_label: RichTextLabel
+var _managed_manifest_label: Label
 var _manifest_entries_tree: Tree
+var _manifest_search_input: LineEdit
 var _manifest_edit_id_input: LineEdit
 var _manifest_edit_locator_input: LineEdit
-var _manifest_switch_button: Button
-var _manifest_create_manage_button: Button
+var _manifest_locate_button: Button
 var _manifest_add_resource_button: Button
 var _manifest_validate_button: Button
 var _manifest_edit_button: Button
@@ -54,11 +57,15 @@ var _managed_manifest_path := ""
 var _managed_entry_index := -1
 var _csharp_resource_load_error := ""
 var _uid_generation_error := ""
+var _manifest_persistence_error := ""
+var _file_system_dock
 
 func initialize(plugin: EditorPlugin) -> void:
 	_plugin = plugin
 	_manifest_file_dialog = EditorFileDialog.new()
 	_manifest_file_dialog.name = "ManifestFileDialog"
+	_manifest_file_dialog.exclusive = true
+	_manifest_file_dialog.transient_to_focused = true
 	_manifest_file_dialog.title = "校验资源清单"
 	_manifest_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 	_manifest_file_dialog.access = FileDialog.ACCESS_RESOURCES
@@ -71,6 +78,9 @@ func initialize(plugin: EditorPlugin) -> void:
 	_create_manifest_selector_dialog(_plugin.get_editor_interface().get_base_control())
 
 	_resource_file_dialog = EditorFileDialog.new()
+	_resource_file_dialog.name = "GoDoResourceFileDialog"
+	_resource_file_dialog.exclusive = true
+	_resource_file_dialog.transient_to_focused = true
 	_resource_file_dialog.title = "选择要添加的资源"
 	_resource_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILES
 	_resource_file_dialog.access = FileDialog.ACCESS_RESOURCES
@@ -81,6 +91,9 @@ func initialize(plugin: EditorPlugin) -> void:
 	_plugin.get_editor_interface().get_base_control().add_child(_resource_file_dialog)
 
 	_manifest_add_confirm_dialog = ConfirmationDialog.new()
+	_manifest_add_confirm_dialog.name = "GoDoManifestAddConfirmDialog"
+	_manifest_add_confirm_dialog.exclusive = true
+	_manifest_add_confirm_dialog.transient_to_focused = true
 	_manifest_add_confirm_dialog.title = "确认添加资源"
 	_manifest_add_confirm_dialog.ok_button_text = "确认添加"
 	_manifest_add_confirm_dialog.cancel_button_text = "取消添加"
@@ -89,19 +102,83 @@ func initialize(plugin: EditorPlugin) -> void:
 	_plugin.get_editor_interface().get_base_control().add_child(_manifest_add_confirm_dialog)
 
 	_manifest_manage_dialog = AcceptDialog.new()
+	_manifest_manage_dialog.name = "GoDoManifestManageDialog"
 	_manifest_manage_dialog.title = "资源清单管理"
 	_manifest_manage_dialog.ok_button_text = "关闭"
 	_manifest_manage_dialog.min_size = Vector2i(1100, 520)
-	_manifest_manage_dialog.exclusive = false
+	_manifest_manage_dialog.exclusive = true
+	_manifest_manage_dialog.transient_to_focused = true
 	_manifest_manage_dialog.get_label().hide()
+	var manage_content := VBoxContainer.new()
+	manage_content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	manage_content.offset_left = 16
+	manage_content.offset_top = 16
+	manage_content.offset_right = -16
+	manage_content.offset_bottom = -56
+	manage_content.add_theme_constant_override("separation", 8)
+	_manifest_manage_dialog.add_child(manage_content)
+
+	var manifest_toolbar := HBoxContainer.new()
+	manifest_toolbar.add_theme_constant_override("separation", 8)
+	manage_content.add_child(manifest_toolbar)
+	_managed_manifest_label = Label.new()
+	_managed_manifest_label.name = "GoDoManagedManifestLabel"
+	_managed_manifest_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	manifest_toolbar.add_child(_managed_manifest_label)
+	_manifest_locate_button = Button.new()
+	_manifest_locate_button.name = "GoDoManifestLocateButton"
+	_manifest_locate_button.text = "定位清单"
+	_manifest_locate_button.pressed.connect(_on_manifest_locate_pressed)
+	manifest_toolbar.add_child(_manifest_locate_button)
+
+	var entry_toolbar := HBoxContainer.new()
+	entry_toolbar.add_theme_constant_override("separation", 8)
+	manage_content.add_child(entry_toolbar)
+	var search_label := Label.new()
+	search_label.text = "Search"
+	entry_toolbar.add_child(search_label)
+	_manifest_search_input = LineEdit.new()
+	_manifest_search_input.name = "GoDoManifestSearchInput"
+	_manifest_search_input.placeholder_text = "Filter by Id or resource path"
+	_manifest_search_input.clear_button_enabled = true
+	_manifest_search_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_manifest_search_input.text_changed.connect(_on_manifest_search_changed)
+	entry_toolbar.add_child(_manifest_search_input)
+	_manifest_add_resource_button = Button.new()
+	_manifest_add_resource_button.name = "GoDoManifestAddResourceButton"
+	_manifest_add_resource_button.text = "添加资源"
+	_manifest_add_resource_button.pressed.connect(_on_manifest_add_resource_pressed)
+	entry_toolbar.add_child(_manifest_add_resource_button)
+	_manifest_edit_button = Button.new()
+	_manifest_edit_button.text = "编辑"
+	_manifest_edit_button.disabled = true
+	_manifest_edit_button.pressed.connect(_on_manifest_edit_pressed)
+	entry_toolbar.add_child(_manifest_edit_button)
+	_manifest_uid_button = Button.new()
+	_manifest_uid_button.text = "生成并使用 UID"
+	_manifest_uid_button.disabled = true
+	_manifest_uid_button.pressed.connect(_on_manifest_uid_pressed)
+	entry_toolbar.add_child(_manifest_uid_button)
+	_manifest_remove_button = Button.new()
+	_manifest_remove_button.text = "删除"
+	_manifest_remove_button.disabled = true
+	_manifest_remove_button.pressed.connect(_on_manifest_remove_pressed)
+	entry_toolbar.add_child(_manifest_remove_button)
+	_manifest_validate_button = Button.new()
+	_manifest_validate_button.name = "GoDoManifestValidateButton"
+	_manifest_validate_button.text = "校验"
+	_manifest_validate_button.pressed.connect(_on_manifest_validate_pressed)
+	entry_toolbar.add_child(_manifest_validate_button)
+
 	_manifest_entries_tree = Tree.new()
+	_manifest_entries_tree.name = "GoDoManifestEntriesTree"
 	_manifest_entries_tree.columns = 3
 	_manifest_entries_tree.column_titles_visible = true
 	_manifest_entries_tree.hide_root = true
 	_manifest_entries_tree.select_mode = Tree.SELECT_ROW
 	_manifest_entries_tree.set_column_title(0, "Id")
-	_manifest_entries_tree.set_column_title(1, "定位")
-	_manifest_entries_tree.set_column_title(2, "UID 状态")
+	_manifest_entries_tree.set_column_title(1, "Locator")
+	_manifest_entries_tree.set_column_title(2, "UID Status")
 	_manifest_entries_tree.set_column_expand(0, true)
 	_manifest_entries_tree.set_column_expand_ratio(0, 2)
 	_manifest_entries_tree.set_column_expand(1, true)
@@ -110,32 +187,13 @@ func initialize(plugin: EditorPlugin) -> void:
 	_manifest_entries_tree.set_column_expand_ratio(2, 1)
 	_manifest_entries_tree.item_selected.connect(_on_manifest_entry_selected)
 	_manifest_entries_tree.item_activated.connect(_on_manifest_entry_activated)
-	_manifest_manage_dialog.add_child(_manifest_entries_tree)
-	_manifest_entries_tree.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_manifest_entries_tree.offset_left = 16
-	_manifest_entries_tree.offset_top = 16
-	_manifest_entries_tree.offset_right = -16
-	_manifest_entries_tree.offset_bottom = -56
-	_manifest_switch_button = _manifest_manage_dialog.add_button("切换清单", true)
-	_manifest_switch_button.pressed.connect(_on_manifest_switch_pressed)
-	_manifest_create_manage_button = _manifest_manage_dialog.add_button("创建清单", true)
-	_manifest_create_manage_button.pressed.connect(_on_manifest_create_manage_pressed)
-	_manifest_add_resource_button = _manifest_manage_dialog.add_button("添加资源", true)
-	_manifest_add_resource_button.pressed.connect(_on_manifest_add_resource_pressed)
-	_manifest_validate_button = _manifest_manage_dialog.add_button("校验", true)
-	_manifest_validate_button.pressed.connect(_on_manifest_validate_pressed)
-	_manifest_edit_button = _manifest_manage_dialog.add_button("编辑选中项", true)
-	_manifest_edit_button.disabled = true
-	_manifest_edit_button.pressed.connect(_on_manifest_edit_pressed)
-	_manifest_uid_button = _manifest_manage_dialog.add_button("生成并使用 UID", true)
-	_manifest_uid_button.disabled = true
-	_manifest_uid_button.pressed.connect(_on_manifest_uid_pressed)
-	_manifest_remove_button = _manifest_manage_dialog.add_button("删除选中项", true)
-	_manifest_remove_button.disabled = true
-	_manifest_remove_button.pressed.connect(_on_manifest_remove_pressed)
+	_manifest_entries_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	manage_content.add_child(_manifest_entries_tree)
 	_plugin.get_editor_interface().get_base_control().add_child(_manifest_manage_dialog)
 
 	_manifest_remove_confirm_dialog = ConfirmationDialog.new()
+	_manifest_remove_confirm_dialog.exclusive = true
+	_manifest_remove_confirm_dialog.transient_to_focused = true
 	_manifest_remove_confirm_dialog.title = "删除资源清单条目"
 	_manifest_remove_confirm_dialog.ok_button_text = "删除"
 	_manifest_remove_confirm_dialog.cancel_button_text = "取消"
@@ -143,6 +201,8 @@ func initialize(plugin: EditorPlugin) -> void:
 	_manifest_manage_dialog.add_child(_manifest_remove_confirm_dialog)
 
 	_manifest_edit_dialog = ConfirmationDialog.new()
+	_manifest_edit_dialog.exclusive = true
+	_manifest_edit_dialog.transient_to_focused = true
 	_manifest_edit_dialog.title = "编辑资源清单条目"
 	_manifest_edit_dialog.ok_button_text = "保存修改"
 	_manifest_edit_dialog.cancel_button_text = "取消"
@@ -164,7 +224,7 @@ func initialize(plugin: EditorPlugin) -> void:
 	_manifest_edit_id_input.select_all_on_focus = true
 	edit_content.add_child(_manifest_edit_id_input)
 	var locator_label := Label.new()
-	locator_label.text = "定位"
+	locator_label.text = "Locator"
 	edit_content.add_child(locator_label)
 	_manifest_edit_locator_input = LineEdit.new()
 	_manifest_edit_locator_input.placeholder_text = "res:// 或 uid://"
@@ -174,6 +234,8 @@ func initialize(plugin: EditorPlugin) -> void:
 	_manifest_manage_dialog.add_child(_manifest_edit_dialog)
 
 	_manifest_uid_confirm_dialog = ConfirmationDialog.new()
+	_manifest_uid_confirm_dialog.exclusive = true
+	_manifest_uid_confirm_dialog.transient_to_focused = true
 	_manifest_uid_confirm_dialog.title = "生成并使用 UID"
 	_manifest_uid_confirm_dialog.ok_button_text = "确认生成"
 	_manifest_uid_confirm_dialog.cancel_button_text = "取消"
@@ -181,10 +243,12 @@ func initialize(plugin: EditorPlugin) -> void:
 	_manifest_manage_dialog.add_child(_manifest_uid_confirm_dialog)
 
 	_manifest_report_dialog = AcceptDialog.new()
+	_manifest_report_dialog.name = "GoDoManifestReportDialog"
 	_manifest_report_dialog.title = "资源清单校验"
 	_manifest_report_dialog.ok_button_text = "关闭"
 	_manifest_report_dialog.min_size = Vector2i(720, 420)
-	_manifest_report_dialog.exclusive = false
+	_manifest_report_dialog.exclusive = true
+	_manifest_report_dialog.transient_to_focused = true
 	_manifest_report_dialog.get_label().hide()
 	_manifest_report_label = RichTextLabel.new()
 	_manifest_report_label.name = "ManifestReportLabel"
@@ -198,8 +262,18 @@ func initialize(plugin: EditorPlugin) -> void:
 	_manifest_report_label.offset_right = -16
 	_manifest_report_label.offset_bottom = -48
 	_plugin.get_editor_interface().get_base_control().add_child(_manifest_report_dialog)
+	_file_system_dock = _plugin.get_editor_interface().get_file_system_dock()
+	if is_instance_valid(_file_system_dock):
+		_file_system_dock.file_removed.connect(_on_editor_file_removed)
+		_file_system_dock.files_moved.connect(_on_editor_files_moved)
 
 func dispose() -> void:
+	if is_instance_valid(_file_system_dock):
+		if _file_system_dock.file_removed.is_connected(_on_editor_file_removed):
+			_file_system_dock.file_removed.disconnect(_on_editor_file_removed)
+		if _file_system_dock.files_moved.is_connected(_on_editor_files_moved):
+			_file_system_dock.files_moved.disconnect(_on_editor_files_moved)
+	_file_system_dock = null
 	for dialog in [_manifest_file_dialog, _manifest_selector_dialog, _resource_file_dialog, _manifest_add_confirm_dialog, _manifest_manage_dialog, _manifest_remove_confirm_dialog, _manifest_edit_dialog, _manifest_uid_confirm_dialog, _manifest_report_dialog]:
 		if is_instance_valid(dialog):
 			dialog.queue_free()
@@ -233,6 +307,8 @@ func open_validate_path(path: String) -> void:
 
 func _create_manifest_selector_dialog(editor_root: Control) -> void:
 	_manifest_selector_dialog = ConfirmationDialog.new()
+	_manifest_selector_dialog.exclusive = true
+	_manifest_selector_dialog.transient_to_focused = true
 	_manifest_selector_dialog.name = "ManifestSelectorDialog"
 	_manifest_selector_dialog.title = "选择资源清单"
 	_manifest_selector_dialog.ok_button_text = "打开"
@@ -277,6 +353,15 @@ func _create_manifest_selector_dialog(editor_root: Control) -> void:
 	action_row.add_child(_manifest_selector_manual_button)
 	_manifest_selector_dialog.confirmed.connect(_on_manifest_selector_confirmed)
 	editor_root.add_child(_manifest_selector_dialog)
+
+
+func set_window_parent(window_parent: Window) -> void:
+	_manifest_file_dialog.reparent(window_parent)
+	_resource_file_dialog.reparent(window_parent)
+	_manifest_add_confirm_dialog.reparent(window_parent)
+	_manifest_manage_dialog.reparent(window_parent)
+	_manifest_report_dialog.reparent(window_parent)
+	_manifest_selector_dialog.reparent(window_parent)
 
 
 func _open_existing_manifest(action: String) -> void:
@@ -366,12 +451,10 @@ func _on_manifest_selector_create_pressed() -> void:
 
 
 func _on_manifest_file_dialog_canceled() -> void:
+	manifest_paths_changed.emit("")
 	if _manifest_action != MANIFEST_ACTION_CREATE:
 		return
-	var return_action := _manifest_return_action_after_create
 	_manifest_return_action_after_create = ""
-	if not return_action.is_empty():
-		call_deferred("_open_existing_manifest", return_action)
 
 
 func _get_selected_manifest_path() -> String:
@@ -465,6 +548,12 @@ func _create_manifest(path: String) -> void:
 	var return_action := _manifest_return_action_after_create
 	_manifest_return_action_after_create = ""
 	var save_path := _normalize_manifest_save_path(path)
+	if FileAccess.file_exists(save_path):
+		_show_manifest_message(
+			HealthLevel.ERROR,
+			"创建失败",
+			"目标文件已经存在，不会覆盖：\n%s" % save_path)
+		return
 	var manifest := _create_manifest_instance()
 	if manifest == null:
 		_show_manifest_message(HealthLevel.ERROR, "创建失败", "ResourceManifest 脚本无法加载或实例化。\n%s" % _csharp_resource_load_error)
@@ -476,8 +565,9 @@ func _create_manifest(path: String) -> void:
 		return
 
 	_refresh_editor_filesystem()
-	if return_action.is_empty():
-		_show_manifest_message(HealthLevel.NORMAL, "创建成功", "已创建空 ResourceManifest：%s" % save_path)
+	manifest_paths_changed.emit(save_path)
+	if return_action.is_empty() or return_action == MANIFEST_ACTION_MANAGE:
+		call_deferred("_show_manifest_manager", save_path)
 	else:
 		call_deferred("_dispatch_manifest_action", return_action, save_path)
 
@@ -487,11 +577,14 @@ func _add_selected_resources_to_manifest(manifest_path: String) -> void:
 		_show_manifest_message(HealthLevel.ERROR, "添加失败", "没有待添加的资源路径")
 		return
 
-	var manifest := ResourceLoader.load(manifest_path)
+	var manifest := _load_manifest_from_disk(manifest_path)
 	if not _is_resource_manifest(manifest):
 		_show_manifest_message(HealthLevel.ERROR, "添加失败", "请选择 ResourceManifest 资源：%s" % manifest_path)
 		return
-	var entries = _get_manifest_entries(manifest)
+	var entries = _copy_manifest_entries(_get_manifest_entries(manifest))
+	if entries == null:
+		_show_manifest_message(HealthLevel.ERROR, "添加失败", "ResourceManifest 缺少有效的 Entries 数组")
+		return
 	var entry_ids := _get_pending_entry_ids(entries)
 	if entry_ids.is_empty():
 		return
@@ -517,9 +610,9 @@ func _add_selected_resources_to_manifest(manifest_path: String) -> void:
 		entries.append(entry)
 	manifest.set("Entries", entries)
 
-	var save_error := ResourceSaver.save(manifest, manifest_path, ResourceSaver.FLAG_CHANGE_PATH)
-	if save_error != OK:
-		_show_manifest_message(HealthLevel.ERROR, "添加失败", "%s：%s" % [manifest_path, error_string(save_error)])
+	var saved_manifest := _save_manifest_and_reload(manifest, manifest_path)
+	if saved_manifest == null:
+		_show_manifest_message(HealthLevel.ERROR, "添加失败", _manifest_persistence_error)
 		return
 
 	_refresh_editor_filesystem()
@@ -529,7 +622,7 @@ func _add_selected_resources_to_manifest(manifest_path: String) -> void:
 		"\n".join(_pending_resource_paths),
 	]
 	if _managed_manifest_path == manifest_path:
-		_render_manifest_entries(manifest)
+		_render_manifest_entries(saved_manifest)
 	_show_manifest_message(HealthLevel.NORMAL, "添加成功", success_message)
 	_pending_resource_paths = PackedStringArray()
 	_pending_manifest_path = ""
@@ -543,7 +636,7 @@ func _preview_manifest_add(manifest_path: String) -> void:
 		_show_manifest_message(HealthLevel.ERROR, "添加失败", "不能将目标 ResourceManifest 添加到自身")
 		return
 
-	var manifest := ResourceLoader.load(manifest_path)
+	var manifest := _load_manifest_from_disk(manifest_path)
 	if not _is_resource_manifest(manifest):
 		_show_manifest_message(HealthLevel.ERROR, "添加失败", "请选择 ResourceManifest 资源：%s" % manifest_path)
 		return
@@ -594,26 +687,23 @@ func _on_manifest_add_canceled() -> void:
 
 
 func _show_manifest_manager(manifest_path: String) -> void:
-	var manifest := ResourceLoader.load(manifest_path)
+	var manifest := ResourceLoader.load(
+		manifest_path,
+		"",
+		ResourceLoader.CACHE_MODE_REPLACE)
 	if not _is_resource_manifest(manifest):
 		_show_manifest_message(HealthLevel.ERROR, "打开失败", "请选择 ResourceManifest 资源：%s" % manifest_path)
 		return
 
 	_managed_manifest_path = manifest_path
-	_manifest_manage_dialog.title = "资源清单管理 — %s" % manifest_path
+	_manifest_manage_dialog.title = "资源清单管理"
+	_managed_manifest_label.text = "当前：%s" % manifest_path
+	_manifest_locate_button.disabled = false
+	_manifest_add_resource_button.disabled = false
+	_manifest_validate_button.disabled = false
+	_manifest_search_input.clear()
 	_render_manifest_entries(manifest)
 	_manifest_manage_dialog.popup_centered(Vector2i(1100, 520))
-
-
-func _on_manifest_switch_pressed() -> void:
-	_manifest_manage_dialog.hide()
-	_open_existing_manifest(MANIFEST_ACTION_MANAGE)
-
-
-func _on_manifest_create_manage_pressed() -> void:
-	_manifest_return_action_after_create = MANIFEST_ACTION_MANAGE
-	_manifest_manage_dialog.hide()
-	call_deferred("_open_manifest_create_dialog")
 
 
 func _on_manifest_add_resource_pressed() -> void:
@@ -629,6 +719,24 @@ func _on_manifest_validate_pressed() -> void:
 	var report := _validate_manifest(_managed_manifest_path)
 	_render_manifest_report(_managed_manifest_path, report)
 	_manifest_report_dialog.popup_centered(Vector2i(720, 420))
+
+
+func _on_manifest_locate_pressed() -> void:
+	_locate_in_file_system(_managed_manifest_path)
+
+
+func _on_manifest_search_changed(_text: String) -> void:
+	if _managed_manifest_path.is_empty():
+		return
+	if not ResourceLoader.exists(_managed_manifest_path):
+		_render_missing_managed_manifest(_managed_manifest_path)
+		return
+	var manifest := ResourceLoader.load(
+		_managed_manifest_path,
+		"",
+		ResourceLoader.CACHE_MODE_REPLACE)
+	if _is_resource_manifest(manifest):
+		_render_manifest_entries(manifest)
 
 
 func _render_manifest_entries(manifest: Resource) -> void:
@@ -647,11 +755,24 @@ func _render_manifest_entries(manifest: Resource) -> void:
 		empty_item.set_selectable(1, false)
 		empty_item.set_selectable(2, false)
 		return
+	var filter_text := (
+		_manifest_search_input.text.strip_edges().to_lower()
+		if is_instance_valid(_manifest_search_input)
+		else "")
+	var visible_count := 0
 	for index in range(entries.size()):
 		var entry = entries[index]
 		var entry_id := _get_exported_string(entry, "Id", "id")
 		var locator := _get_exported_string(entry, "Locator", "locator")
 		var display_locator := _display_locator(locator)
+		if (
+			not filter_text.is_empty()
+			and not entry_id.to_lower().contains(filter_text)
+			and not locator.to_lower().contains(filter_text)
+			and not display_locator.to_lower().contains(filter_text)
+		):
+			continue
+		visible_count += 1
 		var uid_status := _get_uid_status(locator)
 		var item := _manifest_entries_tree.create_item(root)
 		item.set_text(0, entry_id)
@@ -662,6 +783,11 @@ func _render_manifest_entries(manifest: Resource) -> void:
 		item.set_tooltip_text(1, "显示路径：%s\n实际定位：%s" % [display_locator, locator])
 		item.set_tooltip_text(2, uid_status.tooltip)
 		item.set_metadata(0, index)
+	if visible_count == 0:
+		var empty_item := _manifest_entries_tree.create_item(root)
+		empty_item.set_text(0, "没有匹配的资源清单条目")
+		for column in range(3):
+			empty_item.set_selectable(column, false)
 
 
 func _on_manifest_entry_selected() -> void:
@@ -686,7 +812,7 @@ func _on_manifest_edit_pressed() -> void:
 	if _managed_entry_index < 0 or _managed_manifest_path.is_empty():
 		return
 
-	var manifest := ResourceLoader.load(_managed_manifest_path)
+	var manifest := _load_manifest_from_disk(_managed_manifest_path)
 	if not _is_resource_manifest(manifest):
 		_show_manifest_message(HealthLevel.ERROR, "编辑失败", "当前 ResourceManifest 无法重新加载：%s" % _managed_manifest_path)
 		return
@@ -707,7 +833,7 @@ func _on_manifest_uid_pressed() -> void:
 	if not _selected_entry_uses_path_locator():
 		return
 
-	var manifest := ResourceLoader.load(_managed_manifest_path)
+	var manifest := _load_manifest_from_disk(_managed_manifest_path)
 	var entries = _get_manifest_entries(manifest)
 	var entry = entries[_managed_entry_index]
 	var entry_id := _get_exported_string(entry, "Id", "id")
@@ -720,7 +846,7 @@ func _on_manifest_uid_confirmed() -> void:
 	if not _selected_entry_uses_path_locator():
 		return
 
-	var manifest := ResourceLoader.load(_managed_manifest_path)
+	var manifest := _load_manifest_from_disk(_managed_manifest_path)
 	var entries = _get_manifest_entries(manifest)
 	var entry = entries[_managed_entry_index]
 	var resource_path := _get_exported_string(entry, "Locator", "locator")
@@ -729,14 +855,18 @@ func _on_manifest_uid_confirmed() -> void:
 		_show_manifest_message(HealthLevel.ERROR, "生成 UID 失败", "%s\n\n资源清单未修改。" % _uid_generation_error)
 		return
 
-	entry.set("Locator", uid_locator)
-	var save_error := ResourceSaver.save(manifest, _managed_manifest_path, ResourceSaver.FLAG_CHANGE_PATH)
-	if save_error != OK:
-		_show_manifest_message(HealthLevel.ERROR, "生成 UID 失败", "%s：%s\n\n资源清单未修改。" % [_managed_manifest_path, error_string(save_error)])
+	var updated_entries = _copy_manifest_entries(entries)
+	var updated_entry: Resource = entry.duplicate()
+	updated_entry.set("Locator", uid_locator)
+	updated_entries[_managed_entry_index] = updated_entry
+	manifest.set("Entries", updated_entries)
+	var saved_manifest := _save_manifest_and_reload(manifest, _managed_manifest_path)
+	if saved_manifest == null:
+		_show_manifest_message(HealthLevel.ERROR, "生成 UID 失败", _manifest_persistence_error)
 		return
 
 	_refresh_editor_filesystem()
-	_render_manifest_entries(manifest)
+	_render_manifest_entries(saved_manifest)
 
 
 func _on_manifest_edit_confirmed() -> void:
@@ -749,13 +879,13 @@ func _on_manifest_edit_confirmed() -> void:
 		_show_manifest_message(HealthLevel.ERROR, "编辑失败", "Id 不能为空")
 		return
 	if not (locator.begins_with("res://") or locator.begins_with("uid://")):
-		_show_manifest_message(HealthLevel.ERROR, "编辑失败", "定位必须以 res:// 或 uid:// 开头：%s" % locator)
+		_show_manifest_message(HealthLevel.ERROR, "编辑失败", "Locator 必须以 res:// 或 uid:// 开头：%s" % locator)
 		return
 	if not ResourceLoader.exists(locator):
-		_show_manifest_message(HealthLevel.ERROR, "编辑失败", "当前定位无法解析到资源：%s" % locator)
+		_show_manifest_message(HealthLevel.ERROR, "编辑失败", "当前 Locator 无法解析到资源：%s" % locator)
 		return
 
-	var manifest := ResourceLoader.load(_managed_manifest_path)
+	var manifest := _load_manifest_from_disk(_managed_manifest_path)
 	if not _is_resource_manifest(manifest):
 		_show_manifest_message(HealthLevel.ERROR, "编辑失败", "当前 ResourceManifest 无法重新加载：%s" % _managed_manifest_path)
 		return
@@ -770,23 +900,26 @@ func _on_manifest_edit_confirmed() -> void:
 			_show_manifest_message(HealthLevel.ERROR, "编辑失败", "清单中已存在 Id：%s" % entry_id)
 			return
 
-	var entry = entries[_managed_entry_index]
-	entry.set("Id", entry_id)
-	entry.set("Locator", locator)
-	var save_error := ResourceSaver.save(manifest, _managed_manifest_path, ResourceSaver.FLAG_CHANGE_PATH)
-	if save_error != OK:
-		_show_manifest_message(HealthLevel.ERROR, "编辑失败", "%s：%s" % [_managed_manifest_path, error_string(save_error)])
+	var updated_entries = _copy_manifest_entries(entries)
+	var updated_entry: Resource = entries[_managed_entry_index].duplicate()
+	updated_entry.set("Id", entry_id)
+	updated_entry.set("Locator", locator)
+	updated_entries[_managed_entry_index] = updated_entry
+	manifest.set("Entries", updated_entries)
+	var saved_manifest := _save_manifest_and_reload(manifest, _managed_manifest_path)
+	if saved_manifest == null:
+		_show_manifest_message(HealthLevel.ERROR, "编辑失败", _manifest_persistence_error)
 		return
 
 	_refresh_editor_filesystem()
-	_render_manifest_entries(manifest)
+	_render_manifest_entries(saved_manifest)
 
 
 func _on_manifest_remove_pressed() -> void:
 	if _managed_entry_index < 0 or _managed_manifest_path.is_empty():
 		return
 
-	var manifest := ResourceLoader.load(_managed_manifest_path)
+	var manifest := _load_manifest_from_disk(_managed_manifest_path)
 	if not _is_resource_manifest(manifest):
 		_show_manifest_message(HealthLevel.ERROR, "删除失败", "当前 ResourceManifest 无法重新加载：%s" % _managed_manifest_path)
 		return
@@ -806,7 +939,7 @@ func _on_manifest_remove_confirmed() -> void:
 	if _managed_entry_index < 0 or _managed_manifest_path.is_empty():
 		return
 
-	var manifest := ResourceLoader.load(_managed_manifest_path)
+	var manifest := _load_manifest_from_disk(_managed_manifest_path)
 	if not _is_resource_manifest(manifest):
 		_show_manifest_message(HealthLevel.ERROR, "删除失败", "当前 ResourceManifest 无法重新加载：%s" % _managed_manifest_path)
 		return
@@ -815,15 +948,16 @@ func _on_manifest_remove_confirmed() -> void:
 		_show_manifest_message(HealthLevel.ERROR, "删除失败", "当前选中条目已不存在")
 		return
 
-	entries.remove_at(_managed_entry_index)
-	manifest.set("Entries", entries)
-	var save_error := ResourceSaver.save(manifest, _managed_manifest_path, ResourceSaver.FLAG_CHANGE_PATH)
-	if save_error != OK:
-		_show_manifest_message(HealthLevel.ERROR, "删除失败", "%s：%s" % [_managed_manifest_path, error_string(save_error)])
+	var updated_entries = _copy_manifest_entries(entries)
+	updated_entries.remove_at(_managed_entry_index)
+	manifest.set("Entries", updated_entries)
+	var saved_manifest := _save_manifest_and_reload(manifest, _managed_manifest_path)
+	if saved_manifest == null:
+		_show_manifest_message(HealthLevel.ERROR, "删除失败", _manifest_persistence_error)
 		return
 
 	_refresh_editor_filesystem()
-	_render_manifest_entries(manifest)
+	_render_manifest_entries(saved_manifest)
 
 
 func _validate_manifest(path: String) -> Dictionary:
@@ -832,7 +966,7 @@ func _validate_manifest(path: String) -> Dictionary:
 		"level": HealthLevel.NORMAL,
 		"entry_count": 0,
 	}
-	var resource := ResourceLoader.load(path)
+	var resource := _load_manifest_from_disk(path)
 	if resource == null:
 		_add_item(report, HealthLevel.ERROR, "清单加载", "无法加载 %s" % path)
 		return report
@@ -893,6 +1027,49 @@ func _get_manifest_entries(manifest: Resource):
 	if entries == null:
 		entries = manifest.get("entries")
 	return entries
+
+
+func _copy_manifest_entries(entries):
+	if entries == null or not (entries is Array):
+		return null
+	return entries.duplicate()
+
+
+func _load_manifest_from_disk(path: String) -> Resource:
+	return ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE)
+
+
+func _save_manifest_and_reload(manifest: Resource, path: String) -> Resource:
+	_manifest_persistence_error = ""
+	var expected_signature := _manifest_entries_signature(_get_manifest_entries(manifest))
+	manifest.emit_changed()
+	var save_error := ResourceSaver.save(manifest, path, ResourceSaver.FLAG_CHANGE_PATH)
+	if save_error != OK:
+		_manifest_persistence_error = "%s：%s" % [path, error_string(save_error)]
+		return null
+	var reloaded := _load_manifest_from_disk(path)
+	if not _is_resource_manifest(reloaded):
+		_manifest_persistence_error = "保存后无法从磁盘重新加载 ResourceManifest：%s" % path
+		return null
+	if _manifest_entries_signature(_get_manifest_entries(reloaded)) != expected_signature:
+		_manifest_persistence_error = "保存后校验失败，磁盘中的 Entries 与待保存内容不一致：%s" % path
+		return null
+	return reloaded
+
+
+func _manifest_entries_signature(entries) -> PackedStringArray:
+	var signature := PackedStringArray()
+	if entries == null or not (entries is Array):
+		return signature
+	for entry in entries:
+		if entry == null or not (entry is Object):
+			signature.append("<null>")
+			continue
+		signature.append("%s\u001f%s" % [
+			_get_exported_string(entry, "Id", "id"),
+			_get_exported_string(entry, "Locator", "locator"),
+		])
+	return signature
 
 
 func _manifest_file_filters() -> PackedStringArray:
@@ -982,7 +1159,7 @@ func _create_manifest_entry_instance() -> Resource:
 
 func _instantiate_csharp_resource(script_path: String) -> Resource:
 	_csharp_resource_load_error = ""
-	var loaded_resource := ResourceLoader.load(script_path, "", ResourceLoader.CACHE_MODE_IGNORE)
+	var loaded_resource := ResourceLoader.load(script_path)
 	var script := loaded_resource as Script
 	if script == null:
 		_csharp_resource_load_error = "无法将 %s 加载为 Script：%s" % [script_path, loaded_resource]
@@ -1007,7 +1184,7 @@ func _manifest_contains_id(entries: Array, entry_id: String) -> bool:
 func _selected_entry_uses_path_locator() -> bool:
 	if _managed_entry_index < 0 or _managed_manifest_path.is_empty():
 		return false
-	var manifest := ResourceLoader.load(_managed_manifest_path)
+	var manifest := _load_manifest_from_disk(_managed_manifest_path)
 	if not _is_resource_manifest(manifest):
 		return false
 	var entries = _get_manifest_entries(manifest)
@@ -1032,29 +1209,29 @@ func _get_uid_status(locator: String) -> Dictionary:
 	if locator.begins_with("uid://"):
 		if ResourceLoader.exists(locator):
 			return {
-				"text": "已使用 UID",
+				"text": "Using UID",
 				"color": NORMAL_COLOR,
 				"tooltip": "清单当前通过 uid:// 定位该资源。",
 			}
 		return {
-			"text": "UID 无效",
+			"text": "Invalid UID",
 			"color": ERROR_COLOR,
 			"tooltip": "清单使用 uid://，但当前无法解析该资源。",
 		}
 	if locator.begins_with("res://") and ResourceLoader.exists(locator):
 		if ResourceLoader.get_resource_uid(locator) != ResourceUID.INVALID_ID:
 			return {
-				"text": "可转换为 UID",
+				"text": "Convertible",
 				"color": WARNING_COLOR,
 				"tooltip": "资源已有 UID；点击“生成并使用 UID”可更新清单定位。",
 			}
 		return {
-			"text": "缺少 UID",
+			"text": "Missing UID",
 			"color": PENDING_COLOR,
 			"tooltip": "资源当前没有可用 UID；点击“生成并使用 UID”可创建。",
 		}
 	return {
-		"text": "无法判断",
+		"text": "Unresolved",
 		"color": ERROR_COLOR,
 		"tooltip": "当前定位无法解析资源。",
 	}
@@ -1103,6 +1280,81 @@ func _display_locator(locator: String) -> String:
 		if not resource_path.is_empty():
 			return resource_path
 	return locator
+
+
+func _locate_in_file_system(path: String) -> void:
+	if path.is_empty() or not ResourceLoader.exists(path):
+		_show_manifest_message(
+			HealthLevel.ERROR,
+			"定位失败",
+			"资源已经删除或移动：\n%s" % path)
+		return
+	if not is_instance_valid(_file_system_dock):
+		_show_manifest_message(
+			HealthLevel.ERROR,
+			"定位失败",
+			"Godot FileSystem Dock 当前不可用。")
+		return
+	_file_system_dock.navigate_to_path(path)
+
+
+func _on_editor_file_removed(path: String) -> void:
+	manifest_paths_changed.emit("")
+	if not is_instance_valid(_manifest_manage_dialog) or not _manifest_manage_dialog.visible:
+		return
+	if path == _managed_manifest_path:
+		_render_missing_managed_manifest(path)
+		return
+	_refresh_managed_manifest_after_filesystem_change()
+
+
+func _on_editor_files_moved(old_path: String, new_path: String) -> void:
+	var managed_manifest_moved := old_path == _managed_manifest_path
+	if managed_manifest_moved:
+		_managed_manifest_path = new_path
+	manifest_paths_changed.emit(new_path if managed_manifest_moved else "")
+	if not is_instance_valid(_manifest_manage_dialog) or not _manifest_manage_dialog.visible:
+		return
+	_refresh_managed_manifest_after_filesystem_change()
+
+
+func _refresh_managed_manifest_after_filesystem_change() -> void:
+	if _managed_manifest_path.is_empty() or not is_instance_valid(_manifest_manage_dialog):
+		return
+	if not ResourceLoader.exists(_managed_manifest_path):
+		_render_missing_managed_manifest(_managed_manifest_path)
+		return
+	var manifest := ResourceLoader.load(
+		_managed_manifest_path,
+		"",
+		ResourceLoader.CACHE_MODE_REPLACE)
+	if not _is_resource_manifest(manifest):
+		_render_missing_managed_manifest(_managed_manifest_path)
+		return
+	_manifest_manage_dialog.title = "资源清单管理"
+	_managed_manifest_label.text = "当前：%s" % _managed_manifest_path
+	_manifest_locate_button.disabled = false
+	_manifest_add_resource_button.disabled = false
+	_manifest_validate_button.disabled = false
+	_render_manifest_entries(manifest)
+
+
+func _render_missing_managed_manifest(path: String) -> void:
+	_manifest_manage_dialog.title = "资源清单管理"
+	_managed_manifest_label.text = "清单已删除或移动：%s" % path
+	_manifest_entries_tree.clear()
+	var root := _manifest_entries_tree.create_item()
+	var item := _manifest_entries_tree.create_item(root)
+	item.set_text(0, "资源清单已经不存在，请返回资源清单页面重新选择。")
+	for column in range(3):
+		item.set_selectable(column, false)
+	_managed_entry_index = -1
+	_manifest_edit_button.disabled = true
+	_manifest_uid_button.disabled = true
+	_manifest_remove_button.disabled = true
+	_manifest_add_resource_button.disabled = true
+	_manifest_validate_button.disabled = true
+	_manifest_locate_button.disabled = true
 
 
 func _normalize_manifest_save_path(path: String) -> String:

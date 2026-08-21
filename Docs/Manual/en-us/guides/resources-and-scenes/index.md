@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/resources-and-scenes/index.md
-translation_source_hash: sha256:432164e946d808bb6b7a3fb68994a23053143ff002bcdbda31fe8c1908576637
+translation_source_hash: sha256:0f2dd6d87d825c7c47db52c14d3174f02227191fe0194b085461317f38024105
 ---
 
 # Manage Resource Manifests, Async Loading, and Scene Changes
@@ -35,7 +35,7 @@ Semantic IDs decouple game meaning from file location and allow manifests to be 
 
 ## 2. Create and maintain ResourceManifest
 
-After enabling the GoDo Framework editor plugin, open the unified window from the top menu and select Resources → Resource Manifest. The page directly lists manifests discovered in the project and offers creation when none exist. After selecting a manifest, the management window can add project assets, edit IDs, convert paths to UIDs, remove mappings, switch manifests, or run read-only validation.
+After enabling the GoDo Framework editor plugin, open the unified window from the top menu and select Resources → Resource Manifest. The page directly lists manifests discovered in the project and offers creation when none exist. After selecting a manifest, the management window can add project assets, edit IDs, convert paths to UIDs, remove mappings, or run read-only validation; refresh, creation, and manifest switching stay on the main page. The table uses `Id / Locator / UID Status`, and every write is reloaded from disk before the UI reports success.
 
 The add tool initially derives an ID from the path without `res://` or the extension. Change important entries to stable game semantics such as `ui/icon_close` before committing. Removing a mapping does not delete its Resource file.
 

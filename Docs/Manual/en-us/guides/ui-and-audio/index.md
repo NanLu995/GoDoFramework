@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/ui-and-audio/index.md
-translation_source_hash: sha256:a9039443efd19982db30d73f217fb368d4dd7804ae04d2d16baaecd16c4b98ee
+translation_source_hash: sha256:48ac81b0303ca5c2d781a9259070d5a3b5873e2397136cf1b6f73332e1d55da7
 ---
 
 # Organize Complex UI and Long-Lived Audio
@@ -29,7 +29,7 @@ The UI PackedScene root must inherit `Control`. World-space health bars, Node2D/
 
 ## 2. Maintain interfaces in a UiConfig
 
-Create a `UiConfig` Resource in the Godot Inspector. Expand `Entries` and configure each `UiConfigEntry`:
+Create a `UiConfig` Resource in the Godot Inspector, or maintain it from the GoDo Framework unified window. The management table uses `Id / Scene / Layer / Instance Mode / Reuse / Status`; `Reuse` displays `True / False`, and successful add, edit, and remove operations reload the configuration from disk. Expand `Entries` and configure each `UiConfigEntry`:
 
 - `Id`: the semantic identifier used by game code.
 - `Locator`: select the UI PackedScene with the file picker.

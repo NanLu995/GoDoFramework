@@ -505,7 +505,7 @@ def _run_editor_extension_check(
         csproj_output = csproj_result.stdout + csproj_result.stderr
         if (
             csproj_result.returncode != 0
-            or "[GoDoCsprojManagerRegression] PASS (7/7)" not in csproj_output
+            or "[GoDoCsprojManagerRegression] PASS (9/9)" not in csproj_output
             or "SCRIPT ERROR:" in csproj_output
         ):
             print(f"[EDITOR] C# 项目配置 FAIL (exit={csproj_result.returncode})", file=sys.stderr)

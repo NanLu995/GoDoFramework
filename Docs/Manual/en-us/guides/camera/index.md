@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/camera/index.md
-translation_source_hash: sha256:60e34473db35dbac5049ec25d344efb119bc1f467fb2d84e64f89b0135e8cf39
+translation_source_hash: sha256:367182deac6423588b6c6852979846ca96177de588257fac524d4c4626c01a4e
 ---
 
 # Configure, Switch, and Restore the Main Camera
@@ -38,10 +38,10 @@ Obtain the third-party files from the [Phantom Camera page in the Godot Asset Li
 Enable the single **GoDo Framework** plugin, then open:
 
 ```text
-GoDo → 幻影相机配置 (Phantom Camera Settings)...
+GoDo Framework → Open GoDo Framework... → Editor Extensions → Phantom Camera
 ```
 
-The setup window checks the third-party and adapter files, the third-party version, and its enabled state. The adapter is currently verified against Phantom Camera 0.11. The Enable Phantom Camera button is available only when all required files exist, the version is exactly 0.11, and the third-party plugin is still disabled. Confirmation only enables the installed third-party plugin; it does not modify scenes, runtime configuration, or third-party source.
+The right-hand management page directly checks the third-party and adapter files, the third-party version, and its enabled state; it does not open a second setup window. **Recheck** reports completion in the hint area. The adapter is currently verified against Phantom Camera 0.11. The Enable Phantom Camera button is available only when all required files exist, the version is exactly 0.11, and the third-party plugin is still disabled. Confirmation only enables the installed third-party plugin; it does not modify scenes, runtime configuration, or third-party source.
 
 Observable result: when all three checks pass, the window reports Correctly Configured and disables the enable button. If it reports Needs Attention, follow the hint to restore missing files, use the verified version, or inspect the editor output. A different version is not automatically unusable, but an upgrade requires a fresh build, automated regression, and validation in a real camera scene. Only the third-party Phantom Camera plugin is enabled in Godot's plugin list; the GoDo adapter is not a second EditorPlugin.
 

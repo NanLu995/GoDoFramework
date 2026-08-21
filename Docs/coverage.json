@@ -11,7 +11,7 @@
         "guides/resources-and-scenes/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:028768b153ed42efdffa788c1abac3ccd0f0c4aae95b8db9f8ab8978a03fa84a"
+      "reviewed_contract_hash": "sha256:6a967ab182c37a4c3f6568730fb161a869f6da39da5840527511f00babdcfe7e"
     },
     "error-hub": {
       "contract": "addons/godo_framework/Core/ErrorHub/USAGE.md",
@@ -75,7 +75,7 @@
         "guides/input-rebinding/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:42cd28ad22be2c2695b322a5a511dad7a0ed1d959f0ab7a92b6edc846363c354"
+      "reviewed_contract_hash": "sha256:01faac3f5819a9d9aa15fa3ac7804b6486401b3635863fbe5656f8c246a13b66"
     },
     "friflo-ecs": {
       "contract": "addons/godo_framework/Integrations/FrifloEcs/USAGE.md",
@@ -86,7 +86,7 @@
         "guides/friflo-ecs/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:baef74b19f1c6bbc9fe56da5a3cf753c2f2c7109ff87f7b0378a68fc715cf821"
+      "reviewed_contract_hash": "sha256:b8519adf8d015167d92700673bf67148f1c68c52a3eac88da37ac27df7f0d935"
     },
     "phantom-camera": {
       "contract": "addons/godo_framework/Integrations/PhantomCamera/USAGE.md",
@@ -96,7 +96,7 @@
         "guides/camera/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:296d27171844c24a5c5ae63cbc80a2d71e23a2eccdbb6e569cc4753036a19ca1"
+      "reviewed_contract_hash": "sha256:bafcd32cc250264f9d95e2ecdb11263dbf32abe91946484ed5594415450a1005"
     },
     "audio": {
       "contract": "addons/godo_framework/Runtime/Audio/USAGE.md",
@@ -254,7 +254,7 @@
         "guides/diagnostics/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:108f17ac06df54888a0b29b24c3c3d1ffd7590bd6ef4dc5a8000383b527855c5"
+      "reviewed_contract_hash": "sha256:88e220027834469b1ce615d12b0cd879026ada048e4170ccdff20d3a07cf0ba0"
     },
     "data-table-runtime": {
       "contract": "addons/godo_framework/Runtime/DataTable/USAGE.md",
@@ -274,7 +274,7 @@
         "guides/data-tables/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:95b221b25378de1e3d1a0f4a581005eb4bee5770593330d495f79e47a45a3394"
+      "reviewed_contract_hash": "sha256:0fcdeac8b504879c52df46e7ef663dd5203aeadf18e4aefb3b0dba424ab87f7d"
     }
   }
 }

@@ -48,14 +48,19 @@ var _selected_field_item: TreeItem
 var _loading := false
 
 
-func open(context, schema_path: String, saved_callback: Callable) -> void:
+func open(
+	context,
+	window_parent: Window,
+	schema_path: String,
+	saved_callback: Callable
+) -> void:
 	_context = context
 	_schema_path = schema_path
 	_saved_callback = saved_callback
 	if not _load_schema():
 		return
 	if not is_instance_valid(_dialog):
-		_create_dialog()
+		_create_dialog(window_parent)
 	_populate_dataset()
 	_refresh_table_selector(0)
 	_dialog.popup_centered(Vector2i(1500, 900))
@@ -90,9 +95,10 @@ func _annotate_schema_for_editing() -> void:
 		table["_editor_original_source"] = str(table.get("source", ""))
 
 
-func _create_dialog() -> void:
+func _create_dialog(window_parent: Window) -> void:
 	_dialog = AcceptDialog.new()
-	_dialog.exclusive = false
+	_dialog.exclusive = true
+	_dialog.transient_to_focused = true
 	_dialog.title = "DataTable Schema 编辑器"
 	_dialog.ok_button_text = "关闭"
 	_dialog.min_size = Vector2i(1500, 900)
@@ -380,12 +386,16 @@ func _create_dialog() -> void:
 	save_button.pressed.connect(_save)
 
 	_remove_confirmation = ConfirmationDialog.new()
+	_remove_confirmation.exclusive = true
+	_remove_confirmation.transient_to_focused = true
 	_remove_confirmation.title = "确认移除"
 	_remove_confirmation.ok_button_text = "确认移除"
 	_remove_confirmation.cancel_button_text = "取消"
 	_dialog.add_child(_remove_confirmation)
 
 	_table_value_dialog = ConfirmationDialog.new()
+	_table_value_dialog.exclusive = true
+	_table_value_dialog.transient_to_focused = true
 	_table_value_dialog.ok_button_text = "确认修改"
 	_table_value_dialog.cancel_button_text = "取消"
 	_table_value_dialog.get_label().hide()
@@ -400,7 +410,7 @@ func _create_dialog() -> void:
 	_table_value_input.offset_top = 16
 	_table_value_input.offset_bottom = 48
 	_dialog.add_child(_table_value_dialog)
-	_context.get_editor_interface().get_base_control().add_child(_dialog)
+	window_parent.add_child(_dialog)
 
 
 func _add_line_setting(parent: GridContainer, title: String) -> LineEdit:

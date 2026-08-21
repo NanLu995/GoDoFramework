@@ -33,10 +33,10 @@ addons/godo_framework/Integrations/GuideInput/
 复制依赖后先让 Godot 完成文件扫描和全局脚本类型缓存，再完成一次 C# 编译。随后打开：
 
 ```text
-GoDo → GUIDE Input 设置...
+GoDo Framework → 打开 GoDo Framework... → 编辑器扩展 → GUIDE Input
 ```
 
-按照检查结果安装或修复。正常 Autoload 顺序为：
+右侧会直接显示状态报告、提示和操作；点击“重新检查”后提示栏会明确显示完成结果。按照检查结果安装或修复，不会再打开第二个设置窗口。正常 Autoload 顺序为：
 
 ```text
 GUIDE

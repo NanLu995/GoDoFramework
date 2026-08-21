@@ -86,7 +86,7 @@ python addons/godo_framework/Tools/DataTable/godo_datatable.py compare-manifests
 
 ## EditorPlugin
 
-启用唯一的 GoDo EditorPlugin 后，在顶部 `GoDo Framework` 菜单“数据表”分组中打开“数据表配置 (DataTable Configuration)...”。窗口默认查找 `res://DataTables/Base/.datatable.schema.json`，也可选择其他项目内 Schema；文件选择器会显示隐藏文件。选择结果按项目保存在 EditorSettings，不修改 `project.godot`。Python 留空时依次检测 `python3` 与 `python`，也可选择本机解释器文件。
+启用唯一的 GoDo EditorPlugin 后，打开 `GoDo Framework → 打开 GoDo Framework...`，再选择项目配置下方的独立“数据表”条目和“数据表配置 (DataTable Configuration)...”。窗口默认查找 `res://DataTables/Base/.datatable.schema.json`，也可选择其他项目内 Schema；文件选择器会显示隐藏文件。选择结果按项目保存在 EditorSettings，不修改 `project.godot`。Python 留空时依次检测 `python3` 与 `python`，也可选择本机解释器文件。
 
 首次使用可点击“新建 Schema”。菜单会创建一个最小可校验的数据集目录、`.datafiles/Example.csv` 和默认运行时输出位置，并直接打开可视化 Schema 编辑器。`.datafiles` 是工具管理的原始数据目录，保留 `.gdignore` 以明确阻止 Godot 把 CSV 导入为翻译；已有 Schema 仍可继续使用 `Authoring` 或其他安全相对路径。
 
@@ -98,7 +98,7 @@ Schema JSON 是工具维护的内部项目文件，不要求开发者手写；�
 
 保存前会在内存中完成 Schema、默认值、范围、外键和路径校验，再将 Schema、全部 CSV 表头及 `.gdignore` 作为同一事务提交；任何文件写入失败都会回滚已替换文件。字段或 CSV 文件改名会按原名称把已有列数据写入新 CSV，旧 CSV 会保留；只修改 CSV 路径不会递增 `schema_version`，真实表结构变化才会递增。重命名数据表 ID 或字段会同步更新指向它的外键；仍被外键引用的表、字段不允许移除。已有表引用的 CSV 若被意外删除，保存会拒绝创建空文件；应恢复 CSV 或从 Schema 移除该表，再执行“生成全部”清理旧 `.gdtb`。
 
-“校验全部数据”只读取并显示完整诊断。“数据表导出”行提供数据表 ID 下拉框、“导出当前表...”和“导出全部表...”：“导出当前表...”的确认窗口会列出目标 `.gdtb`、数据集元数据和聚合 C#；“导出全部表...”会先展示数据目录与 C# 文件并要求确认。外部 Python 在独立线程中执行，操作期间禁止并发 DataTable 命令；导出成功后通知 Godot 重新扫描文件。禁用插件时若命令仍在运行，会等待该进程结束并可靠回收线程。
+主窗口的 Schema 首行在路径与浏览控件后提供“校验 / 新建 / 编辑”三个紧凑按钮；“校验”只读取并显示全部数据的完整诊断。“数据表导出”行提供数据表 ID 下拉框、“导出当前表...”和“导出全部表...”：“导出当前表...”的确认窗口会列出目标 `.gdtb`、数据集元数据和聚合 C#；“导出全部表...”会先展示数据目录与 C# 文件并要求确认。外部 Python 在独立线程中执行，操作期间禁止并发 DataTable 命令；导出成功后通知 Godot 重新扫描文件。禁用插件时若命令仍在运行，会等待该进程结束并可靠回收线程。
 
 Windows 下编辑器诊断通过 `user://` 中单次使用的 ASCII/Base64 临时载荷传递，回到主线程后按 UTF-8 解码并立即删除，避免 Godot 子进程捕获按系统代码页产生乱码。该文件不位于项目目录、不参与导出；普通 Python CLI 输出保持不变。
 

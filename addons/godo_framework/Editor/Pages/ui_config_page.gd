@@ -9,10 +9,8 @@ var _validate_button: Button
 
 func setup(controller: RefCounted) -> void:
 	_controller = controller
+	_controller.config_paths_changed.connect(_on_config_paths_changed)
 	add_theme_constant_override("separation", 10)
-	var description := Label.new()
-	description.text = "项目内现有的 UiConfig。选择后可直接管理或校验。"
-	add_child(description)
 	_tree = Tree.new()
 	_tree.name = "GoDoUiConfigList"
 	_tree.hide_root = true
@@ -27,6 +25,11 @@ func setup(controller: RefCounted) -> void:
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 8)
 	add_child(actions)
+	var refresh_button := Button.new()
+	refresh_button.name = "GoDoUiConfigRefreshButton"
+	refresh_button.text = "刷新"
+	refresh_button.pressed.connect(_on_refresh_pressed)
+	actions.add_child(refresh_button)
 	var create_button := Button.new()
 	create_button.name = "GoDoUiConfigCreateButton"
 	create_button.text = "创建 UI 配置..."
@@ -36,6 +39,7 @@ func setup(controller: RefCounted) -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	actions.add_child(spacer)
 	_validate_button = Button.new()
+	_validate_button.name = "GoDoUiConfigValidateButton"
 	_validate_button.text = "校验选中项"
 	_validate_button.disabled = true
 	_validate_button.pressed.connect(_on_validate)
@@ -48,10 +52,20 @@ func setup(controller: RefCounted) -> void:
 	actions.add_child(_manage_button)
 
 
-func refresh() -> void:
+func dispose() -> void:
+	if (
+		is_instance_valid(_controller)
+		and _controller.config_paths_changed.is_connected(_on_config_paths_changed)
+	):
+		_controller.config_paths_changed.disconnect(_on_config_paths_changed)
+
+
+func refresh(preferred_path := "") -> void:
+	var path_to_select := preferred_path if not preferred_path.is_empty() else _selected_path()
 	_tree.clear()
 	var root := _tree.create_item()
 	var paths: PackedStringArray = _controller.find_config_paths()
+	var selected_item: TreeItem
 	if paths.is_empty():
 		var empty := _tree.create_item(root)
 		empty.set_text(0, "当前项目没有 UI 配置")
@@ -61,8 +75,20 @@ func refresh() -> void:
 			var item := _tree.create_item(root)
 			item.set_text(0, path)
 			item.set_metadata(0, path)
-	_manage_button.disabled = true
-	_validate_button.disabled = true
+			if path == path_to_select:
+				selected_item = item
+	if selected_item != null:
+		_tree.set_selected(selected_item, 0)
+		_tree.scroll_to_item(selected_item)
+	_on_selected()
+
+
+func _on_config_paths_changed(preferred_path: String) -> void:
+	refresh(preferred_path)
+
+
+func _on_refresh_pressed() -> void:
+	refresh()
 
 
 func _on_selected() -> void:

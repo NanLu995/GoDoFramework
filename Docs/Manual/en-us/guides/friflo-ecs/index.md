@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/friflo-ecs/index.md
-translation_source_hash: sha256:ed2095794e2f2d3c00018f1def3ee3a24502db7d02d280d807e4b0d42e656d56
+translation_source_hash: sha256:1ed8c40382e4ee60f3fb4e0d631d5ec5d6f08e47b3a24dc56891e4a1382b6298
 ---
 
 # Batch Scene Data with Friflo ECS
@@ -23,7 +23,7 @@ Add the verified version to the target `.csproj`:
 
 Use the [official NuGet version page](https://www.nuget.org/packages/Friflo.Engine.ECS/3.6.0) to verify `3.6.0` and the exact `PackageReference`. **View NuGet package...** only opens that page. The tool never downloads the assembly; the package is obtained by the subsequent restore/build.
 
-Alternatively, first run **Friflo ECS dependency check...** under `GoDo Framework → Open GoDo Framework... → Editor extensions`. **Add dependency...** is available only when the root contains exactly one ordinary `.csproj`, the reference is missing, and no `Directory.Packages.props` is detected. The confirmation shows the actual project file and exact `PackageReference`. On confirmation, the tool creates a non-overwriting `.godo-backup` beside the project, writes the reference, and checks again; existing backup names receive an incrementing suffix.
+Alternatively, open `GoDo Framework → Open GoDo Framework... → Editor Extensions → Friflo ECS`; its dependency report, hint, and actions appear directly on the right. Recheck, official-source, and installation results use the hint area. **Add dependency...** is available only when the root contains exactly one ordinary `.csproj`, the reference is missing, and no `Directory.Packages.props` is detected. The confirmation shows the actual project file and exact `PackageReference`. On confirmation, the tool creates a non-overwriting `.godo-backup` beside the project, writes the reference, and checks again; existing backup names receive an incrementing suffix.
 
 After either manual or assisted editing, run restore/build yourself and reopen Godot. The tool does not build the project or download packages. Multiple projects, central package management, MSBuild variable versions, conditional references, and malformed XML remain read-only and are reported for manual handling.
 

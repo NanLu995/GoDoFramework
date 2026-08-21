@@ -16,7 +16,7 @@ const SUPPORTED_GUIDE_VERSION := "0.13.0"
 const SUPPORTED_GUIDE_CS_VERSION := "0.3.7--0.13.0"
 const VERIFIED_RELEASE_URL := "https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7"
 
-var _dialog: AcceptDialog
+var _page: VBoxContainer
 var _confirmation: ConfirmationDialog
 var _report: RichTextLabel
 var _repair_button: Button
@@ -26,32 +26,21 @@ var _context
 
 func activate(context) -> Error:
 	_context = context
-	return _context.add_menu_action("settings", "输入映射配置 (GUIDE Input Settings)...", _open_dialog)
+	return _context.register_embedded_page(_create_page, _refresh)
 
 
 func deactivate() -> void:
-	if is_instance_valid(_dialog):
-		_dialog.queue_free()
-	_dialog = null
+	_page = null
 	_confirmation = null
+	_report = null
+	_repair_button = null
+	_message_label = null
 	_context = null
 
 
-func _create_dialogs() -> void:
-	_dialog = AcceptDialog.new()
-	_dialog.title = "GoDo GUIDE Input 设置"
-	_dialog.ok_button_text = "关闭"
-	_dialog.min_size = Vector2i(720, 460)
-	_dialog.get_label().hide()
-
-	var content := VBoxContainer.new()
-	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	content.offset_left = 16
-	content.offset_top = 16
-	content.offset_right = -16
-	content.offset_bottom = -56
-	content.add_theme_constant_override("separation", 10)
-	_dialog.add_child(content)
+func _create_page() -> Control:
+	_page = VBoxContainer.new()
+	_page.add_theme_constant_override("separation", 10)
 
 	_report = RichTextLabel.new()
 	_report.name = "GuideInputReport"
@@ -59,28 +48,43 @@ func _create_dialogs() -> void:
 	_report.fit_content = false
 	_report.scroll_active = true
 	_report.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_child(_report)
+	_page.add_child(_report)
 
 	_message_label = RichTextLabel.new()
 	_message_label.name = "GuideInputMessage"
 	_message_label.bbcode_enabled = true
-	_message_label.custom_minimum_size.y = 44
+	_message_label.custom_minimum_size.y = 48
 	_message_label.scroll_active = false
 	_message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	content.add_child(_message_label)
+	_page.add_child(_message_label)
 
-	var refresh_button := _dialog.add_button("重新检查", true)
-	var source_button := _dialog.add_button("打开已验证版本...", true)
+	var actions := HBoxContainer.new()
+	actions.name = "GuideInputActions"
+	actions.add_theme_constant_override("separation", 8)
+	_page.add_child(actions)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.add_child(spacer)
+	var refresh_button := Button.new()
+	refresh_button.name = "GuideInputRefreshButton"
+	refresh_button.text = "重新检查"
+	actions.add_child(refresh_button)
+	var source_button := Button.new()
+	source_button.text = "打开已验证版本..."
 	source_button.name = "GuideInputOfficialSourceButton"
 	source_button.tooltip_text = VERIFIED_RELEASE_URL
-	_repair_button = _dialog.add_button("安装 / 修复顺序...", true)
+	actions.add_child(source_button)
+	_repair_button = Button.new()
+	_repair_button.text = "安装 / 修复顺序..."
 	_repair_button.name = "GuideInputRepairButton"
-	refresh_button.pressed.connect(_refresh)
+	actions.add_child(_repair_button)
+	refresh_button.pressed.connect(_on_refresh_pressed)
 	source_button.pressed.connect(_open_official_source)
 	_repair_button.pressed.connect(_request_repair)
-	_context.get_editor_interface().get_base_control().add_child(_dialog)
 
 	_confirmation = ConfirmationDialog.new()
+	_confirmation.exclusive = true
+	_confirmation.transient_to_focused = true
 	_confirmation.title = "安装 / 修复 GUIDE Input"
 	_confirmation.dialog_text = (
 		"将依次启用基础 GUIDE 与 GUIDE-CSharp，并把相关 Autoload 调整为：\n\n"
@@ -88,14 +92,12 @@ func _create_dialogs() -> void:
 		+ "只修改项目插件与 Autoload 配置，不修改第三方源码。"
 	)
 	_confirmation.confirmed.connect(_perform_repair)
-	_dialog.add_child(_confirmation)
+	_page.add_child(_confirmation)
+	return _page
 
 
-func _open_dialog() -> void:
-	if not is_instance_valid(_dialog):
-		_create_dialogs()
-	_refresh()
-	_dialog.popup_centered(Vector2i(720, 460))
+func _on_refresh_pressed() -> void:
+	_refresh("重新检查完成。", "#8bd49c")
 
 
 func _refresh(message: String = "", message_color: String = "") -> void:

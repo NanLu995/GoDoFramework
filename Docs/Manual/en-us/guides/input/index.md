@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/input/index.md
-translation_source_hash: sha256:ef104a0666467c7fd89c0eb76fd5d8b2c76bc11094f3a6f43d85ceb5776115ad
+translation_source_hash: sha256:afc0b5d5ed26b472dd1a958de09b2fd1048ac0d450f18251964f4bb526ba9f55
 ---
 
 # Read Semantic Input and Manage Contexts
@@ -38,10 +38,10 @@ The verified combination is GUIDE `0.13.0` with GUIDE-CSharp `0.3.7--0.13.0`. Ob
 After copying dependencies, let Godot finish scanning files and rebuilding its global script-class cache, then complete one C# build. Open:
 
 ```text
-GoDo → GUIDE Input Setup...
+GoDo Framework → Open GoDo Framework... → Editor Extensions → GUIDE Input
 ```
 
-Install or repair according to the checks. The normal Autoload order is:
+The status report, hint, and actions appear directly on the right-hand page without a second setup window. **Recheck** reports completion in the hint area. Install or repair according to the checks. The normal Autoload order is:
 
 ```text
 GUIDE

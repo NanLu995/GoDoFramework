@@ -36,10 +36,10 @@ addons/godo_framework/Integrations/GuideInput/
 新游戏项目不要在第三方文件完成扫描前预启用插件或预写 GUIDE Autoload。复制依赖并等待 Godot 文件扫描完成后，打开：
 
 ```text
-GoDo → GUIDE Input 设置...
+GoDo Framework → 打开 GoDo Framework... → 编辑器扩展 → GUIDE Input
 ```
 
-当前适配器验证的组合是 GUIDE `0.13.0` 与 GUIDE-CSharp `0.3.7--0.13.0`，安装后目录必须为 `addons/guideCS/`。设置窗口提供对应的 [官方 GitHub Release](https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7)，但不会自动下载、解压或覆盖第三方文件；开发者完成安装后再点击“重新检查”。Godot 商店当前提供的 `0.3.7--0.14.0` 被发布者标记为 unstable，且下载包内基础 GUIDE 仍声明 `0.13.0`，因此本版本暂不把它列为已验证依赖。版本不匹配时，工具会保持只读，不执行插件与 Autoload 修复。
+当前适配器验证的组合是 GUIDE `0.13.0` 与 GUIDE-CSharp `0.3.7--0.13.0`，安装后目录必须为 `addons/guideCS/`。右侧管理页提供对应的 [官方 GitHub Release](https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7)，但不会自动下载、解压或覆盖第三方文件；开发者完成安装后再点击“重新检查”，提示栏会明确显示检查已完成。Godot 商店当前提供的 `0.3.7--0.14.0` 被发布者标记为 unstable，且下载包内基础 GUIDE 仍声明 `0.13.0`，因此本版本暂不把它列为已验证依赖。版本不匹配时，工具会保持只读，不执行插件与 Autoload 修复。
 
 设置工具由 `Integrations/GuideInput/godo_editor_extension.cfg` 声明，并由唯一的 `GoDo Framework` EditorPlugin 加载；本适配包不再提供第二个 `plugin.cfg`。它只在编辑器运行，不进入 Release，检查第三方文件、文件扫描、`GUIDEActionMapping` 全局脚本类型、插件状态、Autoload 路径和顺序；只有不存在同名路径冲突时，才允许用户明确确认安装或修复。
 

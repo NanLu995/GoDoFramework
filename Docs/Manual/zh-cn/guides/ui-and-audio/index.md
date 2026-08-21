@@ -24,7 +24,7 @@ UI PackedScene 根节点必须继承 `Control`。世界空间血条、Node2D/Nod
 
 ## 2. 用 UiConfig 集中维护界面
 
-在 Godot Inspector 中新建 `UiConfig` Resource。展开 `Entries`，为每个 `UiConfigEntry` 填写：
+可以在 Godot Inspector 中新建 `UiConfig` Resource，也可以从 GoDo Framework 统一窗口进入 UI 配置管理。管理表格使用 `Id / Scene / Layer / Instance Mode / Reuse / Status`，其中 `Reuse` 显示 `True / False`；新增、编辑和删除成功后都会重新读取磁盘配置。展开 `Entries` 后，每个 `UiConfigEntry` 包含：
 
 - `Id`：业务使用的语义标识。
 - `Locator`：通过文件选择器指定 UI PackedScene。

@@ -20,7 +20,7 @@
 
 然后叠加 `GoDoFramework-FrifloEcs-<version>.zip`（或复制 `addons/godo_framework/Integrations/FrifloEcs/`），再重新执行 restore/build。独立发布包包含适配源码与上游 MIT `LICENSE`，不内置 NuGet 程序集。
 
-启用 GoDo EditorPlugin 后，可在统一窗口的“编辑器扩展”页打开“Friflo ECS 依赖检查...”。检查器读取项目根目录的 `.csproj` 与可选 `Directory.Packages.props`，识别直接 `PackageReference` 和中央 `PackageVersion`；缺少引用、版本不符、MSBuild 变量、多个项目或损坏 XML 都会明确报告。
+启用 GoDo EditorPlugin 后，在统一窗口选择“编辑器扩展 → Friflo ECS”，右侧会直接显示依赖报告、独立提示栏与操作；重新检查、打开官网和安装结果都在提示栏反馈。检查器读取项目根目录的 `.csproj` 与可选 `Directory.Packages.props`，识别直接 `PackageReference` 和中央 `PackageVersion`；缺少引用、版本不符、MSBuild 变量、多个项目或损坏 XML 都会明确报告。
 
 仅当根目录恰好存在一个普通 `.csproj`、依赖确实缺失且未检测到中央包管理时，“添加依赖...”才可用。确认窗口会显示目标文件与待写入的精确 `PackageReference`；写入前在同目录创建不覆盖旧文件的 `.godo-backup` 备份，已有备份时递增编号，并在写入后重新检查。工具不执行 restore/build，也不自动处理中央包管理、多个项目、变量版本、条件引用或损坏 XML；这些情况保持只读并交由项目维护者处理。
 
@@ -98,5 +98,5 @@ Friflo 的 System 性能监控有自身运行成本，因此 Debugger 不会调�
 - 核心隔离：使用 `-p:GoDoIncludeFrifloEcs=false` 编译，确认核心不依赖 Friflo。
 - 生命周期与诊断：运行 `Verification/Automated/FrifloEcsRegression.tscn`，覆盖 Process、Physics、暂停、幂等关闭、重新进入场景树、Debug 注册与快照、性能读取和 Debugger ECS 页面渲染。
 - 性能：运行 `Verification/Performance/FrifloEcsBenchmark.tscn`，覆盖 1 万/10 万实体稳态更新与当前线程托管分配。
-- 项目依赖：运行 `Verification/Automated/FrifloEcsProjectDependencyRegression.gd`，覆盖直接引用、中央包版本、缺失/错误/变量版本、多个项目、条件引用、损坏 XML、确认安装、非覆盖备份、重复安装拒绝与中央管理写入拦截；`EditorExtensionUiRegression.gd` 验证统一窗口入口、安装按钮和确认预览。
+- 项目依赖：运行 `Verification/Automated/FrifloEcsProjectDependencyRegression.gd`，覆盖直接引用、中央包版本、缺失/错误/变量版本、多个项目、条件引用、损坏 XML、确认安装、非覆盖备份、重复安装拒绝与中央管理写入拦截；`EditorExtensionUiRegression.gd` 验证右侧内嵌管理页、安装按钮和确认预览。
 - Android、其他桌面平台、导出包和大规模实体性能仍待后续验证。

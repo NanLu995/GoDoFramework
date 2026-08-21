@@ -4,6 +4,7 @@ const CONTROLLER_SCRIPT := preload(
 	"res://addons/godo_framework/Editor/godo_ui_config_controller.gd")
 const VALID_CONFIG_PATH := "res://Verification/Automated/Fixtures/UI/UiConfigValid.tres"
 const INVALID_ROOT_PATH := "res://Verification/Automated/Fixtures/UI/UiInvalidRoot.tscn"
+const TEMP_CONFIG_PATH := "user://godo_ui_config_editor_regression.tres"
 
 
 func _initialize() -> void:
@@ -175,11 +176,70 @@ func _initialize() -> void:
 	if config_warnings.is_empty():
 		_fail("包含重复 Locator 的配置没有返回 Warning")
 		return
+	if not _verify_entry_persistence(controller):
+		return
 
 	print("[UiConfigEditorControllerRegression] PASS")
+	_cleanup_temp_config()
 	quit(0)
 
 
+func _verify_entry_persistence(controller: RefCounted) -> bool:
+	_cleanup_temp_config()
+	var config: Resource = controller._instantiate_csharp_resource(
+		"res://addons/godo_framework/Runtime/UI/UiConfig.cs")
+	var entry: Resource = controller._instantiate_csharp_resource(
+		"res://addons/godo_framework/Runtime/UI/UiConfigEntry.cs")
+	if config == null or entry == null:
+		_fail("无法实例化 UiConfig 持久化回归资源")
+		return false
+	entry.set("Id", "ui/regression_original")
+	entry.set("Locator", "res://Verification/Automated/Fixtures/UI/UiControlA.tscn")
+	entry.set("Layer", 1)
+	entry.set("InstanceMode", 0)
+	entry.set("ReuseInstance", false)
+	var persisted_entries = controller._copy_entries(controller._get_entries(config))
+	persisted_entries.append(entry)
+	config.set("Entries", persisted_entries)
+	config = controller._save_config_and_reload(config, TEMP_CONFIG_PATH)
+	if config == null:
+		_fail("新增 UI 条目保存后校验失败：%s" % controller._config_persistence_error)
+		return false
+	persisted_entries = controller._get_entries(config)
+	if persisted_entries.size() != 1 or persisted_entries[0].get("Id") != "ui/regression_original":
+		_fail("新增 UI 条目重新加载后丢失")
+		return false
+	if not controller._validate_config(config).is_empty():
+		_fail("新增 UI 条目保存后校验没有读取到有效磁盘条目")
+		return false
+
+	var updated_entries = controller._copy_entries(persisted_entries)
+	var updated_entry: Resource = persisted_entries[0].duplicate()
+	updated_entry.set("Id", "ui/regression_edited")
+	updated_entries[0] = updated_entry
+	config.set("Entries", updated_entries)
+	config = controller._save_config_and_reload(config, TEMP_CONFIG_PATH)
+	if config == null or controller._get_entries(config)[0].get("Id") != "ui/regression_edited":
+		_fail("编辑 UI 条目重新加载后没有保留")
+		return false
+
+	updated_entries = controller._copy_entries(controller._get_entries(config))
+	updated_entries.remove_at(0)
+	config.set("Entries", updated_entries)
+	config = controller._save_config_and_reload(config, TEMP_CONFIG_PATH)
+	if config == null or not controller._get_entries(config).is_empty():
+		_fail("删除 UI 条目重新加载后没有保留")
+		return false
+	return true
+
+
+func _cleanup_temp_config() -> void:
+	var absolute_path := ProjectSettings.globalize_path(TEMP_CONFIG_PATH)
+	if FileAccess.file_exists(absolute_path):
+		DirAccess.remove_absolute(absolute_path)
+
+
 func _fail(message: String) -> void:
+	_cleanup_temp_config()
 	push_error("[UiConfigEditorControllerRegression] FAIL: %s" % message)
 	quit(1)

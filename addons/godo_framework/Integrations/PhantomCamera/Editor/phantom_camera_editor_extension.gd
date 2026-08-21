@@ -14,7 +14,7 @@ const REQUIRED_FILES := [
 ]
 
 var _context
-var _dialog: AcceptDialog
+var _page: VBoxContainer
 var _confirmation: ConfirmationDialog
 var _report: RichTextLabel
 var _enable_button: Button
@@ -23,70 +23,72 @@ var _message_label: RichTextLabel
 
 func activate(context) -> Error:
 	_context = context
-	return _context.add_menu_action("status", "幻影相机配置 (Phantom Camera Settings)...", _open_dialog)
+	return _context.register_embedded_page(_create_page, _refresh)
 
 
 func deactivate() -> void:
-	if is_instance_valid(_dialog):
-		_dialog.queue_free()
-	_dialog = null
+	_page = null
 	_confirmation = null
+	_report = null
+	_enable_button = null
+	_message_label = null
 	_context = null
 
 
-func _open_dialog() -> void:
-	if not is_instance_valid(_dialog):
-		_create_dialogs()
-	_refresh()
-	_dialog.popup_centered(Vector2i(680, 400))
-
-
-func _create_dialogs() -> void:
-	_dialog = AcceptDialog.new()
-	_dialog.title = "GoDo Phantom Camera 设置"
-	_dialog.ok_button_text = "关闭"
-	_dialog.min_size = Vector2i(680, 400)
-	_dialog.get_label().hide()
-
-	var content := VBoxContainer.new()
-	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	content.offset_left = 16
-	content.offset_top = 16
-	content.offset_right = -16
-	content.offset_bottom = -56
-	content.add_theme_constant_override("separation", 10)
-	_dialog.add_child(content)
+func _create_page() -> Control:
+	_page = VBoxContainer.new()
+	_page.add_theme_constant_override("separation", 10)
 
 	_report = RichTextLabel.new()
 	_report.name = "PhantomCameraReport"
 	_report.bbcode_enabled = true
 	_report.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_child(_report)
+	_page.add_child(_report)
 
 	_message_label = RichTextLabel.new()
 	_message_label.name = "PhantomCameraMessage"
 	_message_label.bbcode_enabled = true
-	_message_label.custom_minimum_size.y = 44
+	_message_label.custom_minimum_size.y = 48
 	_message_label.scroll_active = false
 	_message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	content.add_child(_message_label)
+	_page.add_child(_message_label)
 
-	var refresh_button := _dialog.add_button("重新检查", true)
-	var source_button := _dialog.add_button("打开 Godot 商店...", true)
+	var actions := HBoxContainer.new()
+	actions.name = "PhantomCameraActions"
+	actions.add_theme_constant_override("separation", 8)
+	_page.add_child(actions)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.add_child(spacer)
+	var refresh_button := Button.new()
+	refresh_button.name = "PhantomCameraRefreshButton"
+	refresh_button.text = "重新检查"
+	actions.add_child(refresh_button)
+	var source_button := Button.new()
+	source_button.text = "打开 Godot 商店..."
 	source_button.name = "PhantomCameraOfficialSourceButton"
 	source_button.tooltip_text = ASSET_LIBRARY_URL
-	_enable_button = _dialog.add_button("启用 Phantom Camera...", true)
+	actions.add_child(source_button)
+	_enable_button = Button.new()
+	_enable_button.text = "启用 Phantom Camera..."
 	_enable_button.name = "PhantomCameraEnableButton"
-	refresh_button.pressed.connect(_refresh)
+	actions.add_child(_enable_button)
+	refresh_button.pressed.connect(_on_refresh_pressed)
 	source_button.pressed.connect(_open_official_source)
 	_enable_button.pressed.connect(_request_enable)
-	_context.get_editor_interface().get_base_control().add_child(_dialog)
 
 	_confirmation = ConfirmationDialog.new()
+	_confirmation.exclusive = true
+	_confirmation.transient_to_focused = true
 	_confirmation.title = "启用 Phantom Camera"
 	_confirmation.dialog_text = "只启用已安装的第三方 Phantom Camera 编辑器插件，不修改场景、运行时配置或第三方源码。"
 	_confirmation.confirmed.connect(_enable_plugin)
-	_dialog.add_child(_confirmation)
+	_page.add_child(_confirmation)
+	return _page
+
+
+func _on_refresh_pressed() -> void:
+	_refresh("重新检查完成。", "#8bd49c")
 
 
 func _refresh(message: String = "", message_color: String = "") -> void:

@@ -129,9 +129,9 @@ public partial class FrameworkProbe : Node
 
 | 集成 | 安装入口 | 核心是否依赖 |
 |---|---|---:|
-| GUIDE Input | 统一窗口“编辑器扩展”页中的“输入映射配置 (GUIDE Input Settings)...” | 否 |
-| Phantom Camera | 统一窗口“编辑器扩展”页中的“幻影相机配置 (Phantom Camera Settings)...” | 否 |
-| DataTable | 统一窗口“编辑器扩展”页中的“数据表配置 (DataTable Configuration)...” | 否，开发期工具 |
+| GUIDE Input | 统一窗口“编辑器扩展 → GUIDE Input”右侧管理页 | 否 |
+| Phantom Camera | 统一窗口“编辑器扩展 → Phantom Camera”右侧管理页 | 否 |
+| DataTable | 统一窗口“项目配置”下方的独立“数据表”条目 | 否，开发期工具 |
 
 禁用或不复制可选集成不会改变 GoDoRuntime 的核心初始化。对应业务代码必须避免引用未安装集成的类型。
 

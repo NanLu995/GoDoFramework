@@ -42,6 +42,12 @@ func _enter_tree() -> void:
 		_resource_manifest_controller,
 		_ui_config_controller,
 		_editor_extension_host)
+	var framework_dialog: Window = _framework_window.get_window()
+	_runtime_setup_controller.set_window_parent(framework_dialog)
+	_csproj_controller.set_window_parent(framework_dialog)
+	_resource_manifest_controller.set_window_parent(framework_dialog)
+	_ui_config_controller.set_window_parent(framework_dialog)
+	_editor_extension_host.set_window_parent(framework_dialog)
 	add_control_to_container(CONTAINER_TOOLBAR, _toolbar_menu_button)
 
 

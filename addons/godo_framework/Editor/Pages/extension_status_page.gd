@@ -3,15 +3,22 @@ extends VBoxContainer
 
 var _host: RefCounted
 var _content: VBoxContainer
+var _extension_id := ""
+var _show_actions := true
+var _menu_section := ""
 
 
-func setup(host: RefCounted) -> void:
+func setup(
+	host: RefCounted,
+	extension_id := "",
+	show_actions := true,
+	menu_section := ""
+) -> void:
 	_host = host
+	_extension_id = extension_id
+	_show_actions = show_actions
+	_menu_section = menu_section
 	add_theme_constant_override("separation", 10)
-	var description := Label.new()
-	description.text = "查看编辑器扩展加载状态，并打开各扩展提供的独立工具。"
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	add_child(description)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(scroll)
@@ -25,7 +32,14 @@ func refresh() -> void:
 	for child in _content.get_children():
 		_content.remove_child(child)
 		child.queue_free()
-	var statuses: Array[Dictionary] = _host.get_statuses()
+	var all_statuses: Array[Dictionary] = _host.get_statuses()
+	var statuses: Array[Dictionary] = []
+	for status in all_statuses:
+		if (
+			(_extension_id.is_empty() or status.id == _extension_id)
+			and (_menu_section.is_empty() or status.menu_section == _menu_section)
+		):
+			statuses.append(status)
 	if statuses.is_empty():
 		var empty := Label.new()
 		empty.text = "未发现可选编辑器扩展。"
@@ -36,7 +50,9 @@ func refresh() -> void:
 			label.text = "[%s] %s：%s" % ["正常" if status.healthy else "错误", status.name, status.detail]
 			label.modulate = Color("#8bd49c") if status.healthy else Color("#ff6b6b")
 			_content.add_child(label)
-	var actions: Array[Dictionary] = _host.get_actions()
+	var actions: Array[Dictionary] = []
+	if _show_actions:
+		actions = _host.get_actions(_extension_id)
 	if not actions.is_empty():
 		_content.add_child(HSeparator.new())
 	for action in actions:

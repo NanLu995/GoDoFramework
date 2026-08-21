@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/install-upgrade-uninstall.md
-translation_source_hash: sha256:53d472eb56be081673020cda3a8c72ba1be2663315f032d73a7d6f0cac82c30e
+translation_source_hash: sha256:d81a0f7baff84238f87bdeb4ad84987c0b08f60883d6549dc9b0103fed2bd0cb
 ---
 
 # Install, Upgrade, and Uninstall the Framework
@@ -134,9 +134,9 @@ Enable integrations only after core setup. Each has an independent health check 
 
 | Integration | Setup entry | Required by core |
 |---|---|---:|
-| GUIDE Input | `输入映射配置 (GUIDE Input Settings)...` on the unified window's Editor Extensions page | No |
-| Phantom Camera | `幻影相机配置 (Phantom Camera Settings)...` on the unified window's Editor Extensions page | No |
-| DataTable | `数据表配置 (DataTable Configuration)...` on the unified window's Editor Extensions page | No; development-time tool |
+| GUIDE Input | The `Editor Extensions → GUIDE Input` management page in the unified window | No |
+| Phantom Camera | The `Editor Extensions → Phantom Camera` management page in the unified window | No |
+| DataTable | The standalone `数据表` entry below Project Configuration | No; development-time tool |
 
 Disabling or omitting an optional integration does not change core GoDoRuntime initialization. Game code must not reference an integration type that is not installed.
 

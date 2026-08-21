@@ -2,7 +2,7 @@
 
 ## 定位
 
-本插件是 GoDo 的项目安装助手、健康检查工具、资源清单与 UI 配置管理入口，以及编辑器扩展宿主。顶部 `GoDo Framework` 只有一个打开入口；统一窗口通过左侧导航管理 Runtime、C# 项目、ResourceManifest、UiConfig 与编辑器扩展。DataTable 离线编译前端及编辑器入口详见 `Tools/DataTable/USAGE.md`。这些工具不创建业务场景或 UI，也不参与导出后的游戏运行。
+本插件是 GoDo 的项目安装助手、健康检查工具、资源清单与 UI 配置管理入口，以及编辑器扩展宿主。顶部 `GoDo Framework` 只有一个打开入口；统一窗口通过左侧导航管理项目配置（Runtime 与 C#）、DataTable、ResourceManifest、UiConfig 与编辑器扩展。DataTable 在项目配置下方使用独立条目；输入、相机和 ECS 等已安装扩展按清单动态显示在“编辑器扩展”分组下。DataTable 离线编译前端及编辑器入口详见 `Tools/DataTable/USAGE.md`。这些工具不创建业务场景或 UI，也不参与导出后的游戏运行。
 
 EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其他运行时模块；Runtime 不反向依赖插件。
 
@@ -12,7 +12,7 @@ EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其�
 
 核心框架的分发单元是排除 `Integrations/` 的 `addons/godo_framework/` 目录。核心 ZIP 保留运行时、编辑器资源与 DataTable 编译前端，排除 Markdown 文档；GUIDE Input、Phantom Camera 与 Friflo ECS 适配以独立 ZIP 保留原路径，按需叠加到已安装的核心目录。Friflo ECS 包额外保留上游 MIT `LICENSE`，但不内置 NuGet 程序集；目标项目必须自行声明对应依赖。发布物不包含当前仓库的 Demo、测试脚本、`.godot/`、`bin/`、`obj/`、根目录 `.csproj`、解决方案文件或 `project.godot`。使用说明以 GitHub 仓库中的对应文档为准。
 
-框架不接管目标项目配置：不会创建 `.csproj` 或解决方案，不修改输入映射、导出预设和业务场景，也不会在启用插件时自动写入 Autoload。用户可在“项目配置 → C# 项目”中确认补齐 GoDo 自有的可选集成条件编译与 Release Debugger 裁剪；SDK、目标框架、Android 配置、程序集名称、NuGet 版本和其他构建配置始终由目标项目维护。框架会自动注册游戏导出过滤器：Debug 与 Release 导出都排除 `Editor/` 和 `Tools/`；Release 额外排除 `Debugger/`，Debug 保留游戏内 Debugger。
+框架不接管目标项目配置：不会创建 `.csproj` 或解决方案，不修改输入映射、导出预设和业务场景，也不会在启用插件时自动写入 Autoload。用户可在“项目配置”的统一检查结果中确认补齐 GoDo 自有的可选集成条件编译与 Release Debugger 裁剪；SDK、目标框架、Android 配置、程序集名称、NuGet 版本和其他构建配置始终由目标项目维护。框架会自动注册游戏导出过滤器：Debug 与 Release 导出都排除 `Editor/` 和 `Tools/`；Release 额外排除 `Debugger/`，Debug 保留游戏内 Debugger。
 
 ### 首次迁移
 
@@ -38,22 +38,26 @@ EditorPlugin 只依赖 Godot Editor API，不依赖 Services、ErrorHub 或其�
 ## 启用与检查
 
 1. 在“项目设置 → 插件”中启用 `GoDo Framework`。
-2. 打开顶部 `GoDo Framework → 打开 GoDo Framework...`，在“项目配置 → Runtime”中打开配置窗口。
+2. 打开顶部 `GoDo Framework → 打开 GoDo Framework...`，进入“项目配置”。
 3. 查看 GoDoFramework 版本、Godot 兼容性、Runtime 场景、Autoload 和重复注册检查结果。
 
 启用插件只增加工具菜单，不修改 Autoload。禁用插件只移除菜单和对话框，不卸载 Runtime。
 
+统一窗口是可手动关闭的非模态根工具窗口。由它打开的管理窗口，以及管理窗口继续打开的文件选择、编辑、确认和文本提示窗口，都以当前焦点窗口作为 transient 父级并使用 exclusive 模态层级：根窗口始终位于 GoDo 窗口栈底部，同一时间只有最上层窗口接收输入；取消或关闭后焦点逐层返回，不会隐藏、关闭或压低下面的 GoDo 窗口。该层级同时适配编辑器的单窗口与多窗口模式；插件不启用全局置顶，因此切换到其他应用时不会强制覆盖其他应用窗口。
+
 ### 可选编辑器扩展
 
-宿主只在插件进入树时扫描一次 `res://addons/`、`res://addons/godo_framework/Integrations/` 与 `res://addons/godo_framework/Tools/` 的一级子目录，并读取固定名称 `godo_editor_extension.cfg`；未安装可选集成时，缺失的 `Integrations/` 目录会被静默忽略。扫描不递归、不轮询，也不使用 `_Process()`。清单必须提供唯一 `id`、显示名、精确匹配的宿主 API 版本和位于同一包目录内的 GDScript。清单按 `menu_section`、`menu_order`、扩展 ID 分组和排序：`data_tables` 归入“数据表”，其他扩展归入“编辑器扩展”。单个扩展失败只记录到“编辑器扩展状态...”，不阻断核心菜单或其他扩展。
+宿主只在插件进入树时扫描一次 `res://addons/`、`res://addons/godo_framework/Integrations/` 与 `res://addons/godo_framework/Tools/` 的一级子目录，并读取固定名称 `godo_editor_extension.cfg`；未安装可选集成时，缺失的 `Integrations/` 目录会被静默忽略。扫描不递归、不轮询，也不使用 `_Process()`。清单必须提供唯一 `id`、显示名、精确匹配的宿主 API 版本和位于同一包目录内的 GDScript。清单按 `menu_section`、`menu_order`、扩展 ID 分组和排序：`data_tables` 在统一窗口中作为项目配置下方的独立条目，其他扩展按显示名成为“编辑器扩展”子条目；未安装的可选扩展不会生成空导航项。GUIDE Input、Phantom Camera 与 Friflo ECS 的报告、提示和操作直接嵌入各自右侧页面，不再保留额外的“状态”条目或主设置弹窗；需要写入项目时仍显示最上层模态确认。单个扩展失败会在自己的条目中显示加载错误，不阻断核心入口或其他扩展。
 
-扩展加载只允许注册菜单和延迟创建编辑器窗口，不等于安装运行时依赖。插件启用、Autoload 等项目修改仍由对应扩展先只读检查、展示确认，再执行幂等修改。宿主退出时按相反顺序停用扩展并清理菜单、信号和窗口。扩展宿主与控制器不进入游戏生命周期，Release 不产生每帧调用或托管分配。
+扩展加载只允许注册宿主管理页或显式工具操作，不等于安装运行时依赖。插件启用、Autoload 等项目修改仍由对应扩展先只读检查、展示确认，再执行幂等修改。宿主退出时按相反顺序停用扩展并清理页面、信号和窗口。扩展宿主与控制器不进入游戏生命周期，Release 不产生每帧调用或托管分配。
 
 Friflo ECS 扩展检查根目录 `.csproj` 与可选 `Directory.Packages.props`，识别直接和中央 NuGet 版本，并报告缺少引用、版本不符或无法确定的项目结构。只有根目录唯一普通项目缺少依赖且未使用中央包管理时，用户才能在精确预览后确认写入；扩展先创建非覆盖 `.godo-backup` 备份，写入后重新检查。多个项目、中央包管理、变量/条件版本和损坏 XML 保持只读，扩展也不执行 restore/build。
 
 ### C# 项目配置
 
-“项目配置 → C# 项目”只检查当前已安装框架模块需要的规则：GUIDE Input、Phantom Camera、Friflo ECS 的存在检测与 `Compile Remove`，以及 Release / ExportRelease 下的 Debugger 裁剪。普通单项目缺项时可经精确预览确认修复；写入前创建非覆盖 `.godo-backup`，写入后重新解析检查。工具不添加 NuGet 包，不复制 Demo/Verification 规则，也不改变 SDK、TargetFramework、Android 条件或用户已有的同名配置。多个 `.csproj`、中央包管理、非 Godot SDK、损坏 XML 或已有冲突规则保持只读。
+“项目配置”统一报告中的“C# 项目配置”检查项只检查当前已安装框架模块需要的规则：GUIDE Input、Phantom Camera、Friflo ECS 的存在检测与 `Compile Remove`，以及 Release / ExportRelease 下的 Debugger 裁剪。普通单项目缺项时可经精确预览确认修复；写入前创建非覆盖 `.godo-backup`，写入后重新解析检查。工具不添加 NuGet 包，不复制 Demo/Verification 规则，也不改变 SDK、TargetFramework、Android 条件或用户已有的同名配置。多个 `.csproj`、中央包管理、非 Godot SDK、损坏 XML 或已有冲突规则保持只读。
+
+Runtime 安装与 C# 规则修复是统一报告中的两项独立操作：综合提示会同时列出两边的待办，但 C# 规则需要人工维护时不会阻止已经通过 Runtime 安全检查的安装操作。SDK、TargetFramework、中央包管理或自定义规则仍由项目维护者决定，插件不会为了安装 Runtime 而改写这些配置。
 
 检查窗口会显示“C# 环境”状态。根目录缺少或存在多个 `.csproj`、尚未生成编辑器 Debug 程序集，或框架源码比程序集更新时显示错误，不额外提供创建或编译按钮。
 
@@ -61,11 +65,11 @@ Friflo ECS 扩展检查根目录 `.csproj` 与可选 `Directory.Packages.props`�
 
 ## 资源清单管理
 
-编辑器顶部工具栏提供原生样式的 `GoDo Framework → 打开 GoDo Framework...` 单一入口。统一窗口的“资源 → 资源清单”页直接列出项目内现有清单，并提供创建、校验和管理入口。“创建清单...”可以创建一个空的 `.tres` / `.res` 格式 `ResourceManifest`。创建失败通常代表目标项目尚未完成 C# 编译，或已启用的插件尚未重新加载，导致清单脚本无法被编辑器加载或实例化。
+编辑器顶部工具栏提供原生样式的 `GoDo Framework → 打开 GoDo Framework...` 单一入口。统一窗口的“资源 → 资源清单”页直接列出项目内现有清单，并提供刷新、创建、校验和管理入口。“创建清单...”可以创建一个空的 `.tres` / `.res` 格式 `ResourceManifest`；创建成功后列表立即刷新、选中新清单并打开管理窗口。保存窗口取消时也会重新扫描列表，以反映用户在文件窗口中执行的外部删除。创建失败通常代表目标项目尚未完成 C# 编译，或已启用的插件尚未重新加载，导致清单脚本无法被编辑器加载或实例化。
 
-打开顶部工具栏 `GoDo Framework` 中的“选择资源并添加 (Select Resource to Add)...”，选择器只浏览 `res://`，并优先显示场景、`.tres/.res`、贴图、音频、字体与 3D 场景资源。可一次多选资源；双击或点击“添加”都会进入目标清单选择。项目内恰好一份 `ResourceManifest` 时自动作为目标；多份时才弹出选择器并显示“选择目标资源清单（发现 N 份）”；没有时拒绝添加并提示先创建。确定目标后，插件会显示“尚未写入”的预览，确认添加才会一次保存全部 `ResourceManifestEntry`；没有 UID 的资源会在预览中明确列出，确认后插件才生成 UID、更新 Godot 的 UID 记录并以 `uid://` 写入清单。取消时不写入清单，也不生成 UID。成功提示只列出每条写入的资源路径；`Id` 与 `Locator` 可在管理窗口查看。默认 `Id` 使用资源路径去掉 `res://` 与扩展名后的形式，例如 `res://Features/Shop/Icon.png` 会生成 `Features/Shop/Icon`，以避免同名资源冲突；可在 Inspector 中改为更稳定的业务语义 ID，例如 `ui/icon_close`。
+在资源清单管理窗口点击“添加资源”，选择器只浏览 `res://`，并优先显示场景、`.tres/.res`、贴图、音频、字体与 3D 场景资源。可一次多选资源；双击或点击“添加”都会进入写入预览。插件会显示尚未写入的条目，确认后才一次保存全部 `ResourceManifestEntry`；没有 UID 的资源会在预览中明确列出，确认后插件才生成 UID、更新 Godot 的 UID 记录并以 `uid://` 写入清单。取消时不写入清单，也不生成 UID。成功提示只列出每条写入的资源路径；`Id` 与 `Locator` 可在管理窗口查看。默认 `Id` 使用资源路径去掉 `res://` 与扩展名后的形式，例如 `res://Features/Shop/Icon.png` 会生成 `Features/Shop/Icon`，以避免同名资源冲突；可在管理窗口改为更稳定的业务语义 ID，例如 `ui/icon_close`。
 
-打开“管理资源清单 (Manage Resource Manifest)...”后，项目内恰好一份清单时会直接打开；多份时才要求选择目标。管理窗口在 `Id`、“定位”与“UID 状态”三列中显示全部映射；定位始终优先显示可读的 `res://` 路径，UID 状态直接标示“已使用 UID”“可转换为 UID”“缺少 UID”或“UID 无效”，悬停可查看完整路径和实际保存的 `uid://`。单击条目只选中，双击可直接编辑；也可点击“编辑选中项”修改 `Id` 或 Locator。对于已有 `res://` 定位，可点击“生成并使用 UID”，确认后插件会生成或复用资源 UID，并把该条目更新为 `uid://`。工具会校验空值、重复 ID、Locator 前缀与资源是否存在，再通过 `ResourceSaver` 保存。点击“删除选中项”并确认后仅移除该映射；不会删除该 Locator 指向的资源文件。
+在统一窗口的资源清单页选择清单并打开管理窗口后，可通过工具栏查看和定位当前清单，并按 `Id` 或资源路径筛选条目。刷新、创建和切换清单统一在主页列表完成，详情页不重复显示项目清单数量或创建、切换入口。管理窗口在 `Id`、`Locator` 与 `UID Status` 三列中显示全部映射；状态使用 `Using UID`、`Convertible`、`Missing UID`、`Invalid UID` 或 `Unresolved`，悬停可查看完整路径和实际保存的 `uid://`。单击条目只选中，双击可直接编辑；也可点击“编辑”修改 `Id` 或 Locator。对于已有 `res://` 定位，可点击“生成并使用 UID”，确认后插件会生成或复用资源 UID，并把该条目更新为 `uid://`。新增、编辑和删除都会复制 `Entries` 后保存，并从磁盘重新加载核对条目内容；保存结果不一致时会明确报错，不显示仅存在于内存的条目。点击“删除”并确认后仅移除该映射；不会删除该 Locator 指向的资源文件。校验与失败提示显示在当前窗口上层，关闭提示后会回到原管理窗口。
 
 在统一窗口“资源 → 资源清单”页选中 `.tres` 或 `.res` 格式的 `ResourceManifest`，再点击“校验选中项”。校验器只读取资源并输出报告，不生成清单、不修复路径，也不写入任何项目文件。
 
@@ -84,7 +88,7 @@ Friflo ECS 扩展检查根目录 `.csproj` 与可选 `Directory.Packages.props`�
 
 只有同时满足以下条件时“安装 Runtime”按钮才可用：
 
-- 当前引擎不低于 `GoDoFramework.csproj` 声明的 Godot 4.x 版本；
+- 当前引擎不低于 `plugin.cfg` 的 `min_godot_version`；兼容版本统一使用 `major.minor.patch`，当前最低版本为 `4.7.0`；
 - 根目录存在 `.csproj`，并且已经至少成功编译一次；
 - `res://addons/godo_framework/Core/GoDoRuntime.tscn` 存在；最终场景类型由 Godot 的 Autoload 安装 API 校验；
 - `GoDoRuntime` 名称尚未被占用；
@@ -121,7 +125,7 @@ Friflo ECS 扩展检查根目录 `.csproj` 与可选 `Directory.Packages.props`�
 - `python Verification/Package/verify_core_package_lifecycle.py --godot <GodotMonoConsole>`：从真实核心 ZIP 创建临时项目，通过插件界面验证首次安装与幂等复查、9 项长期服务启动、整目录替换清除合成旧文件且保留 Autoload、错误路径拒绝卸载、精确卸载与插件禁用；删除框架后只验证已解除 `GoDo.*` 引用的中性宿主可编译运行。该夹具验证替换流程，不宣称覆盖任意历史版本兼容性。
 - 已在当前项目验证：启用插件后检查结果健康；禁用插件后菜单消失且 Autoload 保持不变。
 - 已在第二个小项目验证：未安装、安装、重复安装、名称冲突、重复路径和安全卸载。
-- `EditorExtensionUiRegression.gd` 会在 Headless Editor 中验证菜单分组、顺序和资源添加项前的分隔线，并真实触发已安装扩展的菜单，确认 GUIDE Input 与 Phantom Camera 报告非空、健康状态下修改按钮禁用，以及 Friflo ECS 能识别当前项目、按状态控制安装按钮并展示备份确认。
+- `EditorExtensionUiRegression.gd` 会在 Headless Editor 中验证 DataTable 独立导航、编辑器扩展动态子条目、三项扩展内容直接嵌入右侧且不再显示“状态”条目，并确认 GUIDE Input 与 Phantom Camera 报告非空、健康状态下修改按钮禁用，以及 Friflo ECS 能识别当前项目、按状态控制安装按钮并展示备份确认。
 - DataTable 阶段 C.2 / C.3 使用独立实验 Probe 真实执行检查、全量生成与单表选择生成，不加入永久 `run_all.py`。
 
 当前项目不自动执行安装或卸载测试，避免修改现有 `project.godot`；生命周期自动化只在系统临时项目中运行并清理其精确框架路径。

@@ -28,8 +28,12 @@ func _run() -> void:
 		return
 	if not _verify_custom_rule_is_read_only():
 		return
+	if not _verify_commented_sdk_is_read_only():
+		return
+	if not _verify_commented_rules_are_missing():
+		return
 	_cleanup()
-	print("[GoDoCsprojManagerRegression] PASS (%d/7)" % _passed)
+	print("[GoDoCsprojManagerRegression] PASS (%d/9)" % _passed)
 	quit(0)
 
 
@@ -96,6 +100,24 @@ func _verify_custom_rule_is_read_only() -> bool:
 	_reset()
 	_write("Game.csproj", "<Project Sdk=\"Godot.NET.Sdk/4.7.1\"><PropertyGroup><TargetFramework>net8.0</TargetFramework><GoDoIncludeFrifloEcs>true</GoDoIncludeFrifloEcs></PropertyGroup></Project>")
 	return _expect_read_only("conflict", "自定义同名规则")
+
+
+func _verify_commented_sdk_is_read_only() -> bool:
+	_reset()
+	_write("Game.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><!-- Godot.NET.Sdk/4.7.1 --><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>")
+	return _expect_read_only("conflict", "注释中的 Godot SDK")
+
+
+func _verify_commented_rules_are_missing() -> bool:
+	_reset()
+	var commented := "<!-- <PropertyGroup><GoDoIncludeFrifloEcs Condition=\"'$(GoDoIncludeFrifloEcs)' == '' and Exists('addons/godo_framework/Integrations/FrifloEcs/Runtime/EcsWorldHost.cs')\">true</GoDoIncludeFrifloEcs></PropertyGroup><ItemGroup Condition=\"'$(GoDoIncludeFrifloEcs)' != 'true'\"><Compile Remove=\"addons/godo_framework/Integrations/FrifloEcs/**/*.cs\" /></ItemGroup> -->"
+	_write("Game.csproj", "<Project Sdk=\"Godot.NET.Sdk/4.7.1\"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup>%s</Project>" % commented)
+	var installed := {"guide": false, "phantom": false, "friflo": true, "debugger": false}
+	var state := MANAGER_SCRIPT.new().inspect(ROOT, installed)
+	if state["code"] != "missing_rules" or not state["can_repair"] or state["missing"].size() != 2:
+		return _fail("XML 注释中的规则被错误识别为有效配置：%s" % state)
+	_passed += 1
+	return true
 
 
 func _expect_read_only(code: String, label: String) -> bool:

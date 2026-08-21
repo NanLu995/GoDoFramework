@@ -70,14 +70,16 @@ func _open_dialog() -> void:
 		_create_dialog()
 	_load_editor_settings()
 	_refresh_status()
-	_dialog.popup_centered(Vector2i(820, 560))
+	_dialog.popup_centered(Vector2i(960, 560))
 
 
 func _create_dialog() -> void:
 	_dialog = AcceptDialog.new()
+	_dialog.exclusive = true
+	_dialog.transient_to_focused = true
 	_dialog.title = "GoDo DataTable"
 	_dialog.ok_button_text = "关闭"
-	_dialog.min_size = Vector2i(820, 560)
+	_dialog.min_size = Vector2i(960, 560)
 	_dialog.get_label().hide()
 
 	var content := VBoxContainer.new()
@@ -90,6 +92,7 @@ func _create_dialog() -> void:
 	_dialog.add_child(content)
 
 	var config_row := HBoxContainer.new()
+	config_row.name = "DataTableConfigRow"
 	content.add_child(config_row)
 	config_row.add_child(_create_label("DataTable Schema"))
 	_config_input = LineEdit.new()
@@ -102,6 +105,21 @@ func _create_dialog() -> void:
 	config_browse.text = "浏览..."
 	config_browse.pressed.connect(_open_config_file_dialog)
 	config_row.add_child(config_browse)
+	_check_button = Button.new()
+	_check_button.name = "DataTableCheckButton"
+	_check_button.text = "校验"
+	_check_button.pressed.connect(_request_check)
+	config_row.add_child(_check_button)
+	var create_button := Button.new()
+	create_button.name = "DataTableCreateSchemaButton"
+	create_button.text = "新建"
+	create_button.pressed.connect(_create_schema)
+	config_row.add_child(create_button)
+	var edit_button := Button.new()
+	edit_button.name = "DataTableEditSchemaButton"
+	edit_button.text = "编辑"
+	edit_button.pressed.connect(_open_schema_editor)
+	config_row.add_child(edit_button)
 
 	var python_row := HBoxContainer.new()
 	content.add_child(python_row)
@@ -173,17 +191,9 @@ func _create_dialog() -> void:
 	_message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	content.add_child(_message_label)
 
-	_check_button = _dialog.add_button("校验全部数据", false)
-	_check_button.name = "DataTableCheckButton"
-	var create_button := _dialog.add_button("新建 Schema", true)
-	create_button.name = "DataTableCreateSchemaButton"
-	var edit_button := _dialog.add_button("编辑 Schema...", true)
-	edit_button.name = "DataTableEditSchemaButton"
-	create_button.pressed.connect(_create_schema)
-	edit_button.pressed.connect(_open_schema_editor)
-	_check_button.pressed.connect(_request_check)
-
 	_generate_confirmation = ConfirmationDialog.new()
+	_generate_confirmation.exclusive = true
+	_generate_confirmation.transient_to_focused = true
 	_generate_confirmation.title = "导出全部数据表"
 	_generate_confirmation.ok_button_text = "确认导出"
 	_generate_confirmation.cancel_button_text = "取消"
@@ -191,6 +201,8 @@ func _create_dialog() -> void:
 	_dialog.add_child(_generate_confirmation)
 
 	_config_file_dialog = EditorFileDialog.new()
+	_config_file_dialog.exclusive = true
+	_config_file_dialog.transient_to_focused = true
 	_config_file_dialog.title = "选择 DataTable Schema"
 	_config_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 	_config_file_dialog.access = FileDialog.ACCESS_RESOURCES
@@ -200,6 +212,8 @@ func _create_dialog() -> void:
 	_dialog.add_child(_config_file_dialog)
 
 	_python_file_dialog = EditorFileDialog.new()
+	_python_file_dialog.exclusive = true
+	_python_file_dialog.transient_to_focused = true
 	_python_file_dialog.title = "选择 Python 解释器"
 	_python_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 	_python_file_dialog.access = FileDialog.ACCESS_FILESYSTEM
@@ -210,7 +224,7 @@ func _create_dialog() -> void:
 	_poll_timer.wait_time = 0.1
 	_poll_timer.timeout.connect(_poll_operation)
 	_dialog.add_child(_poll_timer)
-	_context.get_editor_interface().get_base_control().add_child(_dialog)
+	_context.get_window_parent().add_child(_dialog)
 
 
 func _create_label(text: String) -> Label:
@@ -317,7 +331,7 @@ func _open_schema_editor() -> void:
 		return
 	if _schema_editor == null:
 		_schema_editor = SCHEMA_EDITOR_SCRIPT.new()
-	_schema_editor.open(_context, str(state.schema), _on_schema_saved)
+	_schema_editor.open(_context, _dialog, str(state.schema), _on_schema_saved)
 
 
 func _on_schema_saved() -> void:

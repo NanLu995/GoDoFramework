@@ -5,59 +5,51 @@ const HOST_API_VERSION := 1
 const EXTENSION_CONTEXT_SCRIPT := preload("res://addons/godo_framework/Editor/godo_editor_extension_context.gd")
 const MANIFEST_NAME := "godo_editor_extension.cfg"
 const EXTENSION_SECTION := "extension"
-const MENU_DATA_TABLE_SEPARATOR_ID := 9000
-const MENU_EDITOR_EXTENSION_SEPARATOR_ID := 9001
-const MENU_STATUS_ID := 9002
-const FIRST_EXTENSION_MENU_ID := 10000
 const EXTENSION_ID_CHARACTERS := "abcdefghijklmnopqrstuvwxyz0123456789._-"
 
 var _owner: EditorPlugin
-var _menu: PopupMenu
+var _window_parent: Window
 var _extensions: Array[Dictionary] = []
 var _statuses: Array[Dictionary] = []
-var _action_keys: Dictionary = {}
 var _action_callbacks: Dictionary = {}
 var _action_extensions: Dictionary = {}
 var _action_labels: Dictionary = {}
-var _next_menu_id := FIRST_EXTENSION_MENU_ID
-var _status_dialog: AcceptDialog
+var _action_order: Array[String] = []
+var _embedded_page_factories: Dictionary = {}
+var _embedded_page_refresh_callbacks: Dictionary = {}
 
 
-func activate(owner: EditorPlugin, menu: PopupMenu = null) -> void:
+func activate(owner: EditorPlugin) -> void:
 	_owner = owner
-	_menu = menu
 	_discover_extensions()
-	if is_instance_valid(_menu):
-		_menu.id_pressed.connect(_on_menu_id_pressed)
+
+
+func set_window_parent(window_parent: Window) -> void:
+	_window_parent = window_parent
+
+
+func get_window_parent() -> Window:
+	if is_instance_valid(_window_parent):
+		return _window_parent
+	return _owner.get_editor_interface().get_base_control().get_window()
 
 
 func deactivate() -> void:
-	if is_instance_valid(_menu) and _menu.id_pressed.is_connected(_on_menu_id_pressed):
-		_menu.id_pressed.disconnect(_on_menu_id_pressed)
-
 	for index in range(_extensions.size() - 1, -1, -1):
 		var instance = _extensions[index].instance
 		if instance != null and instance.has_method("deactivate"):
 			instance.deactivate()
 
-	if is_instance_valid(_menu):
-		for menu_id in _action_callbacks.keys():
-			_remove_menu_item(int(menu_id))
-		_remove_menu_item(MENU_STATUS_ID)
-		_remove_menu_item(MENU_EDITOR_EXTENSION_SEPARATOR_ID)
-		_remove_menu_item(MENU_DATA_TABLE_SEPARATOR_ID)
-
-	if is_instance_valid(_status_dialog):
-		_status_dialog.queue_free()
-
 	_extensions.clear()
 	_statuses.clear()
-	_action_keys.clear()
 	_action_callbacks.clear()
 	_action_extensions.clear()
 	_action_labels.clear()
+	_action_order.clear()
+	_embedded_page_factories.clear()
+	_embedded_page_refresh_callbacks.clear()
 	_owner = null
-	_menu = null
+	_window_parent = null
 
 
 func register_menu_action(
@@ -69,27 +61,54 @@ func register_menu_action(
 	var action_key := "%s:%s" % [extension_id, action_id]
 	if action_id.is_empty() or label.is_empty() or not callback.is_valid():
 		return ERR_INVALID_PARAMETER
-	if _action_keys.has(action_key):
+	if _action_callbacks.has(action_key):
 		return ERR_ALREADY_EXISTS
 
-	var menu_id := _next_menu_id
-	_next_menu_id += 1
-	_action_keys[action_key] = menu_id
-	_action_callbacks[menu_id] = callback
-	_action_extensions[menu_id] = extension_id
+	_action_callbacks[action_key] = callback
+	_action_extensions[action_key] = extension_id
 	_action_labels[action_key] = label
-	if is_instance_valid(_menu):
-		_menu.add_item(label, menu_id)
+	_action_order.append(action_key)
 	return OK
+
+
+func register_embedded_page(
+	extension_id: String,
+	factory: Callable,
+	refresh_callback: Callable
+) -> Error:
+	if extension_id.is_empty() or not factory.is_valid() or not refresh_callback.is_valid():
+		return ERR_INVALID_PARAMETER
+	if _embedded_page_factories.has(extension_id):
+		return ERR_ALREADY_EXISTS
+	_embedded_page_factories[extension_id] = factory
+	_embedded_page_refresh_callbacks[extension_id] = refresh_callback
+	return OK
+
+
+func create_embedded_page(extension_id: String) -> Control:
+	var factory: Callable = _embedded_page_factories.get(extension_id, Callable())
+	if not factory.is_valid():
+		return null
+	return factory.call() as Control
+
+
+func refresh_embedded_page(extension_id: String) -> void:
+	var callback: Callable = _embedded_page_refresh_callbacks.get(extension_id, Callable())
+	if callback.is_valid():
+		callback.call()
 
 
 func get_statuses() -> Array[Dictionary]:
 	return _statuses.duplicate(true)
 
 
-func get_actions() -> Array[Dictionary]:
+func get_actions(extension_id := "") -> Array[Dictionary]:
 	var actions: Array[Dictionary] = []
-	for action_key in _action_keys:
+	for action_key in _action_order:
+		if not _action_callbacks.has(action_key):
+			continue
+		if not extension_id.is_empty() and _action_extensions.get(action_key, "") != extension_id:
+			continue
 		actions.append({
 			"key": action_key,
 			"label": str(_action_labels.get(action_key, action_key)),
@@ -97,10 +116,27 @@ func get_actions() -> Array[Dictionary]:
 	return actions
 
 
+func get_extension_pages() -> Array[Dictionary]:
+	var pages: Array[Dictionary] = []
+	var added_ids := {}
+	for status in _statuses:
+		var extension_id: String = status.id
+		if not _is_valid_extension_id(extension_id) or added_ids.has(extension_id):
+			continue
+		added_ids[extension_id] = true
+		pages.append({
+			"id": extension_id,
+			"name": status.name,
+			"healthy": status.healthy,
+			"detail": status.detail,
+			"menu_section": status.menu_section,
+			"has_embedded_page": _embedded_page_factories.has(extension_id),
+		})
+	return pages
+
+
 func execute_action(action_key: String) -> void:
-	if not _action_keys.has(action_key):
-		return
-	var callback: Callable = _action_callbacks.get(_action_keys[action_key], Callable())
+	var callback: Callable = _action_callbacks.get(action_key, Callable())
 	if callback.is_valid():
 		callback.call()
 
@@ -122,13 +158,8 @@ func _discover_extensions() -> void:
 
 	var loaded_ids: Dictionary = {}
 	if not data_table_descriptors.is_empty():
-		if is_instance_valid(_menu):
-			_menu.add_separator("数据表", MENU_DATA_TABLE_SEPARATOR_ID)
 		_load_descriptors(data_table_descriptors, loaded_ids)
 
-	if is_instance_valid(_menu):
-		_menu.add_separator("编辑器扩展", MENU_EDITOR_EXTENSION_SEPARATOR_ID)
-		_menu.add_item("编辑器扩展状态 (Editor Extension Status)...", MENU_STATUS_ID)
 	_load_descriptors(editor_extension_descriptors, loaded_ids)
 
 
@@ -136,7 +167,11 @@ func _load_descriptors(descriptors: Array[Dictionary], loaded_ids: Dictionary) -
 	for descriptor in descriptors:
 		var extension_id: String = descriptor.id
 		if loaded_ids.has(extension_id):
-			_record_failure(extension_id, descriptor.display_name, "扩展 ID 重复。")
+			_record_failure(
+				extension_id,
+				descriptor.display_name,
+				"扩展 ID 重复。",
+				descriptor.menu_section)
 			continue
 		loaded_ids[extension_id] = true
 		_load_extension(descriptor)
@@ -206,80 +241,70 @@ func _read_manifest(manifest_path: String, package_root: String) -> Dictionary:
 func _load_extension(descriptor: Dictionary) -> void:
 	var extension_script := load(descriptor.script) as Script
 	if extension_script == null or not extension_script.can_instantiate():
-		_record_failure(descriptor.id, descriptor.display_name, "扩展脚本加载失败。")
+		_record_failure(
+			descriptor.id,
+			descriptor.display_name,
+			"扩展脚本加载失败。",
+			descriptor.menu_section)
 		return
 
 	var instance = extension_script.new()
 	if instance == null or not instance.has_method("activate") or not instance.has_method("deactivate"):
-		_record_failure(descriptor.id, descriptor.display_name, "扩展必须实现 activate(context) 与 deactivate()。")
+		_record_failure(
+			descriptor.id,
+			descriptor.display_name,
+			"扩展必须实现 activate(context) 与 deactivate()。",
+			descriptor.menu_section)
 		return
 
 	var context = EXTENSION_CONTEXT_SCRIPT.new(self, _owner, descriptor.id)
 	var activate_error = instance.activate(context)
 	if activate_error != OK:
 		_remove_extension_actions(descriptor.id)
+		_embedded_page_factories.erase(descriptor.id)
+		_embedded_page_refresh_callbacks.erase(descriptor.id)
 		instance.deactivate()
-		_record_failure(descriptor.id, descriptor.display_name, "激活失败：%s" % error_string(int(activate_error)))
+		_record_failure(
+			descriptor.id,
+			descriptor.display_name,
+			"激活失败：%s" % error_string(int(activate_error)),
+			descriptor.menu_section)
 		return
 
 	_extensions.append({"id": descriptor.id, "instance": instance, "context": context})
-	_statuses.append({"name": descriptor.display_name, "healthy": true, "detail": "已加载"})
+	_statuses.append({
+		"id": descriptor.id,
+		"name": descriptor.display_name,
+		"healthy": true,
+		"detail": "已加载",
+		"menu_section": descriptor.menu_section,
+	})
 
 
-func _record_failure(extension_id: String, display_name: String, detail: String) -> void:
-	_statuses.append({"name": display_name, "healthy": false, "detail": detail})
+func _record_failure(
+	extension_id: String,
+	display_name: String,
+	detail: String,
+	menu_section := "editor_extensions"
+) -> void:
+	_statuses.append({
+		"id": extension_id,
+		"name": display_name,
+		"healthy": false,
+		"detail": detail,
+		"menu_section": menu_section,
+	})
 	push_error("[GoDo Editor Extension] %s (%s): %s" % [display_name, extension_id, detail])
 
 
 func _remove_extension_actions(extension_id: String) -> void:
-	var menu_ids: Array[int] = []
-	for menu_id in _action_extensions:
-		if _action_extensions[menu_id] == extension_id:
-			menu_ids.append(int(menu_id))
-	for menu_id in menu_ids:
-		_remove_menu_item(menu_id)
-		_action_callbacks.erase(menu_id)
-		_action_extensions.erase(menu_id)
-	for action_key in _action_keys.keys():
-		if str(action_key).begins_with(extension_id + ":"):
-			_action_labels.erase(action_key)
-			_action_keys.erase(action_key)
-
-
-func _remove_menu_item(menu_id: int) -> void:
-	if not is_instance_valid(_menu):
-		return
-	var item_index := _menu.get_item_index(menu_id)
-	if item_index >= 0:
-		_menu.remove_item(item_index)
-
-
-func _on_menu_id_pressed(menu_id: int) -> void:
-	if menu_id == MENU_STATUS_ID:
-		_show_status_dialog()
-		return
-	var callback: Callable = _action_callbacks.get(menu_id, Callable())
-	if callback.is_valid():
-		callback.call()
-
-
-func _show_status_dialog() -> void:
-	if not is_instance_valid(_status_dialog):
-		_status_dialog = AcceptDialog.new()
-		_status_dialog.title = "GoDo 编辑器扩展状态"
-		_status_dialog.ok_button_text = "关闭"
-		_status_dialog.min_size = Vector2i(620, 320)
-		_owner.get_editor_interface().get_base_control().add_child(_status_dialog)
-
-	var lines := PackedStringArray()
-	if _statuses.is_empty():
-		lines.append("未发现可选编辑器扩展。")
-	else:
-		for status in _statuses:
-			var marker := "[正常]" if status.healthy else "[错误]"
-			lines.append("%s %s：%s" % [marker, status.name, status.detail])
-	_status_dialog.dialog_text = "\n".join(lines)
-	_status_dialog.popup_centered(Vector2i(620, 320))
+	for action_key in _action_order.duplicate():
+		if _action_extensions.get(action_key, "") != extension_id:
+			continue
+		_action_callbacks.erase(action_key)
+		_action_extensions.erase(action_key)
+		_action_labels.erase(action_key)
+		_action_order.erase(action_key)
 
 
 func _compare_descriptors(left: Dictionary, right: Dictionary) -> bool:

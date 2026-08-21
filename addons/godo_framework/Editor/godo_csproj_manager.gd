@@ -24,7 +24,8 @@ func inspect(project_root: String = "res://", installed: Dictionary = {}) -> Dic
 
 	var project_path: String = project_files[0]
 	var content := FileAccess.get_file_as_string(project_path)
-	if content.is_empty() or not _is_valid_project(project_path):
+	var project_xml := _read_project_xml(project_path)
+	if content.is_empty() or not project_xml.readable:
 		return _result("invalid_project", false, false, "无法解析 %s。" % project_path.get_file(), project_path)
 	var closing_index := content.rfind("</Project>")
 	if closing_index < 0:
@@ -34,18 +35,18 @@ func inspect(project_root: String = "res://", installed: Dictionary = {}) -> Dic
 	var missing := PackedStringArray()
 	var conflicts := PackedStringArray()
 	var additions := PackedStringArray()
-	_check_sdk_and_target(content, conflicts)
+	_check_sdk_and_target(project_xml, conflicts)
 	if capabilities.get("guide", false):
-		_check_rule(content, "GUIDE 属性", "GoDoIncludeGuideInput", ["<GoDoIncludeGuideInput Condition=\"'$(GoDoIncludeGuideInput)' == '' and Exists('addons/guideCS/plugin.cfg') and Exists('addons/guideCS/guide/plugin.cfg')\">true</GoDoIncludeGuideInput>"], GUIDE_PROPERTY, missing, conflicts, additions)
-		_check_rule(content, "GUIDE 排除规则", "addons/godo_framework/Integrations/GuideInput/**/*.cs", ["<ItemGroup Condition=\"'$(GoDoIncludeGuideInput)' != 'true'\">", "<Compile Remove=\"addons/guideCS/**/*.cs\" />", "<Compile Remove=\"addons/godo_framework/Integrations/GuideInput/**/*.cs\" />"], GUIDE_GROUP, missing, conflicts, additions)
+		_check_property_rule(project_xml, "GUIDE 属性", "GoDoIncludeGuideInput", "'$(GoDoIncludeGuideInput)' == '' and Exists('addons/guideCS/plugin.cfg') and Exists('addons/guideCS/guide/plugin.cfg')", GUIDE_PROPERTY, missing, conflicts, additions)
+		_check_compile_rule(project_xml, "GUIDE 排除规则", "'$(GoDoIncludeGuideInput)' != 'true'", ["addons/guideCS/**/*.cs", "addons/godo_framework/Integrations/GuideInput/**/*.cs"], "addons/godo_framework/Integrations/GuideInput/**/*.cs", GUIDE_GROUP, missing, conflicts, additions)
 	if capabilities.get("phantom", false):
-		_check_rule(content, "Phantom Camera 属性", "GoDoIncludePhantomCamera", ["<GoDoIncludePhantomCamera Condition=\"'$(GoDoIncludePhantomCamera)' == '' and Exists('addons/phantom_camera/plugin.cfg')\">true</GoDoIncludePhantomCamera>"], PHANTOM_PROPERTY, missing, conflicts, additions)
-		_check_rule(content, "Phantom Camera 排除规则", "addons/godo_framework/Integrations/PhantomCamera/**/*.cs", ["<ItemGroup Condition=\"'$(GoDoIncludePhantomCamera)' != 'true'\">", "<Compile Remove=\"addons/phantom_camera/**/*.cs\" />", "<Compile Remove=\"addons/godo_framework/Integrations/PhantomCamera/**/*.cs\" />"], PHANTOM_GROUP, missing, conflicts, additions)
+		_check_property_rule(project_xml, "Phantom Camera 属性", "GoDoIncludePhantomCamera", "'$(GoDoIncludePhantomCamera)' == '' and Exists('addons/phantom_camera/plugin.cfg')", PHANTOM_PROPERTY, missing, conflicts, additions)
+		_check_compile_rule(project_xml, "Phantom Camera 排除规则", "'$(GoDoIncludePhantomCamera)' != 'true'", ["addons/phantom_camera/**/*.cs", "addons/godo_framework/Integrations/PhantomCamera/**/*.cs"], "addons/godo_framework/Integrations/PhantomCamera/**/*.cs", PHANTOM_GROUP, missing, conflicts, additions)
 	if capabilities.get("friflo", false):
-		_check_rule(content, "Friflo ECS 属性", "GoDoIncludeFrifloEcs", ["<GoDoIncludeFrifloEcs Condition=\"'$(GoDoIncludeFrifloEcs)' == '' and Exists('addons/godo_framework/Integrations/FrifloEcs/Runtime/EcsWorldHost.cs')\">true</GoDoIncludeFrifloEcs>"], FRIFLO_PROPERTY, missing, conflicts, additions)
-		_check_rule(content, "Friflo ECS 排除规则", "addons/godo_framework/Integrations/FrifloEcs/**/*.cs", ["<ItemGroup Condition=\"'$(GoDoIncludeFrifloEcs)' != 'true'\">", "<Compile Remove=\"addons/godo_framework/Integrations/FrifloEcs/**/*.cs\" />"], FRIFLO_GROUP, missing, conflicts, additions)
+		_check_property_rule(project_xml, "Friflo ECS 属性", "GoDoIncludeFrifloEcs", "'$(GoDoIncludeFrifloEcs)' == '' and Exists('addons/godo_framework/Integrations/FrifloEcs/Runtime/EcsWorldHost.cs')", FRIFLO_PROPERTY, missing, conflicts, additions)
+		_check_compile_rule(project_xml, "Friflo ECS 排除规则", "'$(GoDoIncludeFrifloEcs)' != 'true'", ["addons/godo_framework/Integrations/FrifloEcs/**/*.cs"], "addons/godo_framework/Integrations/FrifloEcs/**/*.cs", FRIFLO_GROUP, missing, conflicts, additions)
 	if capabilities.get("debugger", false):
-		_check_rule(content, "Release Debugger 裁剪", "addons/godo_framework/Debugger/DebuggerOverlay.cs", ["<ItemGroup Condition=\"'$(Configuration)' == 'Release' or '$(Configuration)' == 'ExportRelease'\">", "<Compile Remove=\"addons/godo_framework/Debugger/DebuggerOverlay.cs\" />"], RELEASE_GROUP, missing, conflicts, additions)
+		_check_compile_rule(project_xml, "Release Debugger 裁剪", "'$(Configuration)' == 'Release' or '$(Configuration)' == 'ExportRelease'", ["addons/godo_framework/Debugger/DebuggerOverlay.cs"], "addons/godo_framework/Debugger/DebuggerOverlay.cs", RELEASE_GROUP, missing, conflicts, additions)
 
 	if not conflicts.is_empty():
 		return _result("conflict", false, false, "需要人工处理：%s" % "；".join(conflicts), project_path, missing, additions)
@@ -88,40 +89,146 @@ func repair(project_root: String = "res://", installed: Dictionary = {}) -> Dict
 	return _repair_result(true, "GoDo 项目配置已补齐；请重新执行 build。", backup_path)
 
 
-func _check_sdk_and_target(content: String, conflicts: PackedStringArray) -> void:
-	if not content.contains("Godot.NET.Sdk/"):
+func _check_sdk_and_target(project_xml: Dictionary, conflicts: PackedStringArray) -> void:
+	var sdk: String = project_xml.sdk
+	if not sdk.begins_with("Godot.NET.Sdk/") or sdk.trim_prefix("Godot.NET.Sdk/").is_empty():
 		conflicts.append("SDK 不是可识别的 Godot.NET.Sdk（只检查不修改）")
-	if not content.contains("<TargetFramework>"):
+	if project_xml.target_frameworks.is_empty():
 		conflicts.append("缺少 TargetFramework（只检查不修改）")
 
 
-func _check_rule(content: String, label: String, marker: String, expected_fragments: Array, block: String, missing: PackedStringArray, conflicts: PackedStringArray, additions: PackedStringArray) -> void:
-	if marker in content:
-		var compact_content := _compact(content)
-		for fragment in expected_fragments:
-			if _compact(str(fragment)) not in compact_content:
-				conflicts.append("%s 已存在但不是 GoDo 默认规则（保持只读）" % label)
-				return
+func _check_property_rule(project_xml: Dictionary, label: String, property_name: String, expected_condition: String, block: String, missing: PackedStringArray, conflicts: PackedStringArray, additions: PackedStringArray) -> void:
+	var entries: Array = project_xml.properties.get(property_name.to_lower(), [])
+	if entries.is_empty():
+		missing.append(label)
+		additions.append(block)
 		return
-	missing.append(label)
-	additions.append(block)
+	if entries.size() != 1 or _compact(entries[0].condition) != _compact(expected_condition) or entries[0].value.strip_edges().to_lower() != "true":
+		conflicts.append("%s 已存在但不是 GoDo 默认规则（保持只读）" % label)
+
+
+func _check_compile_rule(project_xml: Dictionary, label: String, expected_condition: String, expected_removes: Array, marker: String, block: String, missing: PackedStringArray, conflicts: PackedStringArray, additions: PackedStringArray) -> void:
+	var marker_groups: Array = []
+	for group in project_xml.item_groups:
+		if marker in group.compile_removes:
+			marker_groups.append(group)
+	if marker_groups.is_empty():
+		missing.append(label)
+		additions.append(block)
+		return
+	var valid := marker_groups.size() == 1 and _compact(marker_groups[0].condition) == _compact(expected_condition)
+	if valid:
+		for remove_path in expected_removes:
+			if remove_path not in marker_groups[0].compile_removes:
+				valid = false
+				break
+	if not valid:
+		conflicts.append("%s 已存在但不是 GoDo 默认规则（保持只读）" % label)
 
 
 func _compact(value: String) -> String:
 	return value.replace(" ", "").replace("\t", "").replace("\r", "").replace("\n", "")
 
 
-func _is_valid_project(path: String) -> bool:
+func _read_project_xml(path: String) -> Dictionary:
+	var result := {
+		"readable": false,
+		"sdk": "",
+		"target_frameworks": PackedStringArray(),
+		"properties": {},
+		"item_groups": [],
+	}
 	var parser := XMLParser.new()
 	if parser.open(path) != OK:
-		return false
+		return result
+	var depth := 0
+	var property_group_depth := -1
+	var property_depth := -1
+	var property := {}
+	var item_group_depth := -1
+	var item_group := {}
 	while true:
-		var error := parser.read()
-		if error == ERR_FILE_EOF:
-			return true
-		if error != OK:
-			return false
-	return false
+		var read_error := parser.read()
+		if read_error == ERR_FILE_EOF:
+			break
+		if read_error != OK:
+			return result
+		match parser.get_node_type():
+			XMLParser.NODE_ELEMENT:
+				depth += 1
+				var node_name := parser.get_node_name().to_lower()
+				if depth == 1:
+					if node_name != "project":
+						return result
+					result.sdk = _attribute(parser, "Sdk").strip_edges()
+				elif node_name == "propertygroup":
+					property_group_depth = depth
+				elif property_group_depth >= 0 and depth == property_group_depth + 1:
+					property_depth = depth
+					property = {
+						"name": node_name,
+						"condition": _attribute(parser, "Condition").strip_edges(),
+						"value": "",
+					}
+				elif node_name == "itemgroup":
+					item_group_depth = depth
+					item_group = {
+						"condition": _attribute(parser, "Condition").strip_edges(),
+						"compile_removes": PackedStringArray(),
+					}
+				elif item_group_depth >= 0 and depth == item_group_depth + 1 and node_name == "compile":
+					var remove_path := _attribute(parser, "Remove").strip_edges()
+					if not remove_path.is_empty():
+						item_group.compile_removes.append(remove_path)
+				if parser.is_empty():
+					if depth == property_depth:
+						_append_property(result, property)
+						property_depth = -1
+						property = {}
+					if depth == property_group_depth:
+						property_group_depth = -1
+					if depth == item_group_depth:
+						result.item_groups.append(item_group)
+						item_group_depth = -1
+						item_group = {}
+					depth -= 1
+			XMLParser.NODE_TEXT:
+				if property_depth >= 0:
+					property.value += parser.get_node_data()
+			XMLParser.NODE_ELEMENT_END:
+				if depth == property_depth:
+					_append_property(result, property)
+					property_depth = -1
+					property = {}
+				if depth == property_group_depth:
+					property_group_depth = -1
+				if depth == item_group_depth:
+					result.item_groups.append(item_group)
+					item_group_depth = -1
+					item_group = {}
+				depth -= 1
+	if depth != 0:
+		return result
+	result.readable = true
+	return result
+
+
+func _append_property(project_xml: Dictionary, property: Dictionary) -> void:
+	if property.is_empty():
+		return
+	var property_name: String = property.name
+	var entries: Array = project_xml.properties.get(property_name, [])
+	entries.append({"condition": property.condition, "value": property.value.strip_edges()})
+	project_xml.properties[property_name] = entries
+	if property_name == "targetframework" and not property.value.strip_edges().is_empty():
+		project_xml.target_frameworks.append(property.value.strip_edges())
+
+
+func _attribute(parser: XMLParser, name: String) -> String:
+	for index in parser.get_attribute_count():
+		if parser.get_attribute_name(index).to_lower() == name.to_lower():
+			return parser.get_attribute_value(index)
+	return ""
 
 
 func _detect_integrations(project_root: String) -> Dictionary:

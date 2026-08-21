@@ -1,6 +1,8 @@
 @tool
 extends RefCounted
 
+signal config_paths_changed(preferred_path: String)
+
 const ACTION_CREATE := "create"
 const ACTION_MANAGE := "manage"
 const ACTION_VALIDATE := "validate"
@@ -26,8 +28,6 @@ var _add_button: Button
 var _edit_button: Button
 var _remove_button: Button
 var _validate_button: Button
-var _switch_config_button: Button
-var _create_config_button: Button
 var _locate_config_button: Button
 var _locate_scene_button: Button
 var _entry_dialog: ConfirmationDialog
@@ -45,6 +45,7 @@ var _managed_config_path := ""
 var _managed_entry_index := -1
 var _editing_entry_index := -1
 var _csharp_resource_load_error := ""
+var _config_persistence_error := ""
 var _file_system_dock
 
 
@@ -54,14 +55,20 @@ func initialize(plugin: EditorPlugin) -> void:
 
 	_config_file_dialog = EditorFileDialog.new()
 	_config_file_dialog.name = "UiConfigFileDialog"
+	_config_file_dialog.exclusive = true
+	_config_file_dialog.transient_to_focused = true
 	_config_file_dialog.access = FileDialog.ACCESS_RESOURCES
 	_config_file_dialog.mode_overrides_title = false
 	_config_file_dialog.filters = PackedStringArray(["*.tres,*.res;UI config resources"])
 	_config_file_dialog.file_selected.connect(_on_config_file_selected)
+	_config_file_dialog.canceled.connect(_on_config_file_dialog_canceled)
 	editor_root.add_child(_config_file_dialog)
 
 	_scene_file_dialog = EditorFileDialog.new()
-	_scene_file_dialog.title = "选择 UI 场景"
+	_scene_file_dialog.name = "GoDoUiSceneFileDialog"
+	_scene_file_dialog.exclusive = true
+	_scene_file_dialog.transient_to_focused = true
+	_scene_file_dialog.title = "选择 UI Scene"
 	_scene_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 	_scene_file_dialog.access = FileDialog.ACCESS_RESOURCES
 	_scene_file_dialog.mode_overrides_title = false
@@ -103,6 +110,8 @@ func dispose() -> void:
 func _create_config_selector_dialog(editor_root: Control) -> void:
 	_config_selector_dialog = ConfirmationDialog.new()
 	_config_selector_dialog.name = "UiConfigSelectorDialog"
+	_config_selector_dialog.exclusive = true
+	_config_selector_dialog.transient_to_focused = true
 	_config_selector_dialog.title = "选择 UI 配置"
 	_config_selector_dialog.ok_button_text = "打开"
 	_config_selector_dialog.cancel_button_text = "取消"
@@ -180,10 +189,12 @@ func open_validate_path(path: String) -> void:
 
 func _create_manage_dialog(editor_root: Control) -> void:
 	_manage_dialog = AcceptDialog.new()
+	_manage_dialog.name = "GoDoUiConfigManageDialog"
 	_manage_dialog.title = "UI 配置管理"
 	_manage_dialog.ok_button_text = "关闭"
 	_manage_dialog.min_size = Vector2i(1080, 560)
-	_manage_dialog.exclusive = false
+	_manage_dialog.exclusive = true
+	_manage_dialog.transient_to_focused = true
 	_manage_dialog.get_label().hide()
 
 	var content := VBoxContainer.new()
@@ -203,22 +214,16 @@ func _create_manage_dialog(editor_root: Control) -> void:
 	content.add_child(config_toolbar)
 	content.move_child(config_toolbar, 0)
 	_managed_config_label = Label.new()
+	_managed_config_label.name = "GoDoManagedUiConfigLabel"
 	_managed_config_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	config_toolbar.add_child(_managed_config_label)
-	_switch_config_button = Button.new()
-	_switch_config_button.text = "切换配置"
-	_switch_config_button.pressed.connect(_on_switch_config_pressed)
-	config_toolbar.add_child(_switch_config_button)
-	_create_config_button = Button.new()
-	_create_config_button.text = "创建配置"
-	_create_config_button.pressed.connect(_on_create_config_pressed)
-	config_toolbar.add_child(_create_config_button)
 	_locate_config_button = Button.new()
+	_locate_config_button.name = "GoDoUiConfigLocateButton"
 	_locate_config_button.text = "定位配置"
 	_locate_config_button.pressed.connect(_on_locate_config_pressed)
 	config_toolbar.add_child(_locate_config_button)
 	_locate_scene_button = Button.new()
-	_locate_scene_button.text = "定位场景"
+	_locate_scene_button.text = "定位 Scene"
 	_locate_scene_button.disabled = true
 	_locate_scene_button.pressed.connect(_on_locate_scene_pressed)
 	config_toolbar.add_child(_locate_scene_button)
@@ -226,12 +231,14 @@ func _create_manage_dialog(editor_root: Control) -> void:
 	search_label.text = "Search"
 	toolbar.add_child(search_label)
 	_search_input = LineEdit.new()
+	_search_input.name = "GoDoUiConfigSearchInput"
 	_search_input.placeholder_text = "Filter by Id or scene path"
 	_search_input.clear_button_enabled = true
 	_search_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_search_input.text_changed.connect(_on_search_changed)
 	toolbar.add_child(_search_input)
 	_add_button = Button.new()
+	_add_button.name = "GoDoUiConfigAddButton"
 	_add_button.text = "添加"
 	_add_button.pressed.connect(_on_add_pressed)
 	toolbar.add_child(_add_button)
@@ -246,11 +253,13 @@ func _create_manage_dialog(editor_root: Control) -> void:
 	_remove_button.pressed.connect(_on_remove_pressed)
 	toolbar.add_child(_remove_button)
 	_validate_button = Button.new()
+	_validate_button.name = "GoDoUiConfigManageValidateButton"
 	_validate_button.text = "校验"
 	_validate_button.pressed.connect(_on_validate_pressed)
 	toolbar.add_child(_validate_button)
 
 	_entries_tree = Tree.new()
+	_entries_tree.name = "GoDoUiConfigEntriesTree"
 	_entries_tree.columns = 6
 	_entries_tree.column_titles_visible = true
 	_entries_tree.hide_root = true
@@ -261,6 +270,8 @@ func _create_manage_dialog(editor_root: Control) -> void:
 	_entries_tree.set_column_title(3, "Instance Mode")
 	_entries_tree.set_column_title(4, "Reuse")
 	_entries_tree.set_column_title(5, "Status")
+	for column in range(2, 6):
+		_entries_tree.set_column_title_alignment(column, HORIZONTAL_ALIGNMENT_CENTER)
 	_entries_tree.set_column_expand_ratio(0, 2)
 	_entries_tree.set_column_expand_ratio(1, 5)
 	_entries_tree.set_column_expand_ratio(2, 1)
@@ -276,6 +287,9 @@ func _create_manage_dialog(editor_root: Control) -> void:
 
 func _create_entry_dialog() -> void:
 	_entry_dialog = ConfirmationDialog.new()
+	_entry_dialog.name = "GoDoUiConfigEntryDialog"
+	_entry_dialog.exclusive = true
+	_entry_dialog.transient_to_focused = true
 	_entry_dialog.title = "UI 配置条目"
 	_entry_dialog.ok_button_text = "保存"
 	_entry_dialog.cancel_button_text = "取消"
@@ -308,7 +322,8 @@ func _create_entry_dialog() -> void:
 	_entry_locator_input.select_all_on_focus = true
 	locator_row.add_child(_entry_locator_input)
 	var choose_scene_button := Button.new()
-	choose_scene_button.text = "选择场景..."
+	choose_scene_button.name = "GoDoUiConfigChooseSceneButton"
+	choose_scene_button.text = "选择 Scene..."
 	choose_scene_button.pressed.connect(_on_choose_scene_pressed)
 	locator_row.add_child(choose_scene_button)
 	content.add_child(locator_row)
@@ -345,6 +360,8 @@ func _create_entry_dialog() -> void:
 
 func _create_remove_dialog() -> void:
 	_remove_dialog = ConfirmationDialog.new()
+	_remove_dialog.exclusive = true
+	_remove_dialog.transient_to_focused = true
 	_remove_dialog.title = "删除 UI 配置条目"
 	_remove_dialog.ok_button_text = "删除"
 	_remove_dialog.cancel_button_text = "取消"
@@ -354,10 +371,12 @@ func _create_remove_dialog() -> void:
 
 func _create_report_dialog(editor_root: Control) -> void:
 	_report_dialog = AcceptDialog.new()
+	_report_dialog.name = "GoDoUiConfigReportDialog"
 	_report_dialog.title = "UI 配置"
 	_report_dialog.ok_button_text = "关闭"
 	_report_dialog.min_size = Vector2i(720, 420)
-	_report_dialog.exclusive = false
+	_report_dialog.exclusive = true
+	_report_dialog.transient_to_focused = true
 	_report_dialog.get_label().hide()
 	_report_label = RichTextLabel.new()
 	_report_label.bbcode_enabled = false
@@ -369,6 +388,14 @@ func _create_report_dialog(editor_root: Control) -> void:
 	_report_label.offset_right = -16
 	_report_label.offset_bottom = -48
 	editor_root.add_child(_report_dialog)
+
+
+func set_window_parent(window_parent: Window) -> void:
+	_config_file_dialog.reparent(window_parent)
+	_scene_file_dialog.reparent(window_parent)
+	_config_selector_dialog.reparent(window_parent)
+	_manage_dialog.reparent(window_parent)
+	_report_dialog.reparent(window_parent)
 
 
 func _create_label(text: String) -> Label:
@@ -461,16 +488,6 @@ func _on_config_selector_create_pressed() -> void:
 	call_deferred("open_create_dialog")
 
 
-func _on_switch_config_pressed() -> void:
-	_manage_dialog.hide()
-	_open_existing_config(ACTION_MANAGE)
-
-
-func _on_create_config_pressed() -> void:
-	_manage_dialog.hide()
-	open_create_dialog()
-
-
 func _get_selected_config_path() -> String:
 	var item := _config_selector_tree.get_selected()
 	if item == null:
@@ -512,6 +529,10 @@ func _on_config_file_selected(path: String) -> void:
 			_dispatch_config_action(_file_action, path)
 
 
+func _on_config_file_dialog_canceled() -> void:
+	config_paths_changed.emit("")
+
+
 func _create_config(path: String) -> void:
 	var save_path := path if not path.get_extension().is_empty() else "%s.tres" % path
 	if FileAccess.file_exists(save_path):
@@ -529,6 +550,7 @@ func _create_config(path: String) -> void:
 		return
 
 	_refresh_editor_filesystem()
+	config_paths_changed.emit(save_path)
 	call_deferred("_show_manager", save_path)
 
 
@@ -546,11 +568,8 @@ func _show_manager(path: String) -> void:
 		return
 
 	_managed_config_path = path
-	_manage_dialog.title = "UI 配置管理 — %s" % path
-	_managed_config_label.text = "当前：%s    项目发现：%d 份" % [
-		path,
-		_find_ui_config_paths("res://").size(),
-	]
+	_manage_dialog.title = "UI 配置管理"
+	_managed_config_label.text = "当前：%s" % path
 	_locate_config_button.disabled = false
 	_add_button.disabled = false
 	_validate_button.disabled = false
@@ -631,7 +650,7 @@ func _render_entries(config: Resource) -> void:
 			item.set_text(2, _layer_name(_get_int(entry, "Layer", "layer")))
 			item.set_text(3, _instance_mode_name(_get_int(entry, "InstanceMode", "instance_mode")))
 			var reuse_instance := _get_bool(entry, "ReuseInstance", "reuse_instance")
-			item.set_text(4, "Yes" if reuse_instance else "No")
+			item.set_text(4, "True" if reuse_instance else "False")
 			item.set_tooltip_text(1, locator)
 			var rejection := _get_entry_rejection_reason(
 				entry_id,
@@ -657,6 +676,8 @@ func _render_entries(config: Resource) -> void:
 				item.set_tooltip_text(5, rejection)
 		item.set_metadata(0, index)
 		item.set_metadata(1, locator)
+		for column in range(2, 6):
+			item.set_text_alignment(column, HORIZONTAL_ALIGNMENT_CENTER)
 	if visible_count == 0:
 		var empty_item := _entries_tree.create_item(root)
 		empty_item.set_text(0, "没有匹配的 UI 配置条目")
@@ -670,7 +691,7 @@ func _on_search_changed(_text: String) -> void:
 	if not ResourceLoader.exists(_managed_config_path):
 		_render_missing_managed_config(_managed_config_path)
 		return
-	var config := ResourceLoader.load(_managed_config_path)
+	var config := _load_config_from_disk(_managed_config_path)
 	if _is_ui_config(config):
 		_render_entries(config)
 
@@ -722,6 +743,7 @@ func _locate_in_file_system(path: String) -> void:
 
 
 func _on_editor_file_removed(path: String) -> void:
+	config_paths_changed.emit("")
 	if not is_instance_valid(_manage_dialog) or not _manage_dialog.visible:
 		return
 	if path == _managed_config_path:
@@ -731,10 +753,12 @@ func _on_editor_file_removed(path: String) -> void:
 
 
 func _on_editor_files_moved(old_path: String, new_path: String) -> void:
+	var managed_config_moved := old_path == _managed_config_path
+	if managed_config_moved:
+		_managed_config_path = new_path
+	config_paths_changed.emit(new_path if managed_config_moved else "")
 	if not is_instance_valid(_manage_dialog) or not _manage_dialog.visible:
 		return
-	if old_path == _managed_config_path:
-		_managed_config_path = new_path
 	_refresh_managed_config_after_filesystem_change()
 
 
@@ -751,11 +775,8 @@ func _refresh_managed_config_after_filesystem_change() -> void:
 	if not _is_ui_config(config):
 		_render_missing_managed_config(_managed_config_path)
 		return
-	_manage_dialog.title = "UI 配置管理 — %s" % _managed_config_path
-	_managed_config_label.text = "当前：%s    项目发现：%d 份" % [
-		_managed_config_path,
-		_find_ui_config_paths("res://").size(),
-	]
+	_manage_dialog.title = "UI 配置管理"
+	_managed_config_label.text = "当前：%s" % _managed_config_path
 	_locate_config_button.disabled = false
 	_add_button.disabled = false
 	_validate_button.disabled = false
@@ -794,6 +815,9 @@ func _on_edit_pressed() -> void:
 	if config == null:
 		return
 	var entries = _get_entries(config)
+	if entries == null:
+		_show_message(false, "编辑失败", "UiConfig 缺少有效的 Entries 数组。")
+		return
 	if _managed_entry_index < 0 or _managed_entry_index >= entries.size():
 		_show_message(false, "编辑失败", "当前选中条目已经不存在。")
 		return
@@ -841,7 +865,10 @@ func _on_entry_confirmed() -> void:
 	var config := _load_managed_config("保存失败")
 	if config == null:
 		return
-	var entries = _get_entries(config)
+	var entries = _copy_entries(_get_entries(config))
+	if entries == null:
+		_show_message(false, "保存失败", "UiConfig 缺少有效的 Entries 数组。")
+		return
 	var entry_id := _entry_id_input.text.strip_edges()
 	var locator := _entry_locator_input.text.strip_edges()
 	var layer := _entry_layer_input.get_selected_id()
@@ -871,16 +898,18 @@ func _on_entry_confirmed() -> void:
 		entry.set("ReuseInstance", reuse_instance)
 		entries.append(entry)
 	else:
-		var entry = entries[_editing_entry_index]
+		var entry: Resource = entries[_editing_entry_index].duplicate()
 		entry.set("Id", entry_id)
 		entry.set("Locator", locator)
 		entry.set("Layer", layer)
 		entry.set("InstanceMode", instance_mode)
 		entry.set("ReuseInstance", reuse_instance)
+		entries[_editing_entry_index] = entry
 
 	config.set("Entries", entries)
-	if _save_managed_config(config, "保存失败"):
-		_render_entries(config)
+	var saved_config := _save_managed_config(config, "保存失败")
+	if saved_config != null:
+		_render_entries(saved_config)
 
 
 func _on_remove_pressed() -> void:
@@ -892,7 +921,7 @@ func _on_remove_pressed() -> void:
 		return
 	var entry = entries[_managed_entry_index]
 	var entry_id := "<null>" if entry == null else _get_string(entry, "Id", "id")
-	_remove_dialog.dialog_text = "仅移除配置条目，不会删除 UI 场景。\n\nId：%s" % entry_id
+	_remove_dialog.dialog_text = "仅移除配置条目，不会删除 UI Scene。\n\nId：%s" % entry_id
 	_remove_dialog.popup_centered(Vector2i(600, 240))
 
 
@@ -900,13 +929,17 @@ func _on_remove_confirmed() -> void:
 	var config := _load_managed_config("删除失败")
 	if config == null:
 		return
-	var entries = _get_entries(config)
+	var entries = _copy_entries(_get_entries(config))
+	if entries == null:
+		_show_message(false, "删除失败", "UiConfig 缺少有效的 Entries 数组。")
+		return
 	if _managed_entry_index < 0 or _managed_entry_index >= entries.size():
 		return
 	entries.remove_at(_managed_entry_index)
 	config.set("Entries", entries)
-	if _save_managed_config(config, "删除失败"):
-		_render_entries(config)
+	var saved_config := _save_managed_config(config, "删除失败")
+	if saved_config != null:
+		_render_entries(saved_config)
 
 
 func _on_validate_pressed() -> void:
@@ -1004,18 +1037,18 @@ func _get_entry_rejection_reason(
 	if normalized_id.is_empty():
 		return "Id 不能为空。"
 	if not (locator.begins_with("res://") or locator.begins_with("uid://")):
-		return "场景定位必须以 res:// 或 uid:// 开头：%s" % locator
+		return "Scene Locator 必须以 res:// 或 uid:// 开头：%s" % locator
 	if not ResourceLoader.exists(locator):
-		return "场景定位无法解析：%s" % locator
+		return "Scene Locator 无法解析：%s" % locator
 	var scene := ResourceLoader.load(locator) as PackedScene
 	if scene == null:
 		return "资源不是 PackedScene：%s" % locator
 	var state := scene.get_state()
 	if state == null or state.get_node_count() == 0:
-		return "场景不包含根节点：%s" % locator
+		return "Scene 不包含根节点：%s" % locator
 	var root_type := str(state.get_node_type(0))
 	if not ClassDB.is_parent_class(root_type, "Control"):
-		return "UI 场景根节点必须继承 Control，当前为 %s：%s" % [root_type, locator]
+		return "UI Scene 根节点必须继承 Control，当前为 %s：%s" % [root_type, locator]
 	if layer < 0 or layer > 3:
 		return "未知 UI 层：%d" % layer
 	if instance_mode < 0 or instance_mode > 1:
@@ -1050,7 +1083,7 @@ func _get_entry_warning_reason(locator: String, entries: Array, skip_index: int)
 			other_ids.append(_get_string(other, "Id", "id").strip_edges())
 	if other_ids.is_empty():
 		return ""
-	return "同一 Locator 被多个 Id 使用（%s）；这是允许的，请确认它们确实共享场景：%s" % [
+	return "同一 Locator 被多个 Id 使用（%s）；这是允许的，请确认它们确实共享 Scene：%s" % [
 		", ".join(other_ids),
 		normalized_locator,
 	]
@@ -1064,28 +1097,45 @@ func _load_managed_config(title: String) -> Resource:
 		_render_missing_managed_config(_managed_config_path)
 		_show_message(false, title, "当前 UiConfig 已经删除或移动：\n%s" % _managed_config_path)
 		return null
-	var config := ResourceLoader.load(_managed_config_path)
+	var config := _load_config_from_disk(_managed_config_path)
 	if not _is_ui_config(config):
 		_show_message(false, title, "当前 UiConfig 无法重新加载：\n%s" % _managed_config_path)
 		return null
 	return config
 
 
-func _save_managed_config(config: Resource, title: String) -> bool:
+func _save_managed_config(config: Resource, title: String) -> Resource:
+	var reloaded := _save_config_and_reload(config, _managed_config_path)
+	if reloaded == null:
+		_show_message(false, title, _config_persistence_error)
+		return null
+	_refresh_editor_filesystem()
+	_plugin.get_editor_interface().edit_resource(reloaded)
+	return reloaded
+
+
+func _save_config_and_reload(config: Resource, path: String) -> Resource:
+	_config_persistence_error = ""
+	var expected_signature := _config_entries_signature(_get_entries(config))
 	config.emit_changed()
 	var save_error := ResourceSaver.save(
 		config,
-		_managed_config_path,
+		path,
 		ResourceSaver.FLAG_CHANGE_PATH)
 	if save_error != OK:
-		_show_message(false, title, "%s：%s" % [
-			_managed_config_path,
+		_config_persistence_error = "%s：%s" % [
+			path,
 			error_string(save_error),
-		])
-		return false
-	_refresh_editor_filesystem()
-	_plugin.get_editor_interface().edit_resource(config)
-	return true
+		]
+		return null
+	var reloaded := _load_config_from_disk(path)
+	if not _is_ui_config(reloaded):
+		_config_persistence_error = "保存后无法从磁盘重新加载 UiConfig：%s" % path
+		return null
+	if _config_entries_signature(_get_entries(reloaded)) != expected_signature:
+		_config_persistence_error = "保存后校验失败，磁盘中的 Entries 与待保存内容不一致：%s" % path
+		return null
+	return reloaded
 
 
 func _instantiate_csharp_resource(script_path: String) -> Resource:
@@ -1093,7 +1143,7 @@ func _instantiate_csharp_resource(script_path: String) -> Resource:
 	var loaded_resource := ResourceLoader.load(
 		script_path,
 		"",
-		ResourceLoader.CACHE_MODE_IGNORE)
+		ResourceLoader.CACHE_MODE_REUSE)
 	var script := loaded_resource as Script
 	if script == null:
 		_csharp_resource_load_error = "无法将 %s 加载为 Script。" % script_path
@@ -1143,6 +1193,34 @@ func _get_entries(config: Resource):
 	if entries == null:
 		entries = config.get("entries")
 	return entries
+
+
+func _copy_entries(entries):
+	if entries == null or not (entries is Array):
+		return null
+	return entries.duplicate()
+
+
+func _load_config_from_disk(path: String) -> Resource:
+	return ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE)
+
+
+func _config_entries_signature(entries) -> PackedStringArray:
+	var signature := PackedStringArray()
+	if entries == null or not (entries is Array):
+		return signature
+	for entry in entries:
+		if entry == null or not (entry is Object):
+			signature.append("<null>")
+			continue
+		signature.append("%s\u001f%s\u001f%d\u001f%d\u001f%s" % [
+			_get_string(entry, "Id", "id"),
+			_get_string(entry, "Locator", "locator"),
+			_get_int(entry, "Layer", "layer"),
+			_get_int(entry, "InstanceMode", "instance_mode"),
+			str(_get_bool(entry, "ReuseInstance", "reuse_instance")),
+		])
+	return signature
 
 
 func _get_string(target: Object, primary_name: String, fallback_name: String) -> String:

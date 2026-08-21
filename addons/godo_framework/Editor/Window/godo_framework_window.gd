@@ -3,22 +3,42 @@ extends RefCounted
 
 const OVERVIEW_PAGE_SCRIPT := preload("res://addons/godo_framework/Editor/Pages/overview_page.gd")
 const RUNTIME_PAGE_SCRIPT := preload("res://addons/godo_framework/Editor/Pages/runtime_setup_page.gd")
-const CSPROJ_PAGE_SCRIPT := preload("res://addons/godo_framework/Editor/Pages/csproj_page.gd")
 const MANIFEST_PAGE_SCRIPT := preload("res://addons/godo_framework/Editor/Pages/resource_manifest_page.gd")
 const UI_CONFIG_PAGE_SCRIPT := preload("res://addons/godo_framework/Editor/Pages/ui_config_page.gd")
 const EXTENSIONS_PAGE_SCRIPT := preload("res://addons/godo_framework/Editor/Pages/extension_status_page.gd")
+const EMBEDDED_EXTENSION_PAGE_SCRIPT := preload(
+	"res://addons/godo_framework/Editor/Pages/embedded_extension_page.gd"
+)
 
 const PREFERRED_WINDOW_SIZE := Vector2i(900, 600)
 const MINIMUM_WINDOW_SIZE := Vector2i(560, 360)
 const WINDOW_MARGIN := Vector2i(48, 96)
 
-const PAGE_DEFINITIONS := [
-	{"id": "overview", "label": "概览", "script": OVERVIEW_PAGE_SCRIPT},
-	{"id": "runtime", "label": "项目配置/Runtime", "script": RUNTIME_PAGE_SCRIPT},
-	{"id": "csproj", "label": "项目配置/C# 项目", "script": CSPROJ_PAGE_SCRIPT},
-	{"id": "manifest", "label": "资源/资源清单", "script": MANIFEST_PAGE_SCRIPT},
-	{"id": "ui_config", "label": "资源/UI 配置", "script": UI_CONFIG_PAGE_SCRIPT},
-	{"id": "extensions", "label": "编辑器扩展", "script": EXTENSIONS_PAGE_SCRIPT},
+const STATIC_PAGE_DEFINITIONS := [
+	{
+		"id": "overview",
+		"label": "概览",
+		"description": "集中管理 GoDo Runtime、C# 项目配置、DataTable、资源配置和编辑器扩展。",
+		"script": OVERVIEW_PAGE_SCRIPT,
+	},
+	{
+		"id": "runtime",
+		"label": "项目配置",
+		"description": "检查框架版本、C# 项目配置、Runtime 场景和 Autoload 接入状态。",
+		"script": RUNTIME_PAGE_SCRIPT,
+	},
+	{
+		"id": "manifest",
+		"label": "资源/资源清单",
+		"description": "项目内现有的 ResourceManifest。选择后可直接管理或校验。",
+		"script": MANIFEST_PAGE_SCRIPT,
+	},
+	{
+		"id": "ui_config",
+		"label": "资源/UI 配置",
+		"description": "项目内现有的 UiConfig。选择后可直接管理或校验。",
+		"script": UI_CONFIG_PAGE_SCRIPT,
+	},
 ]
 
 var _dialog: AcceptDialog
@@ -26,10 +46,15 @@ var _root: VBoxContainer
 var _navigation: Tree
 var _navigation_filter: LineEdit
 var _page_title: Label
+var _page_description: Label
 var _page_host: MarginContainer
 var _pages: Dictionary = {}
 var _page_items: Dictionary = {}
+var _page_descriptions: Dictionary = {}
 var _group_items: Dictionary = {}
+var _page_definitions: Array[Dictionary] = []
+var _data_table_page_id := ""
+var _editor_extension_page_id := ""
 
 
 func initialize(
@@ -144,7 +169,14 @@ func initialize(
 	_page_title.name = "GoDoFrameworkPageTitle"
 	_page_title.add_theme_font_size_override("font_size", 16)
 	right.add_child(_page_title)
-	right.add_child(HSeparator.new())
+	_page_description = Label.new()
+	_page_description.name = "GoDoFrameworkPageDescription"
+	_page_description.modulate.a = 0.8
+	_page_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	right.add_child(_page_description)
+	var page_separator := HSeparator.new()
+	page_separator.name = "GoDoFrameworkPageSeparator"
+	right.add_child(page_separator)
 
 	_page_host = MarginContainer.new()
 	_page_host.name = "GoDoFrameworkPageHost"
@@ -172,11 +204,22 @@ func _create_panel_style(background_color: Color, border_color: Color, border_wi
 
 
 func dispose() -> void:
+	for page in _pages.values():
+		if page.has_method("dispose"):
+			page.dispose()
 	if is_instance_valid(_dialog):
 		_dialog.queue_free()
 	_pages.clear()
 	_page_items.clear()
+	_page_descriptions.clear()
 	_group_items.clear()
+	_page_definitions.clear()
+	_data_table_page_id = ""
+	_editor_extension_page_id = ""
+
+
+func get_window() -> Window:
+	return _dialog
 
 
 func open(page_id := "overview") -> void:
@@ -227,8 +270,9 @@ func _create_pages(
 	ui_config_controller: RefCounted,
 	extension_host: RefCounted
 ) -> void:
+	_page_definitions = _build_page_definitions(extension_host)
 	var navigation_root := _navigation.create_item()
-	for definition in PAGE_DEFINITIONS:
+	for definition in _page_definitions:
 		var page_id: String = definition.id
 		var label_path: String = definition.label
 		var parts := label_path.split("/", false)
@@ -245,6 +289,7 @@ func _create_pages(
 		item.set_text(0, parts[-1])
 		item.set_metadata(0, page_id)
 		_page_items[page_id] = item
+		_page_descriptions[page_id] = definition.description
 
 		var page: Control = definition.script.new()
 		page.name = "%sPage" % page_id.to_pascal_case()
@@ -254,12 +299,66 @@ func _create_pages(
 		_page_host.add_child(page)
 		_pages[page_id] = page
 
-	_pages.overview.setup(self)
-	_pages.runtime.setup(runtime_controller)
-	_pages.csproj.setup(csproj_controller)
+	_pages.overview.setup(self, _data_table_page_id, _editor_extension_page_id)
+	_pages.runtime.setup(runtime_controller, csproj_controller)
 	_pages.manifest.setup(manifest_controller)
 	_pages.ui_config.setup(ui_config_controller)
-	_pages.extensions.setup(extension_host)
+	for definition in _page_definitions:
+		var extension_id: String = definition.get("extension_id", "")
+		if extension_id.is_empty():
+			continue
+		var page: Control = _pages[definition.id]
+		if page.has_method("setup"):
+			page.setup(extension_host, extension_id)
+
+
+func _build_page_definitions(extension_host: RefCounted) -> Array[Dictionary]:
+	var definitions: Array[Dictionary] = []
+	definitions.append(STATIC_PAGE_DEFINITIONS[0])
+	definitions.append(STATIC_PAGE_DEFINITIONS[1])
+	var extension_pages: Array[Dictionary] = extension_host.get_extension_pages()
+	for extension in extension_pages:
+		if extension.menu_section != "data_tables":
+			continue
+		var page_id := _extension_page_id(extension.id)
+		if _data_table_page_id.is_empty():
+			_data_table_page_id = page_id
+		definitions.append(_extension_page_definition(extension, page_id, "数据表"))
+	definitions.append(STATIC_PAGE_DEFINITIONS[2])
+	definitions.append(STATIC_PAGE_DEFINITIONS[3])
+	for extension in extension_pages:
+		if extension.menu_section == "data_tables":
+			continue
+		var page_id := _extension_page_id(extension.id)
+		if _editor_extension_page_id.is_empty():
+			_editor_extension_page_id = page_id
+		definitions.append(_extension_page_definition(
+			extension,
+			page_id,
+			"编辑器扩展/%s" % extension.name))
+	return definitions
+
+
+func _extension_page_definition(
+	extension: Dictionary,
+	page_id: String,
+	label: String
+) -> Dictionary:
+	return {
+		"id": page_id,
+		"label": label,
+		"description": "检查并管理 %s 的项目配置。" % extension.name,
+		"script": (
+			EMBEDDED_EXTENSION_PAGE_SCRIPT
+			if extension.get("has_embedded_page", false)
+			else EXTENSIONS_PAGE_SCRIPT
+		),
+		"extension_id": extension.id,
+	}
+
+
+func _extension_page_id(extension_id: String) -> String:
+	return "extension_%s" % extension_id.replace(".", "_").replace("-", "_")
 
 
 func _on_navigation_selected() -> void:
@@ -270,7 +369,7 @@ func _on_navigation_selected() -> void:
 
 func _on_navigation_filter_changed(value: String) -> void:
 	var filter := value.strip_edges().to_lower()
-	for definition in PAGE_DEFINITIONS:
+	for definition in _page_definitions:
 		var page_id: String = definition.id
 		var label: String = definition.label
 		_page_items[page_id].visible = filter.is_empty() or label.to_lower().contains(filter)
@@ -285,13 +384,17 @@ func _on_navigation_filter_changed(value: String) -> void:
 
 
 func _show_page(page_id: String) -> void:
+	if page_id == "csproj":
+		page_id = "runtime"
 	if not _pages.has(page_id):
 		page_id = "overview"
 	for candidate_id in _pages:
 		_pages[candidate_id].visible = candidate_id == page_id
 	var item: TreeItem = _page_items[page_id]
 	_navigation.set_selected(item, 0)
+	_navigation.scroll_to_item(item)
 	_page_title.text = item.get_text(0)
+	_page_description.text = _page_descriptions[page_id]
 	var page: Control = _pages[page_id]
 	if page.has_method("refresh"):
 		page.refresh()

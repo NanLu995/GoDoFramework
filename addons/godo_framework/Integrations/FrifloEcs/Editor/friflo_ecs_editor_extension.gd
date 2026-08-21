@@ -6,48 +6,30 @@ const PROJECT_INSTALLER_SCRIPT := preload("res://addons/godo_framework/Integrati
 const OFFICIAL_PACKAGE_URL := "https://www.nuget.org/packages/Friflo.Engine.ECS/3.6.0"
 
 var _context
-var _dialog: AcceptDialog
+var _page: VBoxContainer
 var _report: RichTextLabel
+var _message_label: RichTextLabel
 var _install_button: Button
 var _confirmation: ConfirmationDialog
 
 
 func activate(context) -> Error:
 	_context = context
-	return _context.add_menu_action("dependency", "Friflo ECS 依赖检查...", _open_dialog)
+	return _context.register_embedded_page(_create_page, _refresh)
 
 
 func deactivate() -> void:
-	if is_instance_valid(_dialog):
-		_dialog.queue_free()
-	_dialog = null
+	_page = null
 	_confirmation = null
+	_report = null
+	_message_label = null
 	_install_button = null
 	_context = null
 
 
-func _open_dialog() -> void:
-	if not is_instance_valid(_dialog):
-		_create_dialog()
-	_refresh()
-	_dialog.popup_centered(Vector2i(680, 360))
-
-
-func _create_dialog() -> void:
-	_dialog = AcceptDialog.new()
-	_dialog.title = "GoDo Friflo ECS 依赖检查"
-	_dialog.ok_button_text = "关闭"
-	_dialog.min_size = Vector2i(680, 360)
-	_dialog.get_label().hide()
-
-	var content := VBoxContainer.new()
-	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	content.offset_left = 16
-	content.offset_top = 16
-	content.offset_right = -16
-	content.offset_bottom = -56
-	content.add_theme_constant_override("separation", 10)
-	_dialog.add_child(content)
+func _create_page() -> Control:
+	_page = VBoxContainer.new()
+	_page.add_theme_constant_override("separation", 10)
 
 	_report = RichTextLabel.new()
 	_report.name = "FrifloEcsDependencyReport"
@@ -55,34 +37,55 @@ func _create_dialog() -> void:
 	_report.fit_content = false
 	_report.scroll_active = true
 	_report.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_child(_report)
+	_page.add_child(_report)
 
-	var note := Label.new()
-	note.name = "FrifloEcsInstallBoundaryNote"
-	note.text = "检查不执行 restore。只有根目录唯一普通 .csproj 缺少依赖时，才可经确认写入；中央包管理始终只读。"
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	content.add_child(note)
+	_message_label = RichTextLabel.new()
+	_message_label.name = "FrifloEcsMessage"
+	_message_label.bbcode_enabled = true
+	_message_label.custom_minimum_size.y = 48
+	_message_label.scroll_active = false
+	_message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_page.add_child(_message_label)
 
-	var refresh_button := _dialog.add_button("重新检查", true)
+	var actions := HBoxContainer.new()
+	actions.name = "FrifloEcsActions"
+	actions.add_theme_constant_override("separation", 8)
+	_page.add_child(actions)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.add_child(spacer)
+	var refresh_button := Button.new()
+	refresh_button.text = "重新检查"
 	refresh_button.name = "FrifloEcsRefreshButton"
-	refresh_button.pressed.connect(_refresh)
-	var source_button := _dialog.add_button("查看 NuGet 包...", true)
+	actions.add_child(refresh_button)
+	refresh_button.pressed.connect(_on_refresh_pressed)
+	var source_button := Button.new()
+	source_button.text = "查看 NuGet 包..."
 	source_button.name = "FrifloEcsOfficialSourceButton"
 	source_button.tooltip_text = OFFICIAL_PACKAGE_URL
+	actions.add_child(source_button)
 	source_button.pressed.connect(_open_official_source)
-	_install_button = _dialog.add_button("添加依赖...", true)
+	_install_button = Button.new()
+	_install_button.text = "添加依赖..."
 	_install_button.name = "FrifloEcsInstallButton"
+	actions.add_child(_install_button)
 	_install_button.pressed.connect(_request_install)
-	_context.get_editor_interface().get_base_control().add_child(_dialog)
 
 	_confirmation = ConfirmationDialog.new()
+	_confirmation.exclusive = true
+	_confirmation.transient_to_focused = true
 	_confirmation.title = "添加 Friflo ECS 依赖"
 	_confirmation.dialog_text = _build_confirmation_text("根目录唯一的 .csproj")
 	_confirmation.confirmed.connect(_perform_install)
-	_dialog.add_child(_confirmation)
+	_page.add_child(_confirmation)
+	return _page
 
 
-func _refresh() -> void:
+func _on_refresh_pressed() -> void:
+	_refresh("重新检查完成。", "#8bd49c")
+
+
+func _refresh(message: String = "", message_color: String = "") -> void:
 	var state: Dictionary = PROJECT_INSPECTOR_SCRIPT.new().inspect()
 	var color := "#8bd49c" if state["healthy"] else "#ffd166"
 	var status := "已就绪" if state["healthy"] else "需要处理"
@@ -96,18 +99,36 @@ func _refresh() -> void:
 	])
 	_report.text = "\n".join(lines)
 	_install_button.disabled = not state["can_install"]
+	if message.is_empty():
+		_set_hint(_hint_for_state(state), "#8bd49c" if state["healthy"] else "#ffd166")
+	else:
+		_set_hint(message, message_color)
+
+
+func _hint_for_state(state: Dictionary) -> String:
+	if state["healthy"]:
+		return "依赖已就绪；检查不执行 restore，中央包管理始终只读。"
+	if state["can_install"]:
+		return "可在确认后添加依赖；检查不执行 restore，中央包管理始终只读。"
+	return "当前项目保持只读；检查不执行 restore，中央包管理始终只读。"
+
+
+func _set_hint(message: String, color: String) -> void:
+	_message_label.text = "[center][color=%s]提示：%s[/color][/center]" % [color, message]
 
 
 func _open_official_source() -> void:
 	var result := OS.shell_open(OFFICIAL_PACKAGE_URL)
-	if result != OK:
-		_report.text += "\n\n[color=#ff6b6b]无法打开 NuGet 官方页面：%s[/color]" % error_string(result)
+	if result == OK:
+		_refresh("已交给系统浏览器打开 NuGet 官方页面；下载和 restore 仍由开发者完成。", "#8bd49c")
+	else:
+		_refresh("无法打开 NuGet 官方页面：%s" % error_string(result), "#ff6b6b")
 
 
 func _request_install() -> void:
 	var state: Dictionary = PROJECT_INSPECTOR_SCRIPT.new().inspect()
 	if not state["can_install"]:
-		_refresh()
+		_refresh("当前状态无需添加，或暂时不允许自动添加。", "#ffd166")
 		return
 	_confirmation.dialog_text = _build_confirmation_text(state["project_path"].get_file())
 	_confirmation.popup_centered()
@@ -124,9 +145,8 @@ func _build_confirmation_text(project_file: String) -> String:
 
 func _perform_install() -> void:
 	var result: Dictionary = PROJECT_INSTALLER_SCRIPT.new().install()
-	_refresh()
 	var color := "#8bd49c" if result["success"] else "#ff6b6b"
 	var backup := ""
 	if not result["backup_path"].is_empty():
 		backup = "\n备份：%s" % result["backup_path"]
-	_report.text += "\n\n[color=%s]%s%s[/color]" % [color, result["detail"], backup]
+	_refresh("%s%s" % [result["detail"], backup], color)

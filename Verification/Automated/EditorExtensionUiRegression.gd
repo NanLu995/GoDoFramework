@@ -26,19 +26,43 @@ func _run() -> void:
 	var framework_window := await _open_framework_window(menu)
 	if framework_window == null:
 		return
-	if not _verify_management_page(
+	if not _verify_precreated_window_layering(framework_window):
+		return
+	if not await _verify_management_page(
 		framework_window,
 		"manifest",
 		"GoDoResourceManifestList",
+		"GoDoResourceManifestRefreshButton",
 		"GoDoResourceManifestCreateButton",
-		"GoDoResourceManifestManageButton"):
+		"GoDoResourceManifestManageButton",
+		"GoDoResourceManifestValidateButton",
+		"ManifestFileDialog",
+		"res://GeneratedEditorUiManifest.tres",
+		"GoDoManifestManageDialog",
+		"资源清单管理",
+		"GoDoManagedManifestLabel",
+		"GoDoManifestSearchInput",
+		"GoDoManifestEntriesTree",
+		"GoDoManifestValidateButton",
+		"GoDoManifestReportDialog"):
 		return
-	if not _verify_management_page(
+	if not await _verify_management_page(
 		framework_window,
 		"ui_config",
 		"GoDoUiConfigList",
+		"GoDoUiConfigRefreshButton",
 		"GoDoUiConfigCreateButton",
-		"GoDoUiConfigManageButton"):
+		"GoDoUiConfigManageButton",
+		"GoDoUiConfigValidateButton",
+		"UiConfigFileDialog",
+		"res://GeneratedEditorUiConfig.tres",
+		"GoDoUiConfigManageDialog",
+		"UI 配置管理",
+		"GoDoManagedUiConfigLabel",
+		"GoDoUiConfigSearchInput",
+		"GoDoUiConfigEntriesTree",
+		"GoDoUiConfigManageValidateButton",
+		"GoDoUiConfigReportDialog"):
 		return
 	if not await _open_and_verify_setup(framework_window):
 		return
@@ -48,8 +72,9 @@ func _run() -> void:
 		return
 	if not await _open_and_verify(
 		framework_window,
-		"输入映射配置 (GUIDE Input Settings)...",
+		"extension_godo_guide_input",
 		"GoDo GUIDE Input 设置",
+		"安装 / 修复 GUIDE Input",
 		"GuideInputReport",
 		"GuideInputMessage",
 		"GuideInputRepairButton",
@@ -59,8 +84,9 @@ func _run() -> void:
 		return
 	if not await _open_and_verify(
 		framework_window,
-		"幻影相机配置 (Phantom Camera Settings)...",
+		"extension_godo_phantom_camera",
 		"GoDo Phantom Camera 设置",
+		"启用 Phantom Camera",
 		"PhantomCameraReport",
 		"PhantomCameraMessage",
 		"PhantomCameraEnableButton",
@@ -69,6 +95,8 @@ func _run() -> void:
 	):
 		return
 	if not await _open_and_verify_friflo_dependency(framework_window):
+		return
+	if not _verify_project_config_dispose(framework_window):
 		return
 
 	print("[EditorExtensionUiRegression] PASS (10/10)")
@@ -104,6 +132,40 @@ func _verify_menu_layout(menu: PopupMenu) -> bool:
 	return menu.item_count == 1 and menu.get_item_text(0) == "打开 GoDo Framework..."
 
 
+func _verify_extension_navigation(navigation: Tree) -> bool:
+	var root_item := navigation.get_root()
+	var runtime := _find_tree_item_by_metadata(root_item, "runtime")
+	var data_table := _find_tree_item_by_metadata(root_item, "extension_godo_datatable")
+	var status := _find_tree_item_by_metadata(root_item, "extensions")
+	var guide := _find_tree_item_by_metadata(root_item, "extension_godo_guide_input")
+	var camera := _find_tree_item_by_metadata(root_item, "extension_godo_phantom_camera")
+	var ecs := _find_tree_item_by_metadata(root_item, "extension_godo_friflo_ecs")
+	if (
+		runtime == null
+		or data_table == null
+		or guide == null
+		or camera == null
+		or ecs == null
+	):
+		_fail("统一窗口缺少数据表或可选编辑器扩展的独立导航条目。")
+		return false
+	var extension_group := guide.get_parent()
+	if (
+		status != null
+		or extension_group == null
+		or data_table.get_parent() != root_item
+		or data_table.get_text(0) != "数据表"
+		or data_table.get_index() != runtime.get_index() + 1
+		or extension_group.get_text(0) != "编辑器扩展"
+		or guide.get_parent() != extension_group
+		or camera.get_parent() != extension_group
+		or ecs.get_parent() != extension_group
+	):
+		_fail("数据表位置错误、扩展未正确分组，或仍保留多余的状态条目。")
+		return false
+	return true
+
+
 func _open_framework_window(menu: PopupMenu) -> Window:
 	menu.id_pressed.emit(menu.get_item_id(0))
 	await process_frame
@@ -115,6 +177,8 @@ func _open_framework_window(menu: PopupMenu) -> Window:
 	var navigation := dialog.find_child("GoDoFrameworkNavigation", true, false) as Tree
 	if navigation == null or navigation.get_root() == null:
 		_fail("统一窗口缺少左侧导航。")
+		return null
+	if not _verify_extension_navigation(navigation):
 		return null
 	var navigation_panel := dialog.find_child(
 		"GoDoFrameworkNavigationPanel", true, false) as PanelContainer
@@ -180,15 +244,78 @@ func _open_framework_window(menu: PopupMenu) -> Window:
 			dialog.mode,
 		])
 		return null
+	if not _verify_overview_layout(dialog):
+		return null
 	return dialog
+
+
+func _verify_overview_layout(framework_window: Window) -> bool:
+	var page := framework_window.find_child("OverviewPage", true, false) as VBoxContainer
+	var navigation := framework_window.find_child("GoDoFrameworkNavigation", true, false) as Tree
+	var page_title := framework_window.find_child("GoDoFrameworkPageTitle", true, false) as Label
+	var page_description := framework_window.find_child("GoDoFrameworkPageDescription", true, false) as Label
+	var page_separator := framework_window.find_child("GoDoFrameworkPageSeparator", true, false) as HSeparator
+	var header := framework_window.find_child("GoDoOverviewRuntimeHeader", true, false) as HBoxContainer
+	var title := framework_window.find_child("GoDoOverviewRuntimeTitle", true, false) as Label
+	var detail := framework_window.find_child("GoDoOverviewRuntimeDetail", true, false) as Label
+	var button := framework_window.find_child("GoDoOverviewOpenRuntimeButton", true, false) as Button
+	var separator := framework_window.find_child("GoDoOverviewManifestSeparator", true, false) as HSeparator
+	if (
+		page == null
+		or navigation == null
+		or page_title == null
+		or page_description == null
+		or page_separator == null
+		or page_description.get_parent() != page_title.get_parent()
+		or page_separator.get_parent() != page_title.get_parent()
+		or page_description.get_index() >= page_separator.get_index()
+		or not page_description.text.contains("集中管理")
+		or _find_tree_item_by_metadata(navigation.get_root(), "csproj") != null
+		or header == null
+		or title == null
+		or detail == null
+		or button == null
+		or separator == null
+		or separator.get_parent() != page
+		or not is_equal_approx(separator.modulate.a, 0.7)
+		or page.get_theme_constant("separation") != 2
+		or title.get_parent() != header
+		or button.get_parent() != header
+		or detail.get_parent() != header.get_parent()
+		or button.size_flags_vertical != Control.SIZE_SHRINK_CENTER
+		or title.vertical_alignment != VERTICAL_ALIGNMENT_BOTTOM
+		or title.get_theme_font_size("font_size") != 15
+	):
+		_fail("概览页没有保持紧凑条目、标题按钮同行或标准按钮高度。")
+		return false
+	button.pressed.emit()
+	if (
+		navigation.has_focus()
+		or navigation.get_selected() == null
+		or str(navigation.get_selected().get_metadata(0)) != "runtime"
+	):
+		_fail("概览页打开项目配置后，左侧导航没有仅同步选中状态，或仍显示焦点框。")
+		return false
+	return true
 
 
 func _verify_management_page(
 	dialog: Window,
 	page_id: String,
 	tree_name: String,
+	refresh_button_name: String,
 	create_button_name: String,
-	manage_button_name: String
+	manage_button_name: String,
+	page_validate_button_name: String,
+	file_dialog_name: String,
+	generated_path: String,
+	manager_name: String,
+	manager_title: String,
+	managed_label_name: String,
+	search_name: String,
+	entries_tree_name: String,
+	manage_validate_button_name: String,
+	report_name: String
 ) -> bool:
 	if not _select_framework_page(dialog, page_id):
 		return false
@@ -196,31 +323,328 @@ func _verify_management_page(
 	if tree == null or tree.get_root() == null:
 		_fail("统一管理页没有显示现有配置列表：%s" % page_id)
 		return false
-	if dialog.find_child(create_button_name, true, false) == null:
+	var refresh_button := dialog.find_child(refresh_button_name, true, false) as Button
+	if refresh_button == null:
+		_fail("统一管理页缺少主动刷新入口：%s" % page_id)
+		return false
+	var create_button := dialog.find_child(create_button_name, true, false) as Button
+	if create_button == null:
 		_fail("统一管理页缺少创建入口：%s" % page_id)
 		return false
-	if dialog.find_child(manage_button_name, true, false) == null:
+	var manage_button := dialog.find_child(manage_button_name, true, false) as Button
+	if manage_button == null:
 		_fail("统一管理页缺少管理入口：%s" % page_id)
 		return false
+	var page_validate_button := dialog.find_child(
+		page_validate_button_name, true, false) as Button
+	if page_validate_button == null:
+		_fail("统一管理页缺少校验入口：%s" % page_id)
+		return false
+
+	create_button.pressed.emit()
+	await process_frame
+	var file_dialog := dialog.find_child(file_dialog_name, true, false) as FileDialog
+	if file_dialog == null:
+		_fail("创建入口没有打开文件选择器：%s" % page_id)
+		return false
+	file_dialog.file_selected.emit(generated_path)
+	file_dialog.hide()
+	await process_frame
+	await process_frame
+	var generated_item := _find_tree_item_by_metadata(tree.get_root(), generated_path)
+	if (
+		generated_item == null
+		or tree.get_selected() != generated_item
+		or manage_button.disabled
+	):
+		_fail("创建资源后列表没有立即刷新、选中新资源并启用管理入口：%s" % page_id)
+		return false
+
+	var manager := dialog.find_child(manager_name, true, false) as Window
+	if manager == null or not manager.visible:
+		manage_button.pressed.emit()
+		await process_frame
+		manager = dialog.find_child(manager_name, true, false) as Window
+	if (
+		manager == null
+		or not manager.visible
+		or manager.title != manager_title
+		or manager.find_child(managed_label_name, true, false) == null
+		or manager.find_child(search_name, true, false) == null
+		or manager.find_child(entries_tree_name, true, false) == null
+	):
+		_fail("管理弹窗没有使用统一工具栏布局或固定标题：%s" % page_id)
+		return false
+	if page_id == "ui_config":
+		var entries_tree := manager.find_child(entries_tree_name, true, false) as Tree
+		if entries_tree.get_column_title(4) != "Reuse":
+			_fail("UI 配置表格的 Reuse 表头不正确。")
+			return false
+		for column in range(2, 6):
+			if entries_tree.get_column_title_alignment(column) != HORIZONTAL_ALIGNMENT_CENTER:
+				_fail("UI 配置表格后四列表头没有居中：%d" % column)
+				return false
+	var managed_label := manager.find_child(managed_label_name, true, false) as Label
+	if managed_label.text.contains("项目发现"):
+		_fail("管理弹窗仍显示重复的项目资源数量：%s" % page_id)
+		return false
+	var manage_validate_button := manager.find_child(
+		manage_validate_button_name, true, false) as Button
+	if manage_validate_button == null:
+		_fail("管理弹窗缺少校验入口：%s" % page_id)
+		return false
+	if not await _verify_nested_window_stack(dialog, manager, page_id):
+		return false
+
+	manage_validate_button.pressed.emit()
+	await process_frame
+	var report := dialog.find_child(report_name, true, false) as Window
+	if (
+		report == null
+		or not report.visible
+		or not report.exclusive
+		or not report.transient_to_focused
+		or not manager.visible
+	):
+		_fail("校验提示没有显示在管理弹窗上层，或关闭了下层管理页：%s" % page_id)
+		return false
+	report.hide()
+	await process_frame
+	if not manager.visible:
+		_fail("关闭校验提示后管理弹窗没有保留：%s" % page_id)
+		return false
+
+	manager.hide()
+	page_validate_button.pressed.emit()
+	await process_frame
+	if report == null or not report.visible:
+		_fail("主页校验没有显示结果：%s" % page_id)
+		return false
+	report.hide()
+	await process_frame
+	tree.item_activated.emit()
+	await process_frame
+	if not manager.visible:
+		_fail("关闭主页校验结果后，双击选中项无法再次进入管理页：%s" % page_id)
+		return false
+	manager.hide()
+
+	create_button.pressed.emit()
+	await process_frame
+	if DirAccess.remove_absolute(ProjectSettings.globalize_path(generated_path)) != OK:
+		_fail("隔离验证无法删除新建资源：%s" % page_id)
+		return false
+	file_dialog.canceled.emit()
+	file_dialog.hide()
+	await process_frame
+	await process_frame
+	if _find_tree_item_by_metadata(tree.get_root(), generated_path) != null:
+		_fail("创建窗口内删除资源并取消后，主页列表没有刷新：%s" % page_id)
+		return false
+	refresh_button.pressed.emit()
 	return true
 
 
+func _verify_nested_window_stack(dialog: Window, manager: Window, page_id: String) -> bool:
+	if not manager.exclusive or not manager.transient_to_focused:
+		_fail("管理弹窗没有作为根窗口之上的模态子窗口：%s" % page_id)
+		return false
+	if page_id == "manifest":
+		var add_button := manager.find_child(
+			"GoDoManifestAddResourceButton", true, false) as Button
+		var file_dialog := dialog.find_child(
+			"GoDoResourceFileDialog", true, false) as Window
+		if add_button == null or file_dialog == null:
+			_fail("资源清单管理缺少添加资源窗口链。")
+			return false
+		add_button.pressed.emit()
+		await process_frame
+		if (
+			not file_dialog.visible
+			or not file_dialog.exclusive
+			or not file_dialog.transient_to_focused
+			or not manager.visible
+		):
+			_fail("资源选择窗口没有保持在资源清单管理窗上层。")
+			return false
+		file_dialog.hide()
+		await process_frame
+		if not manager.visible:
+			_fail("取消资源选择后资源清单管理窗没有保留。")
+			return false
+		return true
+
+	var add_button := manager.find_child("GoDoUiConfigAddButton", true, false) as Button
+	var entry_dialog := manager.find_child("GoDoUiConfigEntryDialog", true, false) as Window
+	var choose_scene_button := manager.find_child(
+		"GoDoUiConfigChooseSceneButton", true, false) as Button
+	var scene_dialog := dialog.find_child("GoDoUiSceneFileDialog", true, false) as Window
+	if (
+		add_button == null
+		or entry_dialog == null
+		or choose_scene_button == null
+		or scene_dialog == null
+	):
+		_fail("UI 配置管理缺少条目或场景选择窗口链。")
+		return false
+	add_button.pressed.emit()
+	await process_frame
+	if (
+		not entry_dialog.visible
+		or not entry_dialog.exclusive
+		or not entry_dialog.transient_to_focused
+		or not manager.visible
+	):
+		_fail("UI 条目编辑窗口没有保持在 UI 配置管理窗上层。")
+		return false
+	choose_scene_button.pressed.emit()
+	await process_frame
+	if (
+		not scene_dialog.visible
+		or not scene_dialog.exclusive
+		or not scene_dialog.transient_to_focused
+		or not entry_dialog.visible
+		or not manager.visible
+	):
+		_fail("UI 场景选择窗口改变了根窗口或管理窗口层级。")
+		return false
+	scene_dialog.hide()
+	await process_frame
+	if not entry_dialog.visible or not manager.visible:
+		_fail("取消 UI 场景选择后条目编辑与管理窗口没有保留。")
+		return false
+	entry_dialog.hide()
+	await process_frame
+	return manager.visible
+
+
 func _verify_csproj_page(framework_window: Window) -> bool:
-	if not _select_framework_page(framework_window, "csproj"):
+	if not _select_framework_page(framework_window, "runtime"):
 		return false
-	var report := framework_window.find_child("GoDoCsprojReport", true, false) as RichTextLabel
-	var refresh := framework_window.find_child("GoDoCsprojRefreshButton", true, false) as Button
+	var report := framework_window.find_child("GoDoProjectConfigReport", true, false) as RichTextLabel
+	var refresh := framework_window.find_child("GoDoProjectConfigCheckButton", true, false) as Button
 	var repair := framework_window.find_child("GoDoCsprojRepairButton", true, false) as Button
-	var confirmation := _find_window(root, "修复 GoDo 项目配置") as ConfirmationDialog
-	if report == null or not report.text.contains("已就绪"):
-		_fail("C# 项目页没有识别当前项目配置。")
+	var confirmation := _find_window(root, "修复 GoDo C# 项目配置") as ConfirmationDialog
+	if (
+		report == null
+		or not report.get_parsed_text().contains("当前状态：")
+		or not report.get_parsed_text().contains("GoDoFramework 版本")
+		or not report.get_parsed_text().contains("C# 项目配置")
+		or framework_window.find_child("GoDoRuntimeSectionTitle", true, false) != null
+		or framework_window.find_child("GoDoCsprojSectionTitle", true, false) != null
+		or framework_window.find_child("GoDoProjectConfigSectionSeparator", true, false) != null
+		or framework_window.find_child("GoDoCsprojReport", true, false) != null
+		or framework_window.find_child("GoDoCsprojMessage", true, false) != null
+		or framework_window.find_child("GoDoCsprojActions", true, false) != null
+	):
+		_fail("项目配置没有合并为单一报告、提示和操作区。报告：%s" % (
+			"<missing>" if report == null else report.get_parsed_text()
+		))
 		return false
-	if refresh == null or repair == null or not repair.disabled:
+	if refresh == null:
+		_fail("项目配置缺少统一的重新检查按钮。")
+		return false
+	refresh.pressed.emit()
+	if (
+		not report.get_parsed_text().contains("GoDoFramework 版本")
+		or not report.get_parsed_text().contains("C# 项目配置")
+	):
+		_fail("统一重新检查没有同时刷新 Runtime 与 C# 项目配置。")
+		return false
+	if not _verify_status_page_layout(
+		framework_window,
+		"RuntimePage",
+		"GoDoProjectConfigReport",
+		"GoDoProjectConfigMessage",
+		"GoDoProjectConfigActions"
+	):
+		return false
+	if (
+		repair == null
+		or repair.text != "修复 C# 项目配置..."
+		or not repair.tooltip_text.contains(".csproj")
+		or not repair.disabled
+	):
 		_fail("C# 项目已就绪时修复按钮没有禁用。")
 		return false
 	if confirmation == null or not confirmation.dialog_text.is_empty():
 		_fail("C# 项目确认窗口没有保持按需精确预览。")
 		return false
+	var page := framework_window.find_child("RuntimePage", true, false) as VBoxContainer
+	var coordinator: RefCounted = page._controller if page != null else null
+	if coordinator == null:
+		_fail("项目配置页缺少统一控制器。")
+		return false
+	coordinator._csproj_controller.request_repair()
+	if (
+		not report.get_parsed_text().contains("GoDoFramework 版本")
+		or not report.get_parsed_text().contains("C# 项目配置")
+	):
+		_fail("C# 状态变化分支覆盖了统一项目配置报告。")
+		return false
+	var runtime_state: Dictionary = coordinator._runtime_controller.inspect()
+	runtime_state.autoload_healthy = false
+	runtime_state.autoload_missing = true
+	var combined: Dictionary = coordinator._combined_status(
+		runtime_state,
+		{"healthy": false, "can_repair": true, "detail": "测试缺少规则"}
+	)
+	if not combined.advice.contains("Runtime：") or not combined.advice.contains("C# 项目配置："):
+		_fail("综合状态没有同时说明 Runtime 与 C# 项目配置行动。")
+		return false
+	return true
+
+
+func _verify_project_config_dispose(framework_window: Window) -> bool:
+	var page := framework_window.find_child("RuntimePage", true, false) as VBoxContainer
+	var coordinator: RefCounted = page._controller if page != null else null
+	if coordinator == null:
+		_fail("释放检查缺少统一项目配置控制器。")
+		return false
+	var runtime_controller: RefCounted = coordinator._runtime_controller
+	var csproj_controller: RefCounted = coordinator._csproj_controller
+	if (
+		not runtime_controller.state_changed.is_connected(coordinator._on_runtime_state_changed)
+		or not csproj_controller.state_changed.is_connected(coordinator._on_csproj_state_changed)
+	):
+		_fail("统一项目配置控制器没有建立状态连接。")
+		return false
+	page.dispose()
+	if (
+		runtime_controller.state_changed.is_connected(coordinator._on_runtime_state_changed)
+		or csproj_controller.state_changed.is_connected(coordinator._on_csproj_state_changed)
+	):
+		_fail("统一项目配置控制器释放后仍保留状态连接。")
+		return false
+	return true
+
+
+func _verify_precreated_window_layering(framework_window: Window) -> bool:
+	var dialog_names := PackedStringArray([
+		"GoDoRuntimeUninstallDialog",
+		"GoDoCsprojRepairConfirmation",
+		"ManifestFileDialog",
+		"GoDoResourceFileDialog",
+		"GoDoManifestAddConfirmDialog",
+		"GoDoManifestManageDialog",
+		"GoDoManifestReportDialog",
+		"ManifestSelectorDialog",
+		"UiConfigFileDialog",
+		"GoDoUiSceneFileDialog",
+		"UiConfigSelectorDialog",
+		"GoDoUiConfigManageDialog",
+		"GoDoUiConfigReportDialog",
+	])
+	for dialog_name in dialog_names:
+		var dialog := root.find_child(dialog_name, true, false) as Window
+		if (
+			dialog == null
+			or dialog.get_parent() != framework_window
+			or not dialog.exclusive
+			or not dialog.transient_to_focused
+		):
+			_fail("顶层工具窗口没有挂到 GoDo Framework 根窗口：%s" % dialog_name)
+			return false
 	return true
 
 
@@ -269,88 +693,144 @@ func _open_and_verify_management_selector(
 
 func _open_and_verify(
 	framework_window: Window,
-	action_label: String,
-	dialog_title: String,
+	page_id: String,
+	legacy_dialog_title: String,
+	confirmation_title: String,
 	report_name: String,
 	message_name: String,
 	action_button_name: String,
 	source_button_name: String,
 	official_url: String
 ) -> bool:
-	if not _select_framework_page(framework_window, "extensions"):
+	if not _select_framework_page(framework_window, page_id):
 		return false
-	var action_button := _find_button(framework_window, action_label)
-	if action_button == null:
-		_fail("未找到扩展操作：%s" % action_label)
-		return false
-	action_button.pressed.emit()
 	await process_frame
-
-	var dialog := _find_window(root, dialog_title)
-	if dialog == null:
-		_fail("未找到窗口：%s" % dialog_title)
+	var page_name := "%sPage" % page_id.to_pascal_case()
+	var page := framework_window.find_child(page_name, true, false) as Control
+	if page == null or not page.is_visible_in_tree():
+		_fail("扩展内容没有嵌入右侧页面：%s" % page_id)
 		return false
-	var report := dialog.find_child(report_name, true, false) as RichTextLabel
+	if _find_window(root, legacy_dialog_title) != null:
+		_fail("扩展仍创建了旧的主设置窗口：%s" % legacy_dialog_title)
+		return false
+	var report := page.find_child(report_name, true, false) as RichTextLabel
 	if report == null or report.text.is_empty():
-		_fail("%s 的状态报告为空。" % dialog_title)
+		_fail("%s 的状态报告为空。" % page_id)
 		return false
-	var message := dialog.find_child(message_name, true, false) as RichTextLabel
+	var message := page.find_child(message_name, true, false) as RichTextLabel
 	if message == null or not message.text.contains("提示："):
-		_fail("%s 缺少独立提示栏。" % dialog_title)
+		_fail("%s 缺少独立提示栏。" % page_id)
 		return false
-	var target_button := dialog.find_child(action_button_name, true, false) as Button
+	var target_button := page.find_child(action_button_name, true, false) as Button
 	if target_button == null or not target_button.disabled:
-		_fail("%s 在健康状态下仍允许重复写入。" % dialog_title)
+		_fail("%s 在健康状态下仍允许重复写入。" % page_id)
 		return false
-	var source_button := dialog.find_child(source_button_name, true, false) as Button
+	var source_button := page.find_child(source_button_name, true, false) as Button
 	if source_button == null or source_button.disabled or source_button.tooltip_text != official_url:
-		_fail("%s 缺少可用且地址明确的官方来源按钮。" % dialog_title)
+		_fail("%s 缺少可用且地址明确的官方来源按钮。" % page_id)
 		return false
-	dialog.hide()
+	var refresh_button := _find_button(page, "重新检查")
+	if refresh_button == null:
+		_fail("%s 缺少重新检查按钮。" % page_id)
+		return false
+	refresh_button.pressed.emit()
+	await process_frame
+	if not message.get_parsed_text().contains("重新检查完成"):
+		_fail("%s 点击重新检查后没有可见反馈。" % page_id)
+		return false
+	var confirmation := _find_window(page, confirmation_title) as ConfirmationDialog
+	if confirmation == null or not confirmation.exclusive or not confirmation.transient_to_focused:
+		_fail("%s 的写入确认没有保留统一模态层级。" % page_id)
+		return false
+	var actions := target_button.get_parent() as HBoxContainer
+	var content := report.get_parent() as VBoxContainer
+	if (
+		actions == null
+		or content == null
+		or message.get_parent() != content
+		or actions.get_parent() != content
+		or content.get_theme_constant("separation") != 10
+		or actions.get_theme_constant("separation") != 8
+		or report.size_flags_vertical != Control.SIZE_EXPAND_FILL
+		or message.custom_minimum_size.y != 48
+		or message.scroll_active
+		or message.vertical_alignment != VERTICAL_ALIGNMENT_CENTER
+	):
+		_fail("%s 没有采用项目配置页的报告、提示和操作栏布局。" % page_id)
+		return false
 	return true
 
 
 func _open_and_verify_friflo_dependency(framework_window: Window) -> bool:
-	if not _select_framework_page(framework_window, "extensions"):
+	if not _select_framework_page(framework_window, "extension_godo_friflo_ecs"):
 		return false
-	var action_button := _find_button(framework_window, "Friflo ECS 依赖检查...")
-	if action_button == null:
-		_fail("未找到 Friflo ECS 依赖检查入口。")
-		return false
-	action_button.pressed.emit()
 	await process_frame
-
-	var dialog := _find_window(root, "GoDo Friflo ECS 依赖检查")
-	if dialog == null:
-		_fail("Friflo ECS 依赖检查没有打开窗口。")
+	var page := framework_window.find_child(
+		"ExtensionGodoFrifloEcsPage", true, false) as Control
+	if page == null or not page.is_visible_in_tree():
+		_fail("Friflo ECS 内容没有嵌入右侧页面。")
 		return false
-	var report := dialog.find_child("FrifloEcsDependencyReport", true, false) as RichTextLabel
-	var note := dialog.find_child("FrifloEcsInstallBoundaryNote", true, false) as Label
-	var refresh := dialog.find_child("FrifloEcsRefreshButton", true, false) as Button
-	var install := dialog.find_child("FrifloEcsInstallButton", true, false) as Button
-	var source := dialog.find_child("FrifloEcsOfficialSourceButton", true, false) as Button
+	if _find_window(root, "GoDo Friflo ECS 依赖检查") != null:
+		_fail("Friflo ECS 仍创建了旧的主依赖窗口。")
+		return false
+	var report := page.find_child("FrifloEcsDependencyReport", true, false) as RichTextLabel
+	var note := page.find_child("FrifloEcsInstallBoundaryNote", true, false) as Label
+	var message := page.find_child("FrifloEcsMessage", true, false) as RichTextLabel
+	var refresh := page.find_child("FrifloEcsRefreshButton", true, false) as Button
+	var install := page.find_child("FrifloEcsInstallButton", true, false) as Button
+	var source := page.find_child("FrifloEcsOfficialSourceButton", true, false) as Button
 	if report == null or not report.get_parsed_text().contains("已就绪"):
 		_fail("Friflo ECS 没有识别当前项目的已验证依赖。")
 		return false
-	if note == null or not note.text.contains("中央包管理始终只读"):
+	if note != null or message == null or not message.get_parsed_text().contains("中央包管理始终只读"):
 		_fail("Friflo ECS 检查没有明确自动写入边界。")
 		return false
 	if refresh == null or install == null or not install.disabled:
 		_fail("Friflo ECS 已就绪状态没有禁用安装，或缺少检查操作。")
 		return false
+	refresh.pressed.emit()
+	await process_frame
+	if not message.get_parsed_text().contains("重新检查完成"):
+		_fail("Friflo ECS 点击重新检查后没有可见反馈。")
+		return false
 	if source == null or source.disabled or source.tooltip_text != "https://www.nuget.org/packages/Friflo.Engine.ECS/3.6.0":
 		_fail("Friflo ECS 检查缺少精确版本的 NuGet 官方来源。")
 		return false
-	var confirmation := _find_window(dialog, "添加 Friflo ECS 依赖") as ConfirmationDialog
-	if confirmation == null or not confirmation.dialog_text.contains(".godo-backup"):
+	var confirmation := _find_window(page, "添加 Friflo ECS 依赖") as ConfirmationDialog
+	if (
+		confirmation == null
+		or not confirmation.dialog_text.contains(".godo-backup")
+		or not confirmation.exclusive
+		or not confirmation.transient_to_focused
+	):
 		_fail("Friflo ECS 安装确认缺少精确变更或备份说明。")
 		return false
-	dialog.hide()
+	var actions := install.get_parent() as HBoxContainer
+	var content := report.get_parent() as VBoxContainer
+	if (
+		actions == null
+		or content == null
+		or message.get_parent() != content
+		or actions.get_parent() != content
+		or content.get_theme_constant("separation") != 10
+		or actions.get_theme_constant("separation") != 8
+		or message.custom_minimum_size.y != 48
+		or message.scroll_active
+		or message.vertical_alignment != VERTICAL_ALIGNMENT_CENTER
+	):
+		_fail("Friflo ECS 没有采用项目配置页的统一布局。")
+		return false
 	return true
 
 
 func _open_and_verify_setup(framework_window: Window) -> bool:
 	var controller = SETUP_CONTROLLER_SCRIPT.new()
+	if controller._parse_version("4.7") != Vector3i(-1, -1, -1):
+		_fail("两段式 Godot 兼容版本没有按元数据契约拒绝。")
+		return false
+	if controller._parse_version("4.7.0") != Vector3i(4, 7, 0):
+		_fail("最低支持版本 4.7.0 无法解析。")
+		return false
 	var minimum := Vector3i(4, 7, 1)
 	var tested := Vector3i(4, 7, 1)
 	if controller._evaluate_version(Vector3i(4, 7, 0), minimum, tested).supported:
@@ -364,26 +844,63 @@ func _open_and_verify_setup(framework_window: Window) -> bool:
 	if not _select_framework_page(framework_window, "runtime"):
 		return false
 	await process_frame
-	var report := framework_window.find_child("GoDoRuntimeReport", true, false) as RichTextLabel
+	var report := framework_window.find_child("GoDoProjectConfigReport", true, false) as RichTextLabel
 	if (
 		report == null
 		or not report.get_parsed_text().contains("GoDoFramework 版本")
 		or not report.get_parsed_text().contains("Godot 兼容性")
+		or not report.get_parsed_text().contains("4.7.0～4.7.1")
 	):
 		_fail("Setup 未显示框架版本和 Godot 兼容性：%s" % ("<missing>" if report == null else report.get_parsed_text()))
 		return false
 	if (
-		framework_window.find_child("GoDoRuntimeCheckButton", true, false) == null
+		framework_window.find_child("GoDoProjectConfigCheckButton", true, false) == null
 		or framework_window.find_child("GoDoRuntimeInstallButton", true, false) == null
 		or framework_window.find_child("GoDoRuntimeUninstallButton", true, false) == null
 	):
 		_fail("Runtime 页面缺少嵌入式检查、安装或卸载操作。")
 		return false
+	if not _verify_status_page_layout(
+		framework_window,
+		"RuntimePage",
+		"GoDoProjectConfigReport",
+		"GoDoProjectConfigMessage",
+		"GoDoProjectConfigActions"
+	):
+		return false
+	return true
+
+
+func _verify_status_page_layout(
+	framework_window: Window,
+	page_name: String,
+	report_name: String,
+	message_name: String,
+	actions_name: String
+) -> bool:
+	var page := framework_window.find_child(page_name, true, false) as VBoxContainer
+	var report := framework_window.find_child(report_name, true, false) as RichTextLabel
+	var message := framework_window.find_child(message_name, true, false) as RichTextLabel
+	var actions := framework_window.find_child(actions_name, true, false) as HBoxContainer
+	if (
+		page == null
+		or report == null
+		or message == null
+		or actions == null
+		or page.get_theme_constant("separation") != 10
+		or report.size_flags_vertical != Control.SIZE_EXPAND_FILL
+		or message.custom_minimum_size.y != 48.0
+		or message.scroll_active
+		or message.vertical_alignment != VERTICAL_ALIGNMENT_CENTER
+		or actions.get_theme_constant("separation") != 8
+	):
+		_fail("项目配置页没有保持统一的报告、提示或操作区布局：%s" % page_name)
+		return false
 	return true
 
 
 func _open_and_verify_datatable(framework_window: Window) -> bool:
-	if not _select_framework_page(framework_window, "extensions"):
+	if not _select_framework_page(framework_window, "extension_godo_datatable"):
 		return false
 	var action_button := _find_button(framework_window, "数据表配置 (DataTable Configuration)...")
 	if action_button == null:
@@ -395,6 +912,8 @@ func _open_and_verify_datatable(framework_window: Window) -> bool:
 	var dialog := _find_window(root, "GoDo DataTable")
 	if dialog == null:
 		_fail("未找到 GoDo DataTable 窗口。")
+		return false
+	if not _verify_open_child_window_layering(framework_window, dialog):
 		return false
 	var selector := dialog.find_child("DataTableTableSelector", true, false) as OptionButton
 	if selector == null:
@@ -450,10 +969,21 @@ func _open_and_verify_datatable(framework_window: Window) -> bool:
 	var create_button := dialog.find_child("DataTableCreateSchemaButton", true, false) as Button
 	var edit_button := dialog.find_child("DataTableEditSchemaButton", true, false) as Button
 	if check_button == null or create_button == null or edit_button == null:
-		_fail("DataTable 底部功能按钮不完整。")
+		_fail("DataTable Schema 首行功能按钮不完整。")
 		return false
-	if check_button.position.x >= create_button.position.x or check_button.position.x >= edit_button.position.x:
-		_fail("校验按钮和 Schema 功能按钮未左右分组。")
+	var config_row := dialog.find_child("DataTableConfigRow", true, false) as HBoxContainer
+	if (
+		config_row == null
+		or schema_input.get_parent() != config_row
+		or check_button.get_parent() != config_row
+		or create_button.get_parent() != config_row
+		or edit_button.get_parent() != config_row
+		or check_button.text != "校验"
+		or create_button.text != "新建"
+		or edit_button.text != "编辑"
+		or dialog.min_size.x < 960
+	):
+		_fail("DataTable 三个短操作按钮未排在 Schema 首行，或窗口宽度不足。")
 		return false
 	var report := dialog.find_child("DataTableReport", true, false) as RichTextLabel
 	var message := dialog.find_child("DataTableMessage", true, false) as RichTextLabel
@@ -503,6 +1033,25 @@ func _open_and_verify_datatable(framework_window: Window) -> bool:
 	if not await _verify_datatable_schema_editor(dialog):
 		return false
 	dialog.hide()
+	if not framework_window.visible:
+		_fail("关闭 DataTable 子窗口后 GoDo Framework 根窗口不可见。")
+		return false
+	return true
+
+
+func _verify_open_child_window_layering(parent_window: Window, dialog: Window) -> bool:
+	if not parent_window.visible:
+		_fail("打开子窗口时父工具窗口被隐藏：%s" % dialog.title)
+		return false
+	if not dialog.visible:
+		_fail("子窗口没有保持可见：%s" % dialog.title)
+		return false
+	if dialog.get_parent() != parent_window:
+		_fail("子窗口没有挂到实际父工具窗口：%s" % dialog.title)
+		return false
+	if not dialog.exclusive or not dialog.transient_to_focused:
+		_fail("子窗口没有使用统一模态层级策略：%s" % dialog.title)
+		return false
 	return true
 
 
@@ -516,6 +1065,8 @@ func _verify_datatable_schema_editor(datatable_dialog: Window) -> bool:
 	var dialog := _find_window(root, "DataTable Schema 编辑器")
 	if dialog == null:
 		_fail("未找到 DataTable Schema 编辑器。")
+		return false
+	if not _verify_open_child_window_layering(datatable_dialog, dialog):
 		return false
 	var advanced := dialog.find_child("DataTableSchemaAdvancedSettings", true, false) as GridContainer
 	var advanced_button := dialog.find_child("DataTableSchemaAdvancedSettingsButton", true, false) as Button
@@ -743,6 +1294,9 @@ func _verify_datatable_schema_editor(datatable_dialog: Window) -> bool:
 		_fail("Schema 字段编辑结束后未恢复整行选择。")
 		return false
 	dialog.hide()
+	if not datatable_dialog.visible:
+		_fail("关闭 Schema 编辑器后 DataTable 父窗口不可见。")
+		return false
 	return true
 
 
