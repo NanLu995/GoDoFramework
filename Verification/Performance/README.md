@@ -2,6 +2,32 @@
 
 性能场景记录特定机器与构建配置下的相对基线，不把耗时设为跨机器硬门槛。行为正确性和明确承诺的零分配热路径仍作为断言。
 
+## StateMachine
+
+`StateMachineBenchmark.tscn` 覆盖 10,000 个未初始化状态机的构造分配、1,000/10,000 台状态机各累计一千万次 Tick、两档各累计一百万次普通 Change，以及首次生命周期嵌套切换和 FIFO 队列复用后的 30 万次实际切换。Tick、普通 Change 与队列复用后的嵌套 Change 断言稳态当前线程托管分配为 0 B；首次嵌套请求会按设计延迟创建 FIFO 队列，因此单独记录其分配。耗时不设跨机器门槛。
+
+```powershell
+dotnet build GoDoFramework.csproj -c Debug
+& <GodotConsole.exe> --headless --path <RepoRoot> res://Verification/Performance/StateMachineBenchmark.tscn
+```
+
+2026-08-21 Windows Godot 4.7.1 Mono Headless、.NET 8、20 个逻辑处理器的样本中，10,000 个状态机对象本体共分配 560,000 B，约 56 B/台；该数字不包含业务 Context、状态实例或保存引用的数组。首次嵌套 Change 创建 FIFO 队列分配 120 B，队列复用后的稳态嵌套切换为 0 B。
+
+| 构建 | 路径 | 规模 | 总操作 | 总耗时 | 平均耗时 | 稳态分配 |
+|---|---|---:|---:|---:|---:|---:|
+| Debug | Tick | 1,000 台 × 10,000 次 | 10,000,000 | 97.977 ms | 9.798 ns/次 | 0 B |
+| Debug | Tick | 10,000 台 × 1,000 次 | 10,000,000 | 87.344 ms | 8.734 ns/次 | 0 B |
+| Release | Tick | 1,000 台 × 10,000 次 | 10,000,000 | 35.303 ms | 3.530 ns/次 | 0 B |
+| Release | Tick | 10,000 台 × 1,000 次 | 10,000,000 | 37.038 ms | 3.704 ns/次 | 0 B |
+| Debug | Change | 1,000 台 × 1,000 次 | 1,000,000 | 19.735 ms | 19.735 ns/次 | 0 B |
+| Debug | Change | 10,000 台 × 100 次 | 1,000,000 | 19.046 ms | 19.046 ns/次 | 0 B |
+| Release | Change | 1,000 台 × 1,000 次 | 1,000,000 | 21.371 ms | 21.371 ns/次 | 0 B |
+| Release | Change | 10,000 台 × 100 次 | 1,000,000 | 15.505 ms | 15.505 ns/次 | 0 B |
+| Debug | 嵌套 Change | 100,000 轮 / 300,000 次切换 | 300,000 | 6.469 ms | 21.563 ns/切换 | 0 B |
+| Release | 嵌套 Change | 100,000 轮 / 300,000 次切换 | 300,000 | 7.172 ms | 23.908 ns/切换 | 0 B |
+
+状态回调只执行最小计数器更新；数据不包含真实 AI、动画、物理、网络、业务 Context 访问或跨线程调度成本，也不代表 10,000 个复杂状态机适合每个目标平台。Release 样本沿用 Scheduler 的临时程序集替换方式，完成后已恢复 Debug 构建。
+
 ## Friflo ECS
 
 `FrifloEcsBenchmark.tscn` 使用单线程 `QuerySystem<Position, Velocity>` 覆盖 1 万实体连续更新 1,000 次和 10 万实体连续更新 100 次，断言预热后的稳态更新为零当前线程托管分配。基准只测纯 ECS 数据查询，不包含 Godot Node 同步、物理查询、结构变更、渲染或多线程调度。

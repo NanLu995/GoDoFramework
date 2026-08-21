@@ -15,7 +15,7 @@
         ↓
 Runtime Services（Scheduler / Scene / Camera / Input / Audio / Localization / UI / Save / Settings / Procedure）── 对应第 4 节表格中的 Service 层
         ↓
-Runtime Foundation（Resources / Pool）── 对应第 4 节表格中的 Foundation 层
+Runtime Foundation（Resources / Pool / StateMachine）── 对应第 4 节表格中的 Foundation 层
         ↓
 Core（ErrorHub / EventChannel / Services / GoDoRuntime）
         ↓
@@ -72,6 +72,7 @@ Friflo ECS 通过 `Integrations/FrifloEcs/` 作为场景级可选业务能力接
 | Core | GoDoRuntime | 唯一 Autoload 入口：初始化/关闭 ResourceHub 与 ErrorHub、注册与注销长期服务、安装进程级异常兜底（详见第 3 节） | Core 其余模块（ErrorHub、EventChannel、Services）、Godot Autoload 机制 | 无（框架内部入口，不面向业务代码直接调用） | 已采用 |
 | Foundation | ResourceHub | `ResourceKey`、语义资源注册表、同步/线程化加载、类型检查与请求合并 | Core、Godot ResourceLoader | 静态 API | 稳定基线 |
 | Foundation | NodePool | PackedScene 节点实例复用与显式重置生命周期 | Core、Godot Node | 实例 API | 稳定基线 |
+| Foundation | StateMachine | 纯 C# 泛型局部状态、同步生命周期、可选更新、有界 FIFO 重入切换与终止故障 | .NET | `StateMachine<TContext, TState>` | 首版完成 |
 | Service | Scheduler | 三种时间语义、Process/Physics 阶段的一次性/重复回调与可取消异步等待 | Core、Godot Time 与 Node 生命周期 | `ISchedulerService` | 首版完成 |
 | Service | Scene | 主内容场景异步加载、安全替换、单请求进度/取消与结构化失败阶段 | ResourceHub、Core | `ISceneService` | 稳定基线 |
 | Service | Camera | 主镜头 Rig 的语义注册、激活、恢复与场景生命周期清理 | Core、Godot Node | `ICameraService` | 首版完成 |
@@ -133,7 +134,7 @@ addons/
     ├── Editor/           安装、健康检查、资源清单校验与可选扩展宿主，不进入运行时依赖（对应第 4 节 Editor 层）
     ├── Core/             最小稳定核心与 GoDoRuntime
     ├── Runtime/          Resources、Pool 与长期运行时服务
-    │                     （内部再分 Foundation 子目录如 Resources/Pool，
+    │                     （内部再分 Foundation 子目录如 Resources/Pool/StateMachine，
     │                      与 Service 子目录如 Scheduler/Scene/Camera/Input/Audio/Localization/DataTable/UI/Save/Settings/Procedure，
     │                      对应第 4 节表格中的 Foundation 层与 Service 层）
     ├── Tools/            相对独立的工具能力；DataTable 编译前端及其宿主扩展位于此层，不进入运行时依赖

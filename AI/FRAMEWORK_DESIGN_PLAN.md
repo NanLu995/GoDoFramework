@@ -88,7 +88,9 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 
 ### Procedure / StateMachine
 
-Procedure 已完成首版。它借用状态机思想，但不先建设通用 StateMachine，也不作为某个 StateMachine 基类的子类。首版只解决“游戏顶层流程”这一类明确痛点，例如启动、主菜单、加载、游戏中、暂停、结算和返回菜单等阶段切换。
+Procedure 已完成首版，继续只解决“游戏顶层流程”这一类明确痛点，例如启动、主菜单、加载、游戏中、暂停、结算和返回菜单等阶段切换。Procedure 不继承通用 StateMachine，两者的异步资源生命周期、切换提交点与失败恢复语义保持独立。
+
+通用 `StateMachine<TContext, TState>` 已作为独立 Runtime Foundation 首版加入。它面向角色动作、敌人决策、技能执行等局部业务状态机，只提供同步 Enter/Exit、可选 Update、引用身份重复请求忽略、生命周期内 FIFO 切换、单次切换链上限、终止故障和 Dispose 语义。该内核为纯 C# 实现，不进入 Services 或 GoDoRuntime，不感知 Godot Node、业务枚举、网络、动画或 UI。
 
 设计初衷：
 
@@ -97,10 +99,12 @@ Procedure 已完成首版。它借用状态机思想，但不先建设通用 Sta
 边界：
 
 - Procedure 是顶层游戏流程状态机，不是通用状态机框架。
+- StateMachine 是局部同步状态的通用机制，不替代 Procedure 的异步资源与激活 Context 生命周期。
 - 框架只提供 `Enter` / `Exit` / `Change` 机制，具体 `MainMenuProcedure`、`GameplayProcedure` 等业务流程由游戏项目自己定义。
 - 不放入 GoDoRuntime 固定执行；GoDoRuntime 只负责注册服务，不主动进入任何业务流程。
 - 不替代 SceneService、UiService、AudioService、SaveService，也不替代角色、AI、战斗阶段等局部状态机。
 - 首版不做流程栈、层级状态机、黑板、反射自动发现、自动依赖注入或参数系统。
+- StateMachine 首版不做层级/并行状态、状态栈、异步、计时器、网络复制、回滚或编辑器状态图。
 
 ProcedureContext 除显式获取长期服务外，还提供激活 `LifetimeToken`、自动释放的 `EventScope`、逆序同步清理和首请求仲裁。Procedure 模块本身仍不直接依赖 Scene、UI、Audio、Save 等具体服务，避免变成全局大管家。
 
@@ -172,7 +176,7 @@ Timer 的真实缺口已经确认：业务需要统一的一次性/重复延迟�
 
 当前已完成主要框架能力的首版建设，进入基线收敛与真实项目验证阶段：继续避免新增泛化模块，用真实游戏和模板迁移验证现有基线并记录重复出现的缺口。工业级定位是长期质量标准，不是立即扩大模块范围的理由。
 
-接下来的能力建设分为两条轨道：一条是在 Input 与 Localization 首版完成后，按真实需求单独设计 Tick、资源扩展等运行时能力；另一条是逐步补齐 API 兼容与迁移、跨平台验证、资源与编辑器审计、自动化验证和发布流程。统一本地发布门禁已串联构建、Headless 回归、DataTable 导出、文档、public API 兼容基线、发布包验证，以及临时项目中的核心 ZIP 安装、合成旧文件替换升级和安全移除；该升级夹具只证明完整替换卫生，真实历史版本迁移仍需按具体版本固定证据。现有 Core 与 Docs GitHub Actions 已在 Push/PR 中复用相应轻量阶段，Windows ExportRelease 与包生命周期仍由本地完整门禁负责。Procedure 已按“顶层游戏流程状态机”完成首版，但不先抽象通用 StateMachine；UI 已完成首轮实际项目验证，当前保持首版完成状态并继续收集真实项目反馈。
+接下来的能力建设分为两条轨道：一条是在 Input 与 Localization 首版完成后，按真实需求单独设计资源扩展等运行时能力；另一条是逐步补齐 API 兼容与迁移、跨平台验证、资源与编辑器审计、自动化验证和发布流程。统一本地发布门禁已串联构建、Headless 回归、DataTable 导出、文档、public API 兼容基线、发布包验证，以及临时项目中的核心 ZIP 安装、合成旧文件替换升级和安全移除；该升级夹具只证明完整替换卫生，真实历史版本迁移仍需按具体版本固定证据。现有 Core 与 Docs GitHub Actions 已在 Push/PR 中复用相应轻量阶段，Windows ExportRelease 与包生命周期仍由本地完整门禁负责。Procedure 与通用 StateMachine 已按不同生命周期语义分别完成首版；UI 已完成首轮实际项目验证，当前保持首版完成状态并继续收集真实项目反馈。
 
 ### 当前优先级
 

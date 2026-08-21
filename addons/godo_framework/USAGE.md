@@ -121,7 +121,7 @@ Runtime 安装与 C# 规则修复是统一报告中的两项独立操作：综�
 
 - 已在未创建 C# 解决方案、未编译的新建 .NET 项目中验证：复制框架后可直接启用插件并打开检查窗口。
 - `dotnet build GoDoFramework.sln`：验证运行时代码可编译。
-- `python Verification/Package/verify_core_package.py --godot <GodotMonoConsole>`：在临时干净项目中只复制 `addons/godo_framework/`，启用 EditorPlugin 后验证缺失可选集成目录不会报错，并验证核心运行时不依赖可选适配包或第三方插件。
+- `python Verification/Package/verify_core_package.py --godot <GodotMonoConsole>`：在临时干净项目中只复制 `addons/godo_framework/`，启用 EditorPlugin 后验证缺失可选集成目录不会报错，并验证核心运行时不依赖可选适配包或第三方插件；烟雾场景同时编译并执行 StateMachine 的继承、Change、Tick 与 Dispose。
 - `python Verification/Package/verify_core_package_lifecycle.py --godot <GodotMonoConsole>`：从真实核心 ZIP 创建临时项目，通过插件界面验证首次安装与幂等复查、9 项长期服务启动、整目录替换清除合成旧文件且保留 Autoload、错误路径拒绝卸载、精确卸载与插件禁用；删除框架后只验证已解除 `GoDo.*` 引用的中性宿主可编译运行。该夹具验证替换流程，不宣称覆盖任意历史版本兼容性。
 - 已在当前项目验证：启用插件后检查结果健康；禁用插件后菜单消失且 Autoload 保持不变。
 - 已在第二个小项目验证：未安装、安装、重复安装、名称冲突、重复路径和安全卸载。

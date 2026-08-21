@@ -72,7 +72,17 @@ class ReleasePackageTests(unittest.TestCase):
                     self.assertIsNone(package.testzip())
 
             with zipfile.ZipFile(archives[0], mode="r") as core:
-                self.assertFalse(any("/Integrations/" in name for name in core.namelist()))
+                core_names = set(core.namelist())
+                self.assertFalse(any("/Integrations/" in name for name in core_names))
+                self.assertTrue(
+                    {
+                        "addons/godo_framework/Runtime/StateMachine/IState.cs",
+                        "addons/godo_framework/Runtime/StateMachine/IUpdatableState.cs",
+                        "addons/godo_framework/Runtime/StateMachine/StateChangeResult.cs",
+                        "addons/godo_framework/Runtime/StateMachine/StateMachine.cs",
+                        "addons/godo_framework/Runtime/StateMachine/StateMachineTransitionLimitException.cs",
+                    }.issubset(core_names)
+                )
 
     def test_publish_uploads_every_archive(self) -> None:
         archives = [

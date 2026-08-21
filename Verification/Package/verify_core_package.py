@@ -102,14 +102,84 @@ public sealed partial class CoreSmoke : Node
             _ = Services.Get<ISaveService>();
             _ = Services.Get<ISettingsService>();
             _ = Services.Get<IProcedureService>();
+            VerifyStateMachine();
 
-            GD.Print("[CorePackage] PASS (9/9 services)");
+            GD.Print("[CorePackage] PASS (9/9 services + StateMachine)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
         {
             GD.PushError($"[CorePackage] FAIL: {exception}");
             GetTree().Quit(1);
+        }
+    }
+
+    private static void VerifyStateMachine()
+    {
+        var context = new SmokeContext();
+        var machine = new SmokeStateMachine(context, 8);
+        var initial = new SmokeState();
+        var updatable = new UpdatableSmokeState();
+
+        if (machine.CurrentState is not null || machine.MaxTransitionsPerChange != 8)
+            throw new InvalidOperationException("StateMachine 初始状态或切换上限不正确。");
+        if (machine.Change(initial) != StateChangeResult.Changed)
+            throw new InvalidOperationException("StateMachine 首次切换没有完成。");
+        if (machine.Change(updatable) != StateChangeResult.Changed)
+            throw new InvalidOperationException("StateMachine 后续切换没有完成。");
+
+        machine.Tick(0.25);
+        machine.Dispose();
+        if (
+            !machine.IsDisposed
+            || machine.CurrentState is not null
+            || initial.EnterCount != 1
+            || initial.ExitCount != 1
+            || updatable.EnterCount != 1
+            || updatable.UpdateCount != 1
+            || updatable.ExitCount != 1
+        )
+        {
+            throw new InvalidOperationException("StateMachine 生命周期烟雾验证失败。");
+        }
+    }
+
+    private sealed class SmokeContext
+    {
+    }
+
+    private sealed class SmokeStateMachine : StateMachine<SmokeContext, SmokeState>
+    {
+        public SmokeStateMachine(SmokeContext context, int maxTransitionsPerChange)
+            : base(context, maxTransitionsPerChange)
+        {
+        }
+    }
+
+    private class SmokeState : IState<SmokeContext>
+    {
+        public int EnterCount { get; private set; }
+
+        public int ExitCount { get; private set; }
+
+        public void Enter(SmokeContext context)
+        {
+            EnterCount++;
+        }
+
+        public void Exit(SmokeContext context)
+        {
+            ExitCount++;
+        }
+    }
+
+    private sealed class UpdatableSmokeState : SmokeState, IUpdatableState<SmokeContext>
+    {
+        public int UpdateCount { get; private set; }
+
+        public void Update(SmokeContext context, double deltaSeconds)
+        {
+            UpdateCount++;
         }
     }
 }
@@ -243,7 +313,7 @@ def verify(project_root: Path, godot_path: Path, timeout: int) -> None:
         project_root,
         timeout,
     )
-    if "[CorePackage] PASS (9/9 services)" not in output:
+    if "[CorePackage] PASS (9/9 services + StateMachine)" not in output:
         raise RuntimeError(f"CoreSmoke 未输出成功标记。\n{output}")
     print("[PASS] 核心包可在无可选依赖的干净项目中编译并运行")
 

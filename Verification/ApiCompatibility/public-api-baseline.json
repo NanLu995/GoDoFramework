@@ -2108,6 +2108,21 @@
       "signature": "bool Supports(SettingsCapability capability)"
     },
     {
+      "uid": "GoDo.IState`1",
+      "kind": "Interface",
+      "signature": "public interface IState<in TContext>"
+    },
+    {
+      "uid": "GoDo.IState`1.Enter(`0)",
+      "kind": "Method",
+      "signature": "void Enter(TContext context)"
+    },
+    {
+      "uid": "GoDo.IState`1.Exit(`0)",
+      "kind": "Method",
+      "signature": "void Exit(TContext context)"
+    },
+    {
       "uid": "GoDo.IUiService",
       "kind": "Interface",
       "signature": "public interface IUiService"
@@ -2246,6 +2261,16 @@
       "uid": "GoDo.IUiService.TryGoBack",
       "kind": "Method",
       "signature": "bool TryGoBack()"
+    },
+    {
+      "uid": "GoDo.IUpdatableState`1",
+      "kind": "Interface",
+      "signature": "public interface IUpdatableState<in TContext>"
+    },
+    {
+      "uid": "GoDo.IUpdatableState`1.Update(`0,System.Double)",
+      "kind": "Method",
+      "signature": "void Update(TContext context, double deltaSeconds)"
     },
     {
       "uid": "GoDo.InputActionDescriptor",
@@ -4846,6 +4871,96 @@
       "uid": "GoDo.SfxVoice.SaveGodotObjectData(Godot.Bridge.GodotSerializationInfo)",
       "kind": "Method",
       "signature": "protected override void SaveGodotObjectData(GodotSerializationInfo info)"
+    },
+    {
+      "uid": "GoDo.StateChangeResult",
+      "kind": "Enum",
+      "signature": "public enum StateChangeResult"
+    },
+    {
+      "uid": "GoDo.StateChangeResult.Changed",
+      "kind": "Field",
+      "signature": "Changed = 0"
+    },
+    {
+      "uid": "GoDo.StateChangeResult.IgnoredSameState",
+      "kind": "Field",
+      "signature": "IgnoredSameState = 2"
+    },
+    {
+      "uid": "GoDo.StateChangeResult.Queued",
+      "kind": "Field",
+      "signature": "Queued = 1"
+    },
+    {
+      "uid": "GoDo.StateMachineTransitionLimitException",
+      "kind": "Class",
+      "signature": "public sealed class StateMachineTransitionLimitException : InvalidOperationException"
+    },
+    {
+      "uid": "GoDo.StateMachineTransitionLimitException.MaximumTransitions",
+      "kind": "Property",
+      "signature": "public int MaximumTransitions { get; }"
+    },
+    {
+      "uid": "GoDo.StateMachine`2",
+      "kind": "Class",
+      "signature": "public class StateMachine<TContext, TState> where TState : class, IState<TContext>"
+    },
+    {
+      "uid": "GoDo.StateMachine`2.#ctor(`0)",
+      "kind": "Constructor",
+      "signature": "public StateMachine(TContext context)"
+    },
+    {
+      "uid": "GoDo.StateMachine`2.#ctor(`0,System.Int32)",
+      "kind": "Constructor",
+      "signature": "public StateMachine(TContext context, int maxTransitionsPerChange)"
+    },
+    {
+      "uid": "GoDo.StateMachine`2.Change(`1)",
+      "kind": "Method",
+      "signature": "public StateChangeResult Change(TState nextState)"
+    },
+    {
+      "uid": "GoDo.StateMachine`2.CurrentState",
+      "kind": "Property",
+      "signature": "public TState? CurrentState { get; }"
+    },
+    {
+      "uid": "GoDo.StateMachine`2.DefaultMaxTransitionsPerChange",
+      "kind": "Field",
+      "signature": "public const int DefaultMaxTransitionsPerChange = 64"
+    },
+    {
+      "uid": "GoDo.StateMachine`2.Dispose",
+      "kind": "Method",
+      "signature": "public void Dispose()"
+    },
+    {
+      "uid": "GoDo.StateMachine`2.Failure",
+      "kind": "Property",
+      "signature": "public Exception? Failure { get; }"
+    },
+    {
+      "uid": "GoDo.StateMachine`2.IsDisposed",
+      "kind": "Property",
+      "signature": "public bool IsDisposed { get; }"
+    },
+    {
+      "uid": "GoDo.StateMachine`2.IsFaulted",
+      "kind": "Property",
+      "signature": "public bool IsFaulted { get; }"
+    },
+    {
+      "uid": "GoDo.StateMachine`2.MaxTransitionsPerChange",
+      "kind": "Property",
+      "signature": "public int MaxTransitionsPerChange { get; }"
+    },
+    {
+      "uid": "GoDo.StateMachine`2.Tick(System.Double)",
+      "kind": "Method",
+      "signature": "public void Tick(double deltaSeconds)"
     },
     {
       "uid": "GoDo.UiConfig",

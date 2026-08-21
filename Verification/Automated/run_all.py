@@ -31,6 +31,7 @@ WORKBENCH_REGRESSION_SCENES = (
     "LocalizationRegression.tscn",
     "ConfigRegression.tscn",
     "ProcedureRegression.tscn",
+    "StateMachineRegression.tscn",
     "SchedulerCoreRegression.tscn",
     "SchedulerRuntimeRegression.tscn",
     "CameraServiceRegression.tscn",

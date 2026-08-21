@@ -182,6 +182,13 @@
       "api_reference_status": "verified",
       "reviewed_contract_hash": "sha256:33158acd56d1704617cb79230c40ff8046d6c8fc525978a448dbed00e650bebd"
     },
+    "state-machine": {
+      "contract": "addons/godo_framework/Runtime/StateMachine/USAGE.md",
+      "status": "reference-only",
+      "reason": "该模块是由业务代码直接组合或继承的纯 C# 基础契约，当前使用路径、失败语义、线程、生命周期与适用边界已由模块 USAGE 和 API Reference 完整表达；尚无需要独立用户教程承载的 Godot 编辑器或项目工作流。",
+      "api_reference_status": "verified",
+      "reviewed_contract_hash": "sha256:0301db464eeb939d0402108e025e18b4457fa2973dbe5ecef7618ba00cc37613"
+    },
     "resources": {
       "contract": "addons/godo_framework/Runtime/Resources/USAGE.md",
       "status": "documented",
