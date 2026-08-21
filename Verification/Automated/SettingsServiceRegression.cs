@@ -24,8 +24,14 @@ public sealed partial class SettingsServiceRegression : Node
             Run("平台能力声明矛盾", VerifyPlatformContractMismatch);
             Run("依赖异常透传且不重复上报", VerifyDependencyFailures);
             Run("设置文件备份恢复与双重损坏", VerifyPersistenceRecovery);
+            Run("单模块加载应用与重复保存", VerifyModuleLoadApplyAndSave);
+            Run("多模块顺序稳定", VerifyStableModuleOrder);
+            Run("模块版本不兼容与损坏降级", VerifyModuleVersionAndCorruptionFallback);
+            Run("可选与关键模块失败策略", VerifyModuleFailurePolicies);
+            Run("重复注册与关闭边界", VerifyRegistrationAndShutdownBoundaries);
+            Run("模块迁移与系统旧存档兼容", VerifyModuleMigrationAndSystemCompatibility);
 
-            GD.Print($"[SettingsServiceRegression] PASS ({_passed}/5)");
+            GD.Print($"[SettingsServiceRegression] PASS ({_passed}/11)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -191,6 +197,157 @@ public sealed partial class SettingsServiceRegression : Node
         }
     }
 
+    private static void VerifyModuleLoadApplyAndSave()
+    {
+        var saves = new ModuleMemorySaveService();
+        SaveSlot systemSlot = SaveSlot.Create("settings-module-normal");
+        var firstModule = new SamplePreferencesModule();
+        var first = CreateSettings(saves, systemSlot);
+        first.RegisterModule(firstModule);
+
+        AssertEqual(SettingsLoadStatus.DefaultsApplied, first.LoadAndApply(), "模块首次加载没有使用默认值");
+        AssertEqual(new SamplePreferences(), firstModule.Current, "模块默认值没有应用");
+        firstModule.SetCurrent(new SamplePreferences { NoticeLevel = 3, CompactPresentation = true });
+        first.Save();
+        first.Save();
+        AssertEqual(2, saves.GetSaveCount("godo-settings-module-sample-preferences"), "重复保存没有逐次持久化模块");
+
+        var restoredModule = new SamplePreferencesModule();
+        var restored = CreateSettings(saves, systemSlot);
+        restored.RegisterModule(restoredModule);
+        AssertEqual(SettingsLoadStatus.Loaded, restored.LoadAndApply(), "系统设置没有从旧槽位恢复");
+        AssertEqual(3, restoredModule.Current.NoticeLevel, "模块保存值没有恢复");
+        Assert(restoredModule.Current.CompactPresentation, "模块布尔值没有恢复");
+    }
+
+    private static void VerifyStableModuleOrder()
+    {
+        var order = new List<string>();
+        var settings = CreateSettings(new ModuleMemorySaveService(), SaveSlot.Create("settings-module-order"));
+        settings.RegisterModule(new SamplePreferencesModule("module-z", order: 10) { Applied = order.Add });
+        settings.RegisterModule(new SamplePreferencesModule("module-b", order: -1) { Applied = order.Add });
+        settings.RegisterModule(new SamplePreferencesModule("module-a", order: -1) { Applied = order.Add });
+
+        settings.LoadAndApply();
+        AssertEqual("module-a,module-b,module-z", string.Join(',', order), "模块没有按 Order 和 ID 稳定应用");
+    }
+
+    private static void VerifyModuleVersionAndCorruptionFallback()
+    {
+        const string moduleSlot = "godo-settings-module-sample-preferences";
+
+        var incompatibleSaves = new ModuleMemorySaveService();
+        incompatibleSaves.Seed(moduleSlot, dataVersion: 99, Array.Empty<byte>());
+        var incompatibleModule = new SamplePreferencesModule();
+        var incompatible = CreateSettings(
+            incompatibleSaves,
+            SaveSlot.Create("settings-module-incompatible"));
+        incompatible.RegisterModule(incompatibleModule);
+        incompatible.LoadAndApply();
+        AssertEqual(new SamplePreferences(), incompatibleModule.Current, "不兼容版本没有降级到运行时默认值");
+        AssertEqual(SettingsModuleStage.Load, incompatible.LastModuleFailures[0].Stage, "版本失败阶段错误");
+        incompatible.Save();
+        AssertEqual(0, incompatibleSaves.GetSaveCount(moduleSlot), "不兼容的更高版本被旧模块覆盖");
+
+        var recoveredSaves = new ModuleMemorySaveService();
+        recoveredSaves.SeedRecovered(
+            moduleSlot,
+            dataVersion: 1,
+            SamplePreferencesModule.EncodeVersion1(1),
+            new SettingsModuleVersionException(99, 2));
+        var recovered = CreateSettings(recoveredSaves, SaveSlot.Create("settings-module-version-backup"));
+        recovered.RegisterModule(new SamplePreferencesModule());
+        recovered.LoadAndApply();
+        AssertEqual(SettingsModuleStage.Load, recovered.LastModuleFailures[0].Stage, "备份恢复没有保留正式档失败信息");
+        recovered.Save();
+        AssertEqual(0, recoveredSaves.GetSaveCount(moduleSlot), "从旧备份恢复时覆盖了不兼容的新版本正式档");
+
+        var corruptSaves = new ModuleMemorySaveService();
+        corruptSaves.Seed(moduleSlot, dataVersion: 2, new byte[] { 1 });
+        var corrupt = CreateSettings(corruptSaves, SaveSlot.Create("settings-module-corrupt"));
+        var corruptModule = new SamplePreferencesModule();
+        corrupt.RegisterModule(corruptModule);
+        corrupt.LoadAndApply();
+        AssertEqual(new SamplePreferences(), corruptModule.Current, "损坏数据没有降级到默认值");
+        Assert(corrupt.LastModuleFailures[0].UsedDefaults, "损坏数据失败没有记录默认回退");
+        corrupt.Save();
+        AssertEqual(1, corruptSaves.GetSaveCount(moduleSlot), "损坏数据回退后没有允许显式保存修复");
+    }
+
+    private static void VerifyModuleFailurePolicies()
+    {
+        var optional = CreateSettings(
+            new ModuleMemorySaveService(),
+            SaveSlot.Create("settings-module-optional"));
+        optional.RegisterModule(new FaultingSettingsModule(
+            "optional-module",
+            SettingsModuleFailurePolicy.Optional));
+        AssertEqual(SettingsLoadStatus.DefaultsApplied, optional.LoadAndApply(), "可选模块失败阻断了启动");
+        AssertEqual(SettingsModuleStage.Apply, optional.LastModuleFailures[0].Stage, "可选模块失败阶段错误");
+
+        var critical = CreateSettings(
+            new ModuleMemorySaveService(),
+            SaveSlot.Create("settings-module-critical"));
+        var criticalModule = new FaultingSettingsModule(
+            "critical-module",
+            SettingsModuleFailurePolicy.Critical);
+        critical.RegisterModule(criticalModule);
+        SettingsModuleException exception = AssertThrows<SettingsModuleException>(
+            () => critical.LoadAndApply(),
+            "关键模块失败没有阻断启动");
+        AssertEqual("critical-module", exception.Failures[0].ModuleId, "关键模块异常缺少模块 ID");
+        AssertThrows<InvalidOperationException>(() => critical.Save(), "关键模块失败后仍允许保存");
+        criticalModule.ThrowOnApply = false;
+        AssertEqual(SettingsLoadStatus.DefaultsApplied, critical.LoadAndApply(), "关键模块修复后无法重试初始化");
+    }
+
+    private static void VerifyRegistrationAndShutdownBoundaries()
+    {
+        var settings = CreateSettings(
+            new ModuleMemorySaveService(),
+            SaveSlot.Create("settings-module-lifecycle"));
+        var module = new SamplePreferencesModule();
+        settings.RegisterModule(module);
+        AssertThrows<ArgumentException>(
+            () => settings.RegisterModule(new SamplePreferencesModule()),
+            "重复模块 ID 没有被拒绝");
+        settings.LoadAndApply();
+        AssertThrows<InvalidOperationException>(
+            () => settings.RegisterModule(new SamplePreferencesModule("late-module")),
+            "加载后仍允许注册模块");
+
+        settings.Shutdown();
+        settings.Shutdown();
+        Assert(module.IsShutdown, "服务关闭没有关闭模块");
+        AssertThrows<InvalidOperationException>(() => settings.LoadAndApply(), "关闭后仍允许加载");
+        AssertThrows<InvalidOperationException>(() => settings.Save(), "关闭后仍允许保存");
+        AssertThrows<InvalidOperationException>(() => settings.ResetToDefaults(), "关闭后仍允许重置");
+        AssertThrows<InvalidOperationException>(() => settings.SetMasterVolume(0.5f), "关闭后仍允许修改设置");
+    }
+
+    private static void VerifyModuleMigrationAndSystemCompatibility()
+    {
+        const string moduleSlot = "godo-settings-module-sample-preferences";
+        var saves = new ModuleMemorySaveService();
+        SaveSlot systemSlot = SaveSlot.Create("settings-module-migration");
+        saves.Save(
+            systemSlot,
+            new SettingsSnapshot { MasterVolume = 0.4f },
+            SettingsCodec.CurrentVersion,
+            new SettingsCodec());
+        saves.Seed(moduleSlot, dataVersion: 1, SamplePreferencesModule.EncodeVersion1(3));
+
+        var settings = CreateSettings(saves, systemSlot);
+        var module = new SamplePreferencesModule();
+        settings.RegisterModule(module);
+        AssertEqual(SettingsLoadStatus.Loaded, settings.LoadAndApply(), "现有系统设置存档没有兼容读取");
+        AssertEqual(0.4f, settings.Current.MasterVolume, "现有系统设置值没有恢复");
+        AssertEqual(3, module.Current.NoticeLevel, "模块 v1 数据没有迁移");
+        Assert(!module.Current.CompactPresentation, "模块 v1 缺失字段没有采用迁移默认值");
+        settings.Save();
+        AssertEqual(2, saves.GetVersion(moduleSlot), "迁移后没有按当前模块版本保存");
+    }
+
     private static SettingsService CreateSettings(
         IAudioService audio,
         ISaveService saves,
@@ -202,6 +359,14 @@ public sealed partial class SettingsServiceRegression : Node
             localization,
             platform,
             SaveSlot.Create($"settings-memory-{Guid.NewGuid():N}"));
+
+    private static SettingsService CreateSettings(ISaveService saves, SaveSlot settingsSlot) =>
+        new(
+            new RecordingAudioService(),
+            saves,
+            new LocalizationService(),
+            new TestPlatformAdapter(SettingsCapability.None),
+            settingsSlot);
 
     private static void Corrupt(SaveSlot slot, string suffix)
     {
@@ -284,6 +449,85 @@ public sealed partial class SettingsServiceRegression : Node
 
         public bool Exists(SaveSlot slot) => false;
         public bool Delete(SaveSlot slot) => false;
+    }
+
+    private sealed class ModuleMemorySaveService : ISaveService
+    {
+        private readonly Dictionary<string, StoredValue> _values = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _saveCounts = new(StringComparer.Ordinal);
+
+        public void Save<T>(SaveSlot slot, T value, int dataVersion, ISaveCodec<T> codec)
+        {
+            byte[] payload = codec.Encode(value);
+            _values[slot.Value] = new StoredValue(payload, dataVersion, false, null);
+            _saveCounts.TryGetValue(slot.Value, out int count);
+            _saveCounts[slot.Value] = count + 1;
+        }
+
+        public SaveLoadResult<T> Load<T>(SaveSlot slot, ISaveCodec<T> codec)
+        {
+            if (!_values.TryGetValue(slot.Value, out StoredValue? stored))
+                return SaveLoadResult<T>.NotFound();
+
+            T value = codec.Decode(stored.Payload, stored.DataVersion);
+            return SaveLoadResult<T>.Loaded(
+                value,
+                stored.DataVersion,
+                DateTimeOffset.UnixEpoch,
+                stored.RecoveredFromBackup,
+                stored.RecoveryFailure);
+        }
+
+        public bool Exists(SaveSlot slot) => _values.ContainsKey(slot.Value);
+
+        public bool Delete(SaveSlot slot) => _values.Remove(slot.Value);
+
+        public void Seed(string slot, int dataVersion, byte[] payload) =>
+            _values[slot] = new StoredValue(payload, dataVersion, false, null);
+
+        public void SeedRecovered(
+            string slot,
+            int dataVersion,
+            byte[] payload,
+            Exception recoveryFailure) =>
+            _values[slot] = new StoredValue(payload, dataVersion, true, recoveryFailure);
+
+        public int GetSaveCount(string slot) =>
+            _saveCounts.TryGetValue(slot, out int count) ? count : 0;
+
+        public int GetVersion(string slot) => _values[slot].DataVersion;
+
+        private sealed record StoredValue(
+            byte[] Payload,
+            int DataVersion,
+            bool RecoveredFromBackup,
+            Exception? RecoveryFailure);
+    }
+
+    private sealed class FaultingSettingsModule : ISettingsModule<int>
+    {
+        public FaultingSettingsModule(string id, SettingsModuleFailurePolicy failurePolicy)
+        {
+            Id = id;
+            FailurePolicy = failurePolicy;
+        }
+
+        public string Id { get; }
+        public int Order => 0;
+        public int CurrentVersion => 1;
+        public SettingsModuleFailurePolicy FailurePolicy { get; }
+        public bool ThrowOnApply { get; set; } = true;
+        public int CreateDefaults() => 0;
+        public int Decode(ReadOnlySpan<byte> payload, int dataVersion) => 0;
+        public byte[] Encode(int settings) => BitConverter.GetBytes(settings);
+        public void Validate(int settings) { }
+        public void Apply(int settings)
+        {
+            if (ThrowOnApply)
+                throw new InvalidOperationException("expected apply failure");
+        }
+        public int Capture() => 0;
+        public void Shutdown() { }
     }
 
     private sealed class RecordingAudioService : IAudioService

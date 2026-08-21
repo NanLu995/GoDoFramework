@@ -233,14 +233,14 @@
     "settings": {
       "contract": "addons/godo_framework/Runtime/Settings/USAGE.md",
       "status": "documented",
-      "reason": "教程和功能指南已覆盖音量与语言加载、即时应用、显式保存、默认恢复、窗口、分辨率、VSync、能力检测和移动端边界；仍等待真实 Android/iOS 验收。",
+      "reason": "教程和功能指南已覆盖音量与语言加载、即时应用、显式保存、默认恢复、窗口、分辨率、VSync、能力检测、业务设置模块注册、独立槽位、失败策略和移动端边界；仍等待真实 Android/iOS 及真实业务模块验收。",
       "manual_pages": [
         "getting-started/save-progress-and-settings.md",
         "getting-started/localize-game-text.md",
         "guides/save-settings-localization/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:d3ca64b5b45af2ba95532ec961b7d3d28ce5f008b91840c38bef32037053b514"
+      "reviewed_contract_hash": "sha256:1e902a4e122bd8ccc2d1b51d6b55b56ee8464c9ca028f0627853ad6f0ab98ecb"
     },
     "ui": {
       "contract": "addons/godo_framework/Runtime/UI/USAGE.md",

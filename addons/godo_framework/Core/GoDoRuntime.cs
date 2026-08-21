@@ -230,7 +230,10 @@ public sealed partial class GoDoRuntime : Node
                 Services.Unregister<IProcedureService>(_procedureService);
             }
             if (_settingsService != null)
+            {
+                _settingsService.Shutdown();
                 Services.Unregister<ISettingsService>(_settingsService);
+            }
             if (_saveService != null)
                 Services.Unregister<ISaveService>(_saveService);
             if (IsInstanceValid(_uiService))

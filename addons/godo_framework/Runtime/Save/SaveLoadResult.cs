@@ -28,31 +28,37 @@ public readonly struct SaveLoadResult<T>
         ? _value!
         : throw new InvalidOperationException("NotFound 结果不包含存档值。");
 
+    internal Exception? RecoveryFailure { get; }
+
     private SaveLoadResult(
         SaveLoadStatus status,
         T? value,
         int dataVersion,
-        DateTimeOffset? savedAtUtc)
+        DateTimeOffset? savedAtUtc,
+        Exception? recoveryFailure)
     {
         Status = status;
         _value = value;
         DataVersion = dataVersion;
         SavedAtUtc = savedAtUtc;
+        RecoveryFailure = recoveryFailure;
     }
 
     internal static SaveLoadResult<T> NotFound() =>
-        new(SaveLoadStatus.NotFound, default, 0, null);
+        new(SaveLoadStatus.NotFound, default, 0, null, null);
 
     internal static SaveLoadResult<T> Loaded(
         T value,
         int dataVersion,
         DateTimeOffset savedAtUtc,
-        bool recoveredFromBackup) =>
+        bool recoveredFromBackup,
+        Exception? recoveryFailure = null) =>
         new(
             recoveredFromBackup
                 ? SaveLoadStatus.RecoveredFromBackup
                 : SaveLoadStatus.Loaded,
             value,
             dataVersion,
-            savedAtUtc);
+            savedAtUtc,
+            recoveryFailure);
 }

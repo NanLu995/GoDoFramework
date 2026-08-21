@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/save-settings-localization/index.md
-translation_source_hash: sha256:99fb26f1fbea4a9e47f6c242f496081736d94c6543b59ea71a6874ee5f616285
+translation_source_hash: sha256:20ae26abd7a17e7124d7ee6623888df077e02e31f85abed12e683a4ac6cffbde
 ---
 
 # Design Multi-Slot Saves, Cross-Platform Settings, and Localization
@@ -102,7 +102,21 @@ Preview slider movement immediately, then Save on release or confirmation to avo
 
 Call `LoadAndApply`, `Save`, `ResetToDefaults`, and every `Set*` method only on Godot's main thread. They synchronously touch audio, localization, window, or save state and must not be wrapped in `Task.Run`. Load once before the first Procedure that depends on player settings, then save only at an explicit Apply or Confirm boundary.
 
-## 6. Build settings UI from platform capabilities
+## 6. Register game-owned settings modules
+
+Do not add project-specific camera, combat, or accessibility fields to the framework `SettingsSnapshot`. Define game-owned data and an `ISettingsModule<TSettings>` implementation, then register it before the first settings load:
+
+```csharp
+ISettingsService settings = Services.Get<ISettingsService>();
+settings.RegisterModule(new GamePreferencesModule(gamePreferencesRuntime));
+settings.LoadAndApply();
+```
+
+The module owns defaults, data versions, migration, validation, runtime application, and encoding. The framework owns deterministic ordering, main-thread lifecycle, failure policy, and isolated slots. Framework settings remain in `godo-settings`; a `sample-preferences` module uses `godo-settings-module-sample-preferences`, so one damaged module cannot corrupt volume or locale settings.
+
+An optional module can fall back to defaults and let startup continue. A critical module throws `SettingsModuleException` and blocks startup. Inspect `LastModuleFailures` for diagnostics or retry decisions. Pass business objects through the module constructor and release subscriptions in `Shutdown`; do not bypass the GoDoRuntime lifecycle with static global state.
+
+## 7. Build settings UI from platform capabilities
 
 ```csharp
 resolutionPanel.Visible = settings.Supports(SettingsCapability.Resolution);
@@ -116,7 +130,7 @@ An unsupported setting returns `SettingsApplyResult.Unsupported` without changin
 
 `Current` is immutable. Invalid volume, locale, and resolution throw argument exceptions and preserve current state.
 
-## 7. Organize translation keys and dynamic text
+## 8. Organize translation keys and dynamic text
 
 Use stable semantic keys:
 
@@ -134,7 +148,7 @@ A missing translation returns the source key without throwing or logging on the 
 
 AvailableLocales is built during service initialization. Runtime language-pack addition is not supported. `SetLocale` accepts only the default or a canonical locale matching loaded translation content.
 
-## 8. Fonts, RTL, and pseudolocalization
+## 9. Fonts, RTL, and pseudolocalization
 
 LocalizationService does not replace Theme fonts. Configure a fallback chain covering every target script and verify font imports and memory on real target platforms.
 
@@ -147,7 +161,7 @@ Manually test RTL languages for:
 
 Godot project settings or `TranslationServer.PseudolocalizationEnabled` control pseudolocalization; it is not a player setting. Use it to expose text expansion, hard-coded copy, clipping, and layout assumptions. `IsPseudolocalizationEnabled` is diagnostic only.
 
-## 9. Pre-release checklist
+## 10. Pre-release checklist
 
 - Test empty, normal, backup-recovered, and doubly corrupt save slots in UI.
 - Retain a fixture for every supported dataVersion.
@@ -169,4 +183,4 @@ Godot project settings or `TranslationServer.PseudolocalizationEnabled` control 
 - RTL testing mirrors text only: focus, icons, and custom drawing still need manual validation.
 - Compression or SHA-256 is treated as encryption: neither provides privacy or anti-cheat guarantees.
 
-For exact members, see <xref:GoDo.ISaveService>, <xref:GoDo.ISaveCodec%601>, <xref:GoDo.SaveLoadResult%601>, <xref:GoDo.ISettingsService>, <xref:GoDo.SettingsCapability>, and <xref:GoDo.ILocalizationService>.
+For exact members, see <xref:GoDo.ISaveService>, <xref:GoDo.ISaveCodec%601>, <xref:GoDo.SaveLoadResult%601>, <xref:GoDo.ISettingsService>, <xref:GoDo.ISettingsModule%601>, <xref:GoDo.SettingsModuleFailurePolicy>, <xref:GoDo.SettingsCapability>, and <xref:GoDo.ILocalizationService>.

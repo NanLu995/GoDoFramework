@@ -107,7 +107,12 @@ public sealed class SaveService : ISaveService
         {
             try
             {
-                return ReadAndDecode(slot, paths.Primary, codec, recoveredFromBackup: false);
+                return ReadAndDecode(
+                    slot,
+                    paths.Primary,
+                    codec,
+                    recoveredFromBackup: false,
+                    recoveryFailure: null);
             }
             catch (Exception exception)
             {
@@ -119,7 +124,12 @@ public sealed class SaveService : ISaveService
         {
             try
             {
-                return ReadAndDecode(slot, paths.Backup, codec, recoveredFromBackup: true);
+                return ReadAndDecode(
+                    slot,
+                    paths.Backup,
+                    codec,
+                    recoveredFromBackup: true,
+                    recoveryFailure: primaryFailure);
             }
             catch (Exception backupFailure)
             {
@@ -204,7 +214,8 @@ public sealed class SaveService : ISaveService
         SaveSlot slot,
         string path,
         ISaveCodec<T> codec,
-        bool recoveredFromBackup)
+        bool recoveredFromBackup,
+        Exception? recoveryFailure)
     {
         ContainerData container = ReadContainer(path);
         T value;
@@ -223,7 +234,8 @@ public sealed class SaveService : ISaveService
             value,
             container.DataVersion,
             container.SavedAtUtc,
-            recoveredFromBackup);
+            recoveredFromBackup,
+            recoveryFailure);
     }
 
     private static byte[] BuildContainer(

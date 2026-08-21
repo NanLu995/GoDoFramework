@@ -2,6 +2,7 @@
 
 ## 0.6.2
 
+- Settings 新增业务自有 `ISettingsModule<TSettings>` 注册机制，提供稳定顺序、独立槽位、版本迁移、验证、可选降级/关键阻断、统一保存与逆序关闭，同时保持框架系统设置存档格式不变。
 - 深化 Debugger 的运行时诊断视图，为 Scheduler、Pool、Resource、DataTable、Procedure、Scene、UI、Audio 与 EventChannel 补充有界活动明细、来源、存活时间和最近结果，并保持 Release 构建零额外诊断状态。
 - 将 Friflo ECS Debugger 扩展收敛到集成包自有目录，核心框架与可选集成继续保持独立发布边界。
 - 建立统一的 12 阶段本地发布门禁、public API 兼容基线、核心 ZIP 安装/替换升级/安全移除回归，以及 Core 与文档 Push/PR CI；编辑器回归使用隔离临时项目，避免继承本机编辑器布局和网络更新状态。

@@ -97,7 +97,21 @@ settings.Save(); // 用户点击应用或确定时
 
 `LoadAndApply`、`Save`、`ResetToDefaults` 和所有 `Set*` 方法都必须在 Godot 主线程调用；它们会同步访问音频、本地化、窗口或存档状态，不要包进 `Task.Run`。应在首个依赖玩家设置的 Procedure 之前加载一次，随后只在明确的“应用/确定”边界保存。
 
-## 6. 按平台能力构建设置页面
+## 6. 注册游戏拥有的设置模块
+
+不要为了某个项目的镜头、战斗或辅助功能，把字段加入框架的 `SettingsSnapshot`。游戏应定义自己的数据和 `ISettingsModule<TSettings>` 实现，并在第一次加载设置之前注册：
+
+```csharp
+ISettingsService settings = Services.Get<ISettingsService>();
+settings.RegisterModule(new GamePreferencesModule(gamePreferencesRuntime));
+settings.LoadAndApply();
+```
+
+模块拥有默认值、数据版本、旧数据迁移、验证、运行时应用和编码；框架只负责稳定调用顺序、主线程生命周期、失败策略及独立槽位。框架系统设置保留在 `godo-settings`，模块 `sample-preferences` 会使用 `godo-settings-module-sample-preferences`，因此单个模块损坏不会影响音量或语言。
+
+可选模块失败时可以用默认值降级继续；关键模块失败会抛出 `SettingsModuleException` 阻断启动。通过 `LastModuleFailures` 显示诊断或决定是否让玩家重试。模块通过构造参数接收业务对象，并在 `Shutdown` 中解除订阅；不要用静态全局状态绕过 GoDoRuntime 生命周期。
+
+## 7. 按平台能力构建设置页面
 
 ```csharp
 resolutionPanel.Visible = settings.Supports(SettingsCapability.Resolution);
@@ -111,7 +125,7 @@ Windows Desktop 支持音量、语言、窗口模式、分辨率和 VSync；Mobi
 
 `Current` 是不可变快照。设置非法音量、Locale 或分辨率时抛参数异常，并保持原状态。
 
-## 7. 组织翻译键和动态文本
+## 8. 组织翻译键和动态文本
 
 翻译键使用稳定语义 ID：
 
@@ -129,7 +143,7 @@ string count = localization.TranslatePlural(
 
 AvailableLocales 在服务初始化时建立。首版不支持运行时动态加入语言包；`SetLocale` 只接受默认语言或项目已加载翻译可匹配的规范 Locale。
 
-## 8. 字体、RTL 和伪本地化
+## 9. 字体、RTL 和伪本地化
 
 LocalizationService 不替换 Theme 字体。项目 Theme 必须配置覆盖目标字符集的 fallback 链，并在真实目标平台检查字体导入和内存。
 
@@ -142,11 +156,12 @@ RTL 语言需要人工验证：
 
 伪本地化由 Godot 项目设置或 `TranslationServer.PseudolocalizationEnabled` 控制，不保存为玩家设置。用它检查文本膨胀、硬编码字符串、裁切和布局假设；`IsPseudolocalizationEnabled` 只供诊断。
 
-## 9. 发布前检查
+## 10. 发布前检查
 
 - 用空槽位、正常槽位、备份恢复和双重损坏分别测试存档 UI。
 - 为每个仍支持的 dataVersion 保存固定回归样本。
 - 确认设置页面只展示当前平台能力，并在真机验证移动端。
+- 确认所有业务设置模块都在第一次 `LoadAndApply` 前注册，关键模块失败能够重试或返回安全流程。
 - 检查默认 Locale 已配置并拥有完整核心文本。
 - 遍历所有支持语言，检查缺失键、复数、上下文和动态刷新。
 - 使用伪本地化检查扩展文本，再用至少一种 RTL 语言检查布局。
@@ -159,9 +174,10 @@ RTL 语言需要人工验证：
 - 迁移只在当前模型上测试：必须保留真实旧 Payload 样本。
 - 滑块每次变化都写盘：即时 Apply，确认时 Save。
 - 移动端显示分辨率设置：先检查 `Supports`。
+- 把具体业务字段加入 `SettingsSnapshot`：改为游戏拥有的 `ISettingsModule<TSettings>`。
 - 切换语言后部分文本不变：动态或缓存文本没有监听 LocaleChangedEvent。
 - 中文或阿拉伯文显示方框：Theme 字体 fallback 不完整。
 - RTL 只镜像文字未检查交互：焦点、图标和自定义绘制仍需人工验收。
 - 把压缩或 SHA-256 当加密：它们不提供隐私或防作弊保证。
 
-精确接口可查询 <xref:GoDo.ISaveService>、<xref:GoDo.ISaveCodec%601>、<xref:GoDo.SaveLoadResult%601>、<xref:GoDo.ISettingsService>、<xref:GoDo.SettingsCapability> 和 <xref:GoDo.ILocalizationService>。
+精确接口可查询 <xref:GoDo.ISaveService>、<xref:GoDo.ISaveCodec%601>、<xref:GoDo.SaveLoadResult%601>、<xref:GoDo.ISettingsService>、<xref:GoDo.ISettingsModule%601>、<xref:GoDo.SettingsModuleFailurePolicy>、<xref:GoDo.SettingsCapability> 和 <xref:GoDo.ILocalizationService>。

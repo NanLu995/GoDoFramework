@@ -1963,6 +1963,66 @@
       "signature": "bool TryGetRemainingSeconds(ScheduleHandle handle, out double remainingSeconds)"
     },
     {
+      "uid": "GoDo.ISettingsModule`1",
+      "kind": "Interface",
+      "signature": "public interface ISettingsModule<TSettings>"
+    },
+    {
+      "uid": "GoDo.ISettingsModule`1.Apply(`0)",
+      "kind": "Method",
+      "signature": "void Apply(TSettings settings)"
+    },
+    {
+      "uid": "GoDo.ISettingsModule`1.Capture",
+      "kind": "Method",
+      "signature": "TSettings Capture()"
+    },
+    {
+      "uid": "GoDo.ISettingsModule`1.CreateDefaults",
+      "kind": "Method",
+      "signature": "TSettings CreateDefaults()"
+    },
+    {
+      "uid": "GoDo.ISettingsModule`1.CurrentVersion",
+      "kind": "Property",
+      "signature": "int CurrentVersion { get; }"
+    },
+    {
+      "uid": "GoDo.ISettingsModule`1.Decode(System.ReadOnlySpan{System.Byte},System.Int32)",
+      "kind": "Method",
+      "signature": "TSettings Decode(ReadOnlySpan<byte> payload, int dataVersion)"
+    },
+    {
+      "uid": "GoDo.ISettingsModule`1.Encode(`0)",
+      "kind": "Method",
+      "signature": "byte[] Encode(TSettings settings)"
+    },
+    {
+      "uid": "GoDo.ISettingsModule`1.FailurePolicy",
+      "kind": "Property",
+      "signature": "SettingsModuleFailurePolicy FailurePolicy { get; }"
+    },
+    {
+      "uid": "GoDo.ISettingsModule`1.Id",
+      "kind": "Property",
+      "signature": "string Id { get; }"
+    },
+    {
+      "uid": "GoDo.ISettingsModule`1.Order",
+      "kind": "Property",
+      "signature": "int Order { get; }"
+    },
+    {
+      "uid": "GoDo.ISettingsModule`1.Shutdown",
+      "kind": "Method",
+      "signature": "void Shutdown()"
+    },
+    {
+      "uid": "GoDo.ISettingsModule`1.Validate(`0)",
+      "kind": "Method",
+      "signature": "void Validate(TSettings settings)"
+    },
+    {
       "uid": "GoDo.ISettingsService",
       "kind": "Interface",
       "signature": "public interface ISettingsService"
@@ -1978,6 +2038,11 @@
       "signature": "SettingsSnapshot Current { get; }"
     },
     {
+      "uid": "GoDo.ISettingsService.LastModuleFailures",
+      "kind": "Property",
+      "signature": "IReadOnlyList<SettingsModuleFailure> LastModuleFailures { get; }"
+    },
+    {
       "uid": "GoDo.ISettingsService.LoadAndApply",
       "kind": "Method",
       "signature": "SettingsLoadStatus LoadAndApply()"
@@ -1986,6 +2051,11 @@
       "uid": "GoDo.ISettingsService.Platform",
       "kind": "Property",
       "signature": "SettingsPlatform Platform { get; }"
+    },
+    {
+      "uid": "GoDo.ISettingsService.RegisterModule``1(GoDo.ISettingsModule{``0})",
+      "kind": "Method",
+      "signature": "void RegisterModule<TSettings>(ISettingsModule<TSettings> module)"
     },
     {
       "uid": "GoDo.ISettingsService.ResetToDefaults",
@@ -4158,6 +4228,121 @@
       "signature": "RecoveredFromBackup = 2"
     },
     {
+      "uid": "GoDo.SettingsModuleException",
+      "kind": "Class",
+      "signature": "public sealed class SettingsModuleException : Exception"
+    },
+    {
+      "uid": "GoDo.SettingsModuleException.Failures",
+      "kind": "Property",
+      "signature": "public IReadOnlyList<SettingsModuleFailure> Failures { get; }"
+    },
+    {
+      "uid": "GoDo.SettingsModuleFailure",
+      "kind": "Class",
+      "signature": "public sealed class SettingsModuleFailure"
+    },
+    {
+      "uid": "GoDo.SettingsModuleFailure.Exception",
+      "kind": "Property",
+      "signature": "public Exception Exception { get; }"
+    },
+    {
+      "uid": "GoDo.SettingsModuleFailure.ModuleId",
+      "kind": "Property",
+      "signature": "public string ModuleId { get; }"
+    },
+    {
+      "uid": "GoDo.SettingsModuleFailure.Policy",
+      "kind": "Property",
+      "signature": "public SettingsModuleFailurePolicy Policy { get; }"
+    },
+    {
+      "uid": "GoDo.SettingsModuleFailure.Stage",
+      "kind": "Property",
+      "signature": "public SettingsModuleStage Stage { get; }"
+    },
+    {
+      "uid": "GoDo.SettingsModuleFailure.UsedDefaults",
+      "kind": "Property",
+      "signature": "public bool UsedDefaults { get; }"
+    },
+    {
+      "uid": "GoDo.SettingsModuleFailurePolicy",
+      "kind": "Enum",
+      "signature": "public enum SettingsModuleFailurePolicy"
+    },
+    {
+      "uid": "GoDo.SettingsModuleFailurePolicy.Critical",
+      "kind": "Field",
+      "signature": "Critical = 1"
+    },
+    {
+      "uid": "GoDo.SettingsModuleFailurePolicy.Optional",
+      "kind": "Field",
+      "signature": "Optional = 0"
+    },
+    {
+      "uid": "GoDo.SettingsModuleStage",
+      "kind": "Enum",
+      "signature": "public enum SettingsModuleStage"
+    },
+    {
+      "uid": "GoDo.SettingsModuleStage.Apply",
+      "kind": "Field",
+      "signature": "Apply = 3"
+    },
+    {
+      "uid": "GoDo.SettingsModuleStage.Capture",
+      "kind": "Field",
+      "signature": "Capture = 4"
+    },
+    {
+      "uid": "GoDo.SettingsModuleStage.CreateDefaults",
+      "kind": "Field",
+      "signature": "CreateDefaults = 1"
+    },
+    {
+      "uid": "GoDo.SettingsModuleStage.Load",
+      "kind": "Field",
+      "signature": "Load = 0"
+    },
+    {
+      "uid": "GoDo.SettingsModuleStage.Save",
+      "kind": "Field",
+      "signature": "Save = 5"
+    },
+    {
+      "uid": "GoDo.SettingsModuleStage.Shutdown",
+      "kind": "Field",
+      "signature": "Shutdown = 6"
+    },
+    {
+      "uid": "GoDo.SettingsModuleStage.Validate",
+      "kind": "Field",
+      "signature": "Validate = 2"
+    },
+    {
+      "uid": "GoDo.SettingsModuleVersionException",
+      "kind": "Class",
+      "signature": "public sealed class SettingsModuleVersionException : Exception"
+    },
+    {
+      "uid": "GoDo.SettingsModuleVersionException.#ctor(System.Int32,System.Int32)",
+      "kind": "Constructor",
+      "signature": "public SettingsModuleVersionException(int dataVersion, int currentVersion)"
+    },
+    {
+      "uid": "GoDo.SettingsModuleVersionException.CurrentVersion",
+      "kind": "Property",
+      "signature": "public int CurrentVersion { get; }"
+    },
+    {
+      "uid": "GoDo.SettingsModuleVersionException.DataVersion",
+      "kind": "Property",
+      "signature": "public int DataVersion { get; }"
+    },
+    {
       "uid": "GoDo.SettingsPlatform",
       "kind": "Enum",
       "signature": "public enum SettingsPlatform"
@@ -4183,11 +4368,6 @@
       "signature": "public sealed class SettingsService : ISettingsService"
     },
     {
-      "uid": "GoDo.SettingsService.#ctor(GoDo.IAudioService,GoDo.ISaveService)",
-      "kind": "Constructor",
-      "signature": "[Obsolete(\"请显式传入 LocalizationService，以便 Settings 与业务翻译查询共享同一实例。\")] public SettingsService(IAudioService audioService, ISaveService saveService)"
-    },
-    {
       "uid": "GoDo.SettingsService.#ctor(GoDo.IAudioService,GoDo.ISaveService,GoDo.LocalizationService)",
       "kind": "Constructor",
       "signature": "public SettingsService(IAudioService audioService, ISaveService saveService, LocalizationService localization)"
@@ -4203,6 +4383,11 @@
       "signature": "public SettingsSnapshot Current { get; }"
     },
     {
+      "uid": "GoDo.SettingsService.LastModuleFailures",
+      "kind": "Property",
+      "signature": "public IReadOnlyList<SettingsModuleFailure> LastModuleFailures { get; }"
+    },
+    {
       "uid": "GoDo.SettingsService.LoadAndApply",
       "kind": "Method",
       "signature": "public SettingsLoadStatus LoadAndApply()"
@@ -4211,6 +4396,11 @@
       "uid": "GoDo.SettingsService.Platform",
       "kind": "Property",
       "signature": "public SettingsPlatform Platform { get; }"
+    },
+    {
+      "uid": "GoDo.SettingsService.RegisterModule``1(GoDo.ISettingsModule{``0})",
+      "kind": "Method",
+      "signature": "public void RegisterModule<TSettings>(ISettingsModule<TSettings> module)"
     },
     {
       "uid": "GoDo.SettingsService.ResetToDefaults",

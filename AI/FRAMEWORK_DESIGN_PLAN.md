@@ -66,7 +66,7 @@ GoDoFramework 是建立在项目声明版本的 Godot 4.x C# 之上的工业级�
 | Input | 首版完成 | 已完成语义 ID、零分配 Frame、Context 栈、GUIDE 适配、设备检测、运行时改键、SaveService 持久化、文本提示查询与 Demo3D 真实 Profile；Windows 真实手柄与窗口失焦验收通过，其他平台待验证 |
 | Audio | 稳定基线 | 当前为双路 BGM、可取消等功率 Crossfade、淡出到静音，以及共享 ResourceHub 准备、分别使用独立 Voice 池/预算/预热/Handle/突发准入的非空间 SFX 与 3D SFX；3D 已支持静态坐标和带独立硬上限、固定物理帧同步、空闲停更的 Node3D 跟随，AudioStreamPlayer2D 后置；跟随扩展待真实项目与跨平台验证 |
 | Save | 稳定基线 | 可靠容器与 Codec 边界；不包含云存档、自动 JSON 或加密承诺 |
-| Settings | Windows 稳定基线 | 移动端真机验证后置；不包含键位、画质预设或云同步 |
+| Settings | Windows 系统设置稳定基线；业务模块扩展首版完成 | 移动端真机与真实业务模块验证后置；框架只提供注册、隔离持久化和生命周期，不包含具体业务字段或云同步 |
 | Localization | 首版完成 | 复用 TranslationServer、PO/CSV、复数、上下文、回退与伪本地化；动态语言包后置 |
 | Config | 稳定基线 | Resource 强类型校验与唯一键表；大量外部表格数据由独立 DataTable 工具链处理，不把 CSV 解析与二进制索引塞入 ConfigHub |
 | DataTable | 首版完成 | 离线校验/生成/导出门禁与显式运行时 Service 已接通；Windows 完整 ExportRelease 和 10 万行峰值内存已验证，真实业务长期体验与移动端/AOT 后置 |

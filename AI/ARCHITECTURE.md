@@ -47,7 +47,7 @@ GoDoRuntime 初始化 UI 时，在 `/root` 下创建与自身平级的 `GoDoUI` 
 
 GoDoRuntime 不承载菜单、关卡、登录等具体游戏流程。业务场景和测试场景不得重复初始化框架。
 
-当前长期服务注册顺序为 Scheduler、Scene、Camera、Input、Audio、Localization、DataTable、UI、Save、Settings、Procedure；Localization 在 GoDoRuntime 的 `_EnterTree()` 中先应用默认 Locale，使业务 UI 初始化前已有确定语言。DataTable 只注册服务，不自动读取业务数据，由业务加载流程显式发起数据集加载。Settings 通过构造函数显式依赖 Audio、Save 与 Localization。Scheduler 是 `ProcessMode.Always` 的单一 Node，只依赖 Core 与 Godot 时间/节点生命周期，不通过 Services 查找其他服务。Camera 当前只依赖 Core 与 Godot Node 生命周期，不直接依赖 Scene 或具体摄像机插件。Input 当前只依赖 Core、Godot 值类型和 `IInputBackend` 边界；未安装后端时保持未就绪且不执行每帧采样。退出时先关闭并注销 Scheduler，使未完成等待可靠取消，再反向清理其余服务。Services 只保存引用，不负责创建、释放或推断生命周期。Procedure 只注册顶层流程切换服务，GoDoRuntime 不主动进入任何业务流程。
+当前长期服务注册顺序为 Scheduler、Scene、Camera、Input、Audio、Localization、DataTable、UI、Save、Settings、Procedure；Localization 在 GoDoRuntime 的 `_EnterTree()` 中先应用默认 Locale，使业务 UI 初始化前已有确定语言。DataTable 只注册服务，不自动读取业务数据，由业务加载流程显式发起数据集加载。Settings 通过构造函数显式依赖 Audio、Save 与 Localization；业务在首次 `LoadAndApply` 前通过同一 `ISettingsService` 注册自有设置模块，GoDoRuntime 不发现或创建业务模块。Scheduler 是 `ProcessMode.Always` 的单一 Node，只依赖 Core 与 Godot 时间/节点生命周期，不通过 Services 查找其他服务。Camera 当前只依赖 Core 与 Godot Node 生命周期，不直接依赖 Scene 或具体摄像机插件。Input 当前只依赖 Core、Godot 值类型和 `IInputBackend` 边界；未安装后端时保持未就绪且不执行每帧采样。退出时先关闭并注销 Scheduler，使未完成等待可靠取消，再反向清理其余服务；Settings 在注销前逆序关闭已注册模块。Services 只保存引用，不负责创建、释放或推断生命周期。Procedure 只注册顶层流程切换服务，GoDoRuntime 不主动进入任何业务流程。
 
 具体摄像机插件通过 `addons/godo_framework/Integrations/` 下的可选 `CameraRig` 适配包接入。例如 `PhantomCamera/` 依赖 GoDo Camera 与第三方 Phantom Camera，但 GoDo 运行时核心不反向依赖该包。其编辑器工具通过通用扩展清单接入唯一的 GoDo EditorPlugin，宿主只依赖扩展协议，不依赖具体适配包身份。
 
@@ -81,7 +81,7 @@ Friflo ECS 通过 `Integrations/FrifloEcs/` 作为场景级可选业务能力接
 | Service | DataTable | 业务显式触发的数据集 Manifest 校验、逐表加载、事务发布、缓存与卸载 | Core、Godot FileAccess、生成解码委托 | `IDataTableService` / 生成数据集门面 | 首版完成 |
 | Service | UI | 屏幕空间 UI 的四层显示、语义配置、同步/异步打开、查询关闭、返回栈、焦点、限定作用域所有权与可选实例复用 | ResourceHub、Config、Core | `IUiService` / `UiScope<TView>` | 首版完成 |
 | Service | Save | 多槽位可靠容器、校验、备份和 Codec 边界 | Core、Godot FileAccess | `ISaveService` | 稳定基线 |
-| Service | Settings | 音量、Locale 选择与持久化、显示偏好 | Audio、Save、Localization、平台适配器 | `ISettingsService` | Windows 稳定基线（其他平台待验证，见上方图例） |
+| Service | Settings | 音量、Locale 选择与持久化、显示偏好，以及业务自有设置模块的注册、隔离持久化与生命周期 | Audio、Save、Localization、平台适配器；业务模块由上层注入 | `ISettingsService` | Windows 系统设置稳定基线；业务模块扩展首版完成 |
 | Service | Procedure | 顶层游戏流程阶段的串行切换、激活资源生命周期、首请求仲裁与可恢复失败通知 | Core、Services | `IProcedureService` / `ProcedureContext` | 首版完成 |
 | Foundation | Config | 强类型 Resource 校验与唯一键只读表 | ResourceHub | `ConfigHub` / `ConfigTable` | 稳定基线 |
 | Editor | Installer / Validator / Extension Host | 单入口项目管理窗口、GoDoRuntime Autoload 的显式安装与健康检查、普通单项目的 GoDo `.csproj` 规则检查/确认修复、ResourceManifest / UiConfig 管理，以及 Integrations / Tools 编辑器扩展的受控发现；框架导出过滤器自动从游戏导出移除编辑器工具，并仅在 Debug 导出保留游戏内 Debugger；DataTable 继续通过宿主执行离线检查、生成与目标导出过滤 | Godot Editor API、通用扩展清单 | 顶部 `GoDo Framework` 单入口 | 首版完成 |
@@ -118,7 +118,7 @@ ResourceHub 只包装 Godot 资源加载机制，不建立第二套引用计数�
 
 ### 5.5 Save 与 Settings 分离
 
-Save 负责可靠容器和 Codec 边界，不理解具体业务数据。Settings 复用 Save 的独立固定槽位，但与游戏进度存档分离；设置修改立即应用，只有显式 `Save()` 才写盘。
+Save 负责可靠容器和 Codec 边界，不理解具体业务数据。Settings 的框架系统设置继续使用独立固定槽位 `godo-settings`；每个业务模块使用由稳定模块 ID 派生的 `godo-settings-module-{id}` 独占槽位。它们都与游戏进度存档分离；设置修改立即应用，只有显式 `Save()` 才写盘。独立槽位保证模块增删、版本升级与损坏不会污染系统设置或其他模块；Settings 拥有槽位命名与调用顺序，业务模块拥有数据模型、Codec、迁移、验证和运行时应用。
 
 ### 5.6 Settings 与 Localization 分离
 
