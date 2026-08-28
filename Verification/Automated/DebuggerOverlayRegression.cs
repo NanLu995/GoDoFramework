@@ -121,6 +121,8 @@ public sealed partial class DebuggerOverlayRegression : Node
                 inputDashboard.GetNode<Label>("StatusGrid/FrameCard/Content/Value");
             Label inputActions =
                 inputDashboard.GetNode<Label>("StatusGrid/ActionsCard/Content/Value");
+            Label inputRouterStatus = inputDashboard.GetNode<Label>("RouterStatus");
+            Tree inputRouterScopesTree = inputDashboard.GetNode<Tree>("RouterScopeList");
             Tree inputContextsTree = inputDashboard.GetNode<Tree>("ContextList");
             Label inputActionHeader = inputDashboard.GetNode<Label>("ActionHeader");
             LineEdit inputActionsSearch = inputDashboard.GetNode<LineEdit>("ActionSearch");
@@ -932,7 +934,13 @@ public sealed partial class DebuggerOverlayRegression : Node
                 hasInputActionCount &&
                 inputActionsTree.GetRoot()?.GetChildCount() ==
                     Math.Min(inputActionCount, 32) &&
+                inputRouterStatus.Text.Contains("Route r", StringComparison.Ordinal) &&
+                inputRouterScopesTree.GetRoot() is not null &&
+                inputRouterScopesTree.Columns == 3 &&
+                inputContextsTree.Columns == 6 &&
+                inputActionsTree.Columns == 8 &&
                 inputContextsTree.CustomMinimumSize.Y >= 100f &&
+                inputRouterScopesTree.GetColumnTitleAlignment(0) == HorizontalAlignment.Center &&
                 inputContextsTree.GetColumnTitleAlignment(0) == HorizontalAlignment.Left &&
                 inputActionsTree.GetColumnTitleAlignment(0) == HorizontalAlignment.Left &&
                 inputActionsTree.GetColumnTitleAlignment(2) == HorizontalAlignment.Left &&
@@ -1611,6 +1619,11 @@ public sealed partial class DebuggerOverlayRegression : Node
             InputContextMode mode = InputContextMode.Exclusive)
         {
         }
+
+        public InputContextLease PushContextScoped(
+            InputContextId context,
+            InputContextMode mode = InputContextMode.Exclusive) =>
+            throw new NotSupportedException();
 
         public void PopContext(InputContextId expectedContext)
         {

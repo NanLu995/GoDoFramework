@@ -22,37 +22,65 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _inputFrameDetail = GetInputNode<Label>("StatusGrid/FrameCard/Content/Detail");
         _inputActionsValue = GetInputNode<Label>("StatusGrid/ActionsCard/Content/Value");
         _inputCapabilities = GetInputNode<Label>("Capabilities");
+        _inputRouterStatus = GetInputNode<Label>("RouterStatus");
+        _inputRouterScopesTree = GetInputNode<Tree>("RouterScopeList");
         _inputContextsTree = GetInputNode<Tree>("ContextList");
         _inputActionsSearch = GetInputNode<LineEdit>("ActionSearch");
         _inputActionsMatchStatus = GetInputNode<Label>("ActionMatchStatus");
         _inputActionsTree = GetInputNode<Tree>("ActionList");
 
         _inputContextsTree.SetColumnTitle(0, "Context");
-        _inputContextsTree.SetColumnTitle(1, "模式");
-        _inputContextsTree.SetColumnTitle(2, "状态");
+        _inputContextsTree.SetColumnTitle(1, "所有权");
+        _inputContextsTree.SetColumnTitle(2, "模式");
+        _inputContextsTree.SetColumnTitle(3, "Token");
+        _inputContextsTree.SetColumnTitle(4, "有效性");
+        _inputContextsTree.SetColumnTitle(5, "生效");
         _inputContextsTree.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
-        _inputContextsTree.SetColumnTitleAlignment(1, HorizontalAlignment.Center);
-        _inputContextsTree.SetColumnTitleAlignment(2, HorizontalAlignment.Center);
+        for (int column = 1; column < 6; column++)
+            _inputContextsTree.SetColumnTitleAlignment(column, HorizontalAlignment.Center);
         _inputContextsTree.SetColumnExpand(0, true);
-        _inputContextsTree.SetColumnExpand(1, false);
-        _inputContextsTree.SetColumnExpand(2, false);
-        _inputContextsTree.SetColumnCustomMinimumWidth(1, 76);
-        _inputContextsTree.SetColumnCustomMinimumWidth(2, 64);
+        for (int column = 1; column < 6; column++)
+            _inputContextsTree.SetColumnExpand(column, false);
+        _inputContextsTree.SetColumnCustomMinimumWidth(1, 66);
+        _inputContextsTree.SetColumnCustomMinimumWidth(2, 72);
+        _inputContextsTree.SetColumnCustomMinimumWidth(3, 54);
+        _inputContextsTree.SetColumnCustomMinimumWidth(4, 58);
+        _inputContextsTree.SetColumnCustomMinimumWidth(5, 58);
+
+        _inputRouterScopesTree.SetColumnTitle(0, "顺序");
+        _inputRouterScopesTree.SetColumnTitle(1, "Scope");
+        _inputRouterScopesTree.SetColumnTitle(2, "Bindings");
+        _inputRouterScopesTree.SetColumnTitleAlignment(0, HorizontalAlignment.Center);
+        _inputRouterScopesTree.SetColumnTitleAlignment(1, HorizontalAlignment.Left);
+        _inputRouterScopesTree.SetColumnTitleAlignment(2, HorizontalAlignment.Center);
+        _inputRouterScopesTree.SetColumnExpand(0, false);
+        _inputRouterScopesTree.SetColumnExpand(1, true);
+        _inputRouterScopesTree.SetColumnExpand(2, false);
 
         _inputActionsTree.SetColumnTitle(0, "Action");
         _inputActionsTree.SetColumnTitle(1, "类型");
         _inputActionsTree.SetColumnTitle(2, "当前值");
-        _inputActionsTree.SetColumnTitle(3, "边沿");
+        _inputActionsTree.SetColumnTitle(3, "状态");
+        _inputActionsTree.SetColumnTitle(4, "Transitions");
+        _inputActionsTree.SetColumnTitle(5, "Elapsed");
+        _inputActionsTree.SetColumnTitle(6, "Ratio");
+        _inputActionsTree.SetColumnTitle(7, "门禁");
         _inputActionsTree.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
         _inputActionsTree.SetColumnTitleAlignment(1, HorizontalAlignment.Center);
         _inputActionsTree.SetColumnTitleAlignment(2, HorizontalAlignment.Left);
-        _inputActionsTree.SetColumnTitleAlignment(3, HorizontalAlignment.Center);
+        for (int column = 3; column < 8; column++)
+            _inputActionsTree.SetColumnTitleAlignment(column, HorizontalAlignment.Center);
         _inputActionsTree.SetColumnExpand(0, true);
         _inputActionsTree.SetColumnExpand(1, false);
         _inputActionsTree.SetColumnExpand(2, true);
-        _inputActionsTree.SetColumnExpand(3, false);
+        for (int column = 3; column < 8; column++)
+            _inputActionsTree.SetColumnExpand(column, false);
         _inputActionsTree.SetColumnCustomMinimumWidth(1, 58);
-        _inputActionsTree.SetColumnCustomMinimumWidth(3, 82);
+        _inputActionsTree.SetColumnCustomMinimumWidth(3, 72);
+        _inputActionsTree.SetColumnCustomMinimumWidth(4, 104);
+        _inputActionsTree.SetColumnCustomMinimumWidth(5, 64);
+        _inputActionsTree.SetColumnCustomMinimumWidth(6, 56);
+        _inputActionsTree.SetColumnCustomMinimumWidth(7, 48);
     }
 
     private T GetInputNode<T>(string path) where T : Node
@@ -189,6 +217,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             !IsInstanceValid(_inputFrameDetail) ||
             !IsInstanceValid(_inputActionsValue) ||
             !IsInstanceValid(_inputCapabilities) ||
+            !IsInstanceValid(_inputRouterStatus) ||
+            !IsInstanceValid(_inputRouterScopesTree) ||
             !IsInstanceValid(_inputContextsTree) ||
             !IsInstanceValid(_inputActionsMatchStatus) ||
             !IsInstanceValid(_inputActionsTree))
@@ -208,17 +238,23 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             return;
         }
 
-        InputDebugSnapshot snapshot = inputService.GetDebugSnapshot();
+        InputActionRouter? router = null;
+        if (Services.TryGet<IInputActionRouter>(out IInputActionRouter? routerService))
+            router = routerService as InputActionRouter;
+        InputDebugSnapshot snapshot = inputService.GetDebugSnapshot(router);
         _inputBackendValue.Text = snapshot.IsReady ? snapshot.BackendName : "未安装";
         _inputBackendValue.TooltipText = snapshot.IsReady ? snapshot.BackendName : string.Empty;
         _inputBackendDetail.Text = snapshot.IsReady ? "已就绪" : "无输入后端";
         _inputDeviceValue.Text = snapshot.ActiveDevice.ToString();
         _inputFrameValue.Text = snapshot.Sequence.ToString(CultureInfo.InvariantCulture);
-        _inputFrameDetail.Text = snapshot.HasSample ? "采样正常" : "等待首次采样";
+        _inputFrameDetail.Text = snapshot.HasSample
+            ? $"Context r{snapshot.ContextRevision}"
+            : "等待首次采样";
         _inputActionsValue.Text = snapshot.Actions.Length.ToString(CultureInfo.InvariantCulture);
         _inputCapabilities.Text = $"能力：{snapshot.Capabilities}";
         _inputCapabilities.TooltipText = snapshot.Capabilities.ToString();
 
+        RefreshInputRouter(snapshot.Router);
         RefreshInputContexts(snapshot.Contexts);
         RefreshInputActions(snapshot.Actions);
     }
@@ -234,11 +270,44 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _inputActionsValue!.Text = "0";
         _inputCapabilities!.Text = "能力：无";
         _inputCapabilities.TooltipText = string.Empty;
+        _inputRouterStatus!.Text = detail;
         _inputActionsMatchStatus!.Text = detail;
+        _inputRouterScopesTree!.Clear();
         _inputContextsTree!.Clear();
         _inputActionsTree!.Clear();
         _inputContextsSignature = int.MinValue;
+        _inputRouterSignature = int.MinValue;
         _inputActionsSignature = int.MinValue;
+    }
+
+    private void RefreshInputRouter(InputRouterDebugSnapshot router)
+    {
+        _inputRouterStatus!.Text = router.IsRegistered
+            ? $"Route r{router.RouteRevision} · 上次派发 {router.LastDispatchSequence}"
+            : "Router 未注册或不支持 Debug 快照";
+        var signature = new HashCode();
+        signature.Add(router.IsRegistered);
+        signature.Add(router.RouteRevision);
+        signature.Add(router.LastDispatchSequence);
+        for (int index = 0; index < router.Scopes.Length; index++)
+            signature.Add(router.Scopes[index]);
+        int value = signature.ToHashCode();
+        if (_inputRouterSignature == value)
+            return;
+        _inputRouterSignature = value;
+        _inputRouterScopesTree!.Clear();
+        TreeItem root = _inputRouterScopesTree.CreateItem();
+        for (int index = 0; index < router.Scopes.Length; index++)
+        {
+            InputRouterDebugScopeEntry scope = router.Scopes[index];
+            TreeItem item = _inputRouterScopesTree.CreateItem(root);
+            item.SetText(0, scope.Order.ToString(CultureInfo.InvariantCulture));
+            item.SetText(1, scope.DebugName);
+            item.SetText(2, scope.BindingCount.ToString(CultureInfo.InvariantCulture));
+            item.SetTextAlignment(0, HorizontalAlignment.Center);
+            item.SetTextAlignment(2, HorizontalAlignment.Center);
+            item.SetTooltipText(1, scope.DebugName);
+        }
     }
 
     private void RefreshInputContexts(InputDebugContextEntry[] contexts)
@@ -256,6 +325,9 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             InputDebugContextEntry entry = contexts[index];
             signature.Add(entry.Context);
             signature.Add(entry.Mode);
+            signature.Add(entry.Kind);
+            signature.Add(entry.Token);
+            signature.Add(entry.IsValid);
             signature.Add(entry.IsEffective);
         }
 
@@ -271,10 +343,15 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             InputDebugContextEntry entry = contexts[index];
             TreeItem item = _inputContextsTree.CreateItem(root);
             item.SetText(0, entry.Context.Value);
-            item.SetText(1, entry.Mode.ToString());
-            item.SetText(2, entry.IsEffective ? "有效" : "被屏蔽");
-            item.SetTextAlignment(1, HorizontalAlignment.Center);
-            item.SetTextAlignment(2, HorizontalAlignment.Center);
+            item.SetText(1, entry.Kind.ToString());
+            item.SetText(2, entry.Mode.ToString());
+            item.SetText(3, entry.Token == 0
+                ? "—"
+                : entry.Token.ToString(CultureInfo.InvariantCulture));
+            item.SetText(4, entry.IsValid ? "有效" : "失效");
+            item.SetText(5, entry.IsEffective ? "生效" : "被屏蔽");
+            for (int column = 1; column < 6; column++)
+                item.SetTextAlignment(column, HorizontalAlignment.Center);
             item.SetTooltipText(0, entry.Context.Value);
         }
     }
@@ -293,6 +370,11 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             signature.Add(entry.Pressed);
             signature.Add(entry.JustPressed);
             signature.Add(entry.JustReleased);
+            signature.Add(entry.Status);
+            signature.Add(entry.Transitions);
+            signature.Add(entry.ElapsedSeconds);
+            signature.Add(entry.ElapsedRatio);
+            signature.Add(entry.IsRetriggerGated);
             if (MatchesInputActionSearch(entry))
                 matchingCount++;
         }
@@ -329,9 +411,16 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             item.SetText(0, entry.Action.Value);
             item.SetText(1, entry.ValueType.ToString());
             item.SetText(2, FormatInputActionValue(entry));
-            item.SetText(3, FormatInputActionEdge(entry));
+            item.SetText(3, entry.Status.ToString());
+            item.SetText(4, entry.Transitions == InputActionTransitions.None
+                ? "—"
+                : entry.Transitions.ToString());
+            item.SetText(5, entry.ElapsedSeconds.ToString("0.000", CultureInfo.InvariantCulture));
+            item.SetText(6, entry.ElapsedRatio.ToString("0.00", CultureInfo.InvariantCulture));
+            item.SetText(7, entry.IsRetriggerGated ? "是" : "否");
             item.SetTextAlignment(1, HorizontalAlignment.Center);
-            item.SetTextAlignment(3, HorizontalAlignment.Center);
+            for (int column = 3; column < 8; column++)
+                item.SetTextAlignment(column, HorizontalAlignment.Center);
             item.SetTooltipText(0, entry.Action.Value);
             addedCount++;
         }
@@ -365,17 +454,6 @@ public sealed partial class DebuggerOverlay : CanvasLayer
                 $"({entry.Value.X:0.00}, {entry.Value.Y:0.00}, {entry.Value.Z:0.00})"),
             _ => "—",
         };
-    }
-
-    private static string FormatInputActionEdge(InputDebugActionEntry entry)
-    {
-        if (entry.JustPressed && entry.JustReleased)
-            return "按下 / 释放";
-        if (entry.JustPressed)
-            return "刚按下";
-        if (entry.JustReleased)
-            return "刚释放";
-        return "—";
     }
 
     private void RefreshSchedulerDashboard()

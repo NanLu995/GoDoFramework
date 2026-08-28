@@ -16,6 +16,7 @@ public sealed partial class InputRuntimeRegression : Node
     public override async void _Ready()
     {
         InputService? service = null;
+        InputRouteScope? scope = null;
         try
         {
             service = Services.Get<IInputService>() as InputService ??
@@ -24,8 +25,19 @@ public sealed partial class InputRuntimeRegression : Node
 
             var backend = new RuntimeFakeBackend();
             service.InstallBackend(backend);
+            IInputActionRouter router = Services.Get<IInputActionRouter>();
+            ulong routedSequence = 0;
+            scope = router.PushScope("RuntimeOrder");
+            scope.Bind(Confirm, InputActionTransitions.Performed, (state, _) =>
+            {
+                routedSequence = state.Sequence;
+                return InputRouteResult.Handled;
+            });
             AssertThrows<InputOperationException>(() => _ = service.Frame, "运行时首次采样前仍能读取 Frame");
 
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            backend.EmitPerformed = true;
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
@@ -33,15 +45,27 @@ public sealed partial class InputRuntimeRegression : Node
             Assert(backend.SampleCount >= 1, "GoDoRuntime 没有自动采样输入后端");
             Assert(frame.Pressed(Confirm), "运行时采样没有提交后端状态");
             Assert(frame.Sequence >= 1, "运行时采样没有推进 Frame 序号");
+            AssertEqual(frame.Sequence, routedSequence, "Runtime 未按 InputService.Update → Router.Dispatch 调度");
 
+            GetTree().Paused = true;
+            ulong beforePause = frame.Sequence;
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            GetTree().Paused = false;
+            Assert(service.Frame.Sequence > beforePause, "暂停状态下 Runtime 停止采样输入");
+
+            scope.Dispose();
+            scope = null;
             service.Shutdown();
             AssertEqual(1, backend.ShutdownCount, "InputService 没有关闭运行时后端一次");
 
-            GD.Print("[InputRuntimeRegression] PASS (4/4)");
+            GD.Print("[InputRuntimeRegression] PASS (6/6)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
         {
+            GetTree().Paused = false;
+            scope?.Dispose();
             service?.Shutdown();
             GD.PushError($"[InputRuntimeRegression] FAIL: {exception}");
             GetTree().Quit(1);
@@ -88,6 +112,7 @@ public sealed partial class InputRuntimeRegression : Node
         public IReadOnlyList<InputContextId> Contexts => Array.Empty<InputContextId>();
         public int SampleCount { get; private set; }
         public int ShutdownCount { get; private set; }
+        public bool EmitPerformed { get; set; }
 
         public void Initialize()
         {
@@ -102,7 +127,15 @@ public sealed partial class InputRuntimeRegression : Node
         public void Sample(Span<InputActionSample> destination)
         {
             SampleCount++;
-            destination[0] = new InputActionSample(Vector3.One, pressed: true);
+            destination[0] = EmitPerformed
+                ? new InputActionSample(
+                    Vector3.One,
+                    pressed: true,
+                    InputActionStatus.Performed,
+                    InputActionTransitions.Performed,
+                    0f,
+                    1f)
+                : new InputActionSample(Vector3.Zero, pressed: false);
         }
 
         public void Shutdown() => ShutdownCount++;

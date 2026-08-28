@@ -87,7 +87,7 @@ def resolve_godot_path(argument: Path | None) -> Path:
         os.environ.get("GODOT_PATH"),
         shutil.which("godot"),
         shutil.which("godot4"),
-        shutil.which("Godot_v4.7.1-stable_mono_win64_console.exe"),
+        shutil.which("Godot_v4.7.2-stable_mono_win64_console.exe"),
     ]
     for candidate in candidates:
         if candidate is None:

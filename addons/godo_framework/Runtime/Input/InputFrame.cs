@@ -44,6 +44,25 @@ public readonly struct InputFrame
     /// <exception cref="InputOperationException">Frame 已过期或 Action 未注册。</exception>
     public bool JustReleased(InputActionId action) => Resolve(action).JustReleased;
 
+    /// <summary>复制 Action 当前完整阶段状态，返回值可以安全跨帧保存。</summary>
+    /// <param name="action">要读取的已注册 Action ID。</param>
+    /// <returns>与当前 Frame 序号关联的独立值快照。</returns>
+    /// <exception cref="InvalidOperationException">当前值是默认 Frame。</exception>
+    /// <exception cref="ArgumentException"><paramref name="action"/> 是默认 ID。</exception>
+    /// <exception cref="InputOperationException">Frame 已过期或 Action 未注册。</exception>
+    public InputActionFrameState GetState(InputActionId action)
+    {
+        ref readonly InputActionState state = ref Resolve(action);
+        return new InputActionFrameState(
+            state.ValueType,
+            state.Value,
+            state.Status,
+            state.Transitions,
+            state.ElapsedSeconds,
+            state.ElapsedRatio,
+            Sequence);
+    }
+
     /// <summary>读取 Axis1D Action 的当前值。</summary>
     /// <param name="action">后端声明为 Axis1D 的已注册 Action ID。</param>
     /// <returns>当前单轴值。</returns>

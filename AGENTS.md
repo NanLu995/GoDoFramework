@@ -4,7 +4,7 @@
 
 ## 项目与文档路由
 
-- 引擎：Godot 4.7.1，C# / .NET 8；Android 构建目标为 .NET 9。框架根命名空间：`GoDo`。
+- 引擎：Godot 4.7.2，C# / .NET 8；Android 构建目标为 .NET 9。框架根命名空间：`GoDo`。
 - 目标平台待定，不自行假设平台特性。
 - `AI/FRAMEWORK_OVERVIEW.md`：历史愿景与痛点，仅讨论框架定位或重新规划时读取。
 - `AI/FRAMEWORK_DESIGN_PLAN.md`：目标、状态与路线；新增模块或调整顺序前读取。

@@ -17,7 +17,14 @@ public sealed class InputService : IInputService
     private InputActionState[] _states = Array.Empty<InputActionState>();
     private InputDeviceKind _observedDevice;
     private ulong _sequence;
+    private ulong _nextContextToken;
+    private ulong _contextRevision;
     private bool _hasSample;
+
+    internal ulong ContextRevision => _contextRevision;
+
+    internal IReadOnlyList<InputActionDescriptor> ActionDescriptors =>
+        _backend?.Actions ?? Array.Empty<InputActionDescriptor>();
 
     /// <inheritdoc />
     public bool IsReady
@@ -114,7 +121,10 @@ public sealed class InputService : IInputService
         MainThreadGuard.VerifyAccess();
         VerifyKnownContext(context);
 
-        var proposed = new ContextEntry[] { new(context, InputContextMode.Overlay) };
+        var proposed = new ContextEntry[]
+        {
+            new(context, InputContextMode.Overlay, ContextEntryKind.Base, token: 0),
+        };
         ApplyProposedStack(proposed);
     }
 
@@ -128,16 +138,36 @@ public sealed class InputService : IInputService
         if (_contextStack.Count == 0)
             throw new InputOperationException("设置 Base Context 后才能压入临时 Context。");
 
-        for (int index = 0; index < _contextStack.Count; index++)
-        {
-            if (_contextStack[index].Context == context)
-                throw new InputOperationException($"输入 Context 已位于栈中: {context.Value}");
-        }
+        VerifyContextNotPresent(context);
 
         var proposed = new ContextEntry[_contextStack.Count + 1];
         _contextStack.CopyTo(proposed, 0);
-        proposed[^1] = new ContextEntry(context, mode);
+        proposed[^1] = new ContextEntry(context, mode, ContextEntryKind.Legacy, token: 0);
         ApplyProposedStack(proposed);
+    }
+
+    /// <inheritdoc />
+    public InputContextLease PushContextScoped(
+        InputContextId context,
+        InputContextMode mode = InputContextMode.Exclusive)
+    {
+        MainThreadGuard.VerifyAccess();
+        VerifyKnownContext(context);
+        if (!Enum.IsDefined(mode))
+            throw new ArgumentOutOfRangeException(nameof(mode));
+        if (_contextStack.Count == 0)
+            throw new InputOperationException("设置 Base Context 后才能压入临时 Context。");
+
+        VerifyContextNotPresent(context);
+        if (_nextContextToken == ulong.MaxValue)
+            throw new InputOperationException("输入 Context Lease Token 已耗尽。");
+        ulong token = ++_nextContextToken;
+
+        var proposed = new ContextEntry[_contextStack.Count + 1];
+        _contextStack.CopyTo(proposed, 0);
+        proposed[^1] = new ContextEntry(context, mode, ContextEntryKind.Lease, token);
+        ApplyProposedStack(proposed);
+        return new InputContextLease(this, token);
     }
 
     /// <inheritdoc />
@@ -149,6 +179,11 @@ public sealed class InputService : IInputService
             throw new InputOperationException("输入 Context 栈中没有可弹出的临时 Context。");
 
         InputContextId actual = _contextStack[^1].Context;
+        if (_contextStack[^1].Kind != ContextEntryKind.Legacy)
+        {
+            throw new InputOperationException(
+                $"输入 Context 栈顶由 Lease 拥有，不能通过 PopContext 释放: {actual.Value}");
+        }
         if (actual != expectedContext)
         {
             throw new InputOperationException(
@@ -241,7 +276,11 @@ public sealed class InputService : IInputService
                 sample.Value,
                 sample.Pressed,
                 justPressed: sample.Pressed && !previous.Pressed,
-                justReleased: !sample.Pressed && previous.Pressed);
+                justReleased: !sample.Pressed && previous.Pressed,
+                sample.Status,
+                NormalizeTransitions(sample.Transitions),
+                sample.ElapsedSeconds,
+                sample.ElapsedRatio);
         }
 
         _sequence++;
@@ -257,6 +296,7 @@ public sealed class InputService : IInputService
     internal void Shutdown()
     {
         MainThreadGuard.VerifyAccess();
+        bool hadContexts = _contextStack.Count > 0;
         if (_backend != null)
             TryShutdown(_backend);
 
@@ -269,11 +309,42 @@ public sealed class InputService : IInputService
         _observedDevice = InputDeviceKind.Unknown;
         _sequence = 0;
         _hasSample = false;
+        if (hadContexts)
+            _contextRevision++;
+    }
+
+    internal bool ReleaseContextLease(ulong token)
+    {
+        MainThreadGuard.VerifyAccess();
+        int found = -1;
+        for (int index = 1; index < _contextStack.Count; index++)
+        {
+            ContextEntry entry = _contextStack[index];
+            if (entry.Kind == ContextEntryKind.Lease && entry.Token == token)
+            {
+                found = index;
+                break;
+            }
+        }
+
+        if (found < 0)
+            return true;
+
+        var proposed = new ContextEntry[_contextStack.Count - 1];
+        for (int source = 0, destination = 0; source < _contextStack.Count; source++)
+        {
+            if (source == found)
+                continue;
+            proposed[destination++] = _contextStack[source];
+        }
+
+        ApplyProposedStack(proposed);
+        return true;
     }
 
 #if DEBUG
     /// <summary>返回当前输入后端、Context 栈和 Action 状态的 Debug-only 快照。</summary>
-    internal InputDebugSnapshot GetDebugSnapshot()
+    internal InputDebugSnapshot GetDebugSnapshot(InputActionRouter? router = null)
     {
         MainThreadGuard.VerifyAccess();
 
@@ -285,6 +356,9 @@ public sealed class InputService : IInputService
             contexts[index] = new InputDebugContextEntry(
                 entry.Context,
                 entry.Mode,
+                entry.Kind,
+                entry.Token,
+                IsValid: true,
                 index >= effectiveStart);
         }
 
@@ -298,7 +372,12 @@ public sealed class InputService : IInputService
                 state.Value,
                 state.Pressed,
                 state.JustPressed,
-                state.JustReleased);
+                state.JustReleased,
+                state.Status,
+                state.Transitions,
+                state.ElapsedSeconds,
+                state.ElapsedRatio,
+                IsRetriggerGated: router?.IsRetriggerGated(item.Key) == true);
         }
 
         return new InputDebugSnapshot(
@@ -308,8 +387,14 @@ public sealed class InputService : IInputService
             _backend?.Capabilities ?? InputBackendCapabilities.None,
             _hasSample,
             _sequence,
+            _contextRevision,
             contexts,
-            actions);
+            actions,
+            router?.GetDebugSnapshot() ?? new InputRouterDebugSnapshot(
+                false,
+                0,
+                0,
+                Array.Empty<InputRouterDebugScopeEntry>()));
     }
 #endif
 
@@ -326,9 +411,19 @@ public sealed class InputService : IInputService
         return ref _states[index];
     }
 
+    internal bool TryResolveActionIndex(InputActionId action, out int index)
+    {
+        MainThreadGuard.VerifyAccess();
+        VerifyReady();
+        return _actionIndices.TryGetValue(action, out index);
+    }
+
     private void ApplyProposedStack(ReadOnlySpan<ContextEntry> proposed)
     {
         IInputBackend backend = VerifyReady();
+        if (ContextStacksEqual(proposed))
+            return;
+
         int start = FindEffectiveStart(proposed);
         var effective = new InputContextId[proposed.Length - start];
         for (int index = start; index < proposed.Length; index++)
@@ -346,6 +441,28 @@ public sealed class InputService : IInputService
         _contextStack.Clear();
         for (int index = 0; index < proposed.Length; index++)
             _contextStack.Add(proposed[index]);
+        _contextRevision++;
+    }
+
+    private bool ContextStacksEqual(ReadOnlySpan<ContextEntry> proposed)
+    {
+        if (_contextStack.Count != proposed.Length)
+            return false;
+
+        for (int index = 0; index < proposed.Length; index++)
+        {
+            ContextEntry current = _contextStack[index];
+            ContextEntry next = proposed[index];
+            if (current.Context != next.Context ||
+                current.Mode != next.Mode ||
+                current.Kind != next.Kind ||
+                current.Token != next.Token)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private IInputBackend VerifyReady() =>
@@ -438,7 +555,16 @@ public sealed class InputService : IInputService
             if (!indices.TryAdd(descriptor.ActionId, index))
                 throw new InputOperationException($"输入后端包含重复 Action: {descriptor.ActionId.Value}");
 
-            states[index] = new InputActionState(descriptor.ValueType, Vector3.Zero, false, false, false);
+            states[index] = new InputActionState(
+                descriptor.ValueType,
+                Vector3.Zero,
+                false,
+                false,
+                false,
+                InputActionStatus.Idle,
+                InputActionTransitions.None,
+                0f,
+                0f);
         }
 
         contexts = new HashSet<InputContextId>();
@@ -459,6 +585,41 @@ public sealed class InputService : IInputService
             Vector3 value = samples[index].Value;
             if (!float.IsFinite(value.X) || !float.IsFinite(value.Y) || !float.IsFinite(value.Z))
                 throw new InvalidOperationException($"输入后端返回了非有限值，位置: {index}");
+            if (!Enum.IsDefined(samples[index].Status))
+                throw new InvalidOperationException($"输入后端返回了无效 Action 状态，位置: {index}");
+            InputActionTransitions transitions = samples[index].Transitions;
+            if ((transitions & ~AllTransitions) != 0)
+                throw new InvalidOperationException($"输入后端返回了无效 Action Transition，位置: {index}");
+            if (!float.IsFinite(samples[index].ElapsedSeconds) || samples[index].ElapsedSeconds < 0f)
+                throw new InvalidOperationException($"输入后端返回了无效 ElapsedSeconds，位置: {index}");
+            if (!float.IsFinite(samples[index].ElapsedRatio) ||
+                samples[index].ElapsedRatio < 0f ||
+                samples[index].ElapsedRatio > 1f)
+            {
+                throw new InvalidOperationException($"输入后端返回了无效 ElapsedRatio，位置: {index}");
+            }
+        }
+    }
+
+    private const InputActionTransitions AllTransitions =
+        InputActionTransitions.Started |
+        InputActionTransitions.Performed |
+        InputActionTransitions.Completed |
+        InputActionTransitions.Cancelled;
+
+    private static InputActionTransitions NormalizeTransitions(InputActionTransitions transitions)
+    {
+        if ((transitions & InputActionTransitions.Cancelled) != 0)
+            transitions &= ~InputActionTransitions.Completed;
+        return transitions;
+    }
+
+    private void VerifyContextNotPresent(InputContextId context)
+    {
+        for (int index = 0; index < _contextStack.Count; index++)
+        {
+            if (_contextStack[index].Context == context)
+                throw new InputOperationException($"输入 Context 已位于栈中: {context.Value}");
         }
     }
 
@@ -478,12 +639,27 @@ public sealed class InputService : IInputService
     {
         public InputContextId Context { get; }
         public InputContextMode Mode { get; }
+        public ContextEntryKind Kind { get; }
+        public ulong Token { get; }
 
-        public ContextEntry(InputContextId context, InputContextMode mode)
+        public ContextEntry(
+            InputContextId context,
+            InputContextMode mode,
+            ContextEntryKind kind,
+            ulong token)
         {
             Context = context;
             Mode = mode;
+            Kind = kind;
+            Token = token;
         }
+    }
+
+    internal enum ContextEntryKind
+    {
+        Base,
+        Legacy,
+        Lease,
     }
 }
 
@@ -494,18 +670,30 @@ internal readonly struct InputActionState
     public bool Pressed { get; }
     public bool JustPressed { get; }
     public bool JustReleased { get; }
+    public InputActionStatus Status { get; }
+    public InputActionTransitions Transitions { get; }
+    public float ElapsedSeconds { get; }
+    public float ElapsedRatio { get; }
 
     public InputActionState(
         InputActionValueType valueType,
         Vector3 value,
         bool pressed,
         bool justPressed,
-        bool justReleased)
+        bool justReleased,
+        InputActionStatus status,
+        InputActionTransitions transitions,
+        float elapsedSeconds,
+        float elapsedRatio)
     {
         ValueType = valueType;
         Value = value;
         Pressed = pressed;
         JustPressed = justPressed;
         JustReleased = justReleased;
+        Status = status;
+        Transitions = transitions;
+        ElapsedSeconds = elapsedSeconds;
+        ElapsedRatio = elapsedRatio;
     }
 }

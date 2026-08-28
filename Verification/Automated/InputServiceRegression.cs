@@ -38,12 +38,15 @@ public sealed partial class InputServiceRegression : Node
             Run("输入提示查询可选能力", VerifyPromptQueryCapability);
             Run("活动设备变化通知", VerifyDeviceChangeNotification);
             Run("Action 状态与各类轴值", VerifyActionStates);
+            Run("完整 Action 阶段与可保存快照", VerifyActionFrameState);
+            Run("Action 样本数值校验", VerifyActionSampleValidation);
 #if DEBUG
             Run("Debug-only 输入快照", VerifyDebugSnapshot);
 #endif
             Run("未知 Action 与类型错误", VerifyActionFailures);
             Run("旧 Frame 失效", VerifyStaleFrame);
             Run("Context Overlay 与 Exclusive", VerifyContextComposition);
+            Run("Context Lease 乱序、回滚与混用", VerifyContextLeases);
             Run("Context 栈误用", VerifyContextFailures);
             Run("Context 失败保持原状态", VerifyContextFailureIsAtomic);
             Run("采样失败保持上一帧", VerifySampleFailureIsAtomic);
@@ -53,9 +56,9 @@ public sealed partial class InputServiceRegression : Node
 
             _service.Shutdown();
 #if DEBUG
-            GD.Print($"[InputServiceRegression] PASS ({_passed}/17)");
+            GD.Print($"[InputServiceRegression] PASS ({_passed}/20)");
 #else
-            GD.Print($"[InputServiceRegression] PASS ({_passed}/16)");
+            GD.Print($"[InputServiceRegression] PASS ({_passed}/19)");
 #endif
             GetTree().Quit(0);
         }
@@ -218,6 +221,86 @@ public sealed partial class InputServiceRegression : Node
         Assert(released.JustReleased(Jump), "释放没有产生 JustReleased");
     }
 
+    private void VerifyActionFrameState()
+    {
+        FakeInputBackend backend = InstallDefaultBackend();
+        backend.SetSample(0, new InputActionSample(
+            Vector3.Zero,
+            pressed: false,
+            InputActionStatus.Idle,
+            InputActionTransitions.Started |
+                InputActionTransitions.Performed |
+                InputActionTransitions.Completed,
+            elapsedSeconds: 0.2f,
+            elapsedRatio: 0.5f));
+        _service.Update();
+
+        InputActionFrameState saved = _service.Frame.GetState(Jump);
+        AssertEqual(InputActionStatus.Idle, saved.Status, "完整快照状态错误");
+        AssertEqual(
+            InputActionTransitions.Started |
+                InputActionTransitions.Performed |
+                InputActionTransitions.Completed,
+            saved.Transitions,
+            "完整快照没有保留同帧 Transition");
+        AssertApprox(0.2f, saved.ElapsedSeconds, "完整快照 ElapsedSeconds 错误");
+        AssertApprox(0.5f, saved.ElapsedRatio, "完整快照 ElapsedRatio 错误");
+
+        backend.SetSample(0, new InputActionSample(
+            Vector3.Zero,
+            pressed: false,
+            InputActionStatus.Idle,
+            InputActionTransitions.Cancelled | InputActionTransitions.Completed,
+            0f,
+            0f));
+        _service.Update();
+        AssertEqual(
+            InputActionTransitions.Cancelled,
+            _service.Frame.GetState(Jump).Transitions,
+            "Cancelled 没有覆盖同窗口 Completed");
+        AssertEqual<ulong>(1, saved.Sequence, "保存的状态快照被后续采样改变");
+    }
+
+    private void VerifyActionSampleValidation()
+    {
+        FakeInputBackend backend = InstallDefaultBackend();
+        backend.SetSample(0, new InputActionSample(
+            new Vector3(float.PositiveInfinity, 0f, 0f),
+            false,
+            InputActionStatus.Idle,
+            InputActionTransitions.None,
+            0f,
+            0f));
+        AssertThrows<InputOperationException>(() => _service.Update(), "接受了非有限 Value");
+
+        backend.SetSample(0, new InputActionSample(
+            Vector3.Zero,
+            false,
+            InputActionStatus.Ongoing,
+            InputActionTransitions.Started,
+            float.NaN,
+            0.5f));
+        AssertThrows<InputOperationException>(() => _service.Update(), "接受了非有限 ElapsedSeconds");
+
+        backend.SetSample(0, new InputActionSample(
+            Vector3.Zero,
+            false,
+            InputActionStatus.Ongoing,
+            InputActionTransitions.Started,
+            0f,
+            1.01f));
+        AssertThrows<InputOperationException>(() => _service.Update(), "接受了越界 ElapsedRatio");
+
+        backend.SetSample(0, new InputActionSample(
+            Vector3.Zero,
+            false,
+            (InputActionStatus)99,
+            InputActionTransitions.None,
+            0f,
+            0f));
+        AssertThrows<InputOperationException>(() => _service.Update(), "接受了未知 Action 状态");
+    }
+
 #if DEBUG
     private void VerifyDebugSnapshot()
     {
@@ -329,6 +412,43 @@ public sealed partial class InputServiceRegression : Node
         AssertContexts(backend, Gameplay, Overlay);
         _service.PopContext(Overlay);
         AssertContexts(backend, Gameplay);
+    }
+
+    private void VerifyContextLeases()
+    {
+        FakeInputBackend backend = InstallDefaultBackend();
+        _service.SetBaseContext(Gameplay);
+        InputContextLease overlay = _service.PushContextScoped(Overlay, InputContextMode.Overlay);
+        InputContextLease pause = _service.PushContextScoped(Pause, InputContextMode.Exclusive);
+        InputContextLease debug = _service.PushContextScoped(Debug, InputContextMode.Overlay);
+        AssertContexts(backend, Pause, Debug);
+
+        overlay.Dispose();
+        overlay.Dispose();
+        AssertContexts(backend, Pause, Debug);
+
+        backend.FailNextApply = true;
+        AssertThrows<InputOperationException>(() => pause.Dispose(), "Lease 释放失败没有传播");
+        AssertContexts(backend, Pause, Debug);
+        pause.Dispose();
+        AssertContexts(backend, Gameplay, Debug);
+
+        _service.SetBaseContext(Pause);
+        debug.Dispose();
+        AssertContexts(backend, Pause);
+
+        InputContextLease leasedOverlay = _service.PushContextScoped(Overlay, InputContextMode.Overlay);
+        _service.PushContext(Debug, InputContextMode.Overlay);
+        leasedOverlay.Dispose();
+        AssertContexts(backend, Pause, Debug);
+        _service.PopContext(Debug);
+
+        InputContextLease topLease = _service.PushContextScoped(Overlay);
+        AssertThrows<InputOperationException>(
+            () => _service.PopContext(Overlay),
+            "PopContext 错误释放了 Lease Entry");
+        _service.Shutdown();
+        topLease.Dispose();
     }
 
     private void VerifyContextFailures()
@@ -443,6 +563,14 @@ public sealed partial class InputServiceRegression : Node
         GC.KeepAlive(value);
 
         AssertEqual(0L, allocated, $"InputFrame 热读取产生托管分配: {allocated} bytes");
+
+        for (int index = 0; index < 100; index++)
+            _service.Update();
+        before = GC.GetAllocatedBytesForCurrentThread();
+        for (int index = 0; index < 1_000; index++)
+            _service.Update();
+        allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        AssertEqual(0L, allocated, $"InputService.Update 稳态产生托管分配: {allocated} bytes");
     }
 
     private void VerifyShutdown()

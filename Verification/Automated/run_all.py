@@ -37,6 +37,7 @@ WORKBENCH_REGRESSION_SCENES = (
     "CameraServiceRegression.tscn",
     "UiServiceRegression.tscn",
     "InputServiceRegression.tscn",
+    "InputActionRouterRegression.tscn",
     "InputRuntimeRegression.tscn",
 )
 SUITE_SCENES = {

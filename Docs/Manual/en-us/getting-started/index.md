@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/getting-started/index.md
-translation_source_hash: sha256:0ee777b6be1b9d57e99e53c3c05aedba03eb4ac4c84ceadcad538cc36ff9d3bf
+translation_source_hash: sha256:8643fda05ae043e151a3a49d98e0148f33671b25d8f94f8578e6c601349c2a8e
 ---
 
 # Quick start: build a runnable game skeleton
@@ -20,7 +20,7 @@ After this path, use the [module guides](../guides/index.md) to explore the capa
 
 ## Prerequisites
 
-- Godot 4.7.1 .NET edition.
+- Godot 4.7.2 .NET edition.
 - A usable C# solution that has completed at least one Debug build.
 - .NET 8 for the target project; use .NET 9 for Android builds when the project requires it.
 

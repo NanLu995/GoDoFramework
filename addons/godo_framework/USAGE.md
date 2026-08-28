@@ -88,7 +88,7 @@ Runtime 安装与 C# 规则修复是统一报告中的两项独立操作：综�
 
 只有同时满足以下条件时“安装 Runtime”按钮才可用：
 
-- 当前引擎不低于 `plugin.cfg` 的 `min_godot_version`；兼容版本统一使用 `major.minor.patch`，当前最低版本为 `4.7.0`；
+- 当前引擎不低于 `plugin.cfg` 的 `min_godot_version`；兼容版本统一使用 `major.minor.patch`，当前最低版本为 `4.7.0`，最高已验证版本为 `4.7.2`；
 - 根目录存在 `.csproj`，并且已经至少成功编译一次；
 - `res://addons/godo_framework/Core/GoDoRuntime.tscn` 存在；最终场景类型由 Godot 的 Autoload 安装 API 校验；
 - `GoDoRuntime` 名称尚未被占用；

@@ -47,6 +47,17 @@ public interface IInputService
     /// <exception cref="InputOperationException">后端未就绪、尚未设置 Base、Context 未注册或重复，或后端应用失败。</exception>
     void PushContext(InputContextId context, InputContextMode mode = InputContextMode.Exclusive);
 
+    /// <summary>压入由唯一 Token 标识、可乱序释放的临时 Context。</summary>
+    /// <param name="context">后端初始化时声明且尚未位于 Context 集合中的 ID。</param>
+    /// <param name="mode">与更低层 Context 叠加或屏蔽更低层 Context。</param>
+    /// <returns>拥有该临时 Entry 的幂等生命周期句柄。</returns>
+    /// <exception cref="System.ArgumentException"><paramref name="context"/> 是默认 ID。</exception>
+    /// <exception cref="System.ArgumentOutOfRangeException"><paramref name="mode"/> 未定义。</exception>
+    /// <exception cref="InputOperationException">后端未就绪、尚未设置 Base、Context 未注册或重复，或后端应用失败。</exception>
+    InputContextLease PushContextScoped(
+        InputContextId context,
+        InputContextMode mode = InputContextMode.Exclusive);
+
     /// <summary>仅在预期 ID 与栈顶匹配且后端成功应用时弹出临时 Context。</summary>
     /// <param name="expectedContext">调用方预期位于栈顶的临时 Context ID。</param>
     /// <exception cref="System.ArgumentException"><paramref name="expectedContext"/> 是默认 ID。</exception>

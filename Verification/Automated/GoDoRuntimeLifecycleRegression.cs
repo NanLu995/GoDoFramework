@@ -97,6 +97,7 @@ public sealed partial class GoDoRuntimeLifecycleRegression : Node
         _ = Services.Get<ISceneService>();
         _ = Services.Get<ICameraService>();
         _ = Services.Get<IInputService>();
+        _ = Services.Get<IInputActionRouter>();
         _ = Services.Get<IAudioService>();
         _ = Services.Get<ILocalizationService>();
         _ = Services.Get<IDataTableService>();

@@ -32,6 +32,9 @@ public sealed class GuideInputBackend :
     private GuideInputDeviceTracker? _deviceTracker;
     private GuideInputRebinding? _rebinding;
     private GuideInputRebindingPersistence? _rebindingPersistence;
+    private Node? _guideNode;
+    private int _previousGuideProcessPriority;
+    private bool _processPriorityAdjusted;
     private InputDeviceKind _activeDevice;
     private bool _initialized;
 
@@ -100,9 +103,9 @@ public sealed class GuideInputBackend :
         if (_initialized)
             throw new InvalidOperationException("GuideInputBackend 已经初始化。");
 
-        VerifyAutoloads();
         try
         {
+            ConfigureProcessOrder();
             BuildActions();
             BuildContexts();
             AttachSubscriptions();
@@ -119,6 +122,7 @@ public sealed class GuideInputBackend :
             DetachDeviceTracker();
             DetachSubscriptions();
             ClearRuntimeState();
+            RestoreProcessOrder();
             throw;
         }
     }
@@ -184,7 +188,21 @@ public sealed class GuideInputBackend :
                 nameof(destination));
         }
 
-        _cachedSamples.AsSpan().CopyTo(destination);
+        for (int index = 0; index < _cachedSamples.Length; index++)
+        {
+            InputActionSample sample = _cachedSamples[index];
+            destination[index] = sample;
+            if (sample.Transitions != InputActionTransitions.None)
+            {
+                _cachedSamples[index] = new InputActionSample(
+                    sample.Value,
+                    sample.Pressed,
+                    sample.Status,
+                    InputActionTransitions.None,
+                    sample.ElapsedSeconds,
+                    sample.ElapsedRatio);
+            }
+        }
     }
 
     /// <inheritdoc />
@@ -204,6 +222,7 @@ public sealed class GuideInputBackend :
             DetachDeviceTracker();
             DetachSubscriptions();
             ClearRuntimeState();
+            RestoreProcessOrder();
             _initialized = false;
         }
     }
@@ -312,15 +331,49 @@ public sealed class GuideInputBackend :
             throw new InvalidOperationException($"GuideInputProfile 缺少 GUIDE {kind} Resource，位置: {index}");
     }
 
-    private static void VerifyAutoloads()
+    private void ConfigureProcessOrder()
     {
-        if (Engine.GetMainLoop() is not SceneTree tree ||
-            !GodotObject.IsInstanceValid(tree.Root.GetNodeOrNull<Node>("GUIDE")) ||
-            !GodotObject.IsInstanceValid(tree.Root.GetNodeOrNull<Node>("GuideCs")))
+        if (Engine.GetMainLoop() is not SceneTree tree)
+            throw new InvalidOperationException("GuideInputBackend 需要有效的 SceneTree。");
+
+        Node? guide = tree.Root.GetNodeOrNull<Node>("GUIDE");
+        Node? guideCs = tree.Root.GetNodeOrNull<Node>("GuideCs");
+        Node? runtime = tree.Root.GetNodeOrNull<Node>("GoDoRuntime");
+        if (!GodotObject.IsInstanceValid(guide) ||
+            !GodotObject.IsInstanceValid(guideCs) ||
+            !GodotObject.IsInstanceValid(runtime))
         {
             throw new InvalidOperationException(
                 "GuideInputBackend 需要已启用且位于 GoDoRuntime 之前的 GUIDE 与 GuideCs Autoload。");
         }
+
+        if (guide!.ProcessMode != Node.ProcessModeEnum.Always ||
+            guideCs!.ProcessMode != Node.ProcessModeEnum.Always ||
+            runtime!.ProcessMode != Node.ProcessModeEnum.Always)
+        {
+            throw new InvalidOperationException(
+                "GUIDE、GuideCs 与 GoDoRuntime 必须全部使用 ProcessMode.Always。");
+        }
+        if (runtime.ProcessPriority == int.MinValue)
+            throw new InvalidOperationException("GoDoRuntime ProcessPriority 无法为 GUIDE 预留更早优先级。");
+
+        _guideNode = guide;
+        _previousGuideProcessPriority = guide.ProcessPriority;
+        guide.ProcessPriority = runtime.ProcessPriority - 1;
+        _processPriorityAdjusted = true;
+        if (guide.ProcessPriority >= runtime.ProcessPriority)
+            throw new InvalidOperationException("无法保证 GUIDE 在 GoDoRuntime 之前更新。");
+    }
+
+    private void RestoreProcessOrder()
+    {
+        Node? guide = _guideNode;
+        _guideNode = null;
+        if (!_processPriorityAdjusted)
+            return;
+        _processPriorityAdjusted = false;
+        if (GodotObject.IsInstanceValid(guide))
+            guide!.ProcessPriority = _previousGuideProcessPriority;
     }
 
     private void VerifyInitialized()
@@ -450,25 +503,82 @@ public sealed class GuideInputBackend :
 
     private void DetachRebindingPersistence() => _rebindingPersistence = null;
 
-    private void OnTriggered(int index)
-    {
-        GuideAction action = _actions[index];
-        Vector3 value = ReadValue(action, _actionDescriptors[index].ValueType, pressed: true);
-        _cachedSamples[index] = new InputActionSample(value, pressed: true);
-    }
+    private void OnStarted(int index) => UpdateSample(
+        index,
+        pressed: false,
+        InputActionStatus.Ongoing,
+        InputActionTransitions.Started);
 
-    private void OnOngoing(int index)
-    {
-        GuideAction action = _actions[index];
-        Vector3 value = ReadValue(action, _actionDescriptors[index].ValueType, pressed: false);
-        _cachedSamples[index] = new InputActionSample(value, pressed: false);
-    }
+    private void OnOngoing(int index) => UpdateSample(
+        index,
+        pressed: false,
+        InputActionStatus.Ongoing,
+        InputActionTransitions.None);
+
+    private void OnJustTriggered(int index) => UpdateSample(
+        index,
+        pressed: true,
+        InputActionStatus.Performed,
+        InputActionTransitions.Performed);
+
+    private void OnTriggered(int index) => UpdateSample(
+        index,
+        pressed: true,
+        InputActionStatus.Performed,
+        InputActionTransitions.None);
 
     private void OnCompleted(int index)
     {
+        if ((_cachedSamples[index].Transitions & InputActionTransitions.Cancelled) != 0)
+        {
+            UpdateSample(
+                index,
+                pressed: false,
+                InputActionStatus.Idle,
+                InputActionTransitions.None);
+            return;
+        }
+
+        UpdateSample(
+            index,
+            pressed: false,
+            InputActionStatus.Idle,
+            InputActionTransitions.Completed);
+    }
+
+    private void OnCancelled(int index)
+    {
+        InputActionSample previous = _cachedSamples[index];
+        InputActionTransitions transitions =
+            (previous.Transitions | InputActionTransitions.Cancelled) &
+            ~InputActionTransitions.Completed;
+        UpdateSample(
+            index,
+            pressed: false,
+            InputActionStatus.Idle,
+            transitions,
+            replaceTransitions: true);
+    }
+
+    private void UpdateSample(
+        int index,
+        bool pressed,
+        InputActionStatus status,
+        InputActionTransitions transitions,
+        bool replaceTransitions = false)
+    {
         GuideAction action = _actions[index];
-        Vector3 value = ReadValue(action, _actionDescriptors[index].ValueType, pressed: false);
-        _cachedSamples[index] = new InputActionSample(value, pressed: false);
+        Vector3 value = ReadValue(action, _actionDescriptors[index].ValueType, pressed);
+        InputActionSample previous = _cachedSamples[index];
+        float elapsedSeconds = Mathf.Max(0f, action.ElapsedSeconds);
+        float elapsedRatio = Mathf.Clamp(action.ElapsedRatio, 0f, 1f);
+        _cachedSamples[index] = new InputActionSample(
+            value,
+            pressed,
+            status,
+            replaceTransitions ? transitions : previous.Transitions | transitions,
+            elapsedSeconds,
+            elapsedRatio);
     }
 
     private sealed class ActionSubscription
@@ -477,8 +587,11 @@ public sealed class GuideInputBackend :
         private readonly GuideAction _action;
         private readonly int _index;
         private bool _triggeredAttached;
+        private bool _justTriggeredAttached;
+        private bool _startedAttached;
         private bool _ongoingAttached;
         private bool _completedAttached;
+        private bool _cancelledAttached;
 
         public ActionSubscription(GuideInputBackend owner, GuideAction action, int index)
         {
@@ -489,17 +602,24 @@ public sealed class GuideInputBackend :
 
         public void Attach()
         {
-            if (_triggeredAttached || _ongoingAttached || _completedAttached)
+            if (_triggeredAttached || _justTriggeredAttached || _startedAttached ||
+                _ongoingAttached || _completedAttached || _cancelledAttached)
                 return;
 
             try
             {
+                _action.Started += OnStarted;
+                _startedAttached = true;
                 _action.Triggered += OnTriggered;
                 _triggeredAttached = true;
+                _action.JustTriggered += OnJustTriggered;
+                _justTriggeredAttached = true;
                 _action.Ongoing += OnOngoing;
                 _ongoingAttached = true;
                 _action.Completed += OnCompleted;
                 _completedAttached = true;
+                _action.Cancelled += OnCancelled;
+                _cancelledAttached = true;
             }
             catch
             {
@@ -510,6 +630,11 @@ public sealed class GuideInputBackend :
 
         public void Detach()
         {
+            if (_cancelledAttached)
+            {
+                _action.Cancelled -= OnCancelled;
+                _cancelledAttached = false;
+            }
             if (_completedAttached)
             {
                 _action.Completed -= OnCompleted;
@@ -525,12 +650,28 @@ public sealed class GuideInputBackend :
                 _action.Triggered -= OnTriggered;
                 _triggeredAttached = false;
             }
+            if (_justTriggeredAttached)
+            {
+                _action.JustTriggered -= OnJustTriggered;
+                _justTriggeredAttached = false;
+            }
+            if (_startedAttached)
+            {
+                _action.Started -= OnStarted;
+                _startedAttached = false;
+            }
         }
 
+        private void OnStarted() => _owner.OnStarted(_index);
+
         private void OnTriggered() => _owner.OnTriggered(_index);
+
+        private void OnJustTriggered() => _owner.OnJustTriggered(_index);
 
         private void OnOngoing() => _owner.OnOngoing(_index);
 
         private void OnCompleted() => _owner.OnCompleted(_index);
+
+        private void OnCancelled() => _owner.OnCancelled(_index);
     }
 }

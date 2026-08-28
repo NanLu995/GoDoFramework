@@ -2,12 +2,12 @@
 
 ## 定位
 
-InputService 为业务层提供语义 Action 的当前帧只读快照、Context 栈，以及可选运行时重绑定和输入提示查询边界。它集中采样一个可替换后端，
+InputService 为业务层提供语义 Action 的当前帧只读快照、可释放的 Context 所有权，以及可选运行时重绑定和输入提示查询边界。`IInputActionRouter` 在同一采样之后分派离散 Action 迁移。它们集中采样一个可替换后端，
 使角色、摄像机协调代码和 UI 不直接依赖具体按键、Godot InputMap 或第三方输入插件类型。
 
 当前已完成核心 ID、Frame、Context、后端边界和 GoDoRuntime 生命周期接入。可选包
 `addons/godo_framework/Integrations/GuideInput/` 已提供首版 GUIDE 后端；核心模块不反向依赖它。
-业务可以通过 `Services.Get<IInputService>()` 获取服务；未安装后端时 `IsReady == false`，读取 Frame 或切换 Context 会明确失败。
+业务可以通过 `Services.Get<IInputService>()` 与 `Services.Get<IInputActionRouter>()` 获取服务；未安装后端时 `IsReady == false`，读取 Frame 或切换 Context 会明确失败。
 
 ## 适用场景
 
@@ -46,12 +46,41 @@ InputContextId gameplay = InputContextId.Create("gameplay");
 InputFrame frame = input.Frame;
 bool jump = frame.JustPressed(GameInput.Jump);
 Vector2 move = frame.Axis2(GameInput.Move);
+InputActionFrameState jumpState = frame.GetState(GameInput.Jump);
 ```
 
 - `Pressed`、`JustPressed`、`JustReleased` 可读取任意 Action 的状态。
 - `Axis1`、`Axis2`、`Axis3` 必须与后端初始化时声明的固定类型一致。
 - Frame 是当前渲染帧的轻量句柄，不复制 Action 集合；跨帧保存后再次读取会失败。
+- `GetState` 返回可安全跨帧保存的值快照，包含 `Status`、本次采样累积的 `Transitions`、持续时间、归一化进度和 `Sequence`。
+- 状态为 `Idle / Ongoing / Performed`；迁移位为 `Started / Performed / Completed / Cancelled`。同一采样窗口可以同时包含多个迁移位，取消优先于完成。
+- `ElapsedRatio` 在核心边界保证位于 `[0, 1]`；后端给出的非有限值、负持续时间或越界进度会使本次采样失败且不覆盖上一帧。
 - 后端首次成功采样前不能读取 Frame。
+
+### 离散 Action Router
+
+连续移动、视角和当前按压状态直接读取 `InputFrame`。菜单确认、暂停、交互等离散命令通过 Router 绑定：
+
+```csharp
+IInputActionRouter router = Services.Get<IInputActionRouter>();
+using InputRouteScope scope = router.PushScope("PauseMenu");
+using InputRouteBinding binding = scope.Bind(
+    GameInput.Confirm,
+    InputActionTransitions.Performed,
+    (state, matched) =>
+    {
+        ConfirmSelection();
+        return InputRouteResult.Handled;
+    });
+```
+
+- 后压入的 Scope 优先；同一 Action 内按 `Started → Performed → Cancelled → Completed` 顺序匹配。一个 Binding 在同一采样序号最多调用一次，并一次收到全部匹配位。
+- `Handled` 只停止当前 Action 向较低 Scope 传播；`Pass` 继续。不同 Action 仍按后端固定布局顺序分派。
+- 同一 Scope 的同一 Action 不能绑定重叠迁移位，避免同优先级歧义。空迁移掩码和未知 Action 会立即失败。
+- Handler 抛出异常时 Router 通过 `ErrorHub` 报告作用域、Action、迁移和序号，并把该 Action 视为已消费；异常不会中断其他 Action。
+- Handler 内新增、释放 Binding 或 Scope 会排队到本轮分派结束后生效，当前遍历保持稳定。
+- Context 或路由结构发生实际变化时，当前或上一帧非 `Idle` 的已绑定 Action 会进入重触发门禁；必须观察到 `Idle` 后才恢复分派，避免打开菜单时继承仍按住的确认键。未绑定连续轴不参与门禁扫描。
+- Router 只分派输入事实。返回、关闭、玩家命令等业务语义不要再复制为全局 `EventChannel` 输入事件；设备和绑定变化仍使用已有事实事件。
 
 ### 活动设备
 
@@ -90,15 +119,18 @@ if (input.ActiveDevice != InputDeviceKind.Unknown &&
 
 ```csharp
 input.SetBaseContext(GameInput.Gameplay);
-input.PushContext(GameInput.PauseMenu, InputContextMode.Exclusive);
-input.PopContext(GameInput.PauseMenu);
+using InputContextLease pauseContext =
+    input.PushContextScoped(GameInput.PauseMenu, InputContextMode.Exclusive);
 ```
 
 - `Overlay`：与更低层有效 Context 同时生效。
 - `Exclusive`：屏蔽所有更低层 Context；其上方仍可继续叠加 Overlay。
 - `SetBaseContext` 会移除所有临时 Context。
-- 同一个 ID 不能重复入栈；Pop 必须与栈顶 ID 严格匹配。
+- `PushContextScoped` 返回 `InputContextLease`；Dispose 幂等，可以按所有者生命周期从栈中任意位置释放，适合页面、Modal 和临时流程。
+- 同一个 ID 不能重复入栈。`SetBaseContext` 和服务关闭会使现有 Lease 失效，之后 Dispose 安全无操作。
+- 旧 `PushContext / PopContext` 保留一个迁移周期；它们仍要求严格 LIFO，且不能 Pop 由 Lease 拥有的栈项。新代码优先使用 Lease，避免异常退出或乱序关闭遗留 Context。
 - 后端原子应用失败时，GoDo Context 栈保持不变。
+- Lease 释放若因后端失败而抛出，栈和 Lease 所有权保持不变，可以在恢复后再次 Dispose。
 
 ### 运行时重绑定
 
@@ -154,6 +186,7 @@ if (input.TryGetRebindingPersistence(out IInputRebindingPersistence? persistence
 - 未安装后端或首次采样前读取 Frame。
 - 读取未知 Action、错误 Axis 类型或过期 Frame。
 - 使用未知 Context、重复 Push、错误 Pop 或后端应用失败。
+- Router 未注册 Action、空/未知迁移、同 Scope 重叠绑定或失效句柄操作。
 - 后端重复安装、布局重复、初始化或采样失败。
 - 未注册 Binding、重复捕获、候选来自其他后端或重绑定应用失败。
 - 后端声明重绑定能力却未实现对应接口，或声明持久化但未同时支持重绑定。
@@ -165,12 +198,12 @@ if (input.TryGetRebindingPersistence(out IInputRebindingPersistence? persistence
 
 ## 生命周期与线程
 
-- InputService 由 GoDoRuntime 创建并按 `IInputService` 注册；后端就绪后由 GoDoRuntime 每帧调用一次采样。
+- InputService 与 InputActionRouter 由 GoDoRuntime 依次创建并注册；后端就绪后每帧严格执行 `InputService.Update → InputActionRouter.Dispatch → 业务节点`。
 - 所有服务 API、后端初始化、采样、Context 和关闭操作仅允许 Godot 主线程调用。
 - 重绑定捕获任务由后端信号在主线程完成；服务关闭前必须取消未完成捕获。
 - 绑定加载应在后端安装完成后、进入依赖输入的游戏流程前执行；保存只在玩家确认设置时调用。
 - 每个服务实例第一版只允许安装一个后端，不支持运行时替换。
-- `Shutdown()` 清理后端、Action、Context 和快照状态，并允许重复调用。
+- 退出时先关闭并注销 Router，使 Scope/Binding 句柄安全失效，再关闭 InputService；两者关闭均允许重复调用。
 
 ## 渲染帧与物理帧
 
@@ -182,6 +215,8 @@ InputFrame 表示最近完成的渲染帧采样。需要驱动物理的控制器
 
 - 后端安装时建立 Action ID 到连续槽位的 Dictionary。
 - 每帧使用预分配样本和状态数组，成功采样后原子提交。
+- Action 迁移位在后端信号到达与下一次采样之间累计，采样提交后清空；状态和值继续保留。
+- Router 稳态分派不复制 Binding 集合；无处理器和有处理器的 1,000 次回归均要求 0 bytes 托管分配。
 - 同帧重复读取只访问缓存，不再次调用后端。
 - 当前假后端回归要求 10,000 次 `Axis2` 读取产生 0 bytes 托管分配。
 - 设备类别只在已有采样提交时比较；事件只在类别变化时派发，不增加输入热路径集合分配。
@@ -192,7 +227,7 @@ InputFrame 表示最近完成的渲染帧采样。需要驱动物理的控制器
 
 ## Debug 诊断
 
-Debug 构建中的 `InputService` 提供 internal 只读快照，包含后端类型、活动设备、能力、首次采样状态、采样序号、完整 Context 栈及有效性，以及固定顺序的 Action 当前值和边沿状态。采样序号在每次成功 `Update()` 后递增，采样失败时保持不变，安装新后端或关闭服务后归零。类型和入口都位于 `#if DEBUG`，不扩大 `IInputService` public API，Release 不包含。
+Debug 构建中的 `InputService` 提供 internal 只读快照，包含后端类型、活动设备、能力、采样与 Context 修订号、完整 Context 栈的所有权/Token/有效性，以及固定顺序的 Action 值、状态、迁移、时间和门禁。Router 快照另外列出路由修订号、最近分派序号、Scope 优先级和 Binding 数量。类型和入口都位于 `#if DEBUG`，不扩大业务服务接口，Release 不包含。
 
 GoDo Debugger 的 `运行时 / Input` 页面每 0.25 秒按需读取当前快照，以状态卡、Context 表和 Action 表显示。Action 可按名称或值类型搜索，搜索扫描完整快照但最多排版前 32 个匹配项；Frame 状态独立更新，Context 或 Action 显示内容未变化时不重建对应表格。折叠或查看其他页面时不创建快照；快照只用于观察，不可修改 Context、Action 或绑定。
 
@@ -204,6 +239,6 @@ GoDo Debugger 的 `运行时 / Input` 页面每 0.25 秒按需读取当前快照
 Verification/Automated/InputServiceRegression.tscn
 ```
 
-覆盖 ID、后端缺失、首次采样、Bool/Axis 状态、活动设备变化、可选重绑定、持久化与提示查询能力、Frame 过期、Context 组合与误用、
-失败原子性、重复后端/布局拒绝、Debug-only 快照、热读取分配和关闭幂等。`InputRuntimeRegression.tscn` 额外验证 GoDoRuntime 注册、自动采样与关闭。
+覆盖 ID、后端缺失、首次采样、Bool/Axis 状态、完整状态/迁移累积、活动设备变化、可选重绑定、持久化与提示查询能力、Frame 过期、Lease 与旧 Context API 混用、
+失败原子性、重复后端/布局拒绝、Debug-only 快照、采样热路径分配和关闭幂等。`InputActionRouterRegression.tscn` 覆盖优先级、传播、顺序、异常隔离、遍历期变更、重触发门禁、句柄生命周期和零分配；`InputRuntimeRegression.tscn` 验证 GoDoRuntime 的注册、采样后分派、暂停树和关闭顺序。
 GUIDE 回归覆盖键鼠/手柄提示筛选、绑定变化通知、捕获、冲突、应用、恢复、取消、保存加载、备份恢复、未知版本、设备阈值和跟踪节点清理。Windows Demo3D 已使用真实手柄完成人工验收，覆盖设备切换、拔插后键盘切换、改键即时提示、重启持久化、恢复默认和窗口失焦；其他平台以及真实项目长期渲染/物理时序仍需验证。

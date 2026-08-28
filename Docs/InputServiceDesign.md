@@ -1,6 +1,6 @@
 # InputService 设计草案
 
-> 状态：首版完成。核心 ID、InputFrame、Context 栈、假后端回归、GoDoRuntime 生命周期、GUIDE 适配、设备检测、运行时改键、SaveService 持久化、文本提示查询与 Demo3D 真实 Profile 已完成；Windows 真实手柄、设备切换、拔插后键盘切换、改键持久化、恢复默认和窗口失焦人工验收通过，其他平台与真实项目长期时序仍待验证。本文不代表稳定基线。
+> 状态：架构升级完成。核心 ID、完整 Action 状态/迁移、InputFrame、Context Lease、离散 Action Router、重触发门禁、GoDoRuntime 确定更新顺序、GUIDE 六信号适配、设备检测、运行时改键、持久化、提示查询与 Debug 诊断均有自动回归；Windows 真实设备的既有验收已通过，升级后的真实项目手感、暂停与场景切换仍待 Godot 人工复核。本文不代表稳定基线。
 
 ## 1. 要解决的问题
 
@@ -17,14 +17,16 @@ Godot 原生输入足以读取按键和轴，但具体游戏仍需重复处理�
 
 ## 2. 已确认的方案
 
-采用“Action ID + `InputFrame` 当前帧快照 + Context 栈”：
+采用“Action ID + `InputFrame` 连续快照 + Context Lease + 离散 Router”：
 
 ```text
 Godot 输入事件
     ↓
 输入后端（首个候选为 G.U.I.D.E）
     ↓ 每帧集中采样一次
-GoDo InputService / InputFrame
+GoDo InputService / InputFrame（连续状态）
+    ↓ 同一采样序号
+InputActionRouter（离散迁移）
     ↓
 角色、摄像机协调代码、UI 和游戏流程
 ```
@@ -40,7 +42,9 @@ GoDo InputService / InputFrame
 - 在固定位置每帧采样一次后端，形成只读 `InputFrame`。
 - 读取 Bool、Axis1D、Axis2D 和 Axis3D Action。
 - 提供 `Pressed`、`JustPressed`、`JustReleased` 状态。
-- 使用 Context 栈切换 Gameplay、Menu 等输入集合。
+- 提供 `Idle / Ongoing / Performed` 完整状态、同窗迁移集合、持续时间与归一化进度。
+- 使用可释放 Lease 管理 Gameplay、Menu 等 Context 所有权，并保留旧严格 LIFO API 一个迁移周期。
+- 通过优先 Scope 路由离散迁移，支持 Handled/Pass、遍历期延迟变更、异常隔离和重触发门禁。
 - 暴露当前主要输入设备类别及设备变化通知。
 - 在后端支持时提供改键项查询、冲突查询、应用、恢复默认值和配置导入/导出边界。
 - 在后端支持时按 Context、Action 与具体设备提供当前文本提示，并在绑定应用后发布失效通知。
@@ -88,6 +92,18 @@ public enum InputContextMode
     Exclusive,
 }
 
+public enum InputActionStatus { Idle, Ongoing, Performed }
+
+[Flags]
+public enum InputActionTransitions
+{
+    None = 0,
+    Started = 1,
+    Performed = 2,
+    Completed = 4,
+    Cancelled = 8,
+}
+
 public enum InputDeviceKind
 {
     Unknown,
@@ -113,6 +129,7 @@ public readonly struct InputFrame
     public float Axis1(InputActionId action);
     public Vector2 Axis2(InputActionId action);
     public Vector3 Axis3(InputActionId action);
+    public InputActionFrameState GetState(InputActionId action);
 }
 ```
 
@@ -121,10 +138,12 @@ public readonly struct InputFrame
 - 同一个 `InputFrame` 可以在本帧被多个消费者重复读取，不再次调用后端。
 - 读取不存在的 Action 或使用错误的 Axis 类型时抛出 `InputOperationException`，不静默返回零值。
 - 保存旧 Frame 并在后续帧读取属于误用；实现应通过 `Sequence` 检测并在 Debug、Release 中一致地明确失败。
+- `GetState` 复制单个 Action 的值、状态、迁移、持续时间、`[0,1]` 进度和序号，返回值可以安全跨帧保存。
+- 后端在两次 Sample 间累积全部迁移；提交后只清迁移位，不清当前状态和值。取消支配同窗完成。
 
-## 6. Context 栈
+## 6. Context 所有权与离散路由
 
-拟定接口：
+已采用接口：
 
 ```csharp
 public interface IInputService
@@ -136,6 +155,7 @@ public interface IInputService
 
     void SetBaseContext(InputContextId context);
     void PushContext(InputContextId context, InputContextMode mode = InputContextMode.Exclusive);
+    InputContextLease PushContextScoped(InputContextId context, InputContextMode mode = InputContextMode.Exclusive);
     void PopContext(InputContextId expectedContext);
     bool IsContextActive(InputContextId context);
 }
@@ -148,9 +168,17 @@ public interface IInputService
 - `PushContext(..., Overlay)` 与更低层 Context 同时生效，适合不阻断玩法的快捷栏。
 - `PopContext(expectedContext)` 只允许弹出栈顶且必须匹配预期 ID；不匹配时抛异常，避免错误恢复输入状态。
 - 重复 Push 同一个 ID 第一版不支持，直接失败，避免引用计数和嵌套所有权复杂化。
+- Lease Dispose 幂等并按唯一 Token 释放自己的栈项，不要求位于栈顶；后端失败时不提交栈变更，Lease 可重试。
+- `SetBaseContext` 与服务关闭使旧 Lease 安全失效。旧 Push/Pop 不能释放 Lease 项，避免两套所有权混淆。
 - 窗口失焦时后端必须清理按下状态，防止恢复焦点后出现“卡键”。
 
 Context 变更属于低频操作，可以更新后端映射缓存；不得放进 `_Process` 或 `_PhysicsProcess` 每帧调用。
+
+### 6.1 离散 Router
+
+`IInputActionRouter` 只处理离散迁移；连续轴继续直接读取 Frame。Scope 后入先处理，Action 按后端布局顺序，迁移固定按 Started、Performed、Cancelled、Completed 匹配。一个 Binding 每序号至多调用一次并收到全部匹配位；Handled 只截断当前 Action。
+
+Router 在分派期间把新增/释放排队到本轮结束，避免集合快照和遍历失效。Handler 异常由 ErrorHub 携带 Scope、Action、迁移和序号报告，并视为已消费。Context 或路由修订变化时，当前或上一帧仍非 Idle 的已绑定 Action 被门禁，观察到 Idle 后恢复；这防止按住确认键打开新界面后立即再次触发。Router 不把玩家命令复制到 EventChannel。
 
 ## 7. 后端边界
 
@@ -233,9 +261,9 @@ GUIDE 适配采用长期原始事件监听节点：手柄轴阈值为 `0.25`，�
 
 ## 10. 生命周期与更新顺序
 
-- `GoDoRuntime` 创建并注册 `IInputService`，退出时先关闭后端，再注销服务。
+- `GoDoRuntime` 创建并依次注册 `IInputService`、`IInputActionRouter`；退出时先关闭/注销 Router，再关闭后端和 InputService。
 - 可选适配包在业务场景创建前安装一次后端；安装失败必须阻止进入依赖输入的业务流程。
-- G.U.I.D.E 当前在 `_process` 中计算 Action。适配器必须确保 GoDo 采样发生在 GUIDE 更新之后。
+- G.U.I.D.E 在 `_process` 中计算 Action。适配器验证三个 Autoload 为 Always，并把 GUIDE Process Priority 显式设为 `GoDoRuntime - 1`；运行顺序为 GUIDE 更新、InputService 采样、Router 分派，关闭时恢复原 Priority。
 - `_Process` 中的业务消费者读取本渲染帧快照。需要驱动物理的业务控制器在 `_Process` 缓存连续量，
   并锁存 `JustPressed` 等一次性命令，再由 `_PhysicsProcess` 消费；不得假设渲染帧和物理帧一一对应。
 - 第一版不增加第二套 `PhysicsFrame`。物理帧是否产生可感知延迟、业务锁存是否形成重复样板，必须在
@@ -256,7 +284,7 @@ GUIDE 适配采用长期原始事件监听节点：手柄轴阈值为 `0.25`，�
 异常只在调用边界抛出，不先重复上报 ErrorHub。设备连接变化、后端降级等非异常事实可通过 EventChannel 通知；
 输入模块不直接引用 UI、Camera、Scene、Settings 或其他横向 Runtime Service。
 
-Debug 快照后续只暴露后端名称、当前设备、Action 数量、Context 栈和最后采样序号，不记录用户逐键输入。
+Debug 快照暴露后端、设备、采样/Context/路由修订号、Context 所有权与有效性、Scope 优先级、Action 状态/迁移/时间和门禁；不记录原始逐键历史，也不提供修改入口。
 
 ## 12. Demo3D 使用流程
 
@@ -330,6 +358,9 @@ input.SetBaseContext(Demo3DInput.Result);
 - Frame Bool / Axis 各类型读取、缺失 Action 和类型错误。
 - 同帧重复读取不再次调用后端，热路径 10,000 次读取不产生托管堆分配。
 - Context Base、Overlay、Exclusive、严格 Pop、重复 Push 和后端失败回滚。
+- Lease 乱序释放、幂等、失败重试、SetBase/关闭失效以及与旧 API 的边界。
+- Router 优先级、传播、固定顺序、同窗多迁移、异常隔离、遍历期变更、序号去重、重触发门禁和句柄关闭。
+- InputService Update 与 Router 空/有 Handler 各 1,000 次稳态零托管分配。
 - 后端缺失、重复安装、初始化失败和 Shutdown 幂等。
 - 改键查询、捕获、冲突、应用、恢复、取消及应用失败回滚。
 - 设备切换阈值与窗口失焦清理。
@@ -346,9 +377,10 @@ Godot 手动验证：
 
 每一步单独确认、实现和验证：
 
-1. 只实现核心 ID、Frame、Context 栈和假后端自动测试。（已完成）
+1. 只实现核心 ID、Frame、Context 栈和假后端自动测试。（已完成，旧 Context API 现处于迁移周期）
 2. 接入 GoDoRuntime 生命周期，但尚不改 Demo3D。（已完成）
 3. 新建 `Integrations/GuideInput` 可选适配包，复用 InputLab 证据。（已完成）
 4. 将 Demo3D 的移动、视角、跳跃、鼠标释放和 Result 隔离迁移为业务使用示例。（已完成）
 5. 完成设备检测、变化通知与 Demo3D 状态展示。（已完成；Windows 真实设备手动验收通过）
 6. 完成改键与输入提示查询。（已完成；自动回归与 Windows 真实设备人工验收通过）
+7. 完成完整 Action 状态、Context Lease、离散 Router、重触发门禁与扩展诊断。（已完成自动回归；待真实项目人工验收）

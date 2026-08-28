@@ -29,6 +29,7 @@ public sealed partial class GoDoRuntime : Node
     private SceneService? _sceneService;
     private CameraService? _cameraService;
     private InputService? _inputService;
+    private InputActionRouter? _inputActionRouter;
     private AudioService? _audioService;
     private UiService? _uiService;
     private UiRoot? _uiRoot;
@@ -164,6 +165,8 @@ public sealed partial class GoDoRuntime : Node
         Services.Register<ICameraService>(_cameraService);
         _inputService = new InputService();
         Services.Register<IInputService>(_inputService);
+        _inputActionRouter = new InputActionRouter(_inputService);
+        Services.Register<IInputActionRouter>(_inputActionRouter);
         Services.Register<IAudioService>(_audioService);
         Services.Register<ILocalizationService>(_localizationService);
         Services.Register<IDataTableService>(_dataTableService);
@@ -190,7 +193,10 @@ public sealed partial class GoDoRuntime : Node
     {
         ResourceHub.Update();
         if (_inputService?.IsReady == true)
+        {
             _inputService.Update();
+            _inputActionRouter?.Dispatch(_inputService.Frame);
+        }
         ErrorHub.FlushPending();
         if (_fileLogWriter?.TryConsumeFailure(out string failureMessage) == true)
             ErrorHub.Warn(failureMessage, "LogFile");
@@ -247,6 +253,11 @@ public sealed partial class GoDoRuntime : Node
                 Services.Unregister<IAudioService>(_audioService);
             if (_localizationService != null)
                 Services.Unregister<ILocalizationService>(_localizationService);
+            if (_inputActionRouter != null)
+            {
+                _inputActionRouter.Shutdown();
+                Services.Unregister<IInputActionRouter>(_inputActionRouter);
+            }
             if (_inputService != null)
             {
                 _inputService.Shutdown();
@@ -272,6 +283,7 @@ public sealed partial class GoDoRuntime : Node
             _sceneService = null;
             _cameraService = null;
             _inputService = null;
+            _inputActionRouter = null;
             _audioService = null;
             _uiService = null;
             _uiRoot = null;

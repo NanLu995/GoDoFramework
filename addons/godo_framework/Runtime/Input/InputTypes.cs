@@ -18,6 +18,39 @@ public enum InputActionValueType
     Axis3D,
 }
 
+/// <summary>输入 Action 在最近一次采样提交后的稳定阶段。</summary>
+public enum InputActionStatus
+{
+    /// <summary>Action 当前未在求值或已终止。</summary>
+    Idle,
+
+    /// <summary>Action 已开始求值，但尚未执行。</summary>
+    Ongoing,
+
+    /// <summary>Action 当前处于已执行状态。</summary>
+    Performed,
+}
+
+/// <summary>两次 InputService 采样之间观察到的离散 Action 转换。</summary>
+[Flags]
+public enum InputActionTransitions
+{
+    /// <summary>采样窗口内没有离散转换。</summary>
+    None = 0,
+
+    /// <summary>Action 开始求值。</summary>
+    Started = 1 << 0,
+
+    /// <summary>Action 在本采样窗口内至少执行一次。</summary>
+    Performed = 1 << 1,
+
+    /// <summary>Action 正常完成。</summary>
+    Completed = 1 << 2,
+
+    /// <summary>Action 在完成执行前取消。</summary>
+    Cancelled = 1 << 3,
+}
+
 /// <summary>Context 入栈后与更低层 Context 的组合方式。</summary>
 public enum InputContextMode
 {
@@ -26,6 +59,16 @@ public enum InputContextMode
 
     /// <summary>屏蔽所有更低层 Context。</summary>
     Exclusive,
+}
+
+/// <summary>输入路由处理器对当前 Action 的传播决定。</summary>
+public enum InputRouteResult
+{
+    /// <summary>继续向当前 Scope 的后续 Binding 或更低 Scope 传播。</summary>
+    Pass,
+
+    /// <summary>消费当前 Action，不再向后续 Binding 或更低 Scope 传播。</summary>
+    Handled,
 }
 
 /// <summary>最近产生有效输入的设备类别。</summary>

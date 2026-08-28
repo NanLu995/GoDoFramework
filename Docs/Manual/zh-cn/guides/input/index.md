@@ -1,6 +1,6 @@
 # 读取语义输入与管理 Context
 
-InputService 让业务代码读取“移动、跳跃、确认”这类语义 Action，而不是依赖空格键、手柄按钮或某个第三方插件类型。它提供当前渲染帧快照、Context 栈、活动设备和可选的改键、持久化与提示查询接口。
+InputService 让业务代码读取“移动、跳跃、确认”这类语义 Action，而不是依赖空格键、手柄按钮或某个第三方插件类型。它提供当前渲染帧快照、可释放 Context、活动设备和可选的改键、持久化与提示查询接口；InputActionRouter 负责有优先级的离散命令。
 
 核心 InputService 不自带按键映射后端。未安装后端时 `IsReady` 为 `false`，读取 Frame 或切换 Context 会明确失败。当前框架提供可选的 G.U.I.D.E-CSharp 适配。
 
@@ -28,7 +28,7 @@ addons/guideCS/
 addons/godo_framework/Integrations/GuideInput/
 ```
 
-当前验证组合是 GUIDE `0.13.0` 与 GUIDE-CSharp `0.3.7--0.13.0`。从 [官方 GitHub Release](https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7)取得该组合并确保最终路径为 `addons/guideCS/`。设置窗口的“打开已验证版本...”只会在系统浏览器中打开此页面，不会自动下载、解压或覆盖第三方文件。Godot 商店当前的 `0.3.7--0.14.0` 被发布者标记为 unstable，且下载包内基础 GUIDE 仍声明 `0.13.0`，因此 GoDo `0.6.2` 暂不将其列为已验证依赖。
+当前验证组合是 GUIDE `0.13.0` 与 GUIDE-CSharp `0.3.7--0.13.0`。从 [官方 GitHub Release](https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7)取得该组合并确保最终路径为 `addons/guideCS/`。设置窗口的“打开已验证版本...”只会在系统浏览器中打开此页面，不会自动下载、解压或覆盖第三方文件。Godot 商店当前的 `0.3.7--0.14.0` 被发布者标记为 unstable，且下载包内基础 GUIDE 仍声明 `0.13.0`，因此 GoDo `0.7.0` 暂不将其列为已验证依赖。
 
 复制依赖后先让 Godot 完成文件扫描和全局脚本类型缓存，再完成一次 C# 编译。随后打开：
 
@@ -147,13 +147,11 @@ input.SetBaseContext(GameInput.Gameplay);
 暂停菜单可以临时屏蔽 Gameplay：
 
 ```csharp
-input.PushContext(GameInput.PauseMenu, InputContextMode.Exclusive);
-
-// 关闭暂停菜单时，必须与栈顶 ID 严格匹配。
-input.PopContext(GameInput.PauseMenu);
+using InputContextLease pauseContext =
+    input.PushContextScoped(GameInput.PauseMenu, InputContextMode.Exclusive);
 ```
 
-`Exclusive` 屏蔽更低层 Context；`Overlay` 与更低层同时生效。同一个 Context 不能重复 Push，Pop 顺序错误会抛出 `InputOperationException`。
+`Exclusive` 屏蔽更低层 Context；`Overlay` 与更低层同时生效。同一个 Context 不能重复 Push。Lease 可随页面生命周期 Dispose，即使关闭顺序与压入顺序不同也只释放自己的 Context；`SetBaseContext()` 或服务关闭后旧 Lease 会安全失效。旧 `PushContext / PopContext` 保留一个迁移周期，但仍要求严格栈顶配对，且不能 Pop Lease 项。
 
 ## 6. 在玩法节点读取当前帧
 
@@ -181,9 +179,6 @@ public partial class PlayerController : Node
         InputFrame frame = _input.Frame;
         Vector2 move = frame.Axis2(GameInput.Move);
 
-        if (frame.JustPressed(GameInput.Jump))
-            GD.Print("Jump requested");
-
         ApplyMovementIntent(move, delta);
     }
 
@@ -195,6 +190,31 @@ public partial class PlayerController : Node
 ```
 
 每次渲染帧重新取得 `InputFrame`。它是当前快照的轻量句柄，保存到下一帧再读取会抛出过期 Frame 错误。
+
+需要保存单个 Action 的完整状态时，复制值快照：
+
+```csharp
+InputActionFrameState jump = frame.GetState(GameInput.Jump);
+```
+
+它包含 `Idle / Ongoing / Performed` 状态、本采样窗口累计的 Started/Performed/Completed/Cancelled 迁移、持续时间、`[0,1]` 进度和采样序号，可以安全跨帧保存。连续移动和视角仍直接读取 Frame。
+
+菜单确认、暂停、交互等离散命令使用 Router：
+
+```csharp
+IInputActionRouter router = Services.Get<IInputActionRouter>();
+using InputRouteScope scope = router.PushScope("PauseMenu");
+using InputRouteBinding binding = scope.Bind(
+    GameInput.Confirm,
+    InputActionTransitions.Performed,
+    (state, matched) =>
+    {
+        ConfirmSelection();
+        return InputRouteResult.Handled;
+    });
+```
+
+后创建的 Scope 优先；`Handled` 只阻止当前 Action 传给更低 Scope，`Pass` 继续。Context 或路由结构变化后，仍未回到 Idle 的已绑定 Action 会被门禁，先释放再按下才会触发，避免按住确认键打开新页面后立刻二次执行。Router 是输入分派边界，不要再通过全局 EventChannel 广播同一玩家命令。
 
 如果物理控制器运行在 `_PhysicsProcess()`，应在 `_Process()` 缓存连续轴并锁存 `JustPressed`，再由物理帧消费，避免渲染频率和物理频率不同造成一次性输入丢失。
 
@@ -221,10 +241,10 @@ if (input.ActiveDevice != InputDeviceKind.Unknown &&
 - 未知 Action：代码 ID 与 Profile 不一致。
 - Axis 类型错误：代码调用了 `Axis2()`，但 GUIDE Action 不是 Axis2D。
 - Frame 过期：把某帧的 `InputFrame` 保存到字段后跨帧读取。
-- Context Pop 失败：关闭页面的顺序与 Push 顺序不一致。
+- Context Pop 失败：新代码应使用 Lease；旧 API 的关闭顺序与 Push 顺序必须一致。
 - 输入执行两次：业务又直接读取 GUIDE Action，绕过了 GoDo 快照。
 
-精确接口可查询 <xref:GoDo.IInputService>、<xref:GoDo.InputFrame>、<xref:GoDo.InputContextMode>、<xref:GoDo.InputOperationException> 和 <xref:GoDo.GuideInput.GuideInputProfile>。
+精确接口可查询 <xref:GoDo.IInputService>、<xref:GoDo.IInputActionRouter>、<xref:GoDo.InputFrame>、<xref:GoDo.InputActionFrameState>、<xref:GoDo.InputContextLease>、<xref:GoDo.InputOperationException> 和 <xref:GoDo.GuideInput.GuideInputProfile>。
 
 ## 能力全景图
 
@@ -234,9 +254,11 @@ input.Frame
 input.ActiveDevice
 input.Capabilities</code></pre></section>
 <section><h4>设置基础 Context</h4><p>切换长期玩法输入集合。</p><pre class="godo-capability-call"><code>input.SetBaseContext(GameInputContexts.Gameplay);</code></pre></section>
-<section><h4>压入、弹出与查询 Context</h4><p>菜单和 Modal 使用严格配对的临时输入层。</p><pre class="godo-capability-call"><code>input.PushContext(GameInputContexts.Menu, InputContextMode.Exclusive);
+<section><h4>拥有与查询 Context</h4><p>菜单和 Modal 用 Lease 绑定临时输入层的所有权。</p><pre class="godo-capability-call"><code>using InputContextLease menu = input.PushContextScoped(GameInputContexts.Menu, InputContextMode.Exclusive);
 input.IsContextActive(GameInputContexts.Menu);
-input.PopContext(GameInputContexts.Menu);</code></pre></section>
+menu.Dispose();</code></pre></section>
+<section><h4>路由离散迁移</h4><p>高优先级 Scope 可以消费确认、返回等离散 Action。</p><pre class="godo-capability-call"><code>using InputRouteScope scope = router.PushScope("Menu");
+using InputRouteBinding binding = scope.Bind(action, InputActionTransitions.Performed, handler);</code></pre></section>
 <section><h4>获取可选输入扩展</h4><p>按后端能力取得改键、持久化和提示查询接口。</p><pre class="godo-capability-call"><code>input.TryGetRebinding(out IInputRebinding rebinding)
 input.TryGetRebindingPersistence(out IInputRebindingPersistence persistence)
 input.TryGetPromptQuery(out IInputPromptQuery prompts)</code></pre></section>

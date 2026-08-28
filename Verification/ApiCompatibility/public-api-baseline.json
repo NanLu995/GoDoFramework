@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "framework_version": "0.6.2",
+  "framework_version": "0.7.0",
   "items": [
     {
       "uid": "GoDo.AudioGroup",
@@ -1538,6 +1538,16 @@
       "signature": "public interface IEventMessage"
     },
     {
+      "uid": "GoDo.IInputActionRouter",
+      "kind": "Interface",
+      "signature": "public interface IInputActionRouter"
+    },
+    {
+      "uid": "GoDo.IInputActionRouter.PushScope(System.String)",
+      "kind": "Method",
+      "signature": "InputRouteScope PushScope(string debugName)"
+    },
+    {
       "uid": "GoDo.IInputBackend",
       "kind": "Interface",
       "signature": "public interface IInputBackend"
@@ -1721,6 +1731,11 @@
       "uid": "GoDo.IInputService.PushContext(GoDo.InputContextId,GoDo.InputContextMode)",
       "kind": "Method",
       "signature": "void PushContext(InputContextId context, InputContextMode mode = InputContextMode.Exclusive)"
+    },
+    {
+      "uid": "GoDo.IInputService.PushContextScoped(GoDo.InputContextId,GoDo.InputContextMode)",
+      "kind": "Method",
+      "signature": "InputContextLease PushContextScoped(InputContextId context, InputContextMode mode = InputContextMode.Exclusive)"
     },
     {
       "uid": "GoDo.IInputService.SetBaseContext(GoDo.InputContextId)",
@@ -2293,6 +2308,46 @@
       "signature": "public InputActionValueType ValueType { get; }"
     },
     {
+      "uid": "GoDo.InputActionFrameState",
+      "kind": "Struct",
+      "signature": "public readonly struct InputActionFrameState"
+    },
+    {
+      "uid": "GoDo.InputActionFrameState.ElapsedRatio",
+      "kind": "Property",
+      "signature": "public float ElapsedRatio { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionFrameState.ElapsedSeconds",
+      "kind": "Property",
+      "signature": "public float ElapsedSeconds { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionFrameState.Sequence",
+      "kind": "Property",
+      "signature": "public ulong Sequence { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionFrameState.Status",
+      "kind": "Property",
+      "signature": "public InputActionStatus Status { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionFrameState.Transitions",
+      "kind": "Property",
+      "signature": "public InputActionTransitions Transitions { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionFrameState.Value",
+      "kind": "Property",
+      "signature": "public Vector3 Value { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionFrameState.ValueType",
+      "kind": "Property",
+      "signature": "public InputActionValueType ValueType { get; }"
+    },
+    {
       "uid": "GoDo.InputActionId",
       "kind": "Struct",
       "signature": "public readonly struct InputActionId"
@@ -2343,6 +2398,16 @@
       "signature": "public static bool operator !=(InputActionId left, InputActionId right)"
     },
     {
+      "uid": "GoDo.InputActionRouter",
+      "kind": "Class",
+      "signature": "public sealed class InputActionRouter : IInputActionRouter"
+    },
+    {
+      "uid": "GoDo.InputActionRouter.PushScope(System.String)",
+      "kind": "Method",
+      "signature": "public InputRouteScope PushScope(string debugName)"
+    },
+    {
       "uid": "GoDo.InputActionSample",
       "kind": "Struct",
       "signature": "public readonly struct InputActionSample"
@@ -2353,14 +2418,89 @@
       "signature": "public InputActionSample(Vector3 value, bool pressed)"
     },
     {
+      "uid": "GoDo.InputActionSample.#ctor(Godot.Vector3,System.Boolean,GoDo.InputActionStatus,GoDo.InputActionTransitions,System.Single,System.Single)",
+      "kind": "Constructor",
+      "signature": "public InputActionSample(Vector3 value, bool pressed, InputActionStatus status, InputActionTransitions transitions, float elapsedSeconds, float elapsedRatio)"
+    },
+    {
+      "uid": "GoDo.InputActionSample.ElapsedRatio",
+      "kind": "Property",
+      "signature": "public float ElapsedRatio { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionSample.ElapsedSeconds",
+      "kind": "Property",
+      "signature": "public float ElapsedSeconds { get; }"
+    },
+    {
       "uid": "GoDo.InputActionSample.Pressed",
       "kind": "Property",
       "signature": "public bool Pressed { get; }"
     },
     {
+      "uid": "GoDo.InputActionSample.Status",
+      "kind": "Property",
+      "signature": "public InputActionStatus Status { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionSample.Transitions",
+      "kind": "Property",
+      "signature": "public InputActionTransitions Transitions { get; }"
+    },
+    {
       "uid": "GoDo.InputActionSample.Value",
       "kind": "Property",
       "signature": "public Vector3 Value { get; }"
+    },
+    {
+      "uid": "GoDo.InputActionStatus",
+      "kind": "Enum",
+      "signature": "public enum InputActionStatus"
+    },
+    {
+      "uid": "GoDo.InputActionStatus.Idle",
+      "kind": "Field",
+      "signature": "Idle = 0"
+    },
+    {
+      "uid": "GoDo.InputActionStatus.Ongoing",
+      "kind": "Field",
+      "signature": "Ongoing = 1"
+    },
+    {
+      "uid": "GoDo.InputActionStatus.Performed",
+      "kind": "Field",
+      "signature": "Performed = 2"
+    },
+    {
+      "uid": "GoDo.InputActionTransitions",
+      "kind": "Enum",
+      "signature": "[Flags] public enum InputActionTransitions"
+    },
+    {
+      "uid": "GoDo.InputActionTransitions.Cancelled",
+      "kind": "Field",
+      "signature": "Cancelled = 8"
+    },
+    {
+      "uid": "GoDo.InputActionTransitions.Completed",
+      "kind": "Field",
+      "signature": "Completed = 4"
+    },
+    {
+      "uid": "GoDo.InputActionTransitions.None",
+      "kind": "Field",
+      "signature": "None = 0"
+    },
+    {
+      "uid": "GoDo.InputActionTransitions.Performed",
+      "kind": "Field",
+      "signature": "Performed = 2"
+    },
+    {
+      "uid": "GoDo.InputActionTransitions.Started",
+      "kind": "Field",
+      "signature": "Started = 1"
     },
     {
       "uid": "GoDo.InputActionValueType",
@@ -2623,6 +2763,16 @@
       "signature": "public static bool operator !=(InputContextId left, InputContextId right)"
     },
     {
+      "uid": "GoDo.InputContextLease",
+      "kind": "Class",
+      "signature": "public sealed class InputContextLease"
+    },
+    {
+      "uid": "GoDo.InputContextLease.Dispose",
+      "kind": "Method",
+      "signature": "public void Dispose()"
+    },
+    {
       "uid": "GoDo.InputContextMode",
       "kind": "Enum",
       "signature": "public enum InputContextMode"
@@ -2703,6 +2853,11 @@
       "signature": "public Vector3 Axis3(InputActionId action)"
     },
     {
+      "uid": "GoDo.InputFrame.GetState(GoDo.InputActionId)",
+      "kind": "Method",
+      "signature": "public InputActionFrameState GetState(InputActionId action)"
+    },
+    {
       "uid": "GoDo.InputFrame.JustPressed(GoDo.InputActionId)",
       "kind": "Method",
       "signature": "public bool JustPressed(InputActionId action)"
@@ -2778,6 +2933,51 @@
       "signature": "public bool IsBound { get; }"
     },
     {
+      "uid": "GoDo.InputRouteBinding",
+      "kind": "Class",
+      "signature": "public sealed class InputRouteBinding"
+    },
+    {
+      "uid": "GoDo.InputRouteBinding.Dispose",
+      "kind": "Method",
+      "signature": "public void Dispose()"
+    },
+    {
+      "uid": "GoDo.InputRouteHandler",
+      "kind": "Delegate",
+      "signature": "public delegate InputRouteResult InputRouteHandler(InputActionFrameState state, InputActionTransitions matchedTransitions)"
+    },
+    {
+      "uid": "GoDo.InputRouteResult",
+      "kind": "Enum",
+      "signature": "public enum InputRouteResult"
+    },
+    {
+      "uid": "GoDo.InputRouteResult.Handled",
+      "kind": "Field",
+      "signature": "Handled = 1"
+    },
+    {
+      "uid": "GoDo.InputRouteResult.Pass",
+      "kind": "Field",
+      "signature": "Pass = 0"
+    },
+    {
+      "uid": "GoDo.InputRouteScope",
+      "kind": "Class",
+      "signature": "public sealed class InputRouteScope"
+    },
+    {
+      "uid": "GoDo.InputRouteScope.Bind(GoDo.InputActionId,GoDo.InputActionTransitions,GoDo.InputRouteHandler)",
+      "kind": "Method",
+      "signature": "public InputRouteBinding Bind(InputActionId action, InputActionTransitions transitions, InputRouteHandler handler)"
+    },
+    {
+      "uid": "GoDo.InputRouteScope.Dispose",
+      "kind": "Method",
+      "signature": "public void Dispose()"
+    },
+    {
       "uid": "GoDo.InputService",
       "kind": "Class",
       "signature": "public sealed class InputService : IInputService"
@@ -2816,6 +3016,11 @@
       "uid": "GoDo.InputService.PushContext(GoDo.InputContextId,GoDo.InputContextMode)",
       "kind": "Method",
       "signature": "public void PushContext(InputContextId context, InputContextMode mode = InputContextMode.Exclusive)"
+    },
+    {
+      "uid": "GoDo.InputService.PushContextScoped(GoDo.InputContextId,GoDo.InputContextMode)",
+      "kind": "Method",
+      "signature": "public InputContextLease PushContextScoped(InputContextId context, InputContextMode mode = InputContextMode.Exclusive)"
     },
     {
       "uid": "GoDo.InputService.SetBaseContext(GoDo.InputContextId)",

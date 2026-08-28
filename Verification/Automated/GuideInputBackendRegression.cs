@@ -29,6 +29,7 @@ public sealed partial class GuideInputBackendRegression : Node
     private InputService? _service;
     private ISaveService? _saveService;
     private Node _guideNode = null!;
+    private int _originalGuideProcessPriority;
     private int _bindingChangeCount;
 
     /// <inheritdoc />
@@ -37,6 +38,7 @@ public sealed partial class GuideInputBackendRegression : Node
         try
         {
             _guideNode = GetNode<Node>("/root/GUIDE");
+            _originalGuideProcessPriority = _guideNode.ProcessPriority;
             _service = Services.Get<IInputService>() as InputService ??
                 throw new InvalidOperationException("IInputService 不是 InputService 实例。");
             _saveService = Services.Get<ISaveService>();
@@ -58,7 +60,9 @@ public sealed partial class GuideInputBackendRegression : Node
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
             Assert(_service.IsReady, "Installer 没有安装 GUIDE 后端");
+            VerifyRuntimeOrder();
             EventChannel.Bind<InputBindingsChangedEvent>(this, OnBindingsChanged);
+            VerifyTransitionAggregation(profile);
             VerifyGameplayContext();
             await AdvanceInputFrames();
             Assert(!_service.Frame.Pressed(Jump), "Jump 释放后缓存仍处于按下状态");
@@ -72,7 +76,7 @@ public sealed partial class GuideInputBackendRegression : Node
             MeasureBackendAllocations();
             VerifyShutdown();
 
-            GD.Print("[GuideInputBackendRegression] PASS (9/9)");
+            GD.Print("[GuideInputBackendRegression] PASS (11/11)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -109,6 +113,99 @@ public sealed partial class GuideInputBackendRegression : Node
         EvaluateAndSample();
     }
 
+    private void VerifyRuntimeOrder()
+    {
+        Node runtime = GetNode<Node>("/root/GoDoRuntime");
+        Node guideCs = GetNode<Node>("/root/GuideCs");
+        Assert(_guideNode.ProcessMode == ProcessModeEnum.Always, "GUIDE 未使用 ProcessMode.Always");
+        Assert(guideCs.ProcessMode == ProcessModeEnum.Always, "GuideCs 未使用 ProcessMode.Always");
+        Assert(runtime.ProcessMode == ProcessModeEnum.Always, "GoDoRuntime 未使用 ProcessMode.Always");
+        Assert(_guideNode.ProcessPriority < runtime.ProcessPriority,
+            "GuideInputBackend 未显式保证 GUIDE 先于 GoDoRuntime 更新");
+    }
+
+    private void VerifyTransitionAggregation(GuideInputProfile profile)
+    {
+        _service!.SetBaseContext(Gameplay);
+        GuideAction action = Utility.GetCachedOrNew<GuideAction>(
+            profile.Actions[1].GuideActionResource) ??
+            throw new InvalidOperationException("无法取得 Jump GUIDE Action 包装。");
+
+        action.BaseGuideObject.Call("_completed", Vector3.Zero);
+        _service.Update();
+
+        action.BaseGuideObject.Call("_started", Vector3.One);
+        action.BaseGuideObject.Call("_ongoing", Vector3.One, 0.05f);
+        _service.Update();
+        InputActionFrameState holdStarted = _service.Frame.GetState(Jump);
+        Assert(holdStarted.Status == InputActionStatus.Ongoing,
+            "Hold 开始后的 GUIDE Action 状态不是 Ongoing");
+        Assert(holdStarted.Transitions == InputActionTransitions.Started,
+            $"Started + Ongoing 错误重复产生 Transition: {holdStarted.Transitions}");
+
+        action.BaseGuideObject.Call("_triggered", Vector3.One, 0.1f);
+        action.BaseGuideObject.Call("_completed", Vector3.Zero);
+        _service.Update();
+        InputActionFrameState holdOneShot = _service.Frame.GetState(Jump);
+        Assert(
+            holdOneShot.Transitions ==
+                (InputActionTransitions.Performed | InputActionTransitions.Completed),
+            $"Hold one-shot 的 Performed + Completed 累积错误: {holdOneShot.Transitions}");
+
+        action.BaseGuideObject.Call("_started", Vector3.One);
+        action.BaseGuideObject.Call("_triggered", Vector3.One, 0.1f);
+        action.BaseGuideObject.Call("_completed", Vector3.Zero);
+        _service.Update();
+        InputActionFrameState combined = _service.Frame.GetState(Jump);
+        Assert(combined.Status == InputActionStatus.Idle, "完成后的 GUIDE Action 状态不是 Idle");
+        Assert(
+            combined.Transitions ==
+                (InputActionTransitions.Started |
+                 InputActionTransitions.Performed |
+                 InputActionTransitions.Completed),
+            $"Tap/Pulse 同窗口 Transition 累积错误: {combined.Transitions}");
+
+        _service.Update();
+        Assert(_service.Frame.GetState(Jump).Transitions == InputActionTransitions.None,
+            "GUIDE Sample 后没有清空 Transition 累积");
+
+        action.BaseGuideObject.Call("_started", Vector3.One);
+        action.BaseGuideObject.Call("_triggered", Vector3.One, 0.1f);
+        _service.Update();
+        Assert(_service.Frame.GetState(Jump).Transitions ==
+            (InputActionTransitions.Started | InputActionTransitions.Performed),
+            "Hold continuous 首次触发没有产生 Started + Performed");
+
+        action.BaseGuideObject.Call("_triggered", Vector3.One, 0.1f);
+        action.BaseGuideObject.Call("_triggered", Vector3.One, 0.1f);
+        _service.Update();
+        InputActionFrameState holdContinuous = _service.Frame.GetState(Jump);
+        Assert(holdContinuous.Status == InputActionStatus.Performed,
+            "Hold continuous 重复 Triggered 后没有保持 Performed");
+        Assert(holdContinuous.Transitions == InputActionTransitions.None,
+            "Hold continuous 的重复 Triggered 再次产生 Performed Transition");
+
+        action.BaseGuideObject.Call("_completed", Vector3.Zero);
+        _service.Update();
+        action.BaseGuideObject.Call("_started", Vector3.One);
+        action.BaseGuideObject.Call("_cancelled", Vector3.Zero);
+        _service.Update();
+        InputActionFrameState cancelled = _service.Frame.GetState(Jump);
+        Assert((cancelled.Transitions & InputActionTransitions.Cancelled) != 0,
+            "GUIDE Cancelled 未进入 Transition 累积");
+        Assert((cancelled.Transitions & InputActionTransitions.Completed) == 0,
+            "GUIDE Cancelled 后紧随的 Completed 未被归并");
+
+        action.BaseGuideObject.Set("_trigger_hold_threshold", 0.1f);
+        action.BaseGuideObject.Call("_started", Vector3.One);
+        action.BaseGuideObject.Call("_ongoing", Vector3.One, 0.2f);
+        _service.Update();
+        Assert(_service.Frame.GetState(Jump).ElapsedRatio == 1f,
+            "GUIDE 越界 ElapsedRatio 未在适配边界规范化");
+        action.BaseGuideObject.Call("_cancelled", Vector3.Zero);
+        _service.Update();
+    }
+
     private void VerifyMenuIsolation()
     {
         _service!.SetBaseContext(Menu);
@@ -142,6 +239,8 @@ public sealed partial class GuideInputBackendRegression : Node
         Assert(!_service.IsReady, "关闭后 InputService 仍处于就绪状态");
         Assert(Guide.GetEnabledMappingContexts().Count == 0, "关闭后 GUIDE Context 没有清空");
         Assert(tracker.IsQueuedForDeletion(), "关闭后设备跟踪节点没有进入释放队列");
+        Assert(_guideNode.ProcessPriority == _originalGuideProcessPriority,
+            "关闭后没有恢复 GUIDE 原 ProcessPriority");
     }
 
     private void VerifyDeviceTracking()
@@ -345,6 +444,7 @@ public sealed partial class GuideInputBackendRegression : Node
             _service!.Update();
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         GD.Print($"[GuideInputBackendRegression] PERF: 3 Actions x 1000 samples allocated {allocated} bytes");
+        Assert(allocated == 0, $"GuideInputBackend Sample 稳态产生托管分配: {allocated} bytes");
     }
 
     private void EvaluateAndSample()

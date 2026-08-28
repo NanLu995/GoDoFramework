@@ -13,7 +13,8 @@
 - 从 `GuideInputProfile` 建立 GoDo Action / Context ID 到 GUIDE Resource 的固定映射。
 - 从 GUIDE Action 自动推断 Bool、Axis1D、Axis2D、Axis3D 类型。
 - 把 GoDo Context 栈的最终有效集合一次性应用到 GUIDE。
-- 订阅 GUIDE Action 的 `Triggered / Ongoing / Completed` 信号并更新适配器缓存。
+- 订阅 GUIDE Action 的 `Started / Ongoing / JustTriggered / Triggered / Completed / Cancelled` 六个信号并更新适配器缓存。
+- 将 GUIDE 状态转换为 GoDo 的 `Idle / Ongoing / Performed`，并在一次 GoDo 采样窗口内累计 `Started / Performed / Completed / Cancelled` 迁移。
 - GoDo 每帧只把适配器缓存复制到 InputFrame，不再轮询每个 GUIDE Action。
 - 从原始 Godot InputEvent 识别键鼠、实体手柄与触摸，并声明 `DeviceTracking` 能力。
 - 使用 GUIDE Remapper / InputDetector 提供查询、捕获、冲突检查、应用和恢复默认，并声明 `Rebinding` 能力。
@@ -56,6 +57,8 @@ GoDoRuntime
 ```
 
 运行时适配器和扩展发现过程都不会自动修改 `project.godot`；只有编辑器设置工具在用户确认后修改插件和 Autoload 配置。健康状态下修复按钮禁用，重复检查为零写入。GUIDE 与 GuideCs 缺失或位于错误生命周期时，后端初始化失败。
+
+后端初始化还会显式检查三个 Autoload 都使用 `ProcessMode.Always`，并把 GUIDE 的 Process Priority 调整到 `GoDoRuntime - 1`。因此每个渲染帧先由 GUIDE 更新 Action，再由 GoDoRuntime 采样并分派 Router；关闭后端时恢复 GUIDE 原优先级。该运行时保障不修改 GUIDE/GuideCs 源码，也不依赖同优先级节点的偶然树顺序。
 
 首次复制或升级 `addons/guideCS/` 后，应先让 Godot 完成文件扫描和全局脚本类缓存更新，再编译一次 C#，然后使用设置工具安装。若首次启动短暂报告 `Could not find type "GUIDEActionMapping"`，它指向 GUIDE 的 GDScript `class_name` 尚未进入当前编辑器缓存，不是 GoDo 或 C# 未编译；扫描完成后重启编辑器并确认错误不再出现。导出前必须让设置工具全部检查通过，并执行一次无错误的编辑器启动和 Demo/回归验证，不能假设 Release 导出会自动忽略 GDScript 解析错误。
 
@@ -124,6 +127,19 @@ bool jump = frame.JustPressed(GameInput.Jump);
 ```
 
 不要在业务代码中再次读取 `GuideAction`，否则会绕过信号缓存并重新产生跨语言分配。
+
+### 状态与迁移转换
+
+| GUIDE 信号 | GoDo 状态 | 本采样窗口累计迁移 |
+| --- | --- | --- |
+| `Started` | `Ongoing` | `Started` |
+| `Ongoing` | `Ongoing` | 无 |
+| `JustTriggered` | `Performed` | `Performed` |
+| `Triggered` | `Performed` | 无，避免持续触发重复命令 |
+| `Completed` | `Idle` | `Completed` |
+| `Cancelled` | `Idle` | `Cancelled` |
+
+GUIDE 的取消路径会随后发送 Completed；适配器把同一窗口的这组信号折叠为仅 `Cancelled`。同一窗口的其他迁移不会被覆盖，直到 `Sample` 提交后才清空。`ElapsedSeconds` 保证非负，GUIDE 可能超过 1 的 `ElapsedRatio` 在 GoDo 边界夹到 `[0, 1]`。
 
 ## 输入提示
 
@@ -219,11 +235,12 @@ Context 应用调用 GUIDE 的整组替换 API；失败时适配器尝试恢复�
 - 所有 API 仅允许 Godot 主线程调用。
 - GoDoRuntime 退出时先清空 GUIDE Context，再释放包装引用。
 - `Shutdown()` 幂等；InputService 负责保证正常生命周期只关闭一次。
+- 关闭时对称取消六个 Action 信号、释放跟踪节点并恢复 GUIDE Process Priority；GoDoRuntime 先关闭 Router，再关闭本后端。
 
 ## 性能
 
 - Action 和 Context 的 Resource 包装、类型检查、Dictionary 与 List 创建只发生在初始化或 Context 变化时。
-- 每帧不搜索场景树、不加载 Resource、不创建 Action 集合，也不轮询 GUIDE Action。
+- 初始化阶段一次性解析 Autoload 与 Process Priority；每帧不搜索场景树、不加载 Resource、不创建 Action 集合，也不轮询 GUIDE Action。
 - 回归实测 3 个已配置 Action 连续执行 1,000 次 GoDo 样本复制产生 0 bytes 托管分配。
 - GUIDE 更新 Action 时，信号桥接和活动 Axis 的一次属性读取仍会跨越 C# / GDScript 边界；上述 0 bytes
   只代表 GoDo 缓存采样，不代表 G.U.I.D.E 整体处理零分配。
@@ -242,6 +259,6 @@ Context 应用调用 GUIDE 的整组替换 API；失败时适配器尝试恢复�
 Verification/Automated/GuideInputBackendRegression.tscn
 ```
 
-使用独立 GUIDE Fixture 验证 Profile 安装、Gameplay/Menu 隔离、键盘按钮、鼠标 Axis2D、设备阈值、
+使用独立 GUIDE Fixture 验证 Profile 安装、Gameplay/Menu 隔离、六信号状态与同窗迁移累计、重复 Triggered 抑制、取消折叠、进度夹取、显式 Process Priority 及恢复、键盘按钮、鼠标 Axis2D、设备阈值、
 模拟事件过滤、虚拟摇杆归类、键鼠/手柄提示、绑定变化通知、绑定查询、捕获、冲突、应用、恢复、取消、配置保存加载、备份恢复、未知版本和关闭清理，并验证
 3 Actions × 1,000 次缓存采样为零托管分配。Windows Demo3D 已使用真实手柄完成人工验收，覆盖设备切换、拔插后键盘切换、改键即时提示、重启持久化、恢复默认和窗口失焦；其他平台、编辑器 Profile 制作流程和真实项目长期渲染/物理帧延迟仍需验证。

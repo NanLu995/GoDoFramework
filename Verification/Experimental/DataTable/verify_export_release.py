@@ -90,7 +90,7 @@ renderer/rendering_method.mobile="gl_compatibility"
         encoding="utf-8",
     )
     (project / "DataTableExportReleaseVerification.csproj").write_text(
-        """<Project Sdk="Godot.NET.Sdk/4.7.1">
+        """<Project Sdk="Godot.NET.Sdk/4.7.2">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
@@ -154,8 +154,8 @@ def write_manual_instructions(output_root: Path) -> None:
     (output_root / "MANUAL_EXPORT.md").write_text(
         """# DataTable ExportRelease 手动验收
 
-1. 使用 Godot 4.7.1 Mono 打开 `project/project.godot`。
-2. 确认已安装 Godot 4.7.1 Mono Windows 导出模板。
+1. 使用 Godot 4.7.2 Mono 打开 `project/project.godot`。
+2. 确认已安装 Godot 4.7.2 Mono Windows 导出模板。
 3. 打开“项目 → 导出”，选择 `DataTable ExportRelease Verification`。
 4. 导出到 `distribution/DataTableExportReleaseVerification.exe`。
 5. 在终端运行：

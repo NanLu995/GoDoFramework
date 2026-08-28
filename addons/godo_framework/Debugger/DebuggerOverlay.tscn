@@ -1327,6 +1327,26 @@ theme_override_font_sizes/font_size = 10
 text = "能力：None"
 text_overrun_behavior = 3
 
+[node name="RouterStatus" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "Router 未注册"
+
+[node name="RouterScopeList" type="Tree" parent="Panel/Margin/VBox/Body/Page/InputDashboard"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/title_button_font_size = 11
+theme_override_constants/v_separation = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_content")
+columns = 3
+column_titles_visible = true
+hide_root = true
+select_mode = 1
+
 [node name="ContextHeader" type="Label" parent="Panel/Margin/VBox/Body/Page/InputDashboard"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.48, 0.58, 0.7, 1)
@@ -1343,7 +1363,7 @@ theme_override_font_sizes/font_size = 11
 theme_override_font_sizes/title_button_font_size = 11
 theme_override_constants/v_separation = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_content")
-columns = 3
+columns = 6
 column_titles_visible = true
 hide_root = true
 select_mode = 1
@@ -1383,7 +1403,7 @@ theme_override_font_sizes/font_size = 11
 theme_override_font_sizes/title_button_font_size = 11
 theme_override_constants/v_separation = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_content")
-columns = 4
+columns = 8
 column_titles_visible = true
 hide_root = true
 select_mode = 1

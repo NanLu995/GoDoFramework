@@ -11,7 +11,7 @@
         "guides/resources-and-scenes/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:6a967ab182c37a4c3f6568730fb161a869f6da39da5840527511f00babdcfe7e"
+      "reviewed_contract_hash": "sha256:056c28a6f0f967702a2f3f53c4c07fc6fbc452cd9b86bb5d9242ed744d9990e7"
     },
     "error-hub": {
       "contract": "addons/godo_framework/Core/ErrorHub/USAGE.md",
@@ -59,23 +59,23 @@
     "debugger": {
       "contract": "addons/godo_framework/Debugger/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖自动加载、只读与 Release 边界、System、Performance、各运行时模块、Scheduler 有界活动任务与结束原因、Resources 唯一加载操作的存活时间、Scene 与 Procedure 当前切换耗时、Audio BGM 与 DataTable 活动请求存活时间、Pool 有界活动租借与挂载位置、Events 有界监听来源、UI 有界异步请求来源与移除时机、可选 Friflo ECS 有界诊断、独立顶层运行链路、Services、Console、降级状态和单页失败恢复；仍等待目标平台显示与各页面的深度排障示例。",
+      "reason": "功能指南已覆盖自动加载、只读与 Release 边界、System、Performance、各运行时模块、Input 的 Context Lease 所有权、Router Scope、完整 Action 状态与门禁、Scheduler 有界活动任务与结束原因、Resources 唯一加载操作的存活时间、Scene 与 Procedure 当前切换耗时、Audio BGM 与 DataTable 活动请求存活时间、Pool 有界活动租借与挂载位置、Events 有界监听来源、UI 有界异步请求来源与移除时机、可选 Friflo ECS 有界诊断、独立顶层运行链路、Services、Console、降级状态和单页失败恢复；仍等待目标平台显示与各页面的深度排障示例。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:13ae96857a74e5b6d4f7345e6ccc965a2b739c5133204894940bf776c0118adb"
+      "reviewed_contract_hash": "sha256:7066dd5d98ae5550e2742bfa435c882b08b5c7385aa5b50701ce057287f81a9a"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖 GUIDE 安装检查、Profile、Installer、运行时重绑定、冲突处理、提示 UI、持久化和常见排错；平台验收仍需在目标游戏中执行。",
+      "reason": "功能指南已覆盖 GUIDE 安装检查、Profile、Installer、六信号状态与同窗迁移转换、显式 Process Priority、运行时重绑定、冲突处理、提示 UI、持久化和常见排错；升级后的平台验收仍需在目标游戏中执行。",
       "manual_pages": [
         "guides/input/index.md",
         "guides/input-rebinding/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:01faac3f5819a9d9aa15fa3ac7804b6486401b3635863fbe5656f8c246a13b66"
+      "reviewed_contract_hash": "sha256:81772345171165f7c9259a1b8f02328922e4788f3dc284d8b324eb80461c15c0"
     },
     "friflo-ecs": {
       "contract": "addons/godo_framework/Integrations/FrifloEcs/USAGE.md",
@@ -101,7 +101,7 @@
     "audio": {
       "contract": "addons/godo_framework/Runtime/Audio/USAGE.md",
       "status": "documented",
-        "reason": "教程和功能指南已覆盖立即切换 BGM、可取消等功率 Crossfade、淡出到静音、过渡请求 latest-request-wins、结构化播放状态、活动 BGM 请求存活时间、暂停恢复、加载取消、按钮 SFX、资源准备、非空间/3D Voice 独立预热、逐次音量/音高、静态世界坐标、Node3D 跟随及独立硬预算、固定物理帧与空闲停更、目标失效、最大距离与衰减、结构化准入结果、独立 Handle、同资源限制、优先级抢占、并发容量、循环音效边界、分组音量、设置持久化、非关键失败和 Debugger 只读诊断；仍等待多轨混音、播放列表与 AudioStreamPlayer2D 能力。",
+      "reason": "教程和功能指南已覆盖立即切换 BGM、可取消等功率 Crossfade、淡出到静音、过渡请求 latest-request-wins、结构化播放状态、活动 BGM 请求存活时间、暂停恢复、加载取消、按钮 SFX、资源准备、非空间/3D Voice 独立预热、逐次音量/音高、静态世界坐标、Node3D 跟随及独立硬预算、固定物理帧与空闲停更、目标失效、最大距离与衰减、结构化准入结果、独立 Handle、同资源限制、优先级抢占、并发容量、循环音效边界、分组音量、设置持久化、非关键失败和 Debugger 只读诊断；仍等待多轨混音、播放列表与 AudioStreamPlayer2D 能力。",
       "manual_pages": [
         "getting-started/add-audio.md",
         "getting-started/save-progress-and-settings.md",
@@ -109,7 +109,7 @@
         "guides/diagnostics/index.md"
       ],
       "api_reference_status": "verified",
-        "reviewed_contract_hash": "sha256:d8b865a8ab270692626de4627f504cd8e50b93c7eb95644451692d66326c331c"
+      "reviewed_contract_hash": "sha256:d8b865a8ab270692626de4627f504cd8e50b93c7eb95644451692d66326c331c"
     },
     "camera": {
       "contract": "addons/godo_framework/Runtime/Camera/USAGE.md",
@@ -134,14 +134,14 @@
     "input": {
       "contract": "addons/godo_framework/Runtime/Input/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖语义 Action、Frame、Context、帧边界、设备提示、运行时重绑定、持久化、能力检测、失败原子性和 Debugger 只读诊断。",
+      "reason": "功能指南已覆盖语义 Action 完整状态与同窗迁移、连续 Frame、Context Lease 与旧 API 迁移、优先离散 Router、重触发门禁、确定更新顺序、设备提示、运行时重绑定、持久化、能力检测、失败原子性、零分配基准和 Debugger 只读诊断。",
       "manual_pages": [
         "guides/input/index.md",
         "guides/input-rebinding/index.md",
         "guides/diagnostics/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:2420b72db73319b32656e5194dbe7037e354135c3cccae569a7ca28309cf1fa1"
+      "reviewed_contract_hash": "sha256:7129475b10b7d11e88021828c1c3b3e4c8bc8fa1d791dbc54a7560b0930cb76d"
     },
     "localization": {
       "contract": "addons/godo_framework/Runtime/Localization/USAGE.md",
@@ -187,7 +187,7 @@
       "status": "reference-only",
       "reason": "该模块是由业务代码直接组合或继承的纯 C# 基础契约，当前使用路径、失败语义、线程、生命周期与适用边界已由模块 USAGE 和 API Reference 完整表达；尚无需要独立用户教程承载的 Godot 编辑器或项目工作流。",
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:0301db464eeb939d0402108e025e18b4457fa2973dbe5ecef7618ba00cc37613"
+      "reviewed_contract_hash": "sha256:a548bd0910f8b74870b1859a5689644cea21d19aaae3bb70565a27a373ff6d9c"
     },
     "resources": {
       "contract": "addons/godo_framework/Runtime/Resources/USAGE.md",

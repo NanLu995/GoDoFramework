@@ -696,6 +696,7 @@ API_TOC_GROUPS = {
     "services": "Core",
     "debugger": "Diagnostics",
     "procedure": "Runtime / Procedure",
+    "state-machine": "Runtime / State Machine",
     "scene": "Runtime / Scene",
     "ui": "Runtime / UI",
     "audio": "Runtime / Audio",

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+
+- Input 新增 `InputActionRouter`，支持按优先级和注册顺序路由离散动作，并提供可释放的路由绑定与作用域，避免 Gameplay、菜单、暂停和对话之间重复响应同一次输入。
+- Input Context 改为租约式生命周期，支持优先级、恢复顺序和失效保护；帧快照补充动作状态，GuideInput 后端同步接入 Context 与路由能力。
+- Debugger 新增 Input 运行时诊断信息，展示当前 Context、活动设备、动作状态和路由状态；补齐核心 Input、GuideInput、Runtime 生命周期与调试器回归。
+- 框架 SDK 与最高已验证引擎版本更新为 Godot 4.7.2，最低兼容版本仍为 Godot 4.7.0。
+
 ## 0.6.2
 
 - Settings 新增业务自有 `ISettingsModule<TSettings>` 注册机制，提供稳定顺序、独立槽位、版本迁移、验证、可选降级/关键阻断、统一保存与逆序关闭，同时保持框架系统设置存档格式不变。

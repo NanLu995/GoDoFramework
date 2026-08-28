@@ -832,14 +832,26 @@ func _open_and_verify_setup(framework_window: Window) -> bool:
 		_fail("最低支持版本 4.7.0 无法解析。")
 		return false
 	var minimum := Vector3i(4, 7, 1)
-	var tested := Vector3i(4, 7, 1)
+	var tested := Vector3i(4, 7, 2)
 	if controller._evaluate_version(Vector3i(4, 7, 0), minimum, tested).supported:
 		_fail("低于最低版本的 Godot 未被拒绝。")
 		return false
-	var newer: Dictionary = controller._evaluate_version(Vector3i(4, 7, 2), minimum, tested)
+	var newer: Dictionary = controller._evaluate_version(Vector3i(4, 7, 3), minimum, tested)
 	if not newer.supported or newer.tested:
 		_fail("高于已验证版本的同 major Godot 未进入兼容但未验证状态。")
 		return false
+	var engine_version := Engine.get_version_info()
+	var current := Vector3i(engine_version.major, engine_version.minor, engine_version.patch)
+	var current_compatibility: Dictionary = controller._evaluate_version(current, minimum, tested)
+	if not current_compatibility.supported:
+		_fail("当前测试引擎不在 Setup 声明的兼容 major 范围内。")
+		return false
+	var current_text := "%d.%d.%d" % [current.x, current.y, current.z]
+	var expected_compatibility_text := (
+		"当前 %s，已验证范围 4.7.0～4.7.2" % current_text
+		if current_compatibility.tested
+		else "当前 %s，高于已验证版本 4.7.2" % current_text
+	)
 
 	if not _select_framework_page(framework_window, "runtime"):
 		return false
@@ -849,7 +861,7 @@ func _open_and_verify_setup(framework_window: Window) -> bool:
 		report == null
 		or not report.get_parsed_text().contains("GoDoFramework 版本")
 		or not report.get_parsed_text().contains("Godot 兼容性")
-		or not report.get_parsed_text().contains("4.7.0～4.7.1")
+		or not report.get_parsed_text().contains(expected_compatibility_text)
 	):
 		_fail("Setup 未显示框架版本和 Godot 兼容性：%s" % ("<missing>" if report == null else report.get_parsed_text()))
 		return false

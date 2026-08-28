@@ -1,11 +1,11 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/input/index.md
-translation_source_hash: sha256:afc0b5d5ed26b472dd1a958de09b2fd1048ac0d450f18251964f4bb526ba9f55
+translation_source_hash: sha256:84422a0f02af61a3b6d5a2c706f765690cce885b56a8e503652d749ddb453d45
 ---
 
 # Read Semantic Input and Manage Contexts
 
-InputService lets game code read semantic Actions such as move, jump, and confirm instead of depending on a spacebar, gamepad button, or third-party plugin type. It provides the current render-frame snapshot, a Context stack, the active device, and optional rebinding, persistence, and prompt-query interfaces.
+InputService lets game code read semantic Actions such as move, jump, and confirm instead of depending on a spacebar, gamepad button, or third-party plugin type. It provides the current render-frame snapshot, disposable Context ownership, the active device, and optional rebinding, persistence, and prompt-query interfaces. InputActionRouter handles prioritized discrete commands.
 
 The core InputService does not include a key-mapping backend. Without a backend, `IsReady` is `false`, and reading a Frame or changing Contexts fails explicitly. The framework currently provides an optional G.U.I.D.E-CSharp adapter.
 
@@ -33,7 +33,7 @@ addons/guideCS/
 addons/godo_framework/Integrations/GuideInput/
 ```
 
-The verified combination is GUIDE `0.13.0` with GUIDE-CSharp `0.3.7--0.13.0`. Obtain it from the [official GitHub release](https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7) and ensure the resulting path is `addons/guideCS/`. **Open verified version...** only opens that page in the system browser; it never downloads, extracts, or overwrites third-party files. The Asset Store currently marks `0.3.7--0.14.0` as unstable, while its downloaded base GUIDE still declares `0.13.0`, so GoDo `0.6.2` does not list it as verified.
+The verified combination is GUIDE `0.13.0` with GUIDE-CSharp `0.3.7--0.13.0`. Obtain it from the [official GitHub release](https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7) and ensure the resulting path is `addons/guideCS/`. **Open verified version...** only opens that page in the system browser; it never downloads, extracts, or overwrites third-party files. The Asset Store currently marks `0.3.7--0.14.0` as unstable, while its downloaded base GUIDE still declares `0.13.0`, so GoDo `0.7.0` does not list it as verified.
 
 After copying dependencies, let Godot finish scanning files and rebuilding its global script-class cache, then complete one C# build. Open:
 
@@ -152,13 +152,11 @@ input.SetBaseContext(GameInput.Gameplay);
 A pause menu can temporarily suppress Gameplay:
 
 ```csharp
-input.PushContext(GameInput.PauseMenu, InputContextMode.Exclusive);
-
-// Closing pause must match the top ID exactly.
-input.PopContext(GameInput.PauseMenu);
+using InputContextLease pauseContext =
+    input.PushContextScoped(GameInput.PauseMenu, InputContextMode.Exclusive);
 ```
 
-`Exclusive` blocks lower Contexts; `Overlay` remains active with lower Contexts. A Context cannot be pushed twice, and an incorrect Pop throws `InputOperationException`.
+`Exclusive` blocks lower Contexts; `Overlay` remains active with lower Contexts. A Context cannot be pushed twice. A lease disposes only the Context it owns even when pages close out of order; `SetBaseContext()` or service shutdown safely invalidates older leases. Legacy `PushContext / PopContext` remains for one migration cycle, still requires strict top-of-stack pairing, and cannot pop a lease-owned entry.
 
 ## 6. Read the current frame from a gameplay Node
 
@@ -186,9 +184,6 @@ public partial class PlayerController : Node
         InputFrame frame = _input.Frame;
         Vector2 move = frame.Axis2(GameInput.Move);
 
-        if (frame.JustPressed(GameInput.Jump))
-            GD.Print("Jump requested");
-
         ApplyMovementIntent(move, delta);
     }
 
@@ -200,6 +195,31 @@ public partial class PlayerController : Node
 ```
 
 Obtain a new `InputFrame` each render frame. It is a lightweight handle to the current snapshot; reading it in a later frame throws a stale-Frame error.
+
+Copy a value snapshot when one Action's complete state must be retained:
+
+```csharp
+InputActionFrameState jump = frame.GetState(GameInput.Jump);
+```
+
+It contains Idle/Ongoing/Performed status, all Started/Performed/Completed/Cancelled transitions accumulated in this sample window, elapsed time, `[0,1]` progress, and sample sequence. The value can be retained across frames. Continue reading continuous movement and look directly from the Frame.
+
+Use the Router for discrete menu confirmation, pause, and interaction commands:
+
+```csharp
+IInputActionRouter router = Services.Get<IInputActionRouter>();
+using InputRouteScope scope = router.PushScope("PauseMenu");
+using InputRouteBinding binding = scope.Bind(
+    GameInput.Confirm,
+    InputActionTransitions.Performed,
+    (state, matched) =>
+    {
+        ConfirmSelection();
+        return InputRouteResult.Handled;
+    });
+```
+
+Newer scopes have priority. `Handled` stops only the current Action from reaching lower scopes; `Pass` continues. After a Context or route change, a bound Action that has not returned to Idle is gated until it is released, preventing a held confirmation from immediately retriggering in the newly opened page. The Router is the input-dispatch boundary; do not also broadcast the same player command through the global EventChannel.
 
 For a controller driven by `_PhysicsProcess()`, cache continuous axes and latch `JustPressed` in `_Process()`, then consume them from physics frames. This prevents mismatched render and physics rates from losing one-shot input.
 
@@ -226,10 +246,10 @@ Refresh prompts at low frequency after `InputDeviceChangedEvent` or `InputBindin
 - Unknown Action: code IDs and Profile IDs differ.
 - Axis type mismatch: code calls `Axis2()`, but the GUIDE Action is not Axis2D.
 - Stale Frame: a previous frame's `InputFrame` was stored and read later.
-- Context Pop failure: page closing order differs from Push order.
+- Context Pop failure: use leases in new code; legacy API closing order must match Push order.
 - Duplicate input: game code also reads GUIDE Actions directly and bypasses the GoDo snapshot.
 
-For exact members, see <xref:GoDo.IInputService>, <xref:GoDo.InputFrame>, <xref:GoDo.InputContextMode>, <xref:GoDo.InputOperationException>, and <xref:GoDo.GuideInput.GuideInputProfile>.
+For exact members, see <xref:GoDo.IInputService>, <xref:GoDo.IInputActionRouter>, <xref:GoDo.InputFrame>, <xref:GoDo.InputActionFrameState>, <xref:GoDo.InputContextLease>, <xref:GoDo.InputOperationException>, and <xref:GoDo.GuideInput.GuideInputProfile>.
 
 ## Capability map
 
@@ -239,9 +259,11 @@ input.Frame
 input.ActiveDevice
 input.Capabilities</code></pre></section>
 <section><h4>Set the base Context</h4><pre class="godo-capability-call"><code>input.SetBaseContext(GameInputContexts.Gameplay);</code></pre></section>
-<section><h4>Push, pop, and query Contexts</h4><pre class="godo-capability-call"><code>input.PushContext(GameInputContexts.Menu, InputContextMode.Exclusive);
+<section><h4>Own and query Contexts</h4><pre class="godo-capability-call"><code>using InputContextLease menu = input.PushContextScoped(GameInputContexts.Menu, InputContextMode.Exclusive);
 input.IsContextActive(GameInputContexts.Menu);
-input.PopContext(GameInputContexts.Menu);</code></pre></section>
+menu.Dispose();</code></pre></section>
+<section><h4>Route discrete transitions</h4><pre class="godo-capability-call"><code>using InputRouteScope scope = router.PushScope("Menu");
+using InputRouteBinding binding = scope.Bind(action, InputActionTransitions.Performed, handler);</code></pre></section>
 <section><h4>Obtain optional input extensions</h4><pre class="godo-capability-call"><code>input.TryGetRebinding(out IInputRebinding rebinding)
 input.TryGetRebindingPersistence(out IInputRebindingPersistence persistence)
 input.TryGetPromptQuery(out IInputPromptQuery prompts)</code></pre></section>

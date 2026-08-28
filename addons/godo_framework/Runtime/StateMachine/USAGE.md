@@ -113,7 +113,7 @@ Update 异常同样原样传播，但不会改变 CurrentState 或把状态机�
 & $env:GODOT_PATH --headless --path . Verification/Automated/StateMachineRegression.tscn
 ```
 
-当前已在项目声明的 Godot 4.7.1 Mono Headless 中完成 12/12 项验证。测试场景只作为 runner；被测状态机源码和测试状态均不依赖 Godot 类型。
+当前已在项目声明的 Godot 4.7.2 Mono Headless 中完成 12/12 项验证。测试场景只作为 runner；被测状态机源码和测试状态均不依赖 Godot 类型。
 
 `Verification/Package/verify_core_package.py` 会把无可选集成的核心目录复制到系统临时 Godot C# 项目，并在该干净项目中编译和执行 StateMachine 的业务继承、Change、Tick 与 Dispose 烟雾用例。`Verification/Package/test_release_package.py` 另外生成真实核心 ZIP，检查 StateMachine 必需源码全部位于发布文件集。
 

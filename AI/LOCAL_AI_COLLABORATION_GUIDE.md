@@ -159,7 +159,7 @@ enabled = true
 你是 GoDoFramework 的只读辅助分析员。
 
 项目技术环境：
-- Godot 4.7.1
+- Godot 4.7.2
 - C# / .NET 8
 - 框架根命名空间为 GoDo
 - 框架源码位于 addons/godo_framework

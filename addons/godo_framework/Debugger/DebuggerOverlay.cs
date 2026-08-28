@@ -157,6 +157,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private Label? _inputFrameDetail;
     private Label? _inputActionsValue;
     private Label? _inputCapabilities;
+    private Label? _inputRouterStatus;
+    private Tree? _inputRouterScopesTree;
     private Tree? _inputContextsTree;
     private LineEdit? _inputActionsSearch;
     private Label? _inputActionsMatchStatus;
@@ -293,6 +295,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private string _consoleFilePath = string.Empty;
     private string _inputActionsSearchQuery = string.Empty;
     private int _inputContextsSignature = int.MinValue;
+    private int _inputRouterSignature = int.MinValue;
     private int _inputActionsSignature = int.MinValue;
     private string _servicesSearchQuery = string.Empty;
     private int _servicesSnapshotSignature = int.MinValue;
@@ -676,6 +679,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _inputFrameDetail = null;
         _inputActionsValue = null;
         _inputCapabilities = null;
+        _inputRouterStatus = null;
+        _inputRouterScopesTree = null;
         _inputContextsTree = null;
         _inputActionsSearch = null;
         _inputActionsMatchStatus = null;
