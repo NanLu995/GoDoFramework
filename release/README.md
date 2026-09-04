@@ -7,7 +7,7 @@
 - `GoDoFramework-PhantomCamera-v<version>.zip`：Phantom Camera 适配层，需要先安装匹配版本的 Phantom Camera。
 - `GoDoFramework-FrifloEcs-v<version>.zip`：Friflo ECS 场景级适配层；目标项目需添加 `Friflo.Engine.ECS 3.6.0` NuGet 引用。
 
-四个归档都保留 `addons/godo_framework/` 下的原始路径。目标项目必须先完整安装核心包；需要可选集成时，再把对应归档叠加到项目根目录。不要只复制核心包内部的局部 Runtime 子目录。Friflo 集成 ZIP 只包含适配源码和上游 MIT License，不复制 NuGet 程序集。
+四个归档都保留 `addons/godo_framework/` 下的原始路径，并包含 `addons/godo_framework/LICENSE`，不会在叠加安装时占用或覆盖消费项目根目录的同名许可证。目标项目必须先完整安装核心包；需要可选集成时，再把对应归档叠加到项目根目录。不要只复制核心包内部的局部 Runtime 子目录。Friflo 集成 ZIP 还保留上游 MIT `LICENSE`，不复制 NuGet 程序集。
 
 ## 本地打包
 

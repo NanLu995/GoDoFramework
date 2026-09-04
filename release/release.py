@@ -17,6 +17,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 ADDON_ROOT = REPOSITORY_ROOT / "addons" / "godo_framework"
 INTEGRATIONS_ROOT = ADDON_ROOT / "Integrations"
 PLUGIN_CONFIG = ADDON_ROOT / "plugin.cfg"
+FRAMEWORK_LICENSE = ADDON_ROOT / "LICENSE"
 DIST_ROOT = Path(__file__).resolve().parent / "dist"
 INCLUDED_SUFFIXES = {".cfg", ".cs", ".gd", ".py", ".tscn", ".uid"}
 INCLUDED_NAMES = {"LICENSE"}
@@ -63,6 +64,8 @@ def collect_release_files(package: str) -> list[Path]:
         raise RuntimeError(f"未知发布包：{package}")
     if not package_root.is_dir():
         raise RuntimeError(f"发布包目录不存在：{package_root}")
+    if not FRAMEWORK_LICENSE.is_file():
+        raise RuntimeError(f"缺少框架许可证：{FRAMEWORK_LICENSE}")
 
     files = [
         path
@@ -72,6 +75,8 @@ def collect_release_files(package: str) -> list[Path]:
         and path.name not in EXCLUDED_NAMES
         and (package != "core" or not path.is_relative_to(INTEGRATIONS_ROOT))
     ]
+    if FRAMEWORK_LICENSE not in files:
+        files.append(FRAMEWORK_LICENSE)
     if not files:
         raise RuntimeError(f"{package} 发布包没有可打包文件。")
     return sorted(files)

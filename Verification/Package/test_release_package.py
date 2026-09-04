@@ -27,6 +27,7 @@ class ReleasePackageTests(unittest.TestCase):
         cls.release = load_release_module()
 
     def test_package_file_sets_are_isolated(self) -> None:
+        framework_license = "addons/godo_framework/LICENSE"
         core = self._relative_paths(self.release.collect_release_files("core"))
         guide = self._relative_paths(self.release.collect_release_files("guide-input"))
         phantom = self._relative_paths(self.release.collect_release_files("phantom-camera"))
@@ -36,17 +37,33 @@ class ReleasePackageTests(unittest.TestCase):
         self.assertTrue(guide)
         self.assertTrue(phantom)
         self.assertTrue(friflo)
+        self.assertIn(framework_license, core)
+        self.assertIn(framework_license, guide)
+        self.assertIn(framework_license, phantom)
+        self.assertIn(framework_license, friflo)
         self.assertFalse(any("/Integrations/" in path for path in core))
-        self.assertTrue(all("/Integrations/GuideInput/" in path for path in guide))
-        self.assertTrue(all("/Integrations/PhantomCamera/" in path for path in phantom))
-        self.assertTrue(all("/Integrations/FrifloEcs/" in path for path in friflo))
-        self.assertTrue(any(path.endswith("/LICENSE") for path in friflo))
-        self.assertFalse(core & guide)
-        self.assertFalse(core & phantom)
-        self.assertFalse(guide & phantom)
-        self.assertFalse(core & friflo)
-        self.assertFalse(guide & friflo)
-        self.assertFalse(phantom & friflo)
+        self.assertTrue(
+            all(path == framework_license or "/Integrations/GuideInput/" in path for path in guide)
+        )
+        self.assertTrue(
+            all(path == framework_license or "/Integrations/PhantomCamera/" in path for path in phantom)
+        )
+        self.assertTrue(
+            all(path == framework_license or "/Integrations/FrifloEcs/" in path for path in friflo)
+        )
+        self.assertIn("addons/godo_framework/Integrations/FrifloEcs/LICENSE", friflo)
+        self.assertEqual({framework_license}, core & guide)
+        self.assertEqual({framework_license}, core & phantom)
+        self.assertEqual({framework_license}, guide & phantom)
+        self.assertEqual({framework_license}, core & friflo)
+        self.assertEqual({framework_license}, guide & friflo)
+        self.assertEqual({framework_license}, phantom & friflo)
+
+    def test_framework_license_copy_matches_repository_license(self) -> None:
+        self.assertEqual(
+            (REPOSITORY_ROOT / "LICENSE").read_bytes(),
+            (REPOSITORY_ROOT / "addons" / "godo_framework" / "LICENSE").read_bytes(),
+        )
 
     def test_build_archives_preserves_overlay_paths(self) -> None:
         with tempfile.TemporaryDirectory(prefix="godo-release-test-") as temporary_directory:
@@ -67,8 +84,12 @@ class ReleasePackageTests(unittest.TestCase):
                     names = package.namelist()
                     self.assertTrue(names)
                     self.assertTrue(
-                        all(name.startswith("addons/godo_framework/") for name in names)
+                        all(
+                            name.startswith("addons/godo_framework/")
+                            for name in names
+                        )
                     )
+                    self.assertIn("addons/godo_framework/LICENSE", names)
                     self.assertIsNone(package.testzip())
 
             with zipfile.ZipFile(archives[0], mode="r") as core:
