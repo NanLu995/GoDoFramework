@@ -167,7 +167,7 @@ def write_manual_instructions(output_root: Path) -> None:
 成功标记：
 
 ```text
-[DataTableServiceRegression] PASS (10/10)
+[DataTableServiceRegression] PASS (14/14)
 ```
 
 发布门禁已在导出前校验 Base DataTable 生成产物；失败时不要跳过校验。
@@ -226,7 +226,7 @@ def main() -> int:
         raise RuntimeError(f"ExportRelease 可执行文件不存在：{executable}")
 
     result = run([str(executable), "--headless"], cwd=distribution)
-    if "[DataTableServiceRegression] PASS (10/10)" not in result.stdout:
+    if "[DataTableServiceRegression] PASS (14/14)" not in result.stdout:
         raise RuntimeError("导出包未输出 DataTableServiceRegression 成功标记。")
 
     print(f"[DataTableExportReleaseVerification] PASS: {executable}")
