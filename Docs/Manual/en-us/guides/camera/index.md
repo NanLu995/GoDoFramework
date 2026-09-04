@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/camera/index.md
-translation_source_hash: sha256:367182deac6423588b6c6852979846ca96177de588257fac524d4c4626c01a4e
+translation_source_hash: sha256:19137c3d3c749be72aad2fc0801e5253301ef5ff9bf7d2b6ee2e5280e899f8c2
 ---
 
 # Configure, Switch, and Restore the Main Camera
@@ -33,7 +33,7 @@ addons/phantom_camera/
 addons/godo_framework/Integrations/PhantomCamera/
 ```
 
-Obtain the third-party files from the [Phantom Camera page in the Godot Asset Library](https://godotengine.org/asset-library/asset/1822) and ensure the resulting path is `addons/phantom_camera/`. GoDo currently verifies the `0.11` value reported by `plugin.cfg`. **Open Godot Asset Library...** only opens the browser; it never downloads, extracts, or overwrites the plugin.
+Obtain the third-party files from the [Phantom Camera GitHub `v0.11.0.3` release](https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.3) and ensure the resulting path is `addons/phantom_camera/`. That release reports only `0.11` in `plugin.cfg`, so the framework cannot distinguish patch versions from configuration alone; pin `v0.11.0.3` in team projects. **Open verified version...** only opens the browser; it never downloads, extracts, or overwrites the plugin.
 
 Enable the single **GoDo Framework** plugin, then open:
 

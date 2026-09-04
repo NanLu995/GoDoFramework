@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/data-tables/index.md
-translation_source_hash: sha256:510adb2a37a8d6ca9d6aa0392aa821d2b169f6f33be0afafc2811a07fe60f2be
+translation_source_hash: sha256:79b50b498248dfea35a8bf9bad0a46611315353738ae468b380311ea7d3b4558
 ---
 
 # Generate Validated Data Tables from CSV
@@ -248,4 +248,4 @@ Manifest hashes detect mismatched Client/Server data. They are not digital signa
 - The game uses old data after CSV changes: run generate and confirm with verify-generated.
 - A Manifest hash is treated as a security signature: it only compares consistency and cannot prevent malicious replacement.
 
-DataTableService is currently a first-version public runtime API under validation. Regenerate and rerun the full verification workflow after framework upgrades. Mobile, AOT, and complete ExportRelease validation remain pending.
+DataTableService is currently a first-version public runtime API under validation. Regenerate and rerun the full verification workflow after framework upgrades. Manifest JSON uses source-generated metadata and never silently falls back to reflection-based serialization. Windows build, regression, and ExportRelease are validated; Android and iOS still require final exports on their respective platforms.

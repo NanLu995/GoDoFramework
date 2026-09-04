@@ -243,4 +243,4 @@ Manifest 的哈希用于发现 Client/Server 数据不一致，不是数字签�
 - 修改 CSV 后游戏仍用旧数据：运行 generate，并用 verify-generated 检查。
 - 把 Manifest 哈希当安全签名：它只能比较一致性，不能防止恶意替换。
 
-DataTableService 当前为首版验证中 public runtime API；升级框架后应重新生成并运行完整验证。移动端、AOT 和完整 ExportRelease 仍需正式验收。
+DataTableService 当前为首版验证中 public runtime API；升级框架后应重新生成并运行完整验证。Manifest JSON 使用源生成元数据，不会隐式回退到反射式序列化；Windows 构建、回归与 ExportRelease 已验证，Android/iOS 仍需分别在对应平台完成最终导出验收。

@@ -28,7 +28,7 @@ addons/phantom_camera/
 addons/godo_framework/Integrations/PhantomCamera/
 ```
 
-从 [Godot Asset Library 的 Phantom Camera 页面](https://godotengine.org/asset-library/asset/1822)取得第三方文件，并确保最终路径为 `addons/phantom_camera/`。GoDo 当前按 `plugin.cfg` 报告的 `0.11` 验证。设置窗口的“打开 Godot 商店...”只打开浏览器，不自动下载、解压或覆盖插件。
+从 [Phantom Camera GitHub `v0.11.0.3` Release](https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.3) 取得第三方文件，并确保最终路径为 `addons/phantom_camera/`。该版本的 `plugin.cfg` 只报告 `0.11`，因此框架无法仅凭配置区分补丁版本；团队项目应固定为 `v0.11.0.3`。设置窗口的“打开已验证版本...”只打开浏览器，不自动下载、解压或覆盖插件。
 
 启用唯一的 **GoDo Framework** 插件，然后打开：
 

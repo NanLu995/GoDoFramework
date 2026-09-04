@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/input/index.md
-translation_source_hash: sha256:84422a0f02af61a3b6d5a2c706f765690cce885b56a8e503652d749ddb453d45
+translation_source_hash: sha256:a1d32b42eaa842158e6c9fa04b848b06fe5a80f21a849d249e202d434b5da9cc
 ---
 
 # Read Semantic Input and Manage Contexts
@@ -33,7 +33,9 @@ addons/guideCS/
 addons/godo_framework/Integrations/GuideInput/
 ```
 
-The verified combination is GUIDE `0.13.0` with GUIDE-CSharp `0.3.7--0.13.0`. Obtain it from the [official GitHub release](https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7) and ensure the resulting path is `addons/guideCS/`. **Open verified version...** only opens that page in the system browser; it never downloads, extracts, or overwrites third-party files. The Asset Store currently marks `0.3.7--0.14.0` as unstable, while its downloaded base GUIDE still declares `0.13.0`, so GoDo `0.7.0` does not list it as verified.
+The verified combination is GUIDE `0.13.0` with GUIDE-CSharp `0.3.7--0.14.0`. Obtain it from the [official GitHub source](https://github.com/Phlegmlee/G.U.I.D.E-CSharp), ensure the resulting path is `addons/guideCS/`, and pin the actual commit so later source updates do not make the dependency unreproducible. **Open GitHub source...** only opens that page in the system browser; it never downloads, extracts, or overwrites third-party files.
+
+This combination passes GoDo's functional regression, but GUIDE-CSharp currently uses `Activator.CreateInstance` to create generic wrappers and produces `IL2087` under strict Native AOT/Trimming analysis. Do not treat the GUIDE integration as validated for iOS Native AOT. Omitting the optional integration does not affect the GoDo core runtime.
 
 After copying dependencies, let Godot finish scanning files and rebuilding its global script-class cache, then complete one C# build. Open:
 

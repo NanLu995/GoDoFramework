@@ -69,13 +69,13 @@
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖 GUIDE 安装检查、Profile、Installer、六信号状态与同窗迁移转换、显式 Process Priority、运行时重绑定、冲突处理、提示 UI、持久化和常见排错；升级后的平台验收仍需在目标游戏中执行。",
+      "reason": "功能指南已覆盖 GUIDE 0.13.0 与 GUIDE-CSharp 0.3.7--0.14.0 的 GitHub 源码安装检查、提交固定要求、Profile、Installer、六信号状态与同窗迁移转换、显式 Process Priority、运行时重绑定、冲突处理、提示 UI、持久化、AOT 限制和常见排错；升级后的平台验收仍需在目标游戏中执行。",
       "manual_pages": [
         "guides/input/index.md",
         "guides/input-rebinding/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:81772345171165f7c9259a1b8f02328922e4788f3dc284d8b324eb80461c15c0"
+      "reviewed_contract_hash": "sha256:bdea422dbd6872d3e9f81289e25b53be6e67ed366d399108dab702cc75a2cabf"
     },
     "friflo-ecs": {
       "contract": "addons/godo_framework/Integrations/FrifloEcs/USAGE.md",
@@ -91,12 +91,12 @@
     "phantom-camera": {
       "contract": "addons/godo_framework/Integrations/PhantomCamera/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖实际菜单入口、安装检查与启用结果、第三人称预设、优先级映射、切换恢复、自定义 Rig 与常见排错；鼠标环绕属于游戏业务，插件升级仍需项目验收。",
+      "reason": "功能指南已覆盖 GitHub v0.11.0.3 来源、plugin.cfg 只报告 0.11 的识别边界、实际菜单入口、安装检查与启用结果、第三人称预设、优先级映射、切换恢复、自定义 Rig 与常见排错；鼠标环绕属于游戏业务，插件升级仍需项目验收。",
       "manual_pages": [
         "guides/camera/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:bafcd32cc250264f9d95e2ecdb11263dbf32abe91946484ed5594415450a1005"
+      "reviewed_contract_hash": "sha256:3e8ff8f8c6b9c89444b2b3ae436377529c6c549f2c44a6760bc583ed18e05792"
     },
     "audio": {
       "contract": "addons/godo_framework/Runtime/Audio/USAGE.md",
@@ -266,12 +266,12 @@
     "data-table-runtime": {
       "contract": "addons/godo_framework/Runtime/DataTable/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖业务显式加载、生成门面、表级可观察进度、活动加载存活时间、事务发布前后的 IsLoaded 状态、重复加载、取消与单次错误处理、卸载、Client/Server 子集、更新边界及 Debugger 只读诊断；移动端、AOT 和完整 ExportRelease 仍待正式验收。",
+      "reason": "功能指南已覆盖业务显式加载、生成门面、表级可观察进度、活动加载存活时间、事务发布前后的 IsLoaded 状态、重复加载、取消与单次错误处理、卸载、Client/Server 子集、更新边界、源生成 Manifest JSON、Windows ExportRelease 及 Debugger 只读诊断；Android/iOS 仍待对应平台最终导出验收。",
       "manual_pages": [
         "guides/data-tables/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:186da545895f68fcee85bef59aaaea8c218b0b3aed80f272465f3ae83ae3ee32"
+      "reviewed_contract_hash": "sha256:9ce1dd4c2334229f2f4ac6cbd9265acebd89d31e9896b4fe2be5d197c7861bf5"
     },
     "data-table": {
       "contract": "addons/godo_framework/Tools/DataTable/USAGE.md",
