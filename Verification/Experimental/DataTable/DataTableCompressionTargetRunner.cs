@@ -88,7 +88,7 @@ public sealed partial class DataTableCompressionTargetRunner : Node
         var report = new CompressionReport(PrototypeCompressionMode.Auto.ToString(), reports);
         string reportJson = JsonSerializer.Serialize(
             report,
-            new JsonSerializerOptions { WriteIndented = true });
+            CompressionReportJsonContext.Default.CompressionReport);
         WriteAtomically(
             Path.Combine(artifactRoot, "compression-report.json"),
             System.Text.Encoding.UTF8.GetBytes(reportJson + "\n"));
@@ -151,15 +151,22 @@ public sealed partial class DataTableCompressionTargetRunner : Node
             throw new InvalidOperationException(message);
     }
 
-    private sealed record CompressionReport(
-        [property: JsonPropertyName("default_mode")] string DefaultMode,
-        [property: JsonPropertyName("tables")] IReadOnlyList<CompressionReportEntry> Tables);
-
-    private sealed record CompressionReportEntry(
-        [property: JsonPropertyName("table_id")] string TableId,
-        [property: JsonPropertyName("mode")] string Mode,
-        [property: JsonPropertyName("selected")] string Selected,
-        [property: JsonPropertyName("recommendation")] string Recommendation,
-        [property: JsonPropertyName("uncompressed_bytes")] int UncompressedBytes,
-        [property: JsonPropertyName("zstd_bytes")] int ZstdBytes);
 }
+
+[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSerializable(typeof(CompressionReport))]
+internal sealed partial class CompressionReportJsonContext : JsonSerializerContext
+{
+}
+
+internal sealed record CompressionReport(
+    [property: JsonPropertyName("default_mode")] string DefaultMode,
+    [property: JsonPropertyName("tables")] IReadOnlyList<CompressionReportEntry> Tables);
+
+internal sealed record CompressionReportEntry(
+    [property: JsonPropertyName("table_id")] string TableId,
+    [property: JsonPropertyName("mode")] string Mode,
+    [property: JsonPropertyName("selected")] string Selected,
+    [property: JsonPropertyName("recommendation")] string Recommendation,
+    [property: JsonPropertyName("uncompressed_bytes")] int UncompressedBytes,
+    [property: JsonPropertyName("zstd_bytes")] int ZstdBytes);

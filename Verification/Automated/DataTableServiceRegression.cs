@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Game.DataTables.Base;
@@ -88,7 +89,24 @@ public sealed partial class DataTableServiceRegression : Node
                 "产物路径无效");
             Assert(!service.IsLoaded("game.base"), "危险产物路径失败后发布了数据集。");
 
-            GD.Print("[DataTableServiceRegression] PASS (10/10)");
+            await AssertManifestFailureAsync(
+                service,
+                "missing-field",
+                "res://Verification/Automated/Fixtures/DataTableService/MissingField",
+                "data_set_id");
+            await AssertManifestFailureAsync(
+                service,
+                "invalid-json",
+                "res://Verification/Automated/Fixtures/DataTableService/InvalidJson",
+                "JSON 无效");
+            await AssertManifestFailureAsync(
+                service,
+                "version-mismatch",
+                "res://Verification/Automated/Fixtures/DataTableService/VersionMismatch",
+                "format_version");
+            await AssertOversizedManifestFailureAsync(service);
+
+            GD.Print("[DataTableServiceRegression] PASS (14/14)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -122,6 +140,53 @@ public sealed partial class DataTableServiceRegression : Node
             return;
         }
         throw new InvalidOperationException($"加载失败未包含预期诊断：{message}");
+    }
+
+    private static async Task AssertManifestFailureAsync(
+        IDataTableService service,
+        string dataSetId,
+        string runtimeDirectory,
+        string message)
+    {
+        var definition = new DataTableSetDefinition(
+            dataSetId,
+            formatVersion: 2,
+            protocolVersion: 1,
+            Array.Empty<DataTableDefinition>());
+        await AssertLoadFailureAsync(
+            () => service.LoadAsync(definition, runtimeDirectory),
+            message);
+        Assert(!service.IsLoaded(dataSetId), $"Manifest 失败后发布了数据集：{dataSetId}");
+    }
+
+    private static async Task AssertOversizedManifestFailureAsync(IDataTableService service)
+    {
+        const string DataSetId = "oversized-manifest";
+        string directoryName = $"godo-datatable-{Guid.NewGuid():N}";
+        string godotDirectory = $"user://{directoryName}";
+        string systemDirectory = ProjectSettings.GlobalizePath(godotDirectory);
+        string manifestPath = Path.Combine(systemDirectory, "manifest.json");
+        Directory.CreateDirectory(systemDirectory);
+        try
+        {
+            using (var stream = new FileStream(
+                manifestPath,
+                FileMode.CreateNew,
+                System.IO.FileAccess.Write))
+                stream.SetLength(16L * 1024 * 1024 + 1L);
+            await AssertManifestFailureAsync(
+                service,
+                DataSetId,
+                godotDirectory,
+                "超过 16 MiB");
+        }
+        finally
+        {
+            if (File.Exists(manifestPath))
+                File.Delete(manifestPath);
+            if (Directory.Exists(systemDirectory))
+                Directory.Delete(systemDirectory);
+        }
     }
 
     private static void AssertThrows<TException>(Action action, string message)

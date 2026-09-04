@@ -4,7 +4,7 @@ extends RefCounted
 const PHANTOM_PLUGIN := "phantom_camera"
 const PHANTOM_PLUGIN_CONFIG := "res://addons/phantom_camera/plugin.cfg"
 const SUPPORTED_VERSION := "0.11"
-const ASSET_LIBRARY_URL := "https://godotengine.org/asset-library/asset/1822"
+const VERIFIED_RELEASE_URL := "https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.3"
 const REQUIRED_FILES := [
 	"res://addons/phantom_camera/plugin.cfg",
 	"res://addons/phantom_camera/plugin.gd",
@@ -65,9 +65,9 @@ func _create_page() -> Control:
 	refresh_button.text = "重新检查"
 	actions.add_child(refresh_button)
 	var source_button := Button.new()
-	source_button.text = "打开 Godot 商店..."
+	source_button.text = "打开已验证版本..."
 	source_button.name = "PhantomCameraOfficialSourceButton"
-	source_button.tooltip_text = ASSET_LIBRARY_URL
+	source_button.tooltip_text = VERIFIED_RELEASE_URL
 	actions.add_child(source_button)
 	_enable_button = Button.new()
 	_enable_button.text = "启用 Phantom Camera..."
@@ -132,11 +132,11 @@ func _set_hint(message: String, color: String) -> void:
 
 
 func _open_official_source() -> void:
-	var result := OS.shell_open(ASSET_LIBRARY_URL)
+	var result := OS.shell_open(VERIFIED_RELEASE_URL)
 	if result == OK:
-		_refresh("已交给系统浏览器打开 Godot Asset Library；下载与安装仍由开发者完成。", "#8bd49c")
+		_refresh("已交给系统浏览器打开已验证的 GitHub Release；下载与安装仍由开发者完成。", "#8bd49c")
 	else:
-		_refresh("无法打开 Godot Asset Library：%s" % error_string(result), "#ff6b6b")
+		_refresh("无法打开已验证版本页面：%s" % error_string(result), "#ff6b6b")
 
 
 func _inspect_state() -> Dictionary:

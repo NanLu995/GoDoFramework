@@ -79,7 +79,7 @@ func _run() -> void:
 		"GuideInputMessage",
 		"GuideInputRepairButton",
 		"GuideInputOfficialSourceButton",
-		"https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7"
+		"https://github.com/Phlegmlee/G.U.I.D.E-CSharp"
 	):
 		return
 	if not await _open_and_verify(
@@ -91,7 +91,7 @@ func _run() -> void:
 		"PhantomCameraMessage",
 		"PhantomCameraEnableButton",
 		"PhantomCameraOfficialSourceButton",
-		"https://godotengine.org/asset-library/asset/1822"
+		"https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.3"
 	):
 		return
 	if not await _open_and_verify_friflo_dependency(framework_window):

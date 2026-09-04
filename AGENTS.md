@@ -100,6 +100,18 @@
 - ResourceHub API 使用 `ResourceKey` 与 `T : Resource`；失败抛 `ResourceLoadException`，不返回 null、不重复上报后再抛出，也不维护第二套缓存或引用计数。
 - 远程下载、PCK/DLC、热更新、目录加载和高级缓存属于未来独立扩展。
 
+### Native AOT 与 Trimming
+
+- 所有由游戏导出物加载的框架运行时代码必须兼容 Native AOT 和 Trimming；编辑器专用模块必须与运行时模块形成明确的编译边界。
+- 框架公共 API 不得迫使消费项目使用 `NoWarn`、宽泛 root 或无依据的 suppression 才能通过 AOT 发布。
+- 运行时序列化必须使用源生成元数据，或由调用方显式提供 `JsonTypeInfo`/`JsonSerializerContext`；不得隐式回退到反射式序列化。
+- 框架提供基于 `Type`、泛型参数或反射的 API 时，必须传播准确的 `DynamicallyAccessedMembers` 要求，不能依赖普通静态引用保留反射元数据。
+- 禁止运行时代码生成、动态托管程序集加载、程序集扫描式插件发现和依赖未知运行时类型的动态泛型实例化。
+- 自有运行时项目启用 `IsAotCompatible` 或等效分析器；新增或升级依赖时检查直接与传递依赖，并以目标 RID 的 Native AOT publish 作为最终证据。
+- `IL2xxx`、`IL3xxx`、`RequiresDynamicCode` 和 `RequiresUnreferencedCode` 警告必须在框架内部解决，不得转嫁给消费项目。
+- `TrimmerRootAssembly`、linker descriptor、`DynamicDependency` 和 `UnconditionalSuppressMessage` 只能用于有测试证明的最小边界，并记录依据。
+- 每次涉及反射、序列化、泛型工厂或原生互操作的修改，都必须运行相关测试，并按当前任务实际目标平台执行对应 RID 的 Native AOT 发布验证；不为未纳入本次目标的平台强行执行交叉发布。项目当前主要面向 Windows，未明确指定其他平台时默认验证 Windows（通常为 `win-x64`）；只有任务明确涉及 iOS 时，最终结果才以 macOS/Xcode 实际导出为准。
+
 ## 测试与交付
 
 - 每个独立模块必须有 `USAGE.md`，说明定位、适用/非适用场景、上手、public API、失败语义、生命周期/线程、性能与误用。

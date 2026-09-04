@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Godot;
@@ -90,7 +89,7 @@ public sealed partial class DataTableService : Node, IDataTableService
         try
         {
             token.ThrowIfCancellationRequested();
-            Manifest manifest = ReadManifest(definition, normalizedDirectory);
+            DataTableManifest manifest = ReadManifest(definition, normalizedDirectory);
             Dictionary<string, DataTableDefinition> definitions = IndexDefinitions(definition);
             var stagedTables = new Dictionary<string, object>(StringComparer.Ordinal);
             int total = manifest.Tables.Count;
@@ -102,7 +101,7 @@ public sealed partial class DataTableService : Node, IDataTableService
             for (int index = 0; index < total; index++)
             {
                 token.ThrowIfCancellationRequested();
-                ManifestTable manifestTable = manifest.Tables[index];
+                DataTableManifestTable manifestTable = manifest.Tables[index];
                 if (!definitions.TryGetValue(manifestTable.Id, out DataTableDefinition? tableDefinition))
                 {
                     throw new DataTableLoadException(
@@ -270,7 +269,7 @@ public sealed partial class DataTableService : Node, IDataTableService
         _loadedDataSets.Clear();
     }
 
-    private static Manifest ReadManifest(
+    private static DataTableManifest ReadManifest(
         DataTableSetDefinition definition,
         string runtimeDirectory)
     {
@@ -289,10 +288,12 @@ public sealed partial class DataTableService : Node, IDataTableService
         if (bytes.Length != checked((int)length))
             throw new DataTableLoadException(definition.Id, $"DataTable Manifest 未完整读取：{manifestPath}");
 
-        Manifest manifest;
+        DataTableManifest manifest;
         try
         {
-            manifest = JsonSerializer.Deserialize<Manifest>(bytes) ??
+            manifest = JsonSerializer.Deserialize(
+                bytes,
+                DataTableManifestJsonContext.Default.DataTableManifest) ??
                 throw new JsonException("Manifest 根对象为 null。");
         }
         catch (JsonException exception)
@@ -319,11 +320,13 @@ public sealed partial class DataTableService : Node, IDataTableService
         return result;
     }
 
-    private static void ValidateManifestTables(string dataSetId, IReadOnlyList<ManifestTable> tables)
+    private static void ValidateManifestTables(
+        string dataSetId,
+        IReadOnlyList<DataTableManifestTable> tables)
     {
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var artifacts = new HashSet<string>(StringComparer.Ordinal);
-        foreach (ManifestTable table in tables)
+        foreach (DataTableManifestTable table in tables)
         {
             if (string.IsNullOrWhiteSpace(table.Id))
                 throw new DataTableLoadException(dataSetId, "DataTable Manifest 包含空表 ID。");
@@ -497,27 +500,4 @@ public sealed partial class DataTableService : Node, IDataTableService
     }
 #endif
 
-    private sealed class Manifest
-    {
-        [JsonPropertyName("data_set_id")]
-        public string DataSetId { get; set; } = string.Empty;
-
-        [JsonPropertyName("format_version")]
-        public int FormatVersion { get; set; }
-
-        [JsonPropertyName("protocol_version")]
-        public int ProtocolVersion { get; set; }
-
-        [JsonPropertyName("tables")]
-        public List<ManifestTable> Tables { get; set; } = [];
-    }
-
-    private sealed class ManifestTable
-    {
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
-
-        [JsonPropertyName("artifact")]
-        public string Artifact { get; set; } = string.Empty;
-    }
 }

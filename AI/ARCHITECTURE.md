@@ -146,6 +146,9 @@ addons/
 ## 7. 通用约定
 
 - 框架错误统一通过 ErrorHub；不要直接散落 `GD.PrintErr`。
+- 框架运行时启用 AOT 与 Trim analyzer；运行时 JSON 必须使用源生成元数据或调用方显式提供的 `JsonTypeInfo` / `JsonSerializerContext`。当前 DataTable Manifest 使用框架内源生成上下文，不依赖反射式序列化。
+- `EnableDynamicLoading` 只在本地 `Debug` 配置启用，服务于 Godot 编辑器开发；ExportDebug、Release 与 ExportRelease 不启用动态托管程序集加载。
+- Editor 与 Tools 当前均为 GDScript 工具，由 `godo_export_filter.gd` 从 Debug/Release 导出物移除；Debugger 是独立的游戏内 Debug 能力，仅保留在 Debug/ExportDebug，Release/ExportRelease 的 C# 编译和资源导出均排除其实现。
 - Debug 专属实现使用 `#if DEBUG`，覆盖编辑器 Debug 与 ExportDebug，不进入 Release / ExportRelease。
   当前源码未使用 `GODOT_DEBUG`；如未来新增 Debug 专属代码，继续沿用 `DEBUG`。
 - public API 必须提供 XML 注释，并明确失败语义。

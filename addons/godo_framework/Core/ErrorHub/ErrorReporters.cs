@@ -63,9 +63,8 @@ public sealed class RemoteErrorReporterTemplate : IErrorReporter
             // TODO: 序列化并通过 HttpClient 异步 POST 到 _endpoint。
             // 模板只复制有界根因摘要，不跨异步边界持有 Exception 或默认上传 StackTrace。
             //
-            // var payload = JsonSerializer.Serialize(new {
-            //     level, module, message, context, cause, time = timestamp,
-            // });
+            // TODO: 为 payload 定义 DTO 与 JsonSerializerContext，并使用 JsonTypeInfo 重载；
+            // 禁止回退到依赖运行时反射的 JsonSerializer 重载。
             // using var client = SharedHttpClient.Instance; // 复用单例，不要每次 new HttpClient
             // await client.PostAsync(_endpoint, new StringContent(payload));
 

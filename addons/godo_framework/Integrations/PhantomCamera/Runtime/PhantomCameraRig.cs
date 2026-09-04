@@ -8,7 +8,7 @@ namespace GoDo;
 
 /// <summary>将 GoDo 主镜头激活语义映射到 Phantom Camera 3D 优先级。</summary>
 /// <remarks>
-/// 该适配器需要已安装并启用的 Phantom Camera 0.11 C# 插件。场景中的 Rig 由
+/// 该适配器需要已安装并启用的 Phantom Camera 0.11 系列 C# 插件；当前验证发布版为 v0.11.0.3。场景中的 Rig 由
 /// <see cref="ICameraService"/> 激活和停用；目标跟随、环绕、阻尼和避障仍由 Phantom Camera
 /// 与业务场景配置负责。初始化和切换均限制在 Godot 主线程，适配器不执行逐帧工作。
 /// </remarks>
@@ -17,7 +17,7 @@ public sealed partial class PhantomCameraRig : CameraRig
     private PhantomCamera3D? _phantomCamera;
 
     /// <summary>
-    /// 由兼容 Phantom Camera 0.11 3D 脚本驱动的节点；通常是预设中的 ThirdPersonPcam。
+    /// 由兼容 Phantom Camera 0.11 系列 3D 脚本驱动的节点；通常是预设中的 ThirdPersonPcam。
     /// </summary>
     /// <remarks>节点缺失或不兼容会在 Rig 注册前以 <see cref="InvalidOperationException"/> 失败。</remarks>
     [Export]

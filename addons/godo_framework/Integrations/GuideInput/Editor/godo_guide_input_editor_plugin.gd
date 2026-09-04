@@ -13,8 +13,8 @@ const REQUIRED_GLOBAL_CLASS := "GUIDEActionMapping"
 const GUIDE_PLUGIN_CONFIG := "res://addons/guideCS/guide/plugin.cfg"
 const GUIDE_CS_PLUGIN_CONFIG := "res://addons/guideCS/plugin.cfg"
 const SUPPORTED_GUIDE_VERSION := "0.13.0"
-const SUPPORTED_GUIDE_CS_VERSION := "0.3.7--0.13.0"
-const VERIFIED_RELEASE_URL := "https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.3.7"
+const SUPPORTED_GUIDE_CS_VERSION := "0.3.7--0.14.0"
+const OFFICIAL_SOURCE_URL := "https://github.com/Phlegmlee/G.U.I.D.E-CSharp"
 
 var _page: VBoxContainer
 var _confirmation: ConfirmationDialog
@@ -70,9 +70,9 @@ func _create_page() -> Control:
 	refresh_button.text = "重新检查"
 	actions.add_child(refresh_button)
 	var source_button := Button.new()
-	source_button.text = "打开已验证版本..."
+	source_button.text = "打开 GitHub 源码..."
 	source_button.name = "GuideInputOfficialSourceButton"
-	source_button.tooltip_text = VERIFIED_RELEASE_URL
+	source_button.tooltip_text = OFFICIAL_SOURCE_URL
 	actions.add_child(source_button)
 	_repair_button = Button.new()
 	_repair_button.text = "安装 / 修复顺序..."
@@ -205,7 +205,7 @@ func _hint_for_state(state: Dictionary) -> Dictionary:
 		return {"text": "请先完整安装 addons/guideCS/，然后重新检查。", "color": "#ff6b6b"}
 	if not state["version_supported"]:
 		return {
-			"text": "当前仅验证 GUIDE %s + GUIDE-CSharp %s；请从已验证版本页面取得匹配版本。" % [SUPPORTED_GUIDE_VERSION, SUPPORTED_GUIDE_CS_VERSION],
+			"text": "当前仅验证 GUIDE %s + GUIDE-CSharp %s；请从官方 GitHub 源码取得匹配版本。" % [SUPPORTED_GUIDE_VERSION, SUPPORTED_GUIDE_CS_VERSION],
 			"color": "#ffd166",
 		}
 	if state["scanning"]:
@@ -224,11 +224,11 @@ func _set_hint(message: String, color: String) -> void:
 
 
 func _open_official_source() -> void:
-	var result := OS.shell_open(VERIFIED_RELEASE_URL)
+	var result := OS.shell_open(OFFICIAL_SOURCE_URL)
 	if result == OK:
-		_refresh("已交给系统浏览器打开已验证的官方 Release；下载与安装仍由开发者完成。", "#8bd49c")
+		_refresh("已交给系统浏览器打开官方 GitHub 源码；下载与安装仍由开发者完成。", "#8bd49c")
 	else:
-		_refresh("无法打开已验证版本页面：%s" % error_string(result), "#ff6b6b")
+		_refresh("无法打开官方 GitHub 源码页面：%s" % error_string(result), "#ff6b6b")
 
 
 func _read_plugin_version(config_path: String) -> String:

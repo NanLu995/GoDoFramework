@@ -45,6 +45,7 @@ await BaseDataTables.LoadFromAsync("res://MountedData/Base/Runtime");
 ## 失败语义
 
 - Manifest 的 `data_set_id`、`format_version` 或 `protocol_version` 与生成代码不一致时，抛出 `DataTableLoadException`。
+- Manifest JSON 使用 `System.Text.Json` 源生成元数据反序列化，不依赖运行时反射；字段名仍固定为 `data_set_id`、`format_version`、`protocol_version`、`tables`、`id` 和 `artifact`。
 - Manifest 包含未知表、重复表、危险产物路径或与生成代码不同的文件名时拒绝加载。
 - `.gdtb` 的 magic、版本、表 ID、字段数、大小、UTF-8、索引或摘要无效时，由生成读取器失败并包装为 `DataTableLoadException`。
 - 取消抛出 `OperationCanceledException`，不会包装为加载异常。
@@ -88,7 +89,7 @@ Debug 构建中的框架内置 `DataTableService` 向只读 Debugger 提供 inte
 
 ## 验证
 
-- `Verification/Automated/DataTableServiceRegression.tscn`：真实 Base Manifest 与三张 `.gdtb` 的逐表进度、活动加载年龄与结束清理、强类型查询、重复加载、取消、失败不发布和卸载。
+- `Verification/Automated/DataTableServiceRegression.tscn`：真实 Base Manifest 与三张 `.gdtb` 的逐表进度、活动加载年龄与结束清理、强类型查询、重复加载、取消、失败不发布和卸载；另覆盖缺失字段、非法 JSON、版本不匹配与超过 16 MiB 的 Manifest。
 - `Verification/Experimental/DataTable/DataTablePrototypeBenchmark.tscn`：绝对路径、`res://`、PCK、Zstd、损坏文件拒绝和查询性能。
 - `Verification/Experimental/DataTable/verify_prototype.py`：生成确定性、校验、单表生成、过期检查和 Manifest 契约。
 
