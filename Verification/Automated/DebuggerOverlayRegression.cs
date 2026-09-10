@@ -24,6 +24,7 @@ public sealed partial class DebuggerOverlayRegression : Node
 #if DEBUG
             DebuggerOverlay overlay = GetNode<DebuggerOverlay>("/root/GoDoRuntime/GoDoDebugger");
             PanelContainer panel = overlay.GetNode<PanelContainer>("Panel");
+            HBoxContainer header = overlay.GetNode<HBoxContainer>("Panel/Margin/VBox/Header");
             Button toggle = overlay.GetNode<Button>("Panel/Margin/VBox/Header/FpsButton");
             Label title = overlay.GetNode<Label>("Panel/Margin/VBox/Header/TitleLabel");
             Button reset = overlay.GetNode<Button>("Panel/Margin/VBox/Header/ResetLayoutButton");
@@ -376,9 +377,22 @@ public sealed partial class DebuggerOverlayRegression : Node
                 toggle.GetThemeFontSize("font_size") == 16 &&
                 toggle.GetThemeConstant("outline_size") == 1 &&
                 toggle.CustomMinimumSize.X > 0f &&
+                toggle.TooltipText == "点击展开；拖动移动" &&
                 panel.Size == panel.GetCombinedMinimumSize(),
                 "Debugger 折叠入口的 FPS 文本、字号或背景宽度错误");
-            toggle.EmitSignal(BaseButton.SignalName.Pressed);
+            Vector2 defaultCompactPosition = panel.Position;
+            EmitMouseButton(toggle, pressed: true);
+            EmitMouseMotion(toggle, new Vector2(4f, 0f));
+            Assert(panel.Position == defaultCompactPosition,
+                "Debugger 折叠入口在拖动阈值内发生移动");
+            EmitMouseMotion(toggle, new Vector2(8f, 10f));
+            EmitMouseButton(toggle, pressed: false);
+            Assert(!body.Visible && panel.Position != defaultCompactPosition,
+                "Debugger 折叠入口未响应鼠标拖动，或拖动后错误展开");
+            reset.EmitSignal(BaseButton.SignalName.Pressed);
+            Assert(panel.Position == new Vector2(12f, 12f),
+                "Debugger 折叠入口重置位置错误");
+            EmitMouseTap(toggle);
             Assert(body.Visible && navigation.Visible && title.Visible && reset.Visible &&
                 resizeRow.Visible && resizeGrip.Visible,
                 "Debugger 点击后未展开");
@@ -1548,12 +1562,76 @@ public sealed partial class DebuggerOverlayRegression : Node
                 panel.Size.Y >= 300f,
                 "Debugger 默认布局没有恢复");
 
-            toggle.EmitSignal(BaseButton.SignalName.Pressed);
+            EmitMouseTap(toggle);
             Assert(!body.Visible && !title.Visible && !reset.Visible && !resizeRow.Visible,
                 "Debugger 点击后未折叠");
             Assert(toggle.SizeFlagsHorizontal == Control.SizeFlags.ShrinkBegin &&
                 panel.Size == panel.GetCombinedMinimumSize(),
                 "Debugger 再次折叠后入口内背景宽度错误");
+
+            Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
+            EmitScreenTouch(toggle, index: 0, pressed: true);
+            EmitScreenDrag(toggle, index: 0, viewportSize);
+            EmitScreenTouch(toggle, index: 0, pressed: false);
+            Vector2 collapsedEdgePosition = panel.Position;
+            Assert(!body.Visible &&
+                Mathf.IsEqualApprox(
+                    collapsedEdgePosition.X,
+                    viewportSize.X - panel.Size.X - 12f) &&
+                Mathf.IsEqualApprox(
+                    collapsedEdgePosition.Y,
+                    viewportSize.Y - panel.Size.Y - 12f),
+                "Debugger 折叠入口没有完整限制在视口内，或触摸拖动错误展开");
+
+            EmitScreenTap(toggle, index: 1);
+            Vector2 edgeExpandedPosition = panel.Position;
+            Vector2 edgeExpandedSize = panel.Size;
+            Assert(body.Visible &&
+                Mathf.IsEqualApprox(edgeExpandedSize.X, Mathf.Min(720f, viewportSize.X - 24f)) &&
+                Mathf.IsEqualApprox(edgeExpandedSize.Y, Mathf.Min(440f, viewportSize.Y - 24f)) &&
+                edgeExpandedPosition.X >= 12f &&
+                edgeExpandedPosition.Y >= 12f &&
+                edgeExpandedPosition.X + edgeExpandedSize.X <= viewportSize.X - 12f + 0.5f &&
+                edgeExpandedPosition.Y + edgeExpandedSize.Y <= viewportSize.Y - 12f + 0.5f,
+                "Debugger 靠近视口边缘展开时没有优先保留尺寸并自动避让");
+
+            EmitScreenTouch(header, index: 2, pressed: true);
+            EmitScreenDrag(header, index: 2, new Vector2(-32f, -24f));
+            EmitScreenTouch(header, index: 2, pressed: false);
+            Vector2 movedExpandedPosition = panel.Position;
+            Assert(body.Visible && movedExpandedPosition != edgeExpandedPosition,
+                "Debugger 展开标题栏未响应触摸拖动");
+
+            EmitScreenTap(toggle, index: 3);
+            Assert(!body.Visible && panel.Position == collapsedEdgePosition,
+                "Debugger 折叠后没有恢复入口位置");
+            EmitMouseTap(toggle);
+            Assert(body.Visible && panel.Position == movedExpandedPosition,
+                "Debugger 再次展开后没有恢复面板位置");
+
+            Vector2I originalWindowSize = GetWindow().Size;
+            GetWindow().Size = new Vector2I(560, 360);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            overlay._Process(0.3d);
+            Vector2 reducedViewportSize = GetViewport().GetVisibleRect().Size;
+            Assert(panel.Position.X >= 12f &&
+                panel.Position.Y >= 12f &&
+                panel.Position.X + panel.Size.X <= reducedViewportSize.X - 12f + 0.5f &&
+                panel.Position.Y + panel.Size.Y <= reducedViewportSize.Y - 12f + 0.5f,
+                "Debugger 在视口缩小时没有保持在安全边距内");
+            GetWindow().Size = originalWindowSize;
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            overlay._Process(0.3d);
+            Assert(Mathf.IsEqualApprox(panel.Size.X, 720f) &&
+                Mathf.IsEqualApprox(panel.Size.Y, 440f),
+                "Debugger 视口恢复后没有恢复首选展开尺寸");
+
+            reset.EmitSignal(BaseButton.SignalName.Pressed);
+            EmitMouseTap(toggle);
+            Assert(!body.Visible && panel.Position == new Vector2(12f, 12f),
+                "Debugger 最终折叠或重置位置错误");
 
             GD.Print("[DebuggerOverlayRegression] PASS: Debug 节点与快照页面");
 #else
@@ -1571,6 +1649,58 @@ public sealed partial class DebuggerOverlayRegression : Node
     }
 
 #if DEBUG
+    private static void EmitMouseTap(Control control)
+    {
+        EmitMouseButton(control, pressed: true);
+        EmitMouseButton(control, pressed: false);
+    }
+
+    private static void EmitMouseButton(Control control, bool pressed)
+    {
+        control.EmitSignal(
+            Control.SignalName.GuiInput,
+            new InputEventMouseButton
+            {
+                ButtonIndex = MouseButton.Left,
+                Pressed = pressed,
+            });
+    }
+
+    private static void EmitMouseMotion(Control control, Vector2 relative)
+    {
+        control.EmitSignal(
+            Control.SignalName.GuiInput,
+            new InputEventMouseMotion { Relative = relative });
+    }
+
+    private static void EmitScreenTap(Control control, int index)
+    {
+        EmitScreenTouch(control, index, pressed: true);
+        EmitScreenTouch(control, index, pressed: false);
+    }
+
+    private static void EmitScreenTouch(Control control, int index, bool pressed)
+    {
+        control.EmitSignal(
+            Control.SignalName.GuiInput,
+            new InputEventScreenTouch
+            {
+                Index = index,
+                Pressed = pressed,
+            });
+    }
+
+    private static void EmitScreenDrag(Control control, int index, Vector2 relative)
+    {
+        control.EmitSignal(
+            Control.SignalName.GuiInput,
+            new InputEventScreenDrag
+            {
+                Index = index,
+                Relative = relative,
+            });
+    }
+
     private static void SelectNavigationItem(Tree navigation, TreeItem item)
     {
         item.Select(0);

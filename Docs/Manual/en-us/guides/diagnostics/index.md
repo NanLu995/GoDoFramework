@@ -1,6 +1,6 @@
 ---
 translation_of: Docs/Manual/zh-cn/guides/diagnostics/index.md
-translation_source_hash: sha256:cb2425331b35fd08e9107a93381ed1ef32a166b8fd84624203d12b927feab27e
+translation_source_hash: sha256:77ec6e4d5bbc877eaaa0eb2b785c33a01b4f2696be3622eb36491e8a8c4922a5
 ---
 
 # Log Activity, Report Errors, and Inspect Runtime State
@@ -163,9 +163,9 @@ Before connecting a remote platform, the game project must define user consent, 
 
 After enabling the `GoDoRuntime.tscn` Autoload, Debug builds automatically show a compact health button with no shortcut configuration.
 
-- Collapsed mode shows only FPS. Warning or Error activity changes the text color according to the highest severity; inspect the Overview for exact counts.
+- Collapsed mode shows only FPS. Warning or Error activity changes the text color according to the highest severity; inspect the Overview for exact counts. Drag the compact entry with a mouse or one finger to move it; travel beyond eight logical pixels does not accidentally expand the panel.
 - Click it to open a card-based runtime overview. Clicking the Warning or Error card clears the previous search, opens the Console with only that level selected, and preserves the paused state. You can also use the navigation tree to inspect the structured System, Performance, Services, Events, Input, Scheduler, Audio, Scene, Resources, Pool, DataTable, UI, and Procedure dashboards, the optional ECS dashboard, and the Console page. The separate top-level **Execution Flow** page combines Procedure, Scene, and UI state.
-- Drag the title bar to move the window, drag the lower-right Resize Debugger handle to resize the entire panel, or click Reset to restore the default layout.
+- Click or tap the entry to expand it. Near a screen edge, the full panel keeps its current size when possible and moves into the viewport; collapsing restores the entry to its previous position. Drag the title bar with a mouse or one finger to move the window, drag the lower-right Resize Debugger handle to resize the entire panel, or click Reset to restore the default layout. Positions persist only for the current run.
 - The current page refreshes every 0.25 seconds while expanded; collapsed mode creates no module snapshots.
 - In addition to summary metrics, the Scheduler page lists up to 64 active tasks and the latest 16 endings. Owner, age, and end reason help identify cross-scene leftovers; these records exist only in Debug builds.
 - The panel is read-only and cannot modify services or game data.
@@ -205,7 +205,7 @@ Console pages retain only limited recent data. LogHub uses a 1,000-entry ring an
 
 ## Inspect rolling logs across sessions
 
-GoDoRuntime writes to `user://logs/godo_framework.log` when possible. If another running instance already holds that file, the new instance automatically uses `godo_framework.<process-id>.log`, and the Debugger file button points to the actual file. A file rolls after reaching 2 MiB and retains up to four archives; process-specific archives keep the same process ID. Debug builds record Debug, Info, Warning, Error, and Fatal entries. Release builds record only the Warning, Error, and Fatal entries that remain in the compiled application. Exception entries retain a cause summary and the full exception chain for offline diagnosis. These files can contain technical details such as local paths, so review them for privacy before upload.
+GoDoRuntime writes to `user://logs/godo_framework.log` when possible and archives the previous run's primary file under its UTC archive time at each process start. If another running instance already holds that file, the new instance automatically uses `godo_framework.<process-id>.log`, and the Debugger file button points to the actual file. A file rolls after reaching 2 MiB and retains up to four archives named like `godo_framework.20260910T143012.1234567Z.log`; process-specific archives keep the same process ID. Debug builds record Debug, Info, Warning, Error, and Fatal entries. Release builds record only the Warning, Error, and Fatal entries that remain in the compiled application. Exception entries retain a cause summary and the full exception chain for offline diagnosis. These files can contain technical details such as local paths, so review them for privacy before upload.
 
 Disk writes run through a bounded background queue and do not block error dispatch. The worker flushes about 0.25 seconds after becoming idle; under continuous traffic it flushes after about one second or 64 entries, whichever comes first. A full queue drops entries and emits a summary warning. If the directory cannot be created or the disk cannot be written, file logging is disabled for the current run and the console reports the failure once. Other tools may open the active log file for reading while the game runs. The current baseline is validated on Windows; mobile sandbox paths and shutdown flushing still require device testing.
 

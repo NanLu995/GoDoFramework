@@ -11,9 +11,9 @@ Release 构建不会由 GoDoRuntime 创建 Debugger 节点；Debugger 不是业�
 启用 `GoDoRuntime.tscn` Autoload 后，Debug 构建会自动加载紧凑状态栏，无需快捷键或 InputMap 配置。
 
 - 默认折叠，外框和紧凑按钮按 FPS 文本宽度自适应，最小宽度按 `FPS: 60` 计算，只显示 FPS；文字使用 1px 同色描边，最近 Warning/Error 仅通过文字颜色按最高严重度提示，具体数量在概览中查看。
-- 点击或触摸健康状态按钮展开或收起诊断窗口。
+- 点击或轻触健康状态按钮展开或收起诊断窗口；折叠时拖动超过 8 个逻辑像素会改为移动紧凑入口，不会误触展开。入口位置仅在本次运行中保留，重新启动后恢复默认位置。
 - 展开后使用树状导航；高频使用的 `Console` 放在 `Performance` 下方；运行时能力按 `Runtime/Input`、`Runtime/Scheduler`、`Runtime/Audio`、`Runtime/Scene`、`Runtime/Resources`、`Runtime/Pool`、可选的 `Runtime/ECS`、`Runtime/DataTable`、`Runtime/UI`、`Runtime/Procedure` 组织；只读联合诊断使用独立顶层页“运行链路”，框架状态使用 `Framework/Services` 与 `Framework/Events`。
-- 拖动标题栏可移动面板，拖动右下角“拖动调整大小 ↘”可缩放整个 Debugger；“重置”恢复默认位置与尺寸，移动和缩放结果始终限制在当前视口内。
+- 鼠标或单指拖动标题栏可移动面板，拖动右下角“拖动调整大小 ↘”可缩放整个 Debugger；入口靠近视口边缘时，展开会优先保留当前尺寸并自动避让，只有视口本身过小时才缩小。“重置”同时恢复入口、面板位置与默认尺寸，移动和缩放结果始终限制在当前视口内。
 - 健康状态按钮、树状导航、内容区和普通操作按钮不取得键盘或手柄焦点；Input、Services、Events 与控制台搜索框仅在鼠标点击后取得焦点，提交搜索或离开对应页面时释放焦点。
 - 页面切换时立即刷新；保持展开时每 0.25 秒刷新当前页面。
 

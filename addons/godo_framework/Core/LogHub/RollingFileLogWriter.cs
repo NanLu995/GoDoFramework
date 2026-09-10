@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -9,7 +11,7 @@ using System.Threading;
 
 namespace GoDo;
 
-/// <summary>将普通日志与错误报告写入有界后台队列，并按文件大小滚动保存。</summary>
+/// <summary>将普通日志与错误报告写入有界后台队列，并按进程启动和文件大小滚动保存。</summary>
 internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
 {
     internal const long DefaultMaxFileBytes = 2 * 1024 * 1024;
@@ -19,6 +21,7 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
 
     internal const string FileNamePrefix = "godo_framework";
     internal const string CurrentFileName = FileNamePrefix + ".log";
+    private const string ArchiveTimestampFormat = "yyyyMMdd'T'HHmmss.fffffff'Z'";
     private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(1);
 
     private readonly string _logDirectory;
@@ -170,7 +173,8 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
             string currentPath = _currentFilePath;
             try
             {
-                OpenWriter(currentPath, FileMode.Append, out stream, out writer);
+                ArchivePreviousProcessLog(currentPath);
+                OpenWriter(currentPath, FileMode.Create, out stream, out writer);
             }
             catch (IOException)
             {
@@ -279,25 +283,66 @@ internal sealed class RollingFileLogWriter : IErrorReporter, IDisposable
             return;
         }
 
-        string oldestPath = ArchivePath(currentPath, _archiveCount);
-        if (File.Exists(oldestPath))
-            File.Delete(oldestPath);
-
-        for (int index = _archiveCount - 1; index >= 1; index--)
-        {
-            string sourcePath = ArchivePath(currentPath, index);
-            if (File.Exists(sourcePath))
-                File.Move(sourcePath, ArchivePath(currentPath, index + 1));
-        }
-
         if (File.Exists(currentPath))
-            File.Move(currentPath, ArchivePath(currentPath, 1));
+        {
+            File.Move(currentPath, CreateArchivePath(currentPath));
+            TrimArchives(currentPath);
+        }
     }
 
-    private static string ArchivePath(string currentPath, int index) =>
-        Path.Combine(
-            Path.GetDirectoryName(currentPath) ?? string.Empty,
-            $"{Path.GetFileNameWithoutExtension(currentPath)}.{index}.log");
+    private void ArchivePreviousProcessLog(string currentPath)
+    {
+        if (!File.Exists(currentPath))
+            return;
+
+        if (_archiveCount == 0)
+            return;
+
+        File.Move(currentPath, CreateArchivePath(currentPath));
+        TrimArchives(currentPath);
+    }
+
+    private static string CreateArchivePath(string currentPath)
+    {
+        DateTime timestampUtc = DateTime.UtcNow;
+        string archivePath;
+        do
+        {
+            archivePath = Path.Combine(
+                Path.GetDirectoryName(currentPath) ?? string.Empty,
+                $"{Path.GetFileNameWithoutExtension(currentPath)}." +
+                $"{timestampUtc.ToString(ArchiveTimestampFormat, CultureInfo.InvariantCulture)}.log");
+            timestampUtc = timestampUtc.AddTicks(1);
+        }
+        while (File.Exists(archivePath));
+
+        return archivePath;
+    }
+
+    private void TrimArchives(string currentPath)
+    {
+        string directory = Path.GetDirectoryName(currentPath) ?? string.Empty;
+        string fileNamePrefix = $"{Path.GetFileNameWithoutExtension(currentPath)}.";
+        var archivePaths = new List<string>();
+        foreach (string path in Directory.EnumerateFiles(directory, $"{fileNamePrefix}*.log"))
+        {
+            string fileName = Path.GetFileName(path);
+            string timestamp = fileName[fileNamePrefix.Length..^".log".Length];
+            if (DateTime.TryParseExact(
+                timestamp,
+                ArchiveTimestampFormat,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out _))
+            {
+                archivePaths.Add(path);
+            }
+        }
+
+        archivePaths.Sort(StringComparer.Ordinal);
+        for (int index = 0; index < archivePaths.Count - _archiveCount; index++)
+            File.Delete(archivePaths[index]);
+    }
 
     private static string FormatLine(
         DateTime timestampUtc,

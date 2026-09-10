@@ -78,8 +78,8 @@ LogHub 的 Warning、Error 与 Fatal 只是便捷入口，产生的仍是同一�
 
 ## 滚动文件日志
 
-- GoDoRuntime 优先写入 `user://logs/godo_framework.log`；该文件已被另一个进程占用时，自动回退到 `godo_framework.<进程号>.log`，不会停用文件日志。回退文件使用同一进程号命名自己的滚动历史。
-- 单个文件达到 2 MiB 后滚动，最多保留 4 个历史文件；主文件使用 `godo_framework.1.log` 等名称，进程专属文件使用 `godo_framework.<进程号>.1.log` 等名称。
+- GoDoRuntime 优先写入 `user://logs/godo_framework.log`；每次进程启动会先按归档时间保存上次运行的主文件。主文件已被另一个进程占用时，自动回退到 `godo_framework.<进程号>.log`，不会停用文件日志。
+- 单个文件达到 2 MiB 后滚动，最多保留 4 个带 UTC 归档时间的历史文件；主文件使用 `godo_framework.20260910T143012.1234567Z.log` 等名称，进程专属文件使用 `godo_framework.<进程号>.20260910T143012.1234567Z.log` 等名称。
 - Debug 构建记录 LogHub 的 Debug/Info 和 ErrorHub 的 Warning/Error/Fatal；Release 只记录 ErrorHub。
 - 带异常的 ErrorHub 记录会写入有界 `Cause` 根因摘要和完整 `Exception` 链；即使 Release 控制台省略完整堆栈，本地文件仍可用于离线定位。日志可能包含本机路径等技术信息，上传前应执行隐私审查。
 - 主线程只向最大 2048 条的有界队列非阻塞入队，实际目录创建、写入和轮转由单一后台线程完成。

@@ -308,6 +308,7 @@ theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("StyleBoxFlat_status")
 theme_override_styles/hover = SubResource("StyleBoxFlat_status_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_status_hover")
+tooltip_text = "点击展开；拖动移动"
 text = "FPS: 60"
 
 [node name="TitleLabel" type="Label" parent="Panel/Margin/VBox/Header"]

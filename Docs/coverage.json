@@ -39,12 +39,12 @@
     "log-hub": {
       "contract": "addons/godo_framework/Core/LogHub/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖模块绑定通道、统一等级入口与可观察输出、Debug/Info 选择、线程与 Release 行为、滚动文件异常链、失败降级及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
+      "reason": "功能指南已覆盖模块绑定通道、统一等级入口与可观察输出、Debug/Info 选择、线程与 Release 行为、进程启动和文件大小触发的 UTC 时间归档、多实例进程号隔离、滚动文件异常链、失败降级及与 ErrorHub 的分工；仍等待大型项目日志约定专项指南。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:68f5b2eb97e281b83ab32741f64be71d9c6d0e66ee1a40e0ff4a0574da3d87bd"
+      "reviewed_contract_hash": "sha256:a64a6b8655bd4a81ce50dd93f9be8851e3d3186d1aace20deac4720caac4198c"
     },
     "services": {
       "contract": "addons/godo_framework/Core/Services/USAGE.md",
@@ -59,12 +59,12 @@
     "debugger": {
       "contract": "addons/godo_framework/Debugger/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖自动加载、只读与 Release 边界、System、Performance、各运行时模块、Input 的 Context Lease 所有权、Router Scope、完整 Action 状态与门禁、Scheduler 有界活动任务与结束原因、Resources 唯一加载操作的存活时间、Scene 与 Procedure 当前切换耗时、Audio BGM 与 DataTable 活动请求存活时间、Pool 有界活动租借与挂载位置、Events 有界监听来源、UI 有界异步请求来源与移除时机、可选 Friflo ECS 有界诊断、独立顶层运行链路、Services、Console、降级状态和单页失败恢复；仍等待目标平台显示与各页面的深度排障示例。",
+      "reason": "功能指南已覆盖自动加载、只读与 Release 边界、折叠入口的鼠标/触摸拖动、边缘展开避让与运行内布局恢复、System、Performance、各运行时模块、Input 的 Context Lease 所有权、Router Scope、完整 Action 状态与门禁、Scheduler 有界活动任务与结束原因、Resources 唯一加载操作的存活时间、Scene 与 Procedure 当前切换耗时、Audio BGM 与 DataTable 活动请求存活时间、Pool 有界活动租借与挂载位置、Events 有界监听来源、UI 有界异步请求来源与移除时机、可选 Friflo ECS 有界诊断、独立顶层运行链路、Services、Console、降级状态和单页失败恢复；仍等待目标平台显示与各页面的深度排障示例。",
       "manual_pages": [
         "guides/diagnostics/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:7066dd5d98ae5550e2742bfa435c882b08b5c7385aa5b50701ce057287f81a9a"
+      "reviewed_contract_hash": "sha256:d6ceacfac492ac1915ecf760715500d7ccce0e62e54044b9b4e547e2ef8309e4"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",

@@ -85,8 +85,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private const float MinimumExpandedWidth = 480f;
     private const float MinimumExpandedHeight = 300f;
     private const float ScreenMargin = 12f;
-    private const float VisibleHeaderWidth = 96f;
-    private const float VisibleHeaderHeight = 36f;
+    private const float DragThresholdSquared = 64f;
+    private const int MousePointerId = -1;
 
     private readonly Queue<DebuggerErrorEntry> _recentWarnings = new(MaxStoredWarnings);
     private readonly DebuggerErrorEntry[] _consoleErrorSnapshot =
@@ -288,9 +288,14 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     private ulong _sceneNodeCountRootInstanceId;
     private int _sceneNodeCount;
     private Vector2 _expandedSize = new(DefaultExpandedWidth, DefaultExpandedHeight);
+    private Vector2 _collapsedPosition = new(ScreenMargin, ScreenMargin);
+    private Vector2 _expandedPosition = new(ScreenMargin, ScreenMargin);
     private Vector2 _pointerStart;
     private Vector2 _panelPositionStart;
     private Vector2 _panelSizeStart;
+    private Vector2 _dragTravel;
+    private Control? _dragSource;
+    private int _dragPointerId;
     private string _consoleSearchQuery = string.Empty;
     private string _consoleFilePath = string.Empty;
     private string _inputActionsSearchQuery = string.Empty;
@@ -503,7 +508,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         RegisterPages();
         ConfigureNavigationTree();
         _debuggerLabel.FocusMode = Control.FocusModeEnum.None;
-        _toggleButton.Pressed += OnTogglePressed;
+        _toggleButton.GuiInput += OnToggleButtonGuiInput;
         _resetLayoutButton.Pressed += OnResetLayoutPressed;
         _overviewWarningButton!.Pressed += OnOverviewWarningPressed;
         _overviewErrorButton!.Pressed += OnOverviewErrorPressed;
@@ -559,7 +564,7 @@ public sealed partial class DebuggerOverlay : CanvasLayer
     {
         ErrorHub.OnError -= OnErrorReported;
         if (IsInstanceValid(_toggleButton))
-            _toggleButton.Pressed -= OnTogglePressed;
+            _toggleButton.GuiInput -= OnToggleButtonGuiInput;
         if (IsInstanceValid(_resetLayoutButton))
             _resetLayoutButton.Pressed -= OnResetLayoutPressed;
         if (IsInstanceValid(_overviewWarningButton))
@@ -796,8 +801,13 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         _pagesByTreeItem.Clear();
     }
 
-    private void OnTogglePressed()
+    private void ToggleExpanded()
     {
+        if (_expanded)
+            _expandedPosition = _panel!.Position;
+        else
+            _collapsedPosition = _panel!.Position;
+
         _expanded = !_expanded;
         if (!_expanded && IsInstanceValid(_consoleSearch))
             _consoleSearch.ReleaseFocus();
@@ -839,34 +849,38 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         if (!_expanded)
         {
             _panel.Size = _panel.GetCombinedMinimumSize();
-            ClampPanelPosition();
+            _collapsedPosition = ClampPanelPosition(_collapsedPosition, _panel.Size);
+            _panel.Position = _collapsedPosition;
             return;
         }
 
-        _expandedSize = ClampExpandedSize(_expandedSize);
-        _panel.Size = _expandedSize;
-        ClampPanelPosition();
+        _panel.Size = ClampExpandedSize(_expandedSize);
+        _expandedPosition = ClampPanelPosition(_expandedPosition, _panel.Size);
+        _panel.Position = _expandedPosition;
     }
 
     private Vector2 ClampExpandedSize(Vector2 requestedSize)
     {
         Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
-        float availableWidth = Mathf.Max(240f, viewportSize.X - _panel!.Position.X - ScreenMargin);
-        float availableHeight = Mathf.Max(180f, viewportSize.Y - _panel.Position.Y - ScreenMargin);
+        float availableWidth = Mathf.Max(0f, viewportSize.X - ScreenMargin * 2f);
+        float availableHeight = Mathf.Max(0f, viewportSize.Y - ScreenMargin * 2f);
         return new Vector2(
             Mathf.Clamp(requestedSize.X, Mathf.Min(MinimumExpandedWidth, availableWidth), availableWidth),
             Mathf.Clamp(requestedSize.Y, Mathf.Min(MinimumExpandedHeight, availableHeight), availableHeight));
     }
 
-    private void ClampPanelPosition()
+    private Vector2 ClampPanelPosition(Vector2 requestedPosition, Vector2 panelSize)
     {
-        if (!IsInstanceValid(_panel))
-            return;
-
         Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
-        _panel.Position = new Vector2(
-            Mathf.Clamp(_panel.Position.X, 0f, Mathf.Max(0f, viewportSize.X - VisibleHeaderWidth)),
-            Mathf.Clamp(_panel.Position.Y, 0f, Mathf.Max(0f, viewportSize.Y - VisibleHeaderHeight)));
+        return new Vector2(
+            Mathf.Clamp(
+                requestedPosition.X,
+                ScreenMargin,
+                Mathf.Max(ScreenMargin, viewportSize.X - panelSize.X - ScreenMargin)),
+            Mathf.Clamp(
+                requestedPosition.Y,
+                ScreenMargin,
+                Mathf.Max(ScreenMargin, viewportSize.Y - panelSize.Y - ScreenMargin)));
     }
 
     private void OnResetLayoutPressed()
@@ -884,8 +898,19 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         if (!IsInstanceValid(_panel))
             return;
 
-        _panel.Position = new Vector2(ScreenMargin, ScreenMargin);
+        _collapsedPosition = new Vector2(ScreenMargin, ScreenMargin);
+        _expandedPosition = _collapsedPosition;
+        _panel.Position = _expanded ? _expandedPosition : _collapsedPosition;
         _expandedSize = new Vector2(DefaultExpandedWidth, DefaultExpandedHeight);
+    }
+
+    private void OnToggleButtonGuiInput(InputEvent inputEvent)
+    {
+        if (!IsInstanceValid(_toggleButton))
+            return;
+
+        if (HandlePanelPointerInput(inputEvent, _toggleButton, !_expanded, toggleOnTap: true))
+            _toggleButton.AcceptEvent();
     }
 
     private void OnHeaderGuiInput(InputEvent inputEvent)
@@ -893,26 +918,100 @@ public sealed partial class DebuggerOverlay : CanvasLayer
         if (!_expanded || !IsInstanceValid(_panel) || !IsInstanceValid(_header))
             return;
 
-        if (inputEvent is InputEventMouseButton mouseButton &&
-            mouseButton.ButtonIndex == MouseButton.Left)
-        {
-            _dragging = mouseButton.Pressed;
-            if (_dragging)
-            {
-                _pointerStart = GetViewport().GetMousePosition();
-                _panelPositionStart = _panel.Position;
-            }
+        if (HandlePanelPointerInput(inputEvent, _header, canMove: true, toggleOnTap: false))
             _header.AcceptEvent();
-            return;
-        }
+    }
 
-        if (_dragging && inputEvent is InputEventMouseMotion)
+    private bool HandlePanelPointerInput(
+        InputEvent inputEvent,
+        Control source,
+        bool canMove,
+        bool toggleOnTap)
+    {
+        if (inputEvent.Device == InputEvent.DeviceIdEmulation)
+            return false;
+
+        switch (inputEvent)
         {
-            _panel.Position =
-                _panelPositionStart + GetViewport().GetMousePosition() - _pointerStart;
-            ClampPanelPosition();
-            _header.AcceptEvent();
+            case InputEventMouseButton mouseButton
+                when mouseButton.ButtonIndex == MouseButton.Left:
+                if (mouseButton.Pressed)
+                    BeginPanelDrag(source, MousePointerId);
+                else
+                    EndPanelDrag(source, MousePointerId, canceled: false, toggleOnTap);
+                return true;
+            case InputEventMouseMotion mouseMotion:
+                return UpdatePanelDrag(source, MousePointerId, mouseMotion.Relative, canMove);
+            case InputEventScreenTouch screenTouch:
+                if (screenTouch.Pressed)
+                    BeginPanelDrag(source, screenTouch.Index);
+                else
+                    EndPanelDrag(source, screenTouch.Index, screenTouch.Canceled, toggleOnTap);
+                return true;
+            case InputEventScreenDrag screenDrag:
+                return UpdatePanelDrag(source, screenDrag.Index, screenDrag.Relative, canMove);
+            default:
+                return false;
         }
+    }
+
+    private void BeginPanelDrag(Control source, int pointerId)
+    {
+        if (IsInstanceValid(_dragSource))
+            return;
+
+        _dragSource = source;
+        _dragPointerId = pointerId;
+        _dragTravel = Vector2.Zero;
+        _panelPositionStart = _panel!.Position;
+        _dragging = false;
+    }
+
+    private bool UpdatePanelDrag(Control source, int pointerId, Vector2 relative, bool canMove)
+    {
+        if (!ReferenceEquals(_dragSource, source) || _dragPointerId != pointerId)
+            return false;
+
+        _dragTravel += relative;
+        if (!_dragging && _dragTravel.LengthSquared() < DragThresholdSquared)
+            return true;
+
+        _dragging = true;
+        if (!canMove)
+            return true;
+
+        Vector2 requestedPosition = _panelPositionStart + _dragTravel;
+        if (_expanded)
+        {
+            _expandedPosition = ClampPanelPosition(requestedPosition, _panel!.Size);
+            _panel.Position = _expandedPosition;
+        }
+        else
+        {
+            _collapsedPosition = ClampPanelPosition(requestedPosition, _panel!.Size);
+            _panel.Position = _collapsedPosition;
+            _expandedPosition = ClampPanelPosition(
+                _collapsedPosition,
+                ClampExpandedSize(_expandedSize));
+        }
+        return true;
+    }
+
+    private void EndPanelDrag(
+        Control source,
+        int pointerId,
+        bool canceled,
+        bool toggleOnTap)
+    {
+        if (!ReferenceEquals(_dragSource, source) || _dragPointerId != pointerId)
+            return;
+
+        bool wasDragging = _dragging;
+        _dragSource = null;
+        _dragging = false;
+        _dragTravel = Vector2.Zero;
+        if (toggleOnTap && !wasDragging && !canceled)
+            ToggleExpanded();
     }
 
     private void OnResizeGripGuiInput(InputEvent inputEvent)
@@ -946,6 +1045,8 @@ public sealed partial class DebuggerOverlay : CanvasLayer
             _expandedSize = ClampExpandedSize(
                 _panelSizeStart + GetViewport().GetMousePosition() - _pointerStart);
             _panel.Size = _expandedSize;
+            _expandedPosition = ClampPanelPosition(_expandedPosition, _panel.Size);
+            _panel.Position = _expandedPosition;
             _resizeGrip.AcceptEvent();
         }
     }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Threading;
 using Godot;
@@ -175,8 +176,6 @@ public sealed partial class LogHubRegression : Node
             }
 
             string currentPath = Path.Combine(directory, RollingFileLogWriter.CurrentFileName);
-            string firstArchivePath =
-                Path.Combine(directory, $"{RollingFileLogWriter.FileNamePrefix}.1.log");
             writer.Write(
                 DateTime.UtcNow,
                 LogLevel.Info,
@@ -189,12 +188,9 @@ public sealed partial class LogHubRegression : Node
                     "shutdown-entry",
                     StringComparison.Ordinal),
                 "退出刷新没有写出队列中的最后一条日志");
-            Assert(File.Exists(firstArchivePath), "达到容量后没有生成滚动日志文件");
-            Assert(
-                !File.Exists(Path.Combine(
-                    directory,
-                    $"{RollingFileLogWriter.FileNamePrefix}.3.log")),
-                "保留数量超过配置上限");
+            string[] archivePaths = FindTimestampArchives(directory, currentPath);
+            Assert(archivePaths.Length > 0, "达到容量后没有生成带时间的滚动日志文件");
+            Assert(archivePaths.Length <= 2, "带时间的滚动日志保留数量超过配置上限");
         }
         finally
         {
@@ -208,6 +204,9 @@ public sealed partial class LogHubRegression : Node
         RollingFileLogWriter? writer = null;
         try
         {
+            Directory.CreateDirectory(directory);
+            string currentPath = Path.Combine(directory, RollingFileLogWriter.CurrentFileName);
+            File.WriteAllText(currentPath, "previous-process-entry");
             writer = new RollingFileLogWriter(
                 directory,
                 maxFileBytes: 4096,
@@ -220,7 +219,6 @@ public sealed partial class LogHubRegression : Node
                 "LogHubRegression",
                 context: null);
 
-            string currentPath = Path.Combine(directory, RollingFileLogWriter.CurrentFileName);
             Assert(
                 SpinWait.SpinUntil(
                     () => writer.GetDebugSnapshot().CurrentFileBytes > 0,
@@ -236,6 +234,13 @@ public sealed partial class LogHubRegression : Node
                     "periodic-entry",
                     StringComparison.Ordinal),
                 "运行中刷新后的文件缺少日志内容");
+            string[] archivePaths = FindTimestampArchives(directory, currentPath);
+            Assert(
+                archivePaths.Length == 1 &&
+                File.ReadAllText(archivePaths[0]).Contains(
+                    "previous-process-entry",
+                    StringComparison.Ordinal),
+                "进程启动时没有按归档时间保存上次日志");
         }
         finally
         {
@@ -353,17 +358,15 @@ public sealed partial class LogHubRegression : Node
             string expectedPath = Path.Combine(
                 directory,
                 $"{RollingFileLogWriter.FileNamePrefix}.{System.Environment.ProcessId}.log");
-            string expectedArchivePath = Path.Combine(
-                directory,
-                $"{RollingFileLogWriter.FileNamePrefix}.{System.Environment.ProcessId}.1.log");
             Assert(snapshot.IsReady && !snapshot.HasFailed, "主日志被占用时没有启用回退文件");
             AssertEqual(expectedPath, snapshot.Path, "回退日志文件名未包含当前进程号");
 
             writer.Dispose();
             writer = null;
+            string[] archivePaths = FindTimestampArchives(directory, expectedPath);
             Assert(
-                File.Exists(expectedArchivePath),
-                $"回退日志轮转文件未保留当前进程号；当前文件大小：" +
+                archivePaths.Length == 1,
+                $"回退日志时间归档文件未保留当前进程号；当前文件大小：" +
                 $"{new FileInfo(expectedPath).Length} B");
             Assert(
                 File.ReadAllText(expectedPath).Contains(
@@ -421,6 +424,25 @@ public sealed partial class LogHubRegression : Node
     {
         if (Directory.Exists(path))
             Directory.Delete(path, recursive: true);
+    }
+
+    private static string[] FindTimestampArchives(string directory, string currentPath)
+    {
+        const string timestampFormat = "yyyyMMdd'T'HHmmss.fffffff'Z'";
+        string fileNamePrefix = $"{Path.GetFileNameWithoutExtension(currentPath)}.";
+        return Array.FindAll(
+            Directory.GetFiles(directory, $"{fileNamePrefix}*.log"),
+            path =>
+            {
+                string fileName = Path.GetFileName(path);
+                string timestamp = fileName[fileNamePrefix.Length..^".log".Length];
+                return DateTime.TryParseExact(
+                    timestamp,
+                    timestampFormat,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                    out _);
+            });
     }
 
 #if DEBUG
