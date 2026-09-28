@@ -18,6 +18,7 @@ from pathlib import Path
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 RELEASE_SCRIPT = REPOSITORY_ROOT / "release" / "release.py"
 PROJECT_NAME = "GoDoCorePackageLifecycle"
+HISTORICAL_TAG = "v0.7.0"
 FRAMEWORK_RELATIVE_PATH = Path("addons") / "godo_framework"
 RUNTIME_SCENE_PATH = "res://addons/godo_framework/Core/GoDoRuntime.tscn"
 PLUGIN_CONFIG_PATH = "res://addons/godo_framework/plugin.cfg"
@@ -30,10 +31,12 @@ PASS_MARKERS = {
 }
 
 
-def load_release_module():
-    spec = importlib.util.spec_from_file_location("godo_release_lifecycle", RELEASE_SCRIPT)
+def load_release_module(script: Path = RELEASE_SCRIPT):
+    spec = importlib.util.spec_from_file_location(
+        f"godo_release_lifecycle_{script.parent.parent.name}", script
+    )
     if spec is None or spec.loader is None:
-        raise RuntimeError(f"无法加载发布脚本：{RELEASE_SCRIPT}")
+        raise RuntimeError(f"无法加载发布脚本：{script}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -66,6 +69,7 @@ script = ExtResource(\"1_runner\")
 """
 
 CORE_SMOKE_SCRIPT = """using System;
+using System.Text;
 using Godot;
 using GoDo;
 
@@ -73,6 +77,10 @@ using GoDo;
 
 public sealed partial class CoreSmoke : Node
 {
+    private const string HistoricalPayload = "written-by-v0.7.0";
+    private static readonly SaveSlot HistoricalSlot = SaveSlot.Create("historical-upgrade");
+    private static readonly SaveSlot SettingsSlot = SaveSlot.Create("godo-settings");
+
     public override void _Ready() => CallDeferred(MethodName.VerifyRuntime);
 
     private void VerifyRuntime()
@@ -85,11 +93,18 @@ public sealed partial class CoreSmoke : Node
             _ = Services.Get<IAudioService>();
             _ = Services.Get<ILocalizationService>();
             _ = Services.Get<IUiService>();
-            _ = Services.Get<ISaveService>();
-            _ = Services.Get<ISettingsService>();
+            ISaveService saves = Services.Get<ISaveService>();
+            ISettingsService settings = Services.Get<ISettingsService>();
             _ = Services.Get<IProcedureService>();
 
-            GD.Print("[CorePackageLifecycle] RUNTIME PASS (9/9 services)");
+            string mode = FileAccess.GetFileAsString("res://upgrade-mode.txt").Trim();
+            if (mode == "write")
+                WriteHistoricalData(saves, settings);
+            else if (mode == "read")
+                ReadHistoricalData(saves, settings);
+            else
+                throw new InvalidOperationException($"Unknown upgrade mode: {mode}");
+
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -97,6 +112,55 @@ public sealed partial class CoreSmoke : Node
             GD.PushError($"[CorePackageLifecycle] RUNTIME FAIL: {exception}");
             GetTree().Quit(1);
         }
+    }
+
+    private static void WriteHistoricalData(ISaveService saves, ISettingsService settings)
+    {
+        if (saves.Exists(HistoricalSlot))
+            saves.Delete(HistoricalSlot);
+        if (saves.Exists(SettingsSlot))
+            saves.Delete(SettingsSlot);
+
+        settings.LoadAndApply();
+        settings.SetMasterVolume(0.42f);
+        settings.SetBgmVolume(0.31f);
+        settings.SetSfxVolume(0.73f);
+        settings.Save();
+        saves.Save(HistoricalSlot, HistoricalPayload, 7, new Utf8Codec());
+        GD.Print("[CorePackageLifecycle] v0.7.0 DATA WRITE PASS");
+    }
+
+    private static void ReadHistoricalData(ISaveService saves, ISettingsService settings)
+    {
+        if (settings.LoadAndApply() != SettingsLoadStatus.Loaded)
+            throw new InvalidOperationException("Historical settings were not loaded.");
+        SettingsSnapshot snapshot = settings.Current;
+        if (!Mathf.IsEqualApprox(snapshot.MasterVolume, 0.42f)
+            || !Mathf.IsEqualApprox(snapshot.BgmVolume, 0.31f)
+            || !Mathf.IsEqualApprox(snapshot.SfxVolume, 0.73f))
+        {
+            throw new InvalidOperationException("Historical settings values changed after upgrade.");
+        }
+
+        SaveLoadResult<string> result = saves.Load(HistoricalSlot, new Utf8Codec());
+        if (result.Status != SaveLoadStatus.Loaded
+            || result.DataVersion != 7
+            || result.Value != HistoricalPayload)
+        {
+            throw new InvalidOperationException("Historical save data changed after upgrade.");
+        }
+
+        saves.Delete(HistoricalSlot);
+        saves.Delete(SettingsSlot);
+        GD.Print("[CorePackageLifecycle] HISTORICAL DATA READ PASS");
+    }
+
+    private sealed class Utf8Codec : ISaveCodec<string>
+    {
+        public byte[] Encode(string value) => Encoding.UTF8.GetBytes(value);
+
+        public string Decode(ReadOnlySpan<byte> payload, int dataVersion) =>
+            Encoding.UTF8.GetString(payload);
     }
 }
 """
@@ -587,14 +651,47 @@ def run_scene(
         raise RuntimeError(f"{scene_path} 缺少成功标记。\n{output}")
 
 
+def build_historical_archive(project_root: Path, output_root: Path) -> Path:
+    source_archive = project_root / "historical-source.zip"
+    source_root = project_root / "historical-source"
+    source_root.mkdir()
+    run(
+        [
+            "git",
+            "archive",
+            "--format=zip",
+            f"--output={source_archive}",
+            HISTORICAL_TAG,
+            "release/release.py",
+            "addons/godo_framework",
+        ],
+        REPOSITORY_ROOT,
+    )
+    try:
+        extract_core_archive(source_archive, source_root)
+        historical_release = load_release_module(source_root / "release" / "release.py")
+        version, _, _ = historical_release.read_plugin_metadata()
+        if version != HISTORICAL_TAG.removeprefix("v"):
+            raise RuntimeError(
+                f"历史标签 {HISTORICAL_TAG} 的插件版本异常：{version}。"
+            )
+        return historical_release.build_archive(version, "core", output_root)
+    finally:
+        shutil.rmtree(source_root, ignore_errors=True)
+        source_archive.unlink(missing_ok=True)
+
+
 def verify_lifecycle(project_root: Path, godot_path: Path, timeout: int) -> None:
     release = load_release_module()
     version, _, _ = release.read_plugin_metadata()
     archive_root = project_root / "archive"
-    archive_path = release.build_archive(version, "core", archive_root)
+    historical_archive = build_historical_archive(
+        project_root, archive_root / HISTORICAL_TAG
+    )
+    archive_path = release.build_archive(version, "core", archive_root / f"v{version}")
 
     create_host_project(project_root)
-    extract_core_archive(archive_path, project_root)
+    extract_core_archive(historical_archive, project_root)
     framework_root = project_root / FRAMEWORK_RELATIVE_PATH
     if not framework_root.is_dir():
         raise RuntimeError("核心 ZIP 未生成 addons/godo_framework 目录。")
@@ -604,11 +701,12 @@ def verify_lifecycle(project_root: Path, godot_path: Path, timeout: int) -> None
     build_project(project_root)
     run_editor_import(project_root, godot_path, timeout)
     run_probe(project_root, godot_path, "install", timeout)
+    (project_root / "upgrade-mode.txt").write_text("write", encoding="utf-8")
     run_scene(
         project_root,
         godot_path,
         "res://CoreSmoke.tscn",
-        "[CorePackageLifecycle] RUNTIME PASS (9/9 services)",
+        "[CorePackageLifecycle] v0.7.0 DATA WRITE PASS",
         timeout,
     )
 
@@ -619,11 +717,12 @@ def verify_lifecycle(project_root: Path, godot_path: Path, timeout: int) -> None
         raise RuntimeError("完整替换后旧版本残留文件仍然存在。")
     build_project(project_root)
     run_probe(project_root, godot_path, "health", timeout)
+    (project_root / "upgrade-mode.txt").write_text("read", encoding="utf-8")
     run_scene(
         project_root,
         godot_path,
         "res://CoreSmoke.tscn",
-        "[CorePackageLifecycle] RUNTIME PASS (9/9 services)",
+        "[CorePackageLifecycle] HISTORICAL DATA READ PASS",
         timeout,
     )
 
@@ -651,7 +750,10 @@ def verify_lifecycle(project_root: Path, godot_path: Path, timeout: int) -> None
         "[CorePackageLifecycle] REMOVED HOST PASS",
         timeout,
     )
-    print("[PASS] 核心 ZIP 安装、替换升级、安全卸载与宿主移除验证通过")
+    print(
+        f"[PASS] 核心 ZIP {HISTORICAL_TAG} -> v{version} 安装、数据迁移、替换升级、"
+        "安全卸载与宿主移除验证通过"
+    )
 
 
 def main() -> int:

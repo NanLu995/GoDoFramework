@@ -45,6 +45,7 @@ def copy_probe_project(project: Path) -> None:
     shutil.copytree(
         PROJECT_ROOT / "addons" / "godo_framework",
         project / "addons" / "godo_framework",
+        ignore=shutil.ignore_patterns("Integrations"),
     )
     shutil.copytree(PROJECT_ROOT / "DataTables" / "Base", project / "DataTables" / "Base")
 
@@ -95,9 +96,6 @@ renderer/rendering_method.mobile="gl_compatibility"
     <TargetFramework>net8.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="addons/godo_framework/Integrations/**/*.cs" />
-  </ItemGroup>
 </Project>
 """,
         encoding="utf-8",

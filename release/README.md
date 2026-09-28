@@ -11,7 +11,7 @@
 
 ## 本地打包
 
-正式打包前先运行统一发布门禁。它按固定顺序复用现有的发布脚本单测、public API 兼容检查、DataTable 生成产物校验、Debug / Release 构建、Headless 回归、DataTable 导出过滤与 Windows ExportRelease、文档检查、发布包生成，以及核心 ZIP 的安装、替换升级与安全移除回归：
+正式打包前先运行统一发布门禁。它按固定顺序复用现有的发布脚本单测、public API 兼容检查、DataTable 生成产物校验、Debug / Release 构建、Headless 回归、DataTable 导出过滤与 Windows ExportRelease、文档检查、发布包生成，以及核心 ZIP 的历史版本安装、数据兼容、替换升级与安全移除回归：
 
 ```powershell
 python Verification/release_gate.py --godot $env:GODOT_PATH
@@ -27,7 +27,7 @@ python Verification/release_gate.py --godot $env:GODOT_PATH --stage package-life
 
 DataTable ExportRelease 与 `package-lifecycle` 使用门禁创建的临时目录，成功后自动清理；生命周期回归只删除其临时项目内精确匹配的框架目录，不修改当前工作区的 `project.godot`、Autoload 或插件状态。`packages` 阶段生成的正式归档仍写入 `release/dist/`。门禁只负责本地验证和打包，不创建 Tag、不提交代码，也不发布 GitHub Release。
 
-`package-lifecycle` 从当前源码生成真实核心 ZIP，在无预置 Autoload 的临时 Godot C# 项目中通过插件界面安装 Runtime，验证 9 项长期服务启动；随后放置合成旧文件并完整替换框架目录，确认残留被清除、Autoload 保留且运行时仍健康。移除阶段还会确认错误路径的同名 Autoload 不会被卸载，再执行精确卸载、禁用插件、删除框架目录，并验证不再引用 `GoDo.*` 的中性宿主仍可编译运行。合成旧文件只验证完整替换卫生，不代表任意历史版本的 API 或数据迁移兼容性。
+`package-lifecycle` 从本地 Git 标签 `v0.7.0` 和当前源码分别生成真实核心 ZIP。在无预置 Autoload 的临时 Godot C# 项目中，它先通过 `v0.7.0` 插件界面安装 Runtime，写入系统 Settings 和带业务版本号的 Save 数据；随后完整替换为当前核心包，确认旧文件残留被清除、Autoload 保留、运行时健康，并能读取旧版持久化数据。移除阶段还会确认错误路径的同名 Autoload 不会被卸载，再执行精确卸载、禁用插件、删除框架目录，并验证不再引用 `GoDo.*` 的中性宿主仍可编译运行。该回归证明框架容器和系统设置可从 `v0.7.0` 延续到当前版本；游戏业务 Codec 自己负责的数据结构迁移仍应由各游戏单独验证。
 
 ### public API 兼容基线
 

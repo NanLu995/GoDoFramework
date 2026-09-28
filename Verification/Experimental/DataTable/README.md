@@ -1,6 +1,6 @@
-# DataTable 阶段 A / B 与 C.1 至 C.6 验证
+# DataTable 专项验证
 
-本目录验证 DataTable 的源数据、正式编译前端 CLI、跨语言产物和读取性能，不属于框架运行时，也不承诺 public API。编译器实现位于 `addons/godo_framework/Tools/DataTable/godo_datatable.py`；本目录的同名旧入口只保留命令转发兼容性。
+本目录验证 DataTable 的源数据、正式编译前端 CLI、跨语言产物和读取性能，不属于框架运行时，也不承诺 public API。编译器实现位于 `addons/godo_framework/Tools/DataTable/godo_datatable.py`；精确工具和运行时契约分别见对应 `USAGE.md`，本目录的同名旧入口只保留命令转发兼容性。
 
 ## 运行
 
@@ -48,10 +48,10 @@ dotnet build GoDoFramework.sln
 
 生成数据和二进制位于本目录 `Artifacts/`，不纳入版本控制。`Generated/DataTablePrototype.Generated.cs` 由原型编译器生成并参与项目编译，禁止手工修改。
 
-## 当前边界
+## 验证边界
 
 - 只支持 UTF-8 CSV 与受控 DataTable Schema；
-- 只实现阶段 A 所需的 string、bool、int32、float64 和 enum；
+- 当前验证覆盖 string、bool、int32、float64 和 enum；
 - `.gdtb` v2 使用小端序，支持未压缩或 Godot Zstd payload；
 - `Auto` 当前只提供压缩建议并选择未压缩，`Never` / `Always` 已有实验语义；
 - 不包含加密、热更新或移动端导出；Windows 完整 ExportRelease 可执行文件通过 `verify_export_release.py` 准备或自动验收，正式 `IDataTableService` 语义由 `Verification/Automated/DataTableServiceRegression.tscn` 验证；

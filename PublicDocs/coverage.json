@@ -4,14 +4,14 @@
     "framework-setup": {
       "contract": "addons/godo_framework/USAGE.md",
       "status": "documented",
-      "reason": "快速开始、安装和资源指南已覆盖完整复制、C# 准备、健康检查、Runtime 安装、GoDo 自有条件编译/Release 裁剪规则的确认修复与备份、复杂项目只读边界、可选集成、升级回滚、安全卸载及资源清单编辑器工作流；真实核心 ZIP 已通过临时项目安装、替换升级和安全移除自动回归，历史版本迁移仍按具体版本验收。",
+      "reason": "快速开始、安装和资源指南已覆盖完整复制、C# 准备、健康检查、Runtime 安装、GoDo 自有条件编译/Release 裁剪规则的确认修复与备份、复杂项目只读边界、可选集成、升级回滚、安全卸载及资源清单编辑器工作流；真实核心 ZIP 已通过临时项目安装、替换升级和安全移除自动回归，并固定验证 v0.7.0 到当前版本的 Settings 与 Save 容器兼容性。",
       "manual_pages": [
         "getting-started/index.md",
         "getting-started/install-upgrade-uninstall.md",
         "guides/resources-and-scenes/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:056c28a6f0f967702a2f3f53c4c07fc6fbc452cd9b86bb5d9242ed744d9990e7"
+      "reviewed_contract_hash": "sha256:e82ea1d9f551408657adc5ecc672dc9425297fa879bda84b8ad8008fc4c02b06"
     },
     "error-hub": {
       "contract": "addons/godo_framework/Core/ErrorHub/USAGE.md",

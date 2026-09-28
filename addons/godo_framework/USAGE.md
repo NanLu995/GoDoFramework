@@ -122,10 +122,10 @@ Runtime 安装与 C# 规则修复是统一报告中的两项独立操作：综�
 - 已在未创建 C# 解决方案、未编译的新建 .NET 项目中验证：复制框架后可直接启用插件并打开检查窗口。
 - `dotnet build GoDoFramework.sln`：验证运行时代码可编译。
 - `python Verification/Package/verify_core_package.py --godot <GodotMonoConsole>`：在临时干净项目中只复制 `addons/godo_framework/`，启用 EditorPlugin 后验证缺失可选集成目录不会报错，并验证核心运行时不依赖可选适配包或第三方插件；烟雾场景同时编译并执行 StateMachine 的继承、Change、Tick 与 Dispose。
-- `python Verification/Package/verify_core_package_lifecycle.py --godot <GodotMonoConsole>`：从真实核心 ZIP 创建临时项目，通过插件界面验证首次安装与幂等复查、9 项长期服务启动、整目录替换清除合成旧文件且保留 Autoload、错误路径拒绝卸载、精确卸载与插件禁用；删除框架后只验证已解除 `GoDo.*` 引用的中性宿主可编译运行。该夹具验证替换流程，不宣称覆盖任意历史版本兼容性。
+- `python Verification/Package/verify_core_package_lifecycle.py --godot <GodotMonoConsole>`：从本地 Git 标签 `v0.7.0` 和当前源码分别生成真实核心 ZIP，通过旧版插件界面验证首次安装与幂等复查、长期服务启动及 Settings / Save 数据写入；整目录替换为当前包后验证旧文件清除、Autoload 保留、运行时健康和旧版持久化数据读取，再覆盖错误路径拒绝卸载、精确卸载、插件禁用及中性宿主编译运行。该夹具证明框架 Settings 与 Save 容器可从 `v0.7.0` 延续到当前版本，不代替游戏业务 Codec 自己的数据结构迁移测试。
 - 已在当前项目验证：启用插件后检查结果健康；禁用插件后菜单消失且 Autoload 保持不变。
 - 已在第二个小项目验证：未安装、安装、重复安装、名称冲突、重复路径和安全卸载。
 - `EditorExtensionUiRegression.gd` 会在 Headless Editor 中验证 DataTable 独立导航、编辑器扩展动态子条目、三项扩展内容直接嵌入右侧且不再显示“状态”条目，并确认 GUIDE Input 与 Phantom Camera 报告非空、健康状态下修改按钮禁用，以及 Friflo ECS 能识别当前项目、按状态控制安装按钮并展示备份确认。
-- DataTable 阶段 C.2 / C.3 使用独立实验 Probe 真实执行检查、全量生成与单表选择生成，不加入永久 `run_all.py`。
+- DataTable 的检查、全量生成与单表选择生成由专项回归验证，不加入永久 `run_all.py`。
 
 当前项目不自动执行安装或卸载测试，避免修改现有 `project.godot`；生命周期自动化只在系统临时项目中运行并清理其精确框架路径。
