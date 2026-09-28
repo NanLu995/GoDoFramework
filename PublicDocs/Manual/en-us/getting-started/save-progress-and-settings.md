@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/getting-started/save-progress-and-settings.md
-translation_source_hash: sha256:e72765018da6a54fd332d20c47b64a95010b384a422baec7c46320cddfcf3c47
+translation_source_hash: sha256:de780b8ad97fcc2ea57d9d547b14ec5d04c0cfc5084ddab35f7dda7e8fc7c791
 ---
 
 # Save Game Progress and Volume Settings

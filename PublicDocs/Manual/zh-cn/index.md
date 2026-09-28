@@ -2,6 +2,8 @@
 
 GoDoFramework 为 Godot 4.x C# 项目提供可复用的游戏流程、场景、UI、音频、输入、数据与诊断能力。它不替代玩法代码或 Godot 原生节点；它解决的是这些基础能力在项目变大后容易出现的生命周期、失败处理与协作边界问题。
 
+当前手册对应 GoDoFramework 0.8.0：最低要求 Godot 4.7.0 .NET，最高已完成回归的版本为 Godot 4.7.2 .NET。使用更高的 Godot 4.x 版本时，安装检查会提示尚未验证；发布前应完成项目自己的编译、自动测试和关键场景回归。安装与升级边界见[安装、升级与卸载框架](getting-started/install-upgrade-uninstall.md)。
+
 ## 选择一条阅读路线
 
 <div class="godo-doc-grid">
@@ -15,7 +17,7 @@ GoDoFramework 为 Godot 4.x C# 项目提供可复用的游戏流程、场景、U
   </a>
   <a class="godo-doc-card" href="integrations/index.md">
     <strong>接入第三方能力</strong>
-    <span>了解 G.U.I.D.E-CSharp 与 Phantom Camera 的适配边界、安装方式和限制。</span>
+    <span>了解 G.U.I.D.E-CSharp、Phantom Camera 与 Friflo ECS 的适配边界、安装方式和限制。</span>
   </a>
   <a class="godo-doc-card" href="troubleshooting/index.md">
     <strong>排查运行问题</strong>

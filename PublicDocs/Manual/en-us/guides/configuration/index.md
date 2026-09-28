@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/guides/configuration/index.md
-translation_source_hash: sha256:f3f5fa335393decac7fcc449b6b9d0a5370ec94d45e98be7d7c43c830c379a47
+translation_source_hash: sha256:b2c95cb4cbc973dfb40f49e65e00660a481ed2a33cc8e6e7e866d5955e0abe1e
 ---
 
 # Create, Validate, and Query Typed Configuration

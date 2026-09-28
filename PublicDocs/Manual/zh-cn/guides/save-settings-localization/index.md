@@ -141,7 +141,7 @@ string count = localization.TranslatePlural(
 
 缺失翻译返回源键，不抛异常，也不会在查询热路径制造日志。内容验收应在发布前发现缺失键，而不是依赖运行时错误。
 
-AvailableLocales 在服务初始化时建立。首版不支持运行时动态加入语言包；`SetLocale` 只接受默认语言或项目已加载翻译可匹配的规范 Locale。
+AvailableLocales 在服务初始化时建立。当前不支持运行时动态加入语言包；`SetLocale` 只接受默认语言或项目已加载翻译可匹配的规范 Locale。
 
 ## 9. 字体、RTL 和伪本地化
 

@@ -243,7 +243,7 @@ private void OnCompleteRunRequested(CompleteRunRequestedEvent _)
 }
 ```
 
-SaveService 首版是同步主线程 API，适合常规小型存档。只在明确里程碑保存，不要放进 `_Process()`，也不要用 `Task.Run` 包装 Godot 文件操作。
+SaveService 当前是同步主线程 API，适合常规小型存档。只在明确里程碑保存，不要放进 `_Process()`，也不要用 `Task.Run` 包装 Godot 文件操作。
 
 保存失败时留在当前流程，让业务 UI 有机会提示重试。生产游戏还应显示玩家可理解的错误提示，而不只依赖开发输出。
 

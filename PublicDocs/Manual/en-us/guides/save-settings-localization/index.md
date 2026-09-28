@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/guides/save-settings-localization/index.md
-translation_source_hash: sha256:3499f9c6bcc5fc67016930b18bd49653f2a877236a9c0c7124748e1f25e44d09
+translation_source_hash: sha256:c8697ab10fdb9166e30a6e55560bdd2f52a5ce8bfd4e86fee50186d5b2ed41d0
 ---
 
 # Design Multi-Slot Saves, Cross-Platform Settings, and Localization

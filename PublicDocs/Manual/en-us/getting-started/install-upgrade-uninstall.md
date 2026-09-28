@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/getting-started/install-upgrade-uninstall.md
-translation_source_hash: sha256:d81a0f7baff84238f87bdeb4ad84987c0b08f60883d6549dc9b0103fed2bd0cb
+translation_source_hash: sha256:ba556d0aba3a7a7c46bd0550825b7af8ae60b853c5cde6bcb6ee9b64a25a3a89
 ---
 
 # Install, Upgrade, and Uninstall the Framework
@@ -30,10 +30,11 @@ res://addons/godo_framework/
 
 Use the complete core ZIP instead of selecting only Runtime subdirectories that currently appear useful. The core package already excludes all `Integrations/`; Core, editor setup, and core modules remain an indivisible package boundary. Partial copying makes health checks, compilation, and future upgrades inconsistent.
 
-GUIDE Input and Phantom Camera adapters are separate overlay packages and still require their respective third-party dependencies. Finish core setup first, then install the dependency and overlay the required integration package at the project root by following the relevant guide:
+GUIDE Input, Phantom Camera, and Friflo ECS adapters are separate overlay packages and still require their respective third-party dependencies. Finish core setup first, then install the dependency and overlay the required integration package at the project root by following the relevant guide:
 
 - [Input and the GUIDE backend](../guides/input/index.md)
 - [Main cameras and Phantom Camera](../guides/camera/index.md)
+- [Batch Scene Data with Friflo ECS](../guides/friflo-ecs/index.md)
 
 ## 2. Enable the editor plugin
 

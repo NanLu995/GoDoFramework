@@ -1,11 +1,13 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/index.md
-translation_source_hash: sha256:16af23d6e4acfe0e44163d53580f04111ebff306bcbbc105835c244fed9b846a
+translation_source_hash: sha256:d168da5a6749bf28156beafbb165db097850da7fbe0b7f48c15e14514f75b577
 ---
 
 # GoDoFramework Manual
 
 GoDoFramework provides reusable game flow, scenes, UI, audio, input, data, and diagnostics for Godot 4.x C# projects. It does not replace gameplay code or native Godot nodes; it defines lifecycle, failure, and collaboration boundaries for the shared systems that become difficult as a project grows.
+
+This manual covers GoDoFramework 0.8.0. It requires Godot 4.7.0 .NET or later, with regression coverage through Godot 4.7.2 .NET. A newer Godot 4.x release triggers an unverified-version warning; complete your own build, automated tests, and critical-scene regression before shipping. See [Install, Upgrade, and Uninstall](getting-started/install-upgrade-uninstall.md) for installation and upgrade boundaries.
 
 ## Choose a reading path
 
@@ -20,7 +22,7 @@ GoDoFramework provides reusable game flow, scenes, UI, audio, input, data, and d
   </a>
   <a class="godo-doc-card" href="integrations/index.md">
     <strong>Integrate third-party capabilities</strong>
-    <span>Learn the setup, boundaries, and constraints for G.U.I.D.E-CSharp and Phantom Camera.</span>
+    <span>Learn the setup, boundaries, and constraints for G.U.I.D.E-CSharp, Phantom Camera, and Friflo ECS.</span>
   </a>
   <a class="godo-doc-card" href="troubleshooting/index.md">
     <strong>Troubleshoot a runtime issue</strong>
