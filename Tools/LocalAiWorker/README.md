@@ -5,7 +5,7 @@
 ## 启动条件
 
 1. 安装 Python 3.10 或更高版本，无需安装第三方包。
-2. 在 LM Studio 中加载名称包含 `qwen2.5-coder-14b` 的 LLM。
+2. 在 LM Studio 中加载名称匹配项目 `.codex/config.toml` 中 `GODO_LOCAL_AI_MODEL` 的 LLM。
 3. 仅在 `127.0.0.1:1234` 启动 LM Studio API Server，不启用局域网访问。
 4. 重启 Codex，使项目 `.codex/config.toml` 中的 MCP 配置生效。
 

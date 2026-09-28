@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/getting-started/index.md
-translation_source_hash: sha256:8643fda05ae043e151a3a49d98e0148f33671b25d8f94f8578e6c601349c2a8e
+translation_source_hash: sha256:eca84255beb8f88be52a4366c41b5c9262f82f92c0ac5123b2a34e3638dfce4b
 ---
 
 # Quick start: build a runnable game skeleton
@@ -43,7 +43,7 @@ In Godot, open **Project Settings → Plugins** and enable `GoDo Framework`. Thi
 ## 3. Check and install Runtime
 
 1. Complete a C# Debug build for the target project.
-2. Open **GoDo → Setup...** from the editor menu.
+2. Open **GoDo Framework → Open GoDo Framework...** from the editor menu, then select **Project Configuration → Runtime**.
 3. Resolve every reported issue.
 4. When all checks pass, explicitly select **Install Runtime**.
 

@@ -2,9 +2,9 @@
 
 ## 定位
 
-本工具在 Editor、CI 或开发命令行中校验 UTF-8 CSV 与 JSON Schema，并生成确定性的运行时 Manifest、未压缩 `.gdtb` 和强类型 C# 读取代码。默认不写入可读 IR、Debug JSON 或构建报告；它们属于后续按需诊断能力。工具不进入游戏运行时，不依赖第三方 Python 包，也不提供网络协议或加密。
+本工具在 Editor、CI 或开发命令行中校验 UTF-8 CSV 与 JSON 格式的 Schema，并生成确定性的运行时 Manifest、未压缩 `.gdtb` 和强类型 C# 读取代码。默认不写入可读 IR、Debug JSON 或构建报告；它们属于后续按需诊断能力。工具不进入游戏运行时，不依赖第三方 Python 包，也不提供网络协议或加密。
 
-当前已完成阶段 C.6 的整套数据集、安全单表生成、只读过期检查、Client / Server 导出隔离、PCK 读取验证、语言无关 Manifest 兼容契约和 EditorPlugin 接入，但尚未进入稳定基线。Zstd 仍由后续 Godot C# 构建目标处理；本工具生成未压缩候选，因此不能单独完成 `Always` 压缩的正式发布流程。
+当前工具已支持整套数据集、安全单表生成、只读过期检查、Client / Server 导出隔离、PCK 读取验证、语言无关 Manifest 兼容契约和 EditorPlugin 接入。Zstd 仍由后续 Godot C# 构建目标处理；本工具生成未压缩候选，因此不能单独完成 `Always` 压缩的正式发布流程。成熟阶段见[模块状态](../../../../Docs/00_项目/模块状态.md)。
 
 ## 环境
 

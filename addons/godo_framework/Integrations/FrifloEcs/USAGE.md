@@ -90,7 +90,7 @@ Friflo 的 System 性能监控有自身运行成本，因此 Debugger 不会调�
 
 `Friflo.EcGui` 主要面向 ImGui/.NET 桌面工具链中的深度 Entity/Component 检查。Godot 要嵌入它还需要额外 GUI 后端、渲染与输入桥接，并承担第三方升级兼容，当前不作为 GoDo 集成依赖。日常运行状态使用 GoDo Debugger；需要逐 Entity/Component 深挖时使用 IDE 调试器或独立 Friflo 工具。两者职责有交集但不等价，本集成不重复实现实体编辑器。
 
-当前首版已完成。暂不提供多 World 管理、存档封装、编辑器实体检查器、自动 System 发现或复杂 `.csproj` 修改。
+当前集成不提供多 World 管理、存档封装、编辑器实体检查器、自动 System 发现或复杂 `.csproj` 修改。成熟阶段见[模块状态](../../../../Docs/00_项目/模块状态.md)。
 
 ## 验证
 

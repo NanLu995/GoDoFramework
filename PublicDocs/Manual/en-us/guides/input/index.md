@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/guides/input/index.md
-translation_source_hash: sha256:a1d32b42eaa842158e6c9fa04b848b06fe5a80f21a849d249e202d434b5da9cc
+translation_source_hash: sha256:0e5c84aab8b9c64752bdc4748a5f43d54f75d243c56864f7c936f048591091f3
 ---
 
 # Read Semantic Input and Manage Contexts
@@ -196,7 +196,7 @@ public partial class PlayerController : Node
 }
 ```
 
-Obtain a new `InputFrame` each render frame. It is a lightweight handle to the current snapshot; reading it in a later frame throws a stale-Frame error.
+Obtain a new `InputFrame` each render frame. It is a lightweight handle to the current snapshot; reading it in a later frame throws a stale-Frame error. GoDoRuntime samples input and then dispatches the Router in its own `_Process()`. If a game node sets `process_priority` explicitly, keep it from reading the current Frame before GoDoRuntime runs.
 
 Copy a value snapshot when one Action's complete state must be retained:
 

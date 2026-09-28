@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/troubleshooting/index.md
-translation_source_hash: sha256:862f14d0aafe55eb9664e5623dd08434d8bbce47bb6543efa52b61ba9436b763
+translation_source_hash: sha256:0ba7958cf7e4a536cb4469c85a0a764ae472037f1169147b01e3ff26a7671670
 ---
 
 # Troubleshooting
@@ -115,7 +115,7 @@ Release false usually means a duplicate return, wrong Pool, or external QueueFre
 - Single-table mode needs a healthy full baseline; generate all after table-set or other-table changes.
 - Use `godo_datatable_export.py` for release; direct export in the supported Godot 4.x version cannot reliably abort a bad package, so revalidate this limitation after an engine upgrade.
 
-DataTable is experimental; regenerate and build after upgrading.
+DataTable's generated format may still change during validation; regenerate and build after upgrading the framework.
 
 ## If the cause is still unclear
 

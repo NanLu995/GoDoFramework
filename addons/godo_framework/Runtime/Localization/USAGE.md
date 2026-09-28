@@ -55,4 +55,4 @@ settings.Save();
 - Services 与 Debugger 既有 Headless 回归通过。
 - 核心包已在无翻译资源、无 GUIDE、无 Phantom Camera 的临时干净项目中通过编译与 9/9 服务运行验证。
 - 统一 `all` 套件通过：17/17 核心工作区检查、GUIDE 1/1、Phantom Camera 1/1、Demo3D 2/2。
-- RTL 布局、字体覆盖、真实导出包及 Windows 之外平台仍需手动或真机验证，因此首版不标记为跨平台稳定基线。
+- RTL 布局、字体覆盖、真实导出包及 Windows 之外平台仍需手动或真机验证。成熟阶段见[模块状态](../../../../Docs/00_项目/模块状态.md)。

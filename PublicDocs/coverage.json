@@ -64,7 +64,7 @@
         "guides/diagnostics/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:d6ceacfac492ac1915ecf760715500d7ccce0e62e54044b9b4e547e2ef8309e4"
+      "reviewed_contract_hash": "sha256:bab099071f237e172bf232157e18c16d708b8a430ab464339fc49c3385049a81"
     },
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
@@ -86,7 +86,7 @@
         "guides/friflo-ecs/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:b8519adf8d015167d92700673bf67148f1c68c52a3eac88da37ac27df7f0d935"
+      "reviewed_contract_hash": "sha256:89514924ce1da927eecb4f40dc03c2248681adc6b20d053c01f7cbc41852de30"
     },
     "phantom-camera": {
       "contract": "addons/godo_framework/Integrations/PhantomCamera/USAGE.md",
@@ -96,7 +96,7 @@
         "guides/camera/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:3e8ff8f8c6b9c89444b2b3ae436377529c6c549f2c44a6760bc583ed18e05792"
+      "reviewed_contract_hash": "sha256:82b89d2e8af38c36e8e952f623910b4ac5922a7bbd8a2b407bbdaa1559c1997e"
     },
     "audio": {
       "contract": "addons/godo_framework/Runtime/Audio/USAGE.md",
@@ -129,19 +129,19 @@
         "guides/configuration/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:03f4f0786316c75d85cfbc97c59efd3f2b41484cb07ef1fc7a837936815bc4cb"
+      "reviewed_contract_hash": "sha256:6fc45b0510c31000926bf79936dc9300e0496c1872a7e1698086d0b3025377da"
     },
     "input": {
       "contract": "addons/godo_framework/Runtime/Input/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖语义 Action 完整状态与同窗迁移、连续 Frame、Context Lease 与旧 API 迁移、优先离散 Router、重触发门禁、确定更新顺序、设备提示、运行时重绑定、持久化、能力检测、失败原子性、零分配基准和 Debugger 只读诊断。",
+      "reason": "功能指南已覆盖语义 Action 完整状态与同窗迁移、连续 Frame、Context Lease 与旧 API 迁移、优先离散 Router、重触发门禁、GoDoRuntime 内部更新顺序与业务 process_priority 边界、设备提示、运行时重绑定、持久化、能力检测、失败原子性、零分配基准和 Debugger 只读诊断。",
       "manual_pages": [
         "guides/input/index.md",
         "guides/input-rebinding/index.md",
         "guides/diagnostics/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:7129475b10b7d11e88021828c1c3b3e4c8bc8fa1d791dbc54a7560b0930cb76d"
+      "reviewed_contract_hash": "sha256:8c9737e0bb2291100e9e447a19ac3707c076362a65e1ca6706ce6c165ed122f1"
     },
     "localization": {
       "contract": "addons/godo_framework/Runtime/Localization/USAGE.md",
@@ -152,7 +152,7 @@
         "guides/save-settings-localization/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:621af8c564cdc3290aa95b05397fe3d784f5e4032fc8c6546a66b5388c68bd19"
+      "reviewed_contract_hash": "sha256:0f01e0b0454685fe521af201f2e7ff06c5c30e8e200b3f1f4b8805435ff8b948"
     },
     "pool": {
       "contract": "addons/godo_framework/Runtime/Pool/USAGE.md",
@@ -272,17 +272,17 @@
         "guides/data-tables/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:9ce1dd4c2334229f2f4ac6cbd9265acebd89d31e9896b4fe2be5d197c7861bf5"
+      "reviewed_contract_hash": "sha256:12cb5a678f3bace93de55e86e44b99bcaf6ad7852878cdc5b98a4fb0a48d959a"
     },
     "data-table": {
       "contract": "addons/godo_framework/Tools/DataTable/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖单一 Schema、.datafiles、可视化维护、CSV 排除与缺失状态、只读检查、事务生成、可观察完成标记、过期校验、单表限制、Client/Server 隔离和发布门禁的分阶段失败处理；该工具仍为实验状态，等待格式与生成 API 稳定及跨平台正式发布验收。",
+      "reason": "功能指南已覆盖单一 Schema、.datafiles、可视化维护、CSV 排除与缺失状态、只读检查、事务生成、可观察完成标记、过期校验、单表限制、Client/Server 隔离和发布门禁的分阶段失败处理；当前仍需继续验证格式与生成 API 的迁移成本及跨平台正式发布流程。",
       "manual_pages": [
         "guides/data-tables/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:0fcdeac8b504879c52df46e7ef663dd5203aeadf18e4aefb3b0dba424ab87f7d"
+      "reviewed_contract_hash": "sha256:d612d6a51eb00be42634463ab11582e64645bc9854eab189aebdd3106f109f5c"
     }
   }
 }

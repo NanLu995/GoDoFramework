@@ -191,7 +191,7 @@ public partial class PlayerController : Node
 }
 ```
 
-每次渲染帧重新取得 `InputFrame`。它是当前快照的轻量句柄，保存到下一帧再读取会抛出过期 Frame 错误。
+每次渲染帧重新取得 `InputFrame`。它是当前快照的轻量句柄，保存到下一帧再读取会抛出过期 Frame 错误。GoDoRuntime 会在自己的 `_Process()` 中先采样再分派 Router；如果业务节点显式设置 `process_priority`，应确保它不会早于 GoDoRuntime 读取当前 Frame。
 
 需要保存单个 Action 的完整状态时，复制值快照：
 

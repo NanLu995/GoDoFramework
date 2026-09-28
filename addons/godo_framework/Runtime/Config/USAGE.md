@@ -65,9 +65,9 @@ if (table.TryGet("slime", out EnemyDefinition? slime))
 - ConfigTable 构建为 O(n) 时间和 O(n) 额外索引内存，查询平均为 O(1)。
 - 不要在 `_Process` 或 `_PhysicsProcess` 中重复加载配置或重建 ConfigTable，应在初始化阶段加载并缓存业务所需引用。
 
-## 实现与验证状态
+## 实现与验证
 
-首版稳定基线完成。`Verification/Automated/ConfigRegression.tscn` 验证有效配置加载、无效配置异常上下文、缺失资源异常透传、ConfigTable 查询与比较器、缺失键、重复键和空项拒绝。
+`Verification/Automated/ConfigRegression.tscn` 验证有效配置加载、无效配置异常上下文、缺失资源异常透传、ConfigTable 查询与比较器、缺失键、重复键和空项拒绝。成熟阶段见[模块状态](../../../../Docs/00_项目/模块状态.md)。
 
 ```powershell
 & $env:GODOT_PATH --headless --path . Verification/Automated/ConfigRegression.tscn

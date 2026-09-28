@@ -93,4 +93,4 @@ Debug 构建中的框架内置 `DataTableService` 向只读 Debugger 提供 inte
 - `Verification/Experimental/DataTable/DataTablePrototypeBenchmark.tscn`：绝对路径、`res://`、PCK、Zstd、损坏文件拒绝和查询性能。
 - `Verification/Experimental/DataTable/verify_prototype.py`：生成确定性、校验、单表生成、过期检查和 Manifest 契约。
 
-当前状态为首版完成；Windows Godot 运行时、独立完整 ExportRelease 可执行文件和 10 万行峰值内存已验证。真实业务长期体验与移动端/AOT 随目标项目继续验证，不阻塞 Windows 首版。
+Windows Godot 运行时、独立完整 ExportRelease 可执行文件和 10 万行峰值内存已经验证；真实业务长期体验与移动端/AOT 仍需随目标项目验证。成熟阶段见[模块状态](../../../../Docs/00_项目/模块状态.md)。

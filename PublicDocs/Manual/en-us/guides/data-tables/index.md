@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/guides/data-tables/index.md
-translation_source_hash: sha256:79b50b498248dfea35a8bf9bad0a46611315353738ae468b380311ea7d3b4558
+translation_source_hash: sha256:1007efa747779266e2cbc541f2f811e5537f2e367aba27ca81c5358f1e8d2ff4
 ---
 
 # Generate Validated Data Tables from CSV
@@ -8,7 +8,7 @@ translation_source_hash: sha256:79b50b498248dfea35a8bf9bad0a46611315353738ae468b
 DataTable is a development-time compiler. It reads UTF-8 CSV and a DataTable Schema, validates types, primary keys, ranges, and cross-table foreign keys, then generates binary `.gdtb` files, a Manifest, and strongly typed C# readers. The game reads generated artifacts at runtime instead of parsing source CSV or the Schema.
 
 > [!IMPORTANT]
-> DataTable remains experimental and is not a stable baseline. Generated formats, code names, and workflows may continue to change. It is suitable for evaluation, but should not own an irreplaceable production-data pipeline until the project pins a version and establishes regression checks.
+> DataTable provides a complete generation, validation, export, and runtime-loading workflow, but it remains under validation. Generated formats, code names, and workflows may still change. Production projects should pin the framework version and include generated-artifact regression checks in the release process.
 
 ## When to use DataTable
 

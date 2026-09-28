@@ -198,7 +198,7 @@ if (input.TryGetRebindingPersistence(out IInputRebindingPersistence? persistence
 
 ## 生命周期与线程
 
-- InputService 与 InputActionRouter 由 GoDoRuntime 依次创建并注册；后端就绪后每帧严格执行 `InputService.Update → InputActionRouter.Dispatch → 业务节点`。
+- InputService 与 InputActionRouter 由 GoDoRuntime 依次创建并注册；后端就绪后 GoDoRuntime 每帧严格执行 `InputService.Update → InputActionRouter.Dispatch`。读取当前 Frame 的业务节点应在 GoDoRuntime 之后处理；框架不会覆盖业务显式设置的更早 `process_priority`。
 - 所有服务 API、后端初始化、采样、Context 和关闭操作仅允许 Godot 主线程调用。
 - 重绑定捕获任务由后端信号在主线程完成；服务关闭前必须取消未完成捕获。
 - 绑定加载应在后端安装完成后、进入依赖输入的游戏流程前执行；保存只在玩家确认设置时调用。

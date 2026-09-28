@@ -81,6 +81,8 @@ public sealed partial class PhantomCameraRig : CameraRig
 
 ## 验证
 
+当前工作区使用 Phantom Camera `v0.11.0.3` 进行 Release 编译时，上游 `PhantomCameraHost.cs` 会产生 2 项空值分析和 2 项未使用字段警告。现有集成回归与 Demo3D 仍通过，GoDo 核心隔离构建为 0 warning；这只能证明当前调用路径可用，不表示第三方包装层已经达到零警告。不要在项目级全局压制这些警告，升级第三方版本时应优先复核上游是否已经修复。
+
 1. 确认第三方 Phantom Camera 已启用；GoDo Phantom 适配包不需要启用项。
 2. 运行 `Verification/Automated/PhantomCameraRigRegression.tscn`，确认 6/6 通过。
 3. 实例化 Rig，设置跟随目标并通过 `ICameraService` 激活。

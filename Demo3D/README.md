@@ -4,7 +4,7 @@
 
 ## 运行
 
-确认项目已安装 `GoDoRuntime`，并通过顶部 `GoDo → GUIDE Input 设置...` 完成 GUIDE / GuideCs 安装和顺序检查后，在 Godot 中打开并运行：
+确认项目已安装 `GoDoRuntime`，并在顶部 `GoDo Framework → 打开 GoDo Framework...` 的 GUIDE Input 页面完成 GUIDE / GuideCs 安装和顺序检查后，在 Godot 中打开并运行：
 
 ```text
 Demo3D/Boot/Boot.tscn
