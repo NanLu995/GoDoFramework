@@ -18,9 +18,10 @@ public sealed class SettingsService : ISettingsService
     private readonly LocalizationService _localization;
     private readonly ISettingsPlatformAdapter _platformAdapter;
     private readonly SaveSlot _settingsSlot;
+    private readonly Func<string> _preferredLocaleProvider;
     private readonly SettingsCodec _codec = new();
     private readonly List<ISettingsModuleEntry> _modules = new();
-    private SettingsSnapshot _current = new();
+    private SettingsSnapshot _current;
     private IReadOnlyList<SettingsModuleFailure> _lastModuleFailures = Array.Empty<SettingsModuleFailure>();
     private bool _registrationClosed;
     private bool _modulesReady;
@@ -53,7 +54,8 @@ public sealed class SettingsService : ISettingsService
         ISaveService saveService,
         LocalizationService localization,
         ISettingsPlatformAdapter platformAdapter,
-        SaveSlot settingsSlot)
+        SaveSlot settingsSlot,
+        Func<string>? preferredLocaleProvider = null)
     {
         _audioService = audioService ?? throw new ArgumentNullException(nameof(audioService));
         _saveService = saveService ?? throw new ArgumentNullException(nameof(saveService));
@@ -62,6 +64,8 @@ public sealed class SettingsService : ISettingsService
         if (!settingsSlot.IsValid)
             throw new ArgumentException("设置槽位必须通过 SaveSlot.Create 创建。", nameof(settingsSlot));
         _settingsSlot = settingsSlot;
+        _preferredLocaleProvider = preferredLocaleProvider ?? OS.GetLocaleLanguage;
+        _current = CreateDefaultSnapshot();
     }
 
     /// <inheritdoc/>
@@ -115,7 +119,7 @@ public sealed class SettingsService : ISettingsService
         SaveLoadResult<SettingsSnapshot> result = _saveService.Load(_settingsSlot, _codec);
         if (!result.HasValue)
         {
-            ApplySnapshot(new SettingsSnapshot());
+            ApplySnapshot(CreateFirstRunSnapshot());
             LoadAndApplyModules(failures);
             _modulesReady = true;
             _lastModuleFailures = failures.AsReadOnly();
@@ -167,7 +171,7 @@ public sealed class SettingsService : ISettingsService
         VerifyAvailable();
         PrepareModules();
         _modulesReady = false;
-        ApplySnapshot(new SettingsSnapshot());
+        ApplySnapshot(CreateDefaultSnapshot());
 
         var failures = new List<SettingsModuleFailure>();
         for (int i = 0; i < _modules.Count; i++)
@@ -281,6 +285,20 @@ public sealed class SettingsService : ISettingsService
             _ => throw new ArgumentOutOfRangeException(nameof(group), group, "未知音频分组。"),
         };
         return SettingsApplyResult.Applied;
+    }
+
+    private SettingsSnapshot CreateDefaultSnapshot() =>
+        new() { Locale = _localization.DefaultLocale };
+
+    private SettingsSnapshot CreateFirstRunSnapshot()
+    {
+        string preferredLocale = _preferredLocaleProvider();
+        return new SettingsSnapshot
+        {
+            Locale = _localization.IsLocaleSupported(preferredLocale)
+                ? preferredLocale
+                : _localization.DefaultLocale,
+        };
     }
 
     private void ApplySnapshot(SettingsSnapshot snapshot)

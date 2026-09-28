@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/guides/settings/index.md
-translation_source_hash: sha256:c1e056c03a10384ff00bc8ded1ae93bc30e3d857b52e8ebfc241c8b9df41f991
+translation_source_hash: sha256:ca3fe0d6580d6f4f6715a2437d86ae01b0d06a8ef056cd84cf9df9081a485b6d
 ---
 
 # Settings: apply and persist player preferences
@@ -18,7 +18,7 @@ See the [Save, Settings, and Localization workflow](../save-settings-localizatio
 settings.Capabilities
 settings.Current
 settings.Supports(SettingsCapability.WindowMode)</code></pre></section>
-<section><h4>Load and apply at startup</h4><p>Read persisted state and use its structured fallback result.</p><pre class="godo-capability-call"><code>SettingsApplyResult result = settings.LoadAndApply();</code></pre></section>
+<section><h4>Load and apply at startup</h4><p>Read persisted state; on first run, prefer a system language supported by the project and otherwise use the project default locale.</p><pre class="godo-capability-call"><code>SettingsLoadStatus status = settings.LoadAndApply();</code></pre></section>
 <section><h4>Apply volume and locale</h4><p>Apply immediately to Audio or Localization, then save explicitly.</p><pre class="godo-capability-call"><code>settings.SetMasterVolume(1f);
 settings.SetBgmVolume(0.7f);
 settings.SetSfxVolume(0.9f);

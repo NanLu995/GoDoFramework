@@ -66,7 +66,7 @@ if (settings.Supports(SettingsCapability.Resolution))
 - 每个业务模块使用 `godo-settings-module-{id}` 独占槽位，由 SettingsService 拥有命名权；模块不得直接读写该槽位。
 - 独立槽位让单模块损坏、升级或移除不影响系统设置及其他模块，并直接复用 SaveService 的校验、备份和提交语义。
 - 移除模块注册不会自动删除其槽位，避免暂时禁用模块造成不可恢复的数据丢失。
-- NotFound 时应用默认值并返回 `DefaultsApplied`。
+- NotFound 时视为首次运行：若 Godot 报告的系统语言受项目支持，则将其作为初始 Locale；否则使用项目默认 Locale。随后返回 `DefaultsApplied`，但不会自动写盘。
 - 正式设置损坏但备份可用时返回 `RecoveredFromBackup`。
 - Debug 与 Release 使用同一种权威格式。
 - 模块通过 `CurrentVersion` 声明写入版本，通过 `Decode(payload, dataVersion)` 读取和迁移旧版本。
@@ -77,6 +77,7 @@ if (settings.Supports(SettingsCapability.Resolution))
 
 - 音量必须为 0–1 的有限值。
 - Locale 不能为空，且必须是默认 Locale 或能由已加载翻译匹配的规范 Locale；可用语言列表由 Localization 提供。
+- `ResetToDefaults` 始终恢复项目默认 Locale，不重新读取系统语言。
 - 分辨率必须为正数；移动端不应用桌面分辨率。
 - 不支持的能力返回 `Unsupported`，不静默假装成功。
 - `ResetToDefaults` 只应用默认值，调用方需要显式 `Save`。
@@ -89,9 +90,9 @@ if (settings.Supports(SettingsCapability.Resolution))
 - 每个模块独立槽位会增加文件数量和逐槽提交成本，但换取损坏、版本和移除隔离；设置页面仍应在“应用/确定”时保存，不在滑块变化时逐次写盘。
 - Payload 大小、哈希、临时文件和备份成本沿用 SaveService；模块 Codec 不应遍历场景树或捕获 Godot 对象图。
 
-## 实现状态
+## 实现与验证
 
-Windows 系统设置稳定基线已经完成。SettingsService、内部 Codec、Save/Audio/Localization 显式接入和 GoDoRuntime 注册均已落地；系统设置继续使用固定槽位 `godo-settings` 和数据版本 1。业务模块扩展为首版能力，等待真实项目接入验证。
+SettingsService、内部 Codec、Save/Audio/Localization 显式接入和 GoDoRuntime 注册均已落地；系统设置继续使用固定槽位 `godo-settings` 和数据版本 1。业务模块扩展仍需真实项目接入验证，成熟阶段见[模块状态](../../../../Docs/00_项目/模块状态.md)。
 
 SettingsService 只保留显式接收共享 `LocalizationService` 的构造入口，避免创建与 GoDoRuntime 不一致的第二个本地化实例。
 
@@ -121,4 +122,4 @@ Settings 对正式文件损坏与双重损坏的处理沿用已验证的 SaveSer
 
 ### 自动回归验证
 
-`Verification/Automated/SettingsServiceRegression.tscn` 使用内存依赖和随机测试槽位验证无模块兼容行为、单模块加载/应用/重复保存、多模块稳定顺序、损坏与更高版本、可选降级、关键阻断、重复注册、关闭边界、模块迁移、系统设置版本 1 兼容，以及既有平台和 SaveService 失败语义。目标用例数为 11。
+`Verification/Automated/SettingsServiceRegression.tscn` 使用内存依赖和随机测试槽位验证项目默认 Locale、首次启动系统语言匹配、无模块兼容行为、单模块加载/应用/重复保存、多模块稳定顺序、损坏与更高版本、可选降级、关键阻断、重复注册、关闭边界、模块迁移、系统设置版本 1 兼容，以及既有平台和 SaveService 失败语义。目标用例数为 13。

@@ -12,6 +12,8 @@ namespace GoDoFramework.Verification;
 /// <summary>SettingsService 正常与异常边界的无交互回归验证入口。</summary>
 public sealed partial class SettingsServiceRegression : Node
 {
+    private const string DefaultLocaleSetting = "internationalization/locale/fallback";
+
     private int _passed;
 
     /// <inheritdoc />
@@ -20,6 +22,8 @@ public sealed partial class SettingsServiceRegression : Node
         try
         {
             Run("默认值与不支持能力", VerifyDefaultsAndUnsupportedCapabilities);
+            Run("项目默认语言进入设置默认值", VerifyProjectFallbackDefaults);
+            Run("首次启动匹配系统语言", VerifyFirstRunPreferredLocale);
             Run("非法输入保持状态", VerifyInvalidInputsPreserveState);
             Run("平台能力声明矛盾", VerifyPlatformContractMismatch);
             Run("依赖异常透传且不重复上报", VerifyDependencyFailures);
@@ -31,7 +35,7 @@ public sealed partial class SettingsServiceRegression : Node
             Run("重复注册与关闭边界", VerifyRegistrationAndShutdownBoundaries);
             Run("模块迁移与系统旧存档兼容", VerifyModuleMigrationAndSystemCompatibility);
 
-            GD.Print($"[SettingsServiceRegression] PASS ({_passed}/11)");
+            GD.Print($"[SettingsServiceRegression] PASS ({_passed}/13)");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -65,6 +69,55 @@ public sealed partial class SettingsServiceRegression : Node
             settings.SetWindowMode(SettingsWindowMode.Fullscreen),
             "不支持的窗口模式没有返回 Unsupported");
         AssertEqual(before, settings.Current, "不支持的能力修改了当前快照");
+    }
+
+    private static void VerifyProjectFallbackDefaults()
+    {
+        Variant originalFallback = ProjectSettings.GetSetting(DefaultLocaleSetting, "");
+        string originalLocale = TranslationServer.GetLocale();
+        try
+        {
+            ProjectSettings.SetSetting(DefaultLocaleSetting, "fr");
+            var localization = new LocalizationService();
+            var settings = CreateSettings(
+                new RecordingAudioService(),
+                new TestSaveService(),
+                localization,
+                new TestPlatformAdapter(SettingsCapability.None),
+                () => "zz");
+
+            AssertEqual("fr", settings.Current.Locale, "构造后的设置快照未使用项目默认 Locale");
+            AssertEqual(SettingsLoadStatus.DefaultsApplied, settings.LoadAndApply(), "空设置未应用项目默认 Locale");
+            AssertEqual("fr", settings.Current.Locale, "首次加载未使用项目默认 Locale");
+
+            settings.SetLocale("en");
+            settings.ResetToDefaults();
+            AssertEqual("fr", settings.Current.Locale, "恢复默认未使用项目默认 Locale");
+        }
+        finally
+        {
+            ProjectSettings.SetSetting(DefaultLocaleSetting, originalFallback);
+            TranslationServer.SetLocale(originalLocale);
+        }
+    }
+
+    private static void VerifyFirstRunPreferredLocale()
+    {
+        var localization = new LocalizationService();
+        var settings = CreateSettings(
+            new RecordingAudioService(),
+            new TestSaveService(),
+            localization,
+            new TestPlatformAdapter(SettingsCapability.None),
+            () => "fr-FR");
+
+        AssertEqual(localization.DefaultLocale, settings.Current.Locale, "加载前快照不应提前应用系统语言");
+        AssertEqual(SettingsLoadStatus.DefaultsApplied, settings.LoadAndApply(), "首次启动未应用默认设置");
+        AssertEqual("fr_FR", settings.Current.Locale, "首次启动未匹配受支持的系统语言");
+
+        settings.SetLocale("en");
+        settings.ResetToDefaults();
+        AssertEqual(localization.DefaultLocale, settings.Current.Locale, "恢复默认不应重新匹配系统语言");
     }
 
     private static void VerifyInvalidInputsPreserveState()
@@ -352,13 +405,15 @@ public sealed partial class SettingsServiceRegression : Node
         IAudioService audio,
         ISaveService saves,
         LocalizationService localization,
-        ISettingsPlatformAdapter platform) =>
+        ISettingsPlatformAdapter platform,
+        Func<string>? preferredLocaleProvider = null) =>
         new(
             audio,
             saves,
             localization,
             platform,
-            SaveSlot.Create($"settings-memory-{Guid.NewGuid():N}"));
+            SaveSlot.Create($"settings-memory-{Guid.NewGuid():N}"),
+            preferredLocaleProvider);
 
     private static SettingsService CreateSettings(ISaveService saves, SaveSlot settingsSlot) =>
         new(

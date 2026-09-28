@@ -85,7 +85,7 @@ if (status == SettingsLoadStatus.RecoveredFromBackup)
     ErrorHub.Warn("设置已从备份恢复。", "Game.Settings");
 ```
 
-首次运行会应用默认值并返回 `DefaultsApplied`。设置方法立即修改内存并应用，但不自动写盘：
+首次运行会优先采用项目支持的系统语言，否则使用项目默认 Locale，并返回 `DefaultsApplied`。`ResetToDefaults()` 始终恢复项目默认 Locale，不会重新匹配系统语言。设置方法立即修改内存并应用，但不自动写盘：
 
 ```csharp
 settings.SetMasterVolume(0.8f);

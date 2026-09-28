@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/guides/save-settings-localization/index.md
-translation_source_hash: sha256:20ae26abd7a17e7124d7ee6623888df077e02e31f85abed12e683a4ac6cffbde
+translation_source_hash: sha256:3499f9c6bcc5fc67016930b18bd49653f2a877236a9c0c7124748e1f25e44d09
 ---
 
 # Design Multi-Slot Saves, Cross-Platform Settings, and Localization
@@ -90,7 +90,7 @@ if (status == SettingsLoadStatus.RecoveredFromBackup)
     ErrorHub.Warn("Settings recovered from backup.", "Game.Settings");
 ```
 
-First run applies defaults and returns `DefaultsApplied`. Setters update memory and runtime immediately but do not write automatically:
+On first run, SettingsService prefers a system language supported by the project and otherwise uses the project default locale, then returns `DefaultsApplied`. `ResetToDefaults()` always restores the project default locale and does not reselect the system language. Setters update memory and runtime immediately but do not write automatically:
 
 ```csharp
 settings.SetMasterVolume(0.8f);

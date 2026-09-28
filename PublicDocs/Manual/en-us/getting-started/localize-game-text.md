@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/getting-started/localize-game-text.md
-translation_source_hash: sha256:21f0fc3b03b0bc059282abd953e5a1b03c61534e075c72ed3dc32187378a6159
+translation_source_hash: sha256:2054eb208fe31fa6fb848d1db937a022de2f649acea0208a0e2db47e7b31c186
 ---
 
 # Switch Languages and Translate Game Text
@@ -268,7 +268,7 @@ Do not translate and format unchanged text every frame. Refresh only when its da
 
 Confirm that:
 
-1. The first run uses the project's fallback locale.
+1. On the first run, the game uses the system language when the project supports it; otherwise, it uses the project's fallback locale.
 2. Settings lists English and Chinese.
 3. Menu text, buttons, and dynamic progress change immediately with the selection.
 4. Saving settings and restarting preserves the selected language.

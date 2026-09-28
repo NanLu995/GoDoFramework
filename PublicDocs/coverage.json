@@ -244,10 +244,11 @@
       "manual_pages": [
         "getting-started/save-progress-and-settings.md",
         "getting-started/localize-game-text.md",
+        "guides/settings/index.md",
         "guides/save-settings-localization/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:1e902a4e122bd8ccc2d1b51d6b55b56ee8464c9ca028f0627853ad6f0ab98ecb"
+      "reviewed_contract_hash": "sha256:7a8a4082771b1b9135346e84f87e8bb3ed9ac4fc499b3fe4305de18db3a33973"
     },
     "ui": {
       "contract": "addons/godo_framework/Runtime/UI/USAGE.md",

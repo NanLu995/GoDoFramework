@@ -33,7 +33,7 @@ public interface ISettingsService
     /// <returns>全部支持且参数不是 None 时为 true，否则为 false。</returns>
     bool Supports(SettingsCapability capability);
 
-    /// <summary>从固定系统槽位及所有模块独占槽位读取，并按稳定顺序立即应用；不存在时应用默认值。</summary>
+    /// <summary>从固定系统槽位及所有模块独占槽位读取，并按稳定顺序立即应用；首次运行时优先采用项目支持的系统语言，否则使用项目默认 Locale。</summary>
     /// <returns>设置数据的实际来源。</returns>
     /// <exception cref="System.ArgumentException">读取值或默认 Locale 未被项目支持。</exception>
     /// <exception cref="System.InvalidOperationException">当前不在 Godot 主线程、GoDoRuntime 尚未初始化，或平台能力声明与应用结果矛盾。</exception>

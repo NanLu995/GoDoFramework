@@ -6,7 +6,7 @@
 
 1. 先查询目标平台支持的能力，再决定是否显示某个设置控件。
 2. 玩家修改时先应用并检查结果，再在合适的确认点持久化。
-3. 启动时加载快照并应用；缺失设置使用项目定义的默认值。
+3. 启动时加载快照并应用；首次运行优先采用项目支持的系统语言，否则使用项目默认 Locale。
 
 ## 关键规则
 
@@ -23,7 +23,7 @@
 settings.Capabilities
 settings.Current
 settings.Supports(SettingsCapability.WindowMode)</code></pre></section>
-<section><h4>启动时加载并应用</h4><p>读取持久化快照；缺失或损坏时以结构化结果回退。</p><pre class="godo-capability-call"><code>SettingsApplyResult result = settings.LoadAndApply();</code></pre></section>
+<section><h4>启动时加载并应用</h4><p>读取持久化快照；首次运行按项目支持的系统语言或默认 Locale 回退。</p><pre class="godo-capability-call"><code>SettingsLoadStatus status = settings.LoadAndApply();</code></pre></section>
 <section><h4>应用音量与语言</h4><p>修改立即作用于 Audio 或 Localization，稍后再显式保存。</p><pre class="godo-capability-call"><code>settings.SetMasterVolume(1f);
 settings.SetBgmVolume(0.7f);
 settings.SetSfxVolume(0.9f);
