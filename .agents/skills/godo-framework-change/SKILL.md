@@ -16,7 +16,8 @@ for safety, coding style, authorization, and all project-wide requirements.
 - For an existing module, read its `USAGE.md` before changing its behavior,
   public API, lifecycle, failure semantics, or performance characteristics.
 - For a new module or a changed dependency direction, read
-  `AI/FRAMEWORK_DESIGN_PLAN.md` and `AI/ARCHITECTURE.md` first.
+  `Docs/00_项目/当前开发.md`, `Docs/00_项目/路线图.md`, and
+  `Docs/01_架构/架构基线.md` first.
 - Inspect current workspace changes before edits and preserve unrelated work.
 - Do not infer authorization to change project settings, dependencies, public
   API compatibility, or third-party source code.
@@ -40,7 +41,7 @@ internal edit. Select only the necessary checks:
 | --- | --- |
 | Documentation-only | Check links, examples, and source consistency; do not build solely for this change. |
 | Internal C# implementation with changed behavior | Debug build, then the affected module's targeted regression when available. |
-| Public API, failure semantics, lifecycle, or dependency change | Debug build, affected regression, `USAGE.md` update, and API Reference inspection. Review user-facing manual/`Docs/coverage.json` impact before updating the contract hash. |
+| Public API, failure semantics, lifecycle, or dependency change | Debug build, affected regression, `USAGE.md` update, and API Reference inspection. Review user-facing manual/`PublicDocs/coverage.json` impact before updating the contract hash. |
 | New or renamed `[GlobalClass]`, Godot resource, scene, importer, or editor registration | Run the applicable build and Godot Editor scan; list any manual verification required. |
 | Scene, input, physics, node-lifecycle, or scene-switch behavior | Run the safe automated checks available and explicitly list the Godot manual verification still required. |
 

@@ -131,7 +131,7 @@ def collect_api_items(api_root: Path) -> tuple[ApiItem, ...]:
     api_root = api_root.expanduser().resolve()
     if not api_root.is_dir():
         raise RuntimeError(
-            f"API metadata 目录不存在：{api_root}；请先运行 python Docs/build_docs.py api-audit。"
+            f"API metadata 目录不存在：{api_root}；请先运行 python PublicDocs/build_docs.py api-audit。"
         )
 
     items: dict[str, ApiItem] = {}

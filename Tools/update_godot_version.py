@@ -17,8 +17,8 @@ from pathlib import Path
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_PATH = REPOSITORY_ROOT / "GoDoFramework.csproj"
 PLUGIN_CONFIG_PATH = REPOSITORY_ROOT / "addons" / "godo_framework" / "plugin.cfg"
-COVERAGE_PATH = REPOSITORY_ROOT / "Docs" / "coverage.json"
-MANUAL_ROOT = REPOSITORY_ROOT / "Docs" / "Manual"
+COVERAGE_PATH = REPOSITORY_ROOT / "PublicDocs" / "coverage.json"
+MANUAL_ROOT = REPOSITORY_ROOT / "PublicDocs" / "Manual"
 VERSION_PATTERN = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 FRAMEWORK_VERSION_PATTERN = re.compile(
     r"^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$"
@@ -45,7 +45,7 @@ UPDATE_ROOTS = (
     ".github",
     ".vscode",
     "AI",
-    "Docs",
+    "PublicDocs",
     "Verification",
     "addons/godo_framework",
 )
@@ -289,7 +289,7 @@ def main() -> int:
     arguments = parse_arguments()
     if arguments.check:
         version = check_consistency()
-        run_command([sys.executable, "Docs/build_docs.py", "lint"])
+        run_command([sys.executable, "PublicDocs/build_docs.py", "lint"])
         print(f"[GodotVersion] CHECK PASS ({version})")
         return 0
 
@@ -320,7 +320,7 @@ def main() -> int:
 
     atomic_write_updates(updates)
     version = check_consistency()
-    run_command([sys.executable, "Docs/build_docs.py", "lint"])
+    run_command([sys.executable, "PublicDocs/build_docs.py", "lint"])
     if arguments.verify:
         run_command(["dotnet", "build", "GoDoFramework.csproj", "-c", "Debug"])
         run_command(

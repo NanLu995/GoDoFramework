@@ -1,0 +1,247 @@
+---
+translation_of: PublicDocs/Manual/zh-cn/guides/diagnostics/index.md
+translation_source_hash: sha256:77ec6e4d5bbc877eaaa0eb2b785c33a01b4f2696be3622eb36491e8a8c4922a5
+---
+
+# Log Activity, Report Errors, and Inspect Runtime State
+
+GoDo separates logging calls from error infrastructure. Game code normally uses LogHub for both normal-flow diagnostics and problem reports. Warning, Error, and Fatal calls enter ErrorHub's structured reports, Reporters, and background queue. Use ErrorHub directly when listening for reports or extending Reporters. Debug builds also display a read-only Debugger for inspecting framework state while the game runs.
+
+This separation is not merely about printing more text. Development logs disappear from Release builds, while real errors remain visible in shipped builds.
+
+## Choose the right channel first
+
+| Situation | Use |
+|---|---|
+| Normal flow entry, cache hit, or development-only state change | `LogHub.Debug` / `LogHub.Info` |
+| The operation recovered with degraded behavior | `LogHub.Warn` |
+| The current operation failed | `LogHub.Error` |
+| The game cannot continue safely | `LogHub.Fatal`, followed by a decision at the game boundary |
+| A message for the player | Game UI; do not expose console text directly |
+
+`Fatal` is only the highest error level; it does not exit the game. The caller that understands the game context decides whether to retry, fall back, return to the title screen, or terminate the process.
+
+## 1. Add development logs for normal flow
+
+```csharp
+private static readonly LogChannel Log = LogHub.For("Game.Inventory");
+
+Log.Info("Entered the main-menu flow.");
+Log.Debug("Resource cache hit.", context: "item=sword");
+```
+
+The console format is:
+
+```text
+[module] [level] (optional context) message
+```
+
+The two calls above produce:
+
+```text
+[Game.Inventory] [INFO] Entered the main-menu flow.
+[Game.Inventory] [DEBUG] (item=sword) Resource cache hit.
+```
+
+Use stable module names such as `Game.Boot`, `Game.Save`, and `Game.Inventory`. `LogHub.For` returns a readonly value type without a managed allocation, so a type can bind its module once and reuse it. One-off logs can still call `LogHub.Info(message, module)`. The message says what happened; `context` carries a slot, resource ID, flow name, or similar locator. Do not repeat the level and module inside the message.
+
+Use Debug for detailed investigation and reserve Info for low-frequency normal milestones such as startup completion, procedure changes, and scene commits. Both can only be called from Godot's main thread and use `Conditional("DEBUG")`: Release removes each call site and does not evaluate argument expressions. Never rely on a logging argument to perform a side effect.
+
+## 2. Report a recoverable problem
+
+When an operation can continue by using a fallback:
+
+```csharp
+LogHub.Warn(
+    "Volume setting was missing; the default was applied.",
+    "Game.Settings",
+    context: "key=audio.master");
+```
+
+A Warning should explain where behavior degraded and what result was used. Do not report frequent normal states as warnings; an error storm hides the issue that actually matters.
+
+## 3. Handle exceptions at a feature boundary
+
+Catch an exception only where code can choose a recovery policy:
+
+```csharp
+try
+{
+    SaveLoadResult<PlayerSave> result = saves.Load<PlayerSave>(
+        SaveSlot.Create("slot-1"),
+        PlayerSaveCodec.Instance);
+
+    ApplySave(result.Value);
+}
+catch (SaveException exception)
+{
+    LogHub.Error(exception, "Game.Save", context: "slot=slot-1");
+    ShowLoadFailedDialog();
+}
+```
+
+Report one failure once. If a lower layer throws and an upper layer owns handling, the lower layer should not report first and rethrow. Doing both duplicates console entries, Reporter payloads, and player telemetry.
+
+Wrapping an exception does not require discarding higher-level meaning: the outer message should identify the failed operation, while the innermost exception should explain the direct cause. The Godot console always includes a bounded `Cause` summary, so Release builds still expose the root cause; Debug builds additionally print the full `ExceptionChain`. ErrorHub preserves this information but does not guess a repair from an exception type, so leaf messages should name the missing resource, invalid value, or next check whenever possible.
+
+For a startup failure that cannot continue:
+
+```csharp
+catch (Exception exception)
+{
+    LogHub.Fatal(exception, "Game.Boot", context: "phase=initialization");
+    ShowFatalStartupScreen();
+}
+```
+
+The startup boundary still chooses whether to show a safe screen, return to the title, or exit.
+
+## 4. Listen temporarily and update game UI
+
+`OnError` is a raw C# event. A Node with a shorter lifetime than GoDoRuntime must unsubscribe symmetrically:
+
+```csharp
+public override void _EnterTree()
+{
+    ErrorHub.OnError += OnError;
+}
+
+public override void _ExitTree()
+{
+    ErrorHub.OnError -= OnError;
+}
+
+private void OnError(ErrorReport report)
+{
+    if (report.Level >= ErrorLevel.Error)
+        ShowErrorToast(report.Message);
+}
+```
+
+Listeners should return quickly, avoid mutating error-system state, and never call ErrorHub recursively. If one listener throws, ErrorHub isolates it and continues notifying the remaining listeners.
+
+Player-facing copy usually needs localization and privacy filtering. `ErrorReport.Message` is intended for development diagnosis and should not be shown to players by default.
+
+## 5. Add a custom Reporter
+
+To write a file or integrate an error platform, implement `IErrorReporter`:
+
+```csharp
+public sealed class GameErrorReporter : IErrorReporter, IDisposable
+{
+    public void Report(in ErrorReport report)
+    {
+        // Enqueue quickly; do not synchronously write or wait for a network call.
+    }
+
+    public void Dispose()
+    {
+        // Flush the reporter's bounded queue and release resources.
+    }
+}
+```
+
+Create and retain one instance in the one-time Boot scene:
+
+```csharp
+_reporter = new GameErrorReporter();
+ErrorHub.AddReporter(_reporter);
+```
+
+To remove it early:
+
+```csharp
+ErrorHub.RemoveReporter(_reporter);
+_reporter.Dispose();
+```
+
+Reporters run synchronously on the error-dispatch call stack. Do not use `.Wait()`, `.Result`, or synchronous network requests. On shutdown, GoDoRuntime clears registered Reporters and calls `Dispose()` on those that implement `IDisposable`.
+
+Before connecting a remote platform, the game project must define user consent, private-field filtering, offline buffering, retry limits, and platform compliance. The framework does not upload data for you.
+
+## 6. Use the runtime Debugger
+
+After enabling the `GoDoRuntime.tscn` Autoload, Debug builds automatically show a compact health button with no shortcut configuration.
+
+- Collapsed mode shows only FPS. Warning or Error activity changes the text color according to the highest severity; inspect the Overview for exact counts. Drag the compact entry with a mouse or one finger to move it; travel beyond eight logical pixels does not accidentally expand the panel.
+- Click it to open a card-based runtime overview. Clicking the Warning or Error card clears the previous search, opens the Console with only that level selected, and preserves the paused state. You can also use the navigation tree to inspect the structured System, Performance, Services, Events, Input, Scheduler, Audio, Scene, Resources, Pool, DataTable, UI, and Procedure dashboards, the optional ECS dashboard, and the Console page. The separate top-level **Execution Flow** page combines Procedure, Scene, and UI state.
+- Click or tap the entry to expand it. Near a screen edge, the full panel keeps its current size when possible and moves into the viewport; collapsing restores the entry to its previous position. Drag the title bar with a mouse or one finger to move the window, drag the lower-right Resize Debugger handle to resize the entire panel, or click Reset to restore the default layout. Positions persist only for the current run.
+- The current page refreshes every 0.25 seconds while expanded; collapsed mode creates no module snapshots.
+- In addition to summary metrics, the Scheduler page lists up to 64 active tasks and the latest 16 endings. Owner, age, and end reason help identify cross-scene leftovers; these records exist only in Debug builds.
+- The panel is read-only and cannot modify services or game data.
+- Release builds do not create it, so game logic must never depend on it.
+
+An Unregistered page means the corresponding service is absent. Snapshot Not Supported means the interface is registered but its implementation is not the built-in framework type that exposes that diagnostic snapshot. If reading one page throws, only that page is temporarily replaced by a failure notice containing the page name, exception type, and message; other pages remain available, and the failed page recovers automatically after a successful read. Check service registration and implementation type first instead of treating any of these states as a complete framework failure.
+
+The Services page maps each registered service contract to its current implementation type. Search matches short and fully qualified names for both sides, and selecting a row displays the complete contract-to-implementation relationship below the list. The page is read-only: it neither returns service instances nor replaces registrations.
+
+The System page reports the current platform, Debug build, rendering method, and engine uptime, then groups Godot/.NET versions, process architecture, locale, window mode and size, VSync, rendering driver, and video-adapter details. Static environment values are read once during panel initialization, while dynamic window state refreshes only when this page is selected. Unsupported values are displayed as unavailable.
+
+The Performance page shows FPS, Process/Physics time, and 30-second trends for Godot engine memory and the .NET managed heap. The left side of each graph shows reference ticks that follow the recent sample range, while the colored values on the right show the latest value for each line. Details are grouped into memory, objects, rendering, 2D/3D physics, and Pipeline metrics. Sampling runs every 0.25 seconds only while this page is selected and stops when you leave it. FPS and some monitors update about once per second, while Pipeline values are cumulative for the current run. Use this page to spot a direction quickly, then use the Godot Profiler to locate specific functions.
+
+The Events page summarizes event types and listener counts. Search matches both short and fully qualified type names. Selecting a row shows its full type name and up to 64 current listener sources, including the handler method, `On` / `Once` / `Bind` / `EventScope` registration mode, owner, priority, and registration age. Tooltips expose the complete handler or owner Node path. A source disappears immediately after `Off`, a successful `Once` dispatch, Node tree exit, or `EventScope.Dispose()`. The page retains neither emission/unsubscription history nor call stacks.
+
+The Input page uses status cards for the current backend, active device, sample sequence, and Action count, together with Context and route revisions. The Context table distinguishes base, legacy LIFO, and lease ownership, tokens, and effective state. The Router table lists scopes and binding counts by priority. Action rows include value, Idle/Ongoing/Performed status, transitions accumulated in the sample window, elapsed time, progress, and retrigger gates. Search filters the complete snapshot and renders at most the first 32 matches. The page is read-only and does not retain raw key history.
+
+The Audio page uses structured state to distinguish BGM loading, playback, pause, Crossfade, natural completion, and stop, together with the currently committed resource key. While the built-in AudioService executes Play, Crossfade, or FadeOut, the state detail also shows age from request creation; Stop, completion, cancellation, or replacement removes it immediately. A custom `IAudioService` continues to show its interface state without being required to provide this internal diagnostic. Its SFX card reports active, pending, and prepared Voices, capacity, and cumulative rejection and priority-preemption counts separately for the non-spatial and 3D pools. The 3D detail also shows the active target-follow count and its independent limit. If either prepared count is below the encounter's measured burst budget, prewarm that pool during loading instead of expanding it in a combat frame. If follow usage stays at its limit, first separate short static sounds from sustained moving sounds, then tune the budget on target hardware. A rising rejection count usually means a per-Resource, global, or follow budget is taking effect; a rising preemption count means higher-priority requests are replacing lower-priority sounds in the same pool. The lower cards show linear Master, BGM, and SFX volume. Request timing exists only in Debug builds.
+
+The Scene page uses status cards for the current scene, node count, transition state, and progress. Its detail table shows the resource key currently loading and the most recent transition target and result. Current duration grows from the start of an active request and returns to `—` after success, failure, or cancellation; recent duration retains the total for the latest result. Node counting runs once per second only while this page is selected. Missing SceneService registration and custom implementations without a Debug snapshot are shown as explicit degraded states. These timing fields exist only in Debug builds.
+
+The Resources page uses summary cards for active loads, synchronous/asynchronous requests, same-key merges, and success/failure totals. Its active-request table is stably sorted by resource key, renders at most 32 entries, and shows age from the unique underlying load operation's first request; later same-key, same-type merges do not reset that timer. ResourceHub retains 32 recent requests in memory, while the page displays the newest eight first. These values describe ResourceHub load operations and bounded history, not the global Godot cache, Resource reference lifetime, final owners, or a persistent resource log. The timing and history exist only in Debug builds.
+
+The Pool page shows every live NodePool's type, idle count, active count, and idle capacity, plus totals across registered pools. Its active-rental table lists at most 64 Nodes with instance identity, current parent, state, and rental age; tooltips provide the PackedScene and parent path, and `Release()` removes the row immediately. The page observes Pools through Debug-only weak references; it never creates, closes, or returns Nodes for you. A Pool disappears immediately after `Dispose()`. If active counts do not fall, inspect long-lived, detached, or queued-for-deletion rows before checking return paths and scene shutdown order.
+
+When the optional Friflo ECS integration is installed and compiled, **Runtime / ECS** reports World count, running hosts, Entity and Archetype totals, host phase/state/capacity, and a System tree with enabled state and Query match count. It renders at most 32 Worlds and 128 Systems and never enumerates individual Entities. Performance columns appear only for data already enabled by game code through `host.Systems.SetMonitorPerf(true)`; the Debugger never enables monitoring, pauses hosts, or modifies ECS data.
+
+The DataTable page reports published data sets, cached tables, active loads, and cumulative failures. Expand a data-set row to inspect table IDs and actual cached types; a loading row uses its existing detail column for table-level progress, runtime directory, and age from load start. Success, failure, or cancellation removes the age text immediately. Recent results cover successful loads, cancellation, failure, and unload operations. The page renders at most 32 data sets and 64 tables, retains 16 results, and displays the newest eight. When the state version is unchanged, it updates only the visible top-level loading rows in place without collecting another snapshot, rebuilding the tree, or traversing table children. This diagnostic state exists only in Debug builds and adds no Release start time, Tree metadata, or history.
+
+The UI page reports Scene-layer interface counts, View and Modal stack depths, and the current topmost View or Modal. Managed nodes are ordered from top to bottom with their resource key and visible/hidden state. Each unfinished asynchronous open is a separate row showing layer, UiId or Direct target, resource, phase, `configure` source type, and age. Instance delegates show their target type, static delegates are marked static, and requests without `configure` show unknown; the tooltip contains the complete source. The snapshot renders at most 64 requests while preserving the true total. Success, failure, or cancellation removes a row immediately, and the page retains neither call stacks nor request history. Missing UiService registration, unsupported custom implementations, and nodes released outside the service are shown explicitly. These diagnostics exist only in Debug builds.
+
+The Procedure page reports the current procedure, entering or exiting phase, pending request, and the target rejected by first-request arbitration. Details retain the previous procedure and the latest success and failure. Current duration grows from the start of an Entering or Exiting transition and is not reset by a concurrent rejection; it returns to `—` when the transition ends, while recent duration retains the total. The separate top-level **Execution Flow** page places key Procedure, Scene, and UI state in one view for cases where the procedure changed but its scene or interface did not arrive. It is a read-only Debugger composition, not a Runtime Service. Failure summaries include structured phases, retain only bounded text, and never retain exception objects. This diagnostic state is absent from Release builds.
+
+The Console displays Debug, Info, Warning, Error, and Fatal entries as one chronological stream without a separate recent-errors heading. Its toolbar provides counted All, Debug, Info, Warning, and Error chips. All is selected by default. Click a level to show only that level, click additional levels to combine them, or click All to reset. Warning lines are yellow, while Error and Fatal lines are red. Search scans the complete in-memory history; when results span multiple pages, use Previous and Next, or click the separate Latest Logs button on the right to return directly to the final page and scroll to the bottom. While you remain on the latest page and refresh is not paused, new logs automatically follow the bottom. Scrolling upward stops following and enables Latest Logs; scrolling back to the bottom or clicking that button resumes following. Pause stops automatic refresh and scrolling. Copy copies only the plain text currently displayed by the active filters, search, and page. The search field captures input only after a click and releases focus when you submit the search or leave the Console. The filename beside the pagination status is clickable; on Windows it reveals and selects the active log in File Explorer. The file and pagination buttons share the same height. Hover the filename for the full path, write status, flushed size, cumulative dropped count, and failure reason.
+
+Console pages retain only limited recent data. LogHub uses a 1,000-entry ring and ErrorHub retains 16 summaries. Error summaries include searchable context and a bounded cause, but retain neither the original exception nor its full stack. Filtering and search scan both histories, merge them chronologically, and render at most 100 matching entries per page. Consecutive identical logs are aggregated into a `×count` entry with first and last timestamps. The Godot output console receives at most 100 LogHub lines per second, while suppressed lines remain available in Debugger history. This is a quick inspection tool, not a persistent log archive or profiler.
+
+## Inspect rolling logs across sessions
+
+GoDoRuntime writes to `user://logs/godo_framework.log` when possible and archives the previous run's primary file under its UTC archive time at each process start. If another running instance already holds that file, the new instance automatically uses `godo_framework.<process-id>.log`, and the Debugger file button points to the actual file. A file rolls after reaching 2 MiB and retains up to four archives named like `godo_framework.20260910T143012.1234567Z.log`; process-specific archives keep the same process ID. Debug builds record Debug, Info, Warning, Error, and Fatal entries. Release builds record only the Warning, Error, and Fatal entries that remain in the compiled application. Exception entries retain a cause summary and the full exception chain for offline diagnosis. These files can contain technical details such as local paths, so review them for privacy before upload.
+
+Disk writes run through a bounded background queue and do not block error dispatch. The worker flushes about 0.25 seconds after becoming idle; under continuous traffic it flushes after about one second or 64 entries, whichever comes first. A full queue drops entries and emits a summary warning. If the directory cannot be created or the disk cannot be written, file logging is disabled for the current run and the console reports the failure once. Other tools may open the active log file for reading while the game runs. The current baseline is validated on Windows; mobile sandbox paths and shutdown flushing still require device testing.
+
+## Background threads and error storms
+
+LogHub Debug and Info are main-thread only. LogHub Warn, Error, and Fatal follow the same threading rules as direct ErrorHub calls: background-thread reports enter a bounded queue of at most 1,024 entries. GoDoRuntime dispatches at most 256 per frame, and listeners and Reporters still run on the main thread.
+
+That queue becomes active only after GoDoRuntime enters the scene tree and records the main thread. Before initialization, ErrorHub dispatches synchronously on the calling thread and provides no background-thread safety. Startup work should wait until the Runtime is ready before reporting, or retain the failure and handle it after returning to the main thread.
+
+When the queue fills, reports are dropped and summarized as a Warning on the main thread. A background Fatal also writes synchronously to the fallback console. Fix or rate-limit a repeated source instead of treating ErrorHub as an unbounded queue.
+
+## Common failures
+
+- Info is missing in Release: expected behavior; use LogHub Warn, Error, or Fatal—or ErrorHub directly—for shipped failures.
+- A player message exposes technical details: replace the raw exception with localized game copy.
+- The same exception appears repeatedly: check for report-and-rethrow at several call layers.
+- Callbacks continue after a scene switch: a short-lived object forgot to unsubscribe from `OnError`.
+- Reporting freezes the game: a Reporter is writing synchronously, waiting on a lock, or calling the network.
+- The game continues after Fatal: Fatal does not terminate; the game boundary must act explicitly.
+- The Debugger disappears from an exported build: Release does not create it by design.
+- A page says Unregistered or Snapshot Not Supported: check service registration for the former and whether a custom implementation replaced the built-in one for the latter; they are different conditions.
+- One page reports a read failure: use its exception type and message to fix that module or snapshot read. The page recovers after the next successful read, so the Debugger does not need to be restarted.
+
+For exact members, see <xref:GoDo.LogHub>, <xref:GoDo.LogChannel>, <xref:GoDo.ErrorHub>, <xref:GoDo.ErrorReport>, <xref:GoDo.ErrorLevel>, and <xref:GoDo.IErrorReporter>.
+
+## Capability map
+
+<div class="godo-capability-list">
+<section><h4>Log by stable channel and level</h4><pre class="godo-capability-call"><code>LogChannel log = LogHub.For("Game.Combat");
+LogHub.Info("Battle started", "Game.Combat");
+LogHub.Error(exception, "Game.Combat", context);</code></pre></section>
+<section><h4>Report recoverable and fatal errors</h4><pre class="godo-capability-call"><code>ErrorHub.Warn(message, source, context);
+ErrorHub.Report(exception, source, context);
+ErrorHub.Fatal(exception, source, context);</code></pre></section>
+<section><h4>Observe errors and extend reporters</h4><pre class="godo-capability-call"><code>ErrorHub.OnError += OnError;
+ErrorHub.AddReporter(reporter);
+ErrorHub.RemoveReporter(reporter);</code></pre></section>
+<section><h4>Set the minimum dispatched error level</h4><pre class="godo-capability-call"><code>ErrorHub.MinLevel = ErrorLevel.Warning;</code></pre></section>
+</div>

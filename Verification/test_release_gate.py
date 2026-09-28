@@ -42,7 +42,7 @@ class ReleaseGateTests(unittest.TestCase):
         commands = self.gate.create_stage_commands(godot, 75, output)
 
         self.assertIn("Verification\\Automated\\run_all.py", commands["regressions"][1])
-        self.assertIn("Docs\\build_docs.py", commands["docs"][1])
+        self.assertIn("PublicDocs\\build_docs.py", commands["docs"][1])
         self.assertIn(
             "Verification\\ApiCompatibility\\api_compatibility.py",
             commands["api-compatibility"][1],

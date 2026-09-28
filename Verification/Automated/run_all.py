@@ -85,7 +85,7 @@ PHANTOM_UPDATER_SETTING = "updater/updater_mode"
 ISOLATED_EDITOR_PROJECT_ITEMS = (
     Path("addons"),
     Path("DataTables"),
-    Path("Docs") / "coverage.json",
+    Path("PublicDocs") / "coverage.json",
     Path("Localization"),
     Path("Demo3D"),
     Path("Verification") / "Automated",

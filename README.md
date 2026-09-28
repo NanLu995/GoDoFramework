@@ -2,7 +2,7 @@
 
 [![Documentation](https://github.com/NanLu995/GoDoFramework/actions/workflows/docs.yml/badge.svg)](https://github.com/NanLu995/GoDoFramework/actions/workflows/docs.yml)
 
-[在线文档](https://nanlu995.github.io/GoDoFramework/) · [文档维护说明](Docs/README.md)
+[在线文档](https://nanlu995.github.io/GoDoFramework/) · [内部项目文档](Docs/README.md) · [公开文档维护](PublicDocs/README.md)
 
 GoDoFramework 是面向 Godot 4.7.2 C# / .NET 的轻量游戏开发框架，用于沉淀跨项目可复用的通信、诊断、生命周期管理和运行时服务，让具体项目把主要精力放在游戏逻辑与内容上。
 
@@ -35,13 +35,13 @@ python Tools/update_godot_version.py --check
 
 ## 项目文档
 
-- `AI/FRAMEWORK_OVERVIEW.md`：框架愿景、痛点和历史设想。
-- `AI/FRAMEWORK_DESIGN_PLAN.md`：整体设计计划与开发路线。
-- `AI/ARCHITECTURE.md`：当前架构事实、模块状态和依赖约束。
+- `Docs/README.md`：内部文档入口、权威边界和任务路由。
+- `Docs/00_项目/`：项目总览、当前开发、路线图、模块状态和决策。
+- `Docs/01_架构/架构基线.md`：当前架构事实和依赖约束。
 - `AGENTS.md`：AI 协作与代码规范。
-- `AI/GODOT_GOTCHAS.md`：项目实际遇到的 Godot/C# 问题记录。
+- `PublicDocs/README.md`：公开手册和 API Reference 的维护入口。
 
 ## 运行 Demo3D
 
 - `Demo3D/`：框架能力验证 Demo，演示 Procedure、Scene、UI、Audio、Input、Camera、Save、Settings、Config、EventChannel、ErrorHub 和 Services 的组合用法；它依赖 GUIDE / G.U.I.D.E-CSharp 与 Phantom Camera。
-- 仓库不再提供 Starter Template。新项目请按 `AI/AI_GAMEDEV_GUIDE.md` 和 `AI/PROJECT_STRUCTURE.md` 建立自己的业务目录与启动场景。
+- 仓库不再提供 Starter Template。新项目请按 `Docs/03_工作流/游戏项目协作指南.md` 和 `Docs/03_工作流/游戏项目结构.md` 建立自己的业务目录与启动场景。

@@ -158,7 +158,7 @@ def create_stage_commands(
         ],
         "docs": [
             python,
-            str(REPOSITORY_ROOT / "Docs" / "build_docs.py"),
+            str(REPOSITORY_ROOT / "PublicDocs" / "build_docs.py"),
             "check",
         ],
         "api-compatibility": [

@@ -36,7 +36,7 @@ DataTable ExportRelease 与 `package-lifecycle` 使用门禁创建的临时目�
 日常开发和 CI 只能执行只读检查：
 
 ```powershell
-python Docs/build_docs.py api-audit
+python PublicDocs/build_docs.py api-audit
 python Verification/ApiCompatibility/api_compatibility.py check
 ```
 

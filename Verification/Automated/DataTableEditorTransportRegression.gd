@@ -2,7 +2,7 @@
 extends SceneTree
 
 const TOOL_PATH := "res://addons/godo_framework/Tools/DataTable/godo_datatable.py"
-const SCHEMA_PATH := "res://Docs/coverage.json"
+const SCHEMA_PATH := "res://PublicDocs/coverage.json"
 
 
 func _initialize() -> void:

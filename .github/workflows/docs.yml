@@ -7,7 +7,7 @@ on:
     paths:
       - ".config/dotnet-tools.json"
       - ".github/workflows/docs.yml"
-      - "Docs/**"
+      - "PublicDocs/**"
       - "addons/**/*.cs"
       - "addons/**/USAGE.md"
       - "GoDoFramework.csproj"
@@ -18,7 +18,7 @@ on:
     paths:
       - ".config/dotnet-tools.json"
       - ".github/workflows/docs.yml"
-      - "Docs/**"
+      - "PublicDocs/**"
       - "addons/**/*.cs"
       - "addons/**/USAGE.md"
       - "GoDoFramework.csproj"
@@ -75,7 +75,7 @@ jobs:
           python-version: "3.13"
 
       - name: Build and check documentation
-        run: python Docs/build_docs.py check
+        run: python PublicDocs/build_docs.py check
 
       - name: Verify public API compatibility
         run: python Verification/ApiCompatibility/api_compatibility.py check

@@ -6,13 +6,13 @@
 
 - 引擎：Godot 4.7.2，C# / .NET 8；Android 构建目标为 .NET 9。框架根命名空间：`GoDo`。
 - 目标平台待定，不自行假设平台特性。
-- `AI/FRAMEWORK_OVERVIEW.md`：历史愿景与痛点，仅讨论框架定位或重新规划时读取。
-- `AI/FRAMEWORK_DESIGN_PLAN.md`：目标、状态与路线；新增模块或调整顺序前读取。
-- `AI/ARCHITECTURE.md`：当前架构事实与依赖；修改 `addons/godo_framework/` 前读取。
+- `Docs/README.md`：内部文档总入口与权威边界；不确定读取顺序时先读。
+- `Docs/00_项目/当前开发.md`、`路线图.md` 与 `模块状态.md`：当前目标、未来顺序和成熟阶段；新增模块或调整顺序前读取。
+- `Docs/01_架构/架构基线.md`：当前架构事实与依赖；修改 `addons/godo_framework/` 前读取。
 - 模块 `USAGE.md`：API、失败语义、生命周期、性能和验证细节；处理对应模块时读取。
-- `AI/AI_GAMEDEV_GUIDE.md`、`AI/PROJECT_STRUCTURE.md` 与 `AI/Recipes/`：使用框架制作游戏、迁移模板或新增业务流程/UI/存档时读取。
-- `AI/GODOT_GOTCHAS.md`：项目实际遇到的 Godot/C# 坑位，按需读取。
-- `AI/LOCAL_AI_COLLABORATION_GUIDE.md`：本地 AI 的只读边界、调用策略与回退流程；使用 `local_ai_worker` 前读取。
+- `Docs/03_工作流/游戏项目协作指南.md`、`游戏项目结构.md` 与 `操作手册/`：使用框架制作游戏或新增业务流程/UI/存档时读取。
+- `Docs/03_工作流/Godot问题记录.md`：项目实际遇到的 Godot/C# 坑位，按需读取。
+- `Docs/03_工作流/本地AI协作.md`：本地 AI 的只读边界、调用策略与回退流程；使用 `local_ai_worker` 前读取。
 - 文档与代码冲突时，以源码和工程配置为准，同时指出并修正文档，不静默沿用旧描述。
 - 常规搜索排除 `.godot/`、`bin/`、`obj/`、`*.Generated.cs` 和离线文档目录，不修改生成内容。
 
@@ -20,7 +20,7 @@
 
 - `addons/godo_framework/Core/GoDoRuntime.tscn` 是唯一 Autoload 入口；`GoDoRuntime.cs` 只负责框架初始化、服务注册与退出清理，不承载游戏流程。
 - 业务场景和测试场景不得重复初始化框架；`TestScene.tscn` 仅用于验证。
-- 新增长期服务前，先在设计计划确认依赖和顺序，再接入 GoDoRuntime。
+- 新增长期服务前，先在 `Docs/00_项目/路线图.md` 确认优先级，并在 `Docs/01_架构/架构基线.md` 或独立设计文档中确认依赖和顺序，再接入 GoDoRuntime。
 - 不自动修改其他项目的 Autoload；未来由 EditorPlugin 提供显式安装能力。
 
 ## 工作方式
@@ -43,7 +43,7 @@
 ### 源码集中迭代模式
 
 - 仅在我明确要求“先专注源码”“文档后补”或等价表述时启用；未明确启用时继续遵循“测试与交付”的完整文档要求。
-- 模式启用期间，暂缓修改 Markdown、`USAGE.md`、`AI/**`、`Docs/coverage.json`、翻译哈希和导航，也不运行 DocFX；这些属于后置文档债务，在 API 稳定、准备发布、准备提交或我明确结束该模式时一次性复核补齐。
+- 模式启用期间，暂缓修改 Markdown、`USAGE.md`、`Docs/**`、`PublicDocs/coverage.json`、翻译哈希和导航，也不运行 DocFX；这些属于后置文档债务，在 API 稳定、准备发布、准备提交或我明确结束该模式时一次性复核补齐。
 - public API 仍必须同步编写准确 XML 注释；源码、测试和必要资源 fixture 不因文档后置而降低契约与失败语义要求。
 - 小步编辑默认只运行 Debug 编译；一个完整行为改动完成后运行对应模块的目标回归；Release 编译、全量回归、API Reference、文档站和编辑器人工验收集中到功能批次或里程碑收尾，除非风险要求提前执行。
 - 只有新增或重命名 `[GlobalClass]`、Godot Resource、`.tscn`、导入器或编辑器注册信息时才启动 Godot Editor 扫描；普通 C# API 与内部实现改动不重复扫描编辑器。
@@ -92,7 +92,7 @@
 ## 框架边界
 
 - `GoDo.*` 只提供跨游戏机制，不包含角色、血量、子弹、关卡规则等玩法概念；业务代码不放入 `GoDo.*`。
-- Core 模块不通过 Services 或直接引用横向耦合；遵循 `AI/ARCHITECTURE.md` 使用 EventChannel。ErrorHub 是明确例外——因其承担全局错误上报职责，需被各层直接访问，不走 EventChannel 这层间接层；除 ErrorHub 外不再新增同类例外。
+- Core 模块不通过 Services 或直接引用横向耦合；遵循 `Docs/01_架构/架构基线.md` 使用 EventChannel。ErrorHub 是明确例外——因其承担全局错误上报职责，需被各层直接访问，不走 EventChannel 这层间接层；除 ErrorHub 外不再新增同类例外。
 - Services 只供业务层访问长期服务，不是框架内部依赖捷径。
 - 新增模块/API 前先检查现有事件、日志、错误、资源和对象池能力，避免重复实现。
 - 设计框架功能前必须先说明性能、鲁棒性与稳定性取舍：是否处于高频路径、是否产生额外分配、失败是否可见、生命周期是否可清理、跨平台/Debug 与 Release 行为是否一致；没有验证证据时不要把接口标为稳定基线。
@@ -116,10 +116,10 @@
 
 - 每个独立模块必须有 `USAGE.md`，说明定位、适用/非适用场景、上手、public API、失败语义、生命周期/线程、性能与误用。
 - public API、失败语义、生命周期或依赖变化时同步更新 `USAGE.md`，示例必须与源码一致。
-- `AI/**` 与任何 `USAGE.md` 都是内部技术资料，不直接进入公开用户文档；公开概念内容只维护在 `Docs/Manual/<locale>/`。
-- 用户可见功能新增或变化时，必须判断并更新教程、使用指南、概念说明或故障排查；若确认只需 API Reference，也必须在 `Docs/coverage.json` 记录原因。
-- 新增模块的 `USAGE.md` 必须登记到 `Docs/coverage.json`。契约摘要变化后，先复核用户手册和覆盖状态，再更新 `reviewed_contract_hash`，不得只更新摘要绕过维护。
-- 用户手册使用自然语言，先说明任务、操作和可观察结果，再解释原理；不把内部文档或 API 清单机械改写成正文。新增页面必须加入对应语言的 `Docs/navigation.<locale>.json`。
+- `Docs/**` 与任何 `USAGE.md` 都是内部技术资料，不直接进入公开用户文档；公开概念内容只维护在 `PublicDocs/Manual/<locale>/`。
+- 用户可见功能新增或变化时，必须判断并更新教程、使用指南、概念说明或故障排查；若确认只需 API Reference，也必须在 `PublicDocs/coverage.json` 记录原因。
+- 新增模块的 `USAGE.md` 必须登记到 `PublicDocs/coverage.json`。契约摘要变化后，先复核用户手册和覆盖状态，再更新 `reviewed_contract_hash`，不得只更新摘要绕过维护。
+- 用户手册使用自然语言，先说明任务、操作和可观察结果，再解释原理；不把内部文档或 API 清单机械改写成正文。新增页面必须加入对应语言的 `PublicDocs/navigation.<locale>.json`。
 - 新增或修改 public API 后，除编译外还必须检查生成的 API Reference，确认 XML 注释完整、链接可解析、签名展示清晰且没有文档生成警告；后续 API 文档专项校验也按此标准执行。
 - 修改后默认可运行 `dotnet build` 和不依赖编辑器的测试；会修改项目数据、场景或外部状态的测试必须先询问。
 - 通过 Codex 启动 Godot 编辑器、场景或自动化测试时，必须确保进程可访问 `AppData/Roaming/Godot` 与 `AppData/Local/Godot`；受限环境会导致当前 Godot 在启动阶段原生崩溃。

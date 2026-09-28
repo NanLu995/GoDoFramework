@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPOSITORY_ROOT / "Docs"))
+sys.path.insert(0, str(REPOSITORY_ROOT / "PublicDocs"))
 
 import build_docs  # noqa: E402
 
@@ -21,9 +21,9 @@ class CoverageValidationTests(unittest.TestCase):
         self.contract = self.root / "addons" / "godo_framework" / "Runtime" / "Sample" / "USAGE.md"
         self.contract.parent.mkdir(parents=True)
         self.contract.write_text("# Sample\n", encoding="utf-8")
-        self.manual_root = self.root / "Docs" / "Manual"
+        self.manual_root = self.root / "PublicDocs" / "Manual"
         (self.manual_root / "zh-cn").mkdir(parents=True)
-        self.coverage_path = self.root / "Docs" / "coverage.json"
+        self.coverage_path = self.root / "PublicDocs" / "coverage.json"
 
     def tearDown(self) -> None:
         self.temporary_directory.cleanup()

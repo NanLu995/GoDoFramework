@@ -1,6 +1,6 @@
 # SchedulerService 使用指南
 
-> 当前状态：首版完成。运行时核心已接入 GoDoRuntime，并注册 `ISchedulerService`；自动回归已覆盖人工时钟、真实帧采样、暂停、TimeScale、Owner、退出清理、Debug/Release 稳态性能与 Debug-only 快照。Windows Demo3D 已完成人工验收；真实项目长期体验与跨平台验证尚未完成，因此不标记为稳定基线。
+> 验证摘要：运行时核心已接入 GoDoRuntime，并注册 `ISchedulerService`；自动回归已覆盖人工时钟、真实帧采样、暂停、TimeScale、Owner、退出清理、Debug/Release 稳态性能与 Debug-only 快照。Windows Demo3D 已完成人工验收；真实项目长期体验与跨平台验证尚未完成。成熟阶段见[模块状态](../../../../Docs/00_项目/模块状态.md)。
 
 ## 定位
 
@@ -85,7 +85,7 @@ await scheduler.DelayAsync(1.0, ScheduleOptions.RealTime, cancellation.Token);
 - `CancellationToken` 可从后台线程触发，但取消会在下一次 Scheduler 主线程更新时生效。
 - GoDoRuntime 退出会取消全部任务；尚未完成的 `DelayAsync` 以取消结束。
 
-完整设计、性能目标和分步验证见 `Docs/SchedulerServiceDesign.md`。
+完整设计、性能目标和分步验证见 `Docs/02_设计/调度器设计.md`。
 
 ## 性能
 
