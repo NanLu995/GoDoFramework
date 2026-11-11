@@ -91,7 +91,7 @@ func _run() -> void:
 		"PhantomCameraMessage",
 		"PhantomCameraEnableButton",
 		"PhantomCameraOfficialSourceButton",
-		"https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.3"
+		"https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.4"
 	):
 		return
 	if not await _open_and_verify_friflo_dependency(framework_window):

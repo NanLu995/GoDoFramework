@@ -3,8 +3,8 @@ extends RefCounted
 
 const PHANTOM_PLUGIN := "phantom_camera"
 const PHANTOM_PLUGIN_CONFIG := "res://addons/phantom_camera/plugin.cfg"
-const SUPPORTED_VERSION := "0.11"
-const VERIFIED_RELEASE_URL := "https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.3"
+const SUPPORTED_VERSION := "0.11.0.4"
+const VERIFIED_RELEASE_URL := "https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.4"
 const REQUIRED_FILES := [
 	"res://addons/phantom_camera/plugin.cfg",
 	"res://addons/phantom_camera/plugin.gd",

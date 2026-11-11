@@ -1,6 +1,6 @@
 # G.U.I.D.E-CSharp InputLab
 
-这是 G.U.I.D.E-CSharp `0.3.7` / G.U.I.D.E `0.13.0` 作为 GoDo 输入后端候选的隔离验证，不是正式 InputService，也不进入永久自动回归 runner。
+这是 G.U.I.D.E-CSharp `0.5.7--0.14.0` / G.U.I.D.E `0.14.0` 的隔离验证，不是正式 InputService，也不进入永久自动回归 runner。
 
 运行：
 

@@ -40,9 +40,9 @@ addons/godo_framework/Integrations/GuideInput/
 GoDo Framework → 打开 GoDo Framework... → 编辑器扩展 → GUIDE Input
 ```
 
-当前适配器验证的组合是 GUIDE `0.13.0` 与 GUIDE-CSharp `0.3.7--0.14.0`，安装后目录必须为 `addons/guideCS/`。该组合以当前工作区安装的 [官方 GitHub 源码](https://github.com/Phlegmlee/G.U.I.D.E-CSharp)完成编译和功能回归；右侧管理页提供同一源码入口，但不会自动下载、解压或覆盖第三方文件。GitHub 源码可能先于已标记 Release，团队项目应固定实际提交，避免后续拉取造成不可复现的升级。开发者完成安装后再点击“重新检查”，提示栏会明确显示检查已完成。版本不匹配时，工具会保持只读，不执行插件与 Autoload 修复。
+当前适配器验证的组合是 GUIDE `0.14.0` 与 GUIDE-CSharp `0.5.7--0.14.0`，安装后目录必须为 `addons/guideCS/`。该组合取自[官方 GitHub `v0.5.7` 标签](https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.5.7)（提交 `8a62ec4`），已在当前工作区完成编译和功能回归；右侧管理页提供源码入口，但不会自动下载、解压或覆盖第三方文件。团队项目应固定该标签或提交，避免后续源码更新造成不可复现的升级。开发者完成安装后再点击“重新检查”，提示栏会明确显示检查已完成。版本不匹配时，工具会保持只读，不执行插件与 Autoload 修复。
 
-这项“已验证”表示现有 GoDo 集成可以编译并通过功能回归，不等于第三方代码已经通过严格 Native AOT/Trimming 分析。当前 GUIDE-CSharp 的 `CsTools/Utility.cs` 仍通过 `Activator.CreateInstance` 创建泛型包装器，完整 AOT 分析会产生 `IL2087`；在上游修复或提供可静态分析的注册方式前，不应把 GUIDE 集成宣称为 iOS Native AOT 已通过。GoDo 核心运行时不依赖该可选集成。
+这项“已验证”表示现有 GoDo 集成可以编译并通过功能回归。新版 GUIDE-CSharp 为泛型包装器传播 `DynamicallyAccessedMembers` 要求；当前工作区 Debug、Release 和 `win-x64` publish 不再报告 GUIDE 的 `IL2087`。`win-x64` Native AOT publish 已生成原生产物，但 GodotSharp 仍有 AOT/Trimming 分析警告，不能据此认定实际游戏运行通过。AOT 验收暂缓，待实际消费项目导入所需插件后，按目标平台执行导出与运行验证；iOS 需在 macOS/Xcode 验证。GoDo 核心运行时不依赖该可选集成。
 
 设置工具由 `Integrations/GuideInput/godo_editor_extension.cfg` 声明，并由唯一的 `GoDo Framework` EditorPlugin 加载；本适配包不再提供第二个 `plugin.cfg`。它只在编辑器运行，不进入 Release，检查第三方文件、文件扫描、`GUIDEActionMapping` 全局脚本类型、插件状态、Autoload 路径和顺序；只有不存在同名路径冲突时，才允许用户明确确认安装或修复。
 

@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/guides/input/index.md
-translation_source_hash: sha256:0e5c84aab8b9c64752bdc4748a5f43d54f75d243c56864f7c936f048591091f3
+translation_source_hash: sha256:f55e8dbadb7ce6733fa05e280bd783d7237798925d4ac8ddb14942cb05e17d2e
 ---
 
 # Read Semantic Input and Manage Contexts
@@ -33,9 +33,9 @@ addons/guideCS/
 addons/godo_framework/Integrations/GuideInput/
 ```
 
-The verified combination is GUIDE `0.13.0` with GUIDE-CSharp `0.3.7--0.14.0`. Obtain it from the [official GitHub source](https://github.com/Phlegmlee/G.U.I.D.E-CSharp), ensure the resulting path is `addons/guideCS/`, and pin the actual commit so later source updates do not make the dependency unreproducible. **Open GitHub source...** only opens that page in the system browser; it never downloads, extracts, or overwrites third-party files.
+The verified combination is GUIDE `0.14.0` with GUIDE-CSharp `0.5.7--0.14.0`. Obtain the complete package from the [official GitHub `v0.5.7` tag](https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.5.7), ensure the resulting path is `addons/guideCS/`, and pin that tag or commit `8a62ec4`. **Open GitHub source...** only opens the source page in the system browser; it never downloads, extracts, or overwrites third-party files.
 
-This combination passes GoDo's functional regression, but GUIDE-CSharp currently uses `Activator.CreateInstance` to create generic wrappers and produces `IL2087` under strict Native AOT/Trimming analysis. Do not treat the GUIDE integration as validated for iOS Native AOT. Omitting the optional integration does not affect the GoDo core runtime.
+This combination passes GoDo's functional regression. The new wrapper propagates AOT metadata requirements, and the current workspace's `win-x64` publish no longer reports GUIDE's `IL2087`. GodotSharp analysis warnings remain, and an actual game's Native AOT export has not been verified. AOT acceptance is deferred until the consuming game imports its required plugins and completes export and runtime checks on its target platform. iOS requires validation on macOS/Xcode. Omitting the optional integration does not affect the GoDo core runtime.
 
 After copying dependencies, let Godot finish scanning files and rebuilding its global script-class cache, then complete one C# build. Open:
 

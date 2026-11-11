@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/guides/camera/index.md
-translation_source_hash: sha256:19137c3d3c749be72aad2fc0801e5253301ef5ff9bf7d2b6ee2e5280e899f8c2
+translation_source_hash: sha256:1a805cc0361c214b8acf35794e66fe1285c9cf041af337ac7e43168f894b1616
 ---
 
 # Configure, Switch, and Restore the Main Camera
@@ -33,7 +33,7 @@ addons/phantom_camera/
 addons/godo_framework/Integrations/PhantomCamera/
 ```
 
-Obtain the third-party files from the [Phantom Camera GitHub `v0.11.0.3` release](https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.3) and ensure the resulting path is `addons/phantom_camera/`. That release reports only `0.11` in `plugin.cfg`, so the framework cannot distinguish patch versions from configuration alone; pin `v0.11.0.3` in team projects. **Open verified version...** only opens the browser; it never downloads, extracts, or overwrites the plugin.
+Obtain the third-party files from the [Phantom Camera GitHub `v0.11.0.4` release](https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.4) and ensure the resulting path is `addons/phantom_camera/`. That release reports `0.11.0.4` in `plugin.cfg`; pin the tag or commit `d20277e` in team projects and retain its `LICENSE`. **Open verified version...** only opens the browser; it never downloads, extracts, or overwrites the plugin.
 
 Enable the single **GoDo Framework** plugin, then open:
 
@@ -41,7 +41,7 @@ Enable the single **GoDo Framework** plugin, then open:
 GoDo Framework → Open GoDo Framework... → Editor Extensions → Phantom Camera
 ```
 
-The right-hand management page directly checks the third-party and adapter files, the third-party version, and its enabled state; it does not open a second setup window. **Recheck** reports completion in the hint area. The adapter is currently verified against Phantom Camera 0.11. The Enable Phantom Camera button is available only when all required files exist, the version is exactly 0.11, and the third-party plugin is still disabled. Confirmation only enables the installed third-party plugin; it does not modify scenes, runtime configuration, or third-party source.
+The right-hand management page directly checks the third-party and adapter files, the third-party version, and its enabled state; it does not open a second setup window. **Recheck** reports completion in the hint area. The adapter is currently verified against Phantom Camera `0.11.0.4`. The Enable Phantom Camera button is available only when all required files exist, the version is exactly `0.11.0.4`, and the third-party plugin is still disabled. Confirmation only enables the installed third-party plugin; it does not modify scenes, runtime configuration, or third-party source.
 
 Observable result: when all three checks pass, the window reports Correctly Configured and disables the enable button. If it reports Needs Attention, follow the hint to restore missing files, use the verified version, or inspect the editor output. A different version is not automatically unusable, but an upgrade requires a fresh build, automated regression, and validation in a real camera scene. Only the third-party Phantom Camera plugin is enabled in Godot's plugin list; the GoDo adapter is not a second EditorPlugin.
 

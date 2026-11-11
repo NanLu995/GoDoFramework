@@ -80,7 +80,7 @@ GUIDE_EDITOR_PLUGINS = (
     "res://addons/guideCS/plugin.cfg",
 )
 PHANTOM_EDITOR_PLUGIN = "res://addons/phantom_camera/plugin.cfg"
-SUPPORTED_PHANTOM_VERSION = "0.11"
+SUPPORTED_PHANTOM_VERSION = "0.11.0.4"
 PHANTOM_UPDATER_SETTING = "updater/updater_mode"
 ISOLATED_EDITOR_PROJECT_ITEMS = (
     Path("addons"),

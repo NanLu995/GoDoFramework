@@ -69,13 +69,13 @@
     "guide-input": {
       "contract": "addons/godo_framework/Integrations/GuideInput/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖 GUIDE 0.13.0 与 GUIDE-CSharp 0.3.7--0.14.0 的 GitHub 源码安装检查、提交固定要求、Profile、Installer、六信号状态与同窗迁移转换、显式 Process Priority、运行时重绑定、冲突处理、提示 UI、持久化、AOT 限制和常见排错；升级后的平台验收仍需在目标游戏中执行。",
+      "reason": "功能指南已覆盖 GUIDE 0.14.0 与 GUIDE-CSharp 0.5.7--0.14.0 的固定标签安装检查、Profile、Installer、六信号状态与同窗迁移转换、显式 Process Priority、运行时重绑定、冲突处理、提示 UI、持久化、AOT 验证边界和常见排错；其他平台验收仍需在目标游戏中执行。",
       "manual_pages": [
         "guides/input/index.md",
         "guides/input-rebinding/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:bdea422dbd6872d3e9f81289e25b53be6e67ed366d399108dab702cc75a2cabf"
+      "reviewed_contract_hash": "sha256:ab675b46f8abf9c2f73c81b906fe756d8676eabc8bb416f2a5b06cdc3d7220ef"
     },
     "friflo-ecs": {
       "contract": "addons/godo_framework/Integrations/FrifloEcs/USAGE.md",
@@ -91,12 +91,12 @@
     "phantom-camera": {
       "contract": "addons/godo_framework/Integrations/PhantomCamera/USAGE.md",
       "status": "documented",
-      "reason": "功能指南已覆盖 GitHub v0.11.0.3 来源、plugin.cfg 只报告 0.11 的识别边界、实际菜单入口、安装检查与启用结果、第三人称预设、优先级映射、切换恢复、自定义 Rig 与常见排错；鼠标环绕属于游戏业务，插件升级仍需项目验收。",
+      "reason": "功能指南已覆盖 GitHub v0.11.0.4 固定来源、plugin.cfg 精确版本检查、许可证保留、实际菜单入口、安装检查与启用结果、第三人称预设、优先级映射、切换恢复、自定义 Rig 与常见排错；鼠标环绕属于游戏业务，真实镜头场景仍需项目验收。",
       "manual_pages": [
         "guides/camera/index.md"
       ],
       "api_reference_status": "verified",
-      "reviewed_contract_hash": "sha256:82b89d2e8af38c36e8e952f623910b4ac5922a7bbd8a2b407bbdaa1559c1997e"
+      "reviewed_contract_hash": "sha256:39c8a65891fc123f0163de8dc8eb892a88e931413b0207339f704fdae339cb68"
     },
     "audio": {
       "contract": "addons/godo_framework/Runtime/Audio/USAGE.md",

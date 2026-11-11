@@ -28,7 +28,7 @@ addons/phantom_camera/
 addons/godo_framework/Integrations/PhantomCamera/
 ```
 
-从 [Phantom Camera GitHub `v0.11.0.3` Release](https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.3) 取得第三方文件，并确保最终路径为 `addons/phantom_camera/`。该版本的 `plugin.cfg` 只报告 `0.11`，因此框架无法仅凭配置区分补丁版本；团队项目应固定为 `v0.11.0.3`。设置窗口的“打开已验证版本...”只打开浏览器，不自动下载、解压或覆盖插件。
+从 [Phantom Camera GitHub `v0.11.0.4` Release](https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.4) 取得第三方文件，并确保最终路径为 `addons/phantom_camera/`。该版本的 `plugin.cfg` 报告 `0.11.0.4`；团队项目应固定标签或提交 `d20277e`，并保留包内的 `LICENSE`。设置窗口的“打开已验证版本...”只打开浏览器，不自动下载、解压或覆盖插件。
 
 启用唯一的 **GoDo Framework** 插件，然后打开：
 
@@ -36,7 +36,7 @@ addons/godo_framework/Integrations/PhantomCamera/
 GoDo Framework → 打开 GoDo Framework... → 编辑器扩展 → Phantom Camera
 ```
 
-右侧管理页会直接检查第三方与适配文件、第三方版本和启用状态，不再打开第二个设置窗口；点击“重新检查”后提示栏会明确显示完成结果。当前适配器按 Phantom Camera 0.11 验证；只有文件完整、版本恰为 0.11 且第三方插件尚未启用时，“启用 Phantom Camera...”按钮才可用。确认后只启用已安装的第三方插件，不修改场景、运行时配置或第三方源码。
+右侧管理页会直接检查第三方与适配文件、第三方版本和启用状态，不再打开第二个设置窗口；点击“重新检查”后提示栏会明确显示完成结果。当前适配器按 Phantom Camera `0.11.0.4` 验证；只有文件完整、版本恰为 `0.11.0.4` 且第三方插件尚未启用时，“启用 Phantom Camera...”按钮才可用。确认后只启用已安装的第三方插件，不修改场景、运行时配置或第三方源码。
 
 可观察结果：三个检查项都正常时，窗口显示“已正确配置”并禁用启用按钮。如果显示“需要处理”，按提示补齐文件、使用已验证版本或检查编辑器输出；版本不一致不代表一定不可用，但升级后必须重新编译、运行自动回归并验证真实镜头场景。只有第三方 Phantom Camera 需要在 Godot 插件列表中启用，GoDo 适配包不是第二个 EditorPlugin。
 

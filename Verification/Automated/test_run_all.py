@@ -4,6 +4,7 @@ import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -23,6 +24,20 @@ class RunAllIsolationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.run_all = load_run_all_module()
+
+    def test_phantom_dependency_requires_verified_patch_version(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="godo-phantom-version-test-") as temporary:
+            root = Path(temporary)
+            config = root / "addons" / "phantom_camera" / "plugin.cfg"
+            config.parent.mkdir(parents=True)
+            with patch.object(self.run_all, "REPOSITORY_ROOT", root), patch.object(
+                self.run_all, "is_editor_plugin_enabled", return_value=True
+            ):
+                for version in ("0.11.0.4", "0.11.0.3", "0.12"):
+                    with self.subTest(version=version):
+                        config.write_text(f'[plugin]\nversion="{version}"\n', encoding="utf-8")
+                        missing = self.run_all.find_missing_optional_dependencies(("Phantom Camera",))
+                        self.assertEqual(bool(missing), version != "0.11.0.4")
 
     def test_isolated_editor_project_copies_only_declared_inputs(self) -> None:
         with tempfile.TemporaryDirectory(prefix="godo-run-all-test-") as temporary:

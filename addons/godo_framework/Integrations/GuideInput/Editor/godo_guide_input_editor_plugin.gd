@@ -12,8 +12,8 @@ const GODO_AUTOLOAD_PATH := "res://addons/godo_framework/Core/GoDoRuntime.tscn"
 const REQUIRED_GLOBAL_CLASS := "GUIDEActionMapping"
 const GUIDE_PLUGIN_CONFIG := "res://addons/guideCS/guide/plugin.cfg"
 const GUIDE_CS_PLUGIN_CONFIG := "res://addons/guideCS/plugin.cfg"
-const SUPPORTED_GUIDE_VERSION := "0.13.0"
-const SUPPORTED_GUIDE_CS_VERSION := "0.3.7--0.14.0"
+const SUPPORTED_GUIDE_VERSION := "0.14.0"
+const SUPPORTED_GUIDE_CS_VERSION := "0.5.7--0.14.0"
 const OFFICIAL_SOURCE_URL := "https://github.com/Phlegmlee/G.U.I.D.E-CSharp"
 
 var _page: VBoxContainer

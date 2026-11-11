@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Godot;
 using GuideCs;
 
@@ -184,7 +185,7 @@ public sealed partial class GuideInputLab : Node
         });
     }
 
-    private static T Wrap<T>(string path)
+    private static T Wrap<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(string path)
         where T : GuideResource
     {
         Resource resource = ResourceLoader.Load<Resource>(path) ??

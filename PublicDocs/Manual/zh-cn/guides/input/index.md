@@ -28,9 +28,9 @@ addons/guideCS/
 addons/godo_framework/Integrations/GuideInput/
 ```
 
-当前验证组合是 GUIDE `0.13.0` 与 GUIDE-CSharp `0.3.7--0.14.0`。从 [官方 GitHub 源码](https://github.com/Phlegmlee/G.U.I.D.E-CSharp)取得该组合并确保最终路径为 `addons/guideCS/`；团队项目应固定实际提交，避免后续源码更新造成不可复现的升级。设置窗口的“打开 GitHub 源码...”只会在系统浏览器中打开此页面，不会自动下载、解压或覆盖第三方文件。
+当前验证组合是 GUIDE `0.14.0` 与 GUIDE-CSharp `0.5.7--0.14.0`。从[官方 GitHub `v0.5.7` 标签](https://github.com/Phlegmlee/G.U.I.D.E-CSharp/releases/tag/v0.5.7)取得完整包，确保最终路径为 `addons/guideCS/`；团队项目应固定该标签或提交 `8a62ec4`。设置窗口的“打开 GitHub 源码...”只会在系统浏览器中打开源码页面，不会自动下载、解压或覆盖第三方文件。
 
-该组合已经通过 GoDo 功能回归，但 GUIDE-CSharp 当前仍使用 `Activator.CreateInstance` 创建泛型包装器，严格 Native AOT/Trimming 分析会产生 `IL2087`。因此不要把 GUIDE 可选集成视为 iOS Native AOT 已验证；不安装本集成不会影响 GoDo 核心运行时。
+该组合已通过 GoDo 功能回归。新版已为泛型包装器传播 AOT 元数据要求，当前工作区的 `win-x64` publish 不再报告 GUIDE 的 `IL2087`，但仍有 GodotSharp 的分析警告，且未完成实际游戏的 Native AOT 导出。AOT 验收待实际消费项目导入所需插件后，按目标平台执行导出与运行验证；iOS 需在 macOS/Xcode 验证。不安装本集成不会影响 GoDo 核心运行时。
 
 复制依赖后先让 Godot 完成文件扫描和全局脚本类型缓存，再完成一次 C# 编译。随后打开：
 

@@ -8,15 +8,15 @@
 
 ## 依赖与安装
 
-1. 安装第三方 Phantom Camera；本适配包当前按 GitHub `v0.11.0.3` 验证。
+1. 安装第三方 Phantom Camera；本适配包当前按 GitHub `v0.11.0.4` 验证。
 2. 确认框架包包含 `addons/godo_framework/Integrations/PhantomCamera/`。
 3. 启用唯一的 `GoDo Framework` 插件，打开统一窗口并选择“编辑器扩展 → Phantom Camera”。
 4. 检查文件与版本，并在明确确认后启用第三方 Phantom Camera。
 5. 编译并完成回归后，在业务场景中使用运行时 Rig 或预设。
 
-第三方文件应从 [Phantom Camera GitHub `v0.11.0.3` Release](https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.3) 取得，并安装到 `addons/phantom_camera/`。右侧管理页会显示该已验证版本入口；它不自动下载、解压或覆盖第三方文件。该 Release 的 `plugin.cfg` 只报告 `0.11`，因此框架可以确认 `0.11` 系列兼容标记，但不能仅凭配置区分补丁版本；团队项目仍应固定为 `v0.11.0.3`。选择其他版本时必须重新完成兼容验证。
+第三方文件应从 [Phantom Camera GitHub `v0.11.0.4` Release](https://github.com/ramokz/phantom-camera/releases/tag/v0.11.0.4) 取得，并安装到 `addons/phantom_camera/`。右侧管理页会显示该已验证版本入口；它不自动下载、解压或覆盖第三方文件。该 Release 的 `plugin.cfg` 报告 `0.11.0.4`；团队项目应固定标签或提交 `d20277e`，并保留包内的 `LICENSE`。选择其他版本时必须重新完成兼容验证。
 
-本适配包通过 `godo_editor_extension.cfg` 接入统一 GoDo 窗口，不提供 `plugin.cfg`，因此不会成为第二个 Godot EditorPlugin。状态报告、提示和操作直接显示在 Phantom Camera 右侧页面；点击“重新检查”后提示栏会明确显示检查已完成。自动启用按钮仅在第三方与适配文件完整、版本恰为 0.11 且第三方插件尚未启用时可用；确认后只调用 Godot 编辑器启用第三方插件，不修改场景、运行时配置或第三方源码。成功时页面显示“已正确配置”并禁用启用按钮；启用失败时显示失败提示，应检查编辑器输出。只有第三方 Phantom Camera 自身需要启用。
+本适配包通过 `godo_editor_extension.cfg` 接入统一 GoDo 窗口，不提供 `plugin.cfg`，因此不会成为第二个 Godot EditorPlugin。状态报告、提示和操作直接显示在 Phantom Camera 右侧页面；点击“重新检查”后提示栏会明确显示检查已完成。自动启用按钮仅在第三方与适配文件完整、版本恰为 `0.11.0.4` 且第三方插件尚未启用时可用；确认后只调用 Godot 编辑器启用第三方插件，不修改场景、运行时配置或第三方源码。成功时页面显示“已正确配置”并禁用启用按钮；启用失败时显示失败提示，应检查编辑器输出。只有第三方 Phantom Camera 自身需要启用。
 
 ## 第三人称 Rig 预设
 
@@ -58,7 +58,7 @@ public sealed partial class PhantomCameraRig : CameraRig
 }
 ```
 
-- `PhantomCameraNode`：必须引用兼容 Phantom Camera 0.11 系列的 3D 节点；当前验证发布版为 `v0.11.0.3`。
+- `PhantomCameraNode`：必须引用兼容 Phantom Camera 0.11 系列的 3D 节点；当前验证发布版为 `v0.11.0.4`。
 - `ActivePriority`：CameraService 激活 Rig 时写入，必须大于停用值。
 - `InactivePriority`：初始化和停用时写入，默认是 `0`。
 
@@ -67,7 +67,7 @@ public sealed partial class PhantomCameraRig : CameraRig
 ## 失败语义
 
 - 缺少 Phantom Camera C# API 时项目编译失败；第三方插件未启用或资源不完整时 Phantom 场景自身不可用。
-- 编辑器扩展读取第三方 `plugin.cfg` 并把非 0.11 版本标为未经验证；由于该字段不含补丁号，升级插件后仍必须通过编译、自动回归和真实镜头场景重新验证。
+- 编辑器扩展读取第三方 `plugin.cfg` 并把非 `0.11.0.4` 版本标为未经验证；升级插件后仍必须通过编译、自动回归和真实镜头场景重新验证。
 - `PhantomCameraNode` 缺失、节点不兼容或激活优先级不大于停用优先级：Rig 在注册前抛出 `InvalidOperationException`。
 - 运行期间 Phantom 优先级读写失败：由 CameraService 包装为 `CameraOperationException`，并遵循主镜头切换回滚语义。
 - GoDo 核心与业务运行时不依赖本包；禁用或删除本包不会改变 `GoDoRuntime`。
@@ -81,7 +81,7 @@ public sealed partial class PhantomCameraRig : CameraRig
 
 ## 验证
 
-当前工作区使用 Phantom Camera `v0.11.0.3` 进行 Release 编译时，上游 `PhantomCameraHost.cs` 会产生 2 项空值分析和 2 项未使用字段警告。现有集成回归与 Demo3D 仍通过，GoDo 核心隔离构建为 0 warning；这只能证明当前调用路径可用，不表示第三方包装层已经达到零警告。不要在项目级全局压制这些警告，升级第三方版本时应优先复核上游是否已经修复。
+2026-11-11，当前工作区使用 Godot 4.7.2、.NET 10 与 Phantom Camera `v0.11.0.4` 进行 Debug / Release 编译时，上游 `PhantomCameraHost.cs` 会产生 2 项空值分析和 2 项未使用字段警告。现有集成回归与 Demo3D 仍通过，GoDo 核心隔离构建为 0 warning；这只能证明当前调用路径可用，不表示第三方包装层已经达到零警告。不要在项目级全局压制这些警告，升级第三方版本时应优先复核上游是否已经修复。
 
 1. 确认第三方 Phantom Camera 已启用；GoDo Phantom 适配包不需要启用项。
 2. 运行 `Verification/Automated/PhantomCameraRigRegression.tscn`，确认 6/6 通过。
