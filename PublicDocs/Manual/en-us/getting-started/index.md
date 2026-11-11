@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/getting-started/index.md
-translation_source_hash: sha256:06fb5f8120b7d5bf9c6cadffd5e6c539983bab0a262b77fccf1840f49efdaf74
+translation_source_hash: sha256:00c2159d7031a1ecbd826ae9272b4577cade4a8b44f7a504fcaa1eae7fc61a42
 ---
 
 # Quick start: build a runnable game skeleton
@@ -22,7 +22,7 @@ After this path, use the [module guides](../guides/index.md) to explore the capa
 
 - Godot 4.7.0 or later in the 4.x .NET line; GoDoFramework 0.8.0 is verified through Godot 4.7.2.
 - A usable C# solution that has completed at least one Debug build.
-- .NET 8 for the target project; use .NET 9 for Android builds when the project requires it.
+- .NET 10 for the target project, including Android builds.
 
 ## 1. Copy the framework directory
 

@@ -1,6 +1,6 @@
 ---
 translation_of: PublicDocs/Manual/zh-cn/getting-started/install-upgrade-uninstall.md
-translation_source_hash: sha256:ba556d0aba3a7a7c46bd0550825b7af8ae60b853c5cde6bcb6ee9b64a25a3a89
+translation_source_hash: sha256:2f1a16887d67aa3bc27545aa16e8c793f532829cfb3165b1c65e2e663fa684c3
 ---
 
 # Install, Upgrade, and Uninstall the Framework
@@ -16,7 +16,7 @@ The target project needs:
 - The Godot .NET version declared in the Getting Started requirements.
 - Exactly one usable `.csproj` at the project root.
 - At least one successful Debug C# build.
-- .NET 8 for runtime targets; Android uses .NET 9 according to project requirements.
+- .NET 10 for runtime targets, including Android builds.
 
 Commit or back up the project first. Do not copy the framework workbench's `project.godot`, `.csproj`, solution, Demo, Verification, `.godot`, `bin`, or `obj` into the game project.
 

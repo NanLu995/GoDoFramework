@@ -93,7 +93,7 @@ renderer/rendering_method.mobile="gl_compatibility"
     (project / "DataTableExportReleaseVerification.csproj").write_text(
         """<Project Sdk="Godot.NET.Sdk/4.7.2">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
   </PropertyGroup>
 </Project>

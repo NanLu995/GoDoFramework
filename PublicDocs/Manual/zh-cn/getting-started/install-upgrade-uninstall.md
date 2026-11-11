@@ -11,7 +11,7 @@ GoDoFramework 的分发单元是完整的 `addons/godo_framework/` 目录。编�
 - 快速开始页“环境要求”中声明的 Godot .NET 版本。
 - 根目录恰好一份可用的 `.csproj`。
 - 至少成功完成一次 Debug C# 编译。
-- 运行目标使用 .NET 8；Android 构建按项目要求使用 .NET 9。
+- 运行目标使用 .NET 10，Android 构建同样使用 .NET 10。
 
 安装前提交或备份项目。不要把框架工作仓库的 `project.godot`、`.csproj`、解决方案、Demo、Verification、`.godot`、`bin` 或 `obj` 复制到游戏项目。
 

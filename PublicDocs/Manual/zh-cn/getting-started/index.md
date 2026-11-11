@@ -17,7 +17,7 @@
 
 - Godot 4.7.0 或更高的 4.x .NET 版本；GoDoFramework 0.8.0 最高已验证至 Godot 4.7.2。
 - 可用的 C# 解决方案，并已至少成功完成一次 Debug 编译。
-- 目标项目使用 .NET 8；Android 构建按项目要求使用 .NET 9。
+- 目标项目使用 .NET 10，Android 构建同样使用 .NET 10。
 
 ## 1. 复制框架目录
 

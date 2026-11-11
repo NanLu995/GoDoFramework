@@ -65,7 +65,7 @@ renderer/rendering_method.mobile="gl_compatibility"
 
 PROJECT_FILE = f"""<Project Sdk="Godot.NET.Sdk/{GODOT_VERSION}">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
   </PropertyGroup>
 </Project>

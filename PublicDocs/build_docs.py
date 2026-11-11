@@ -543,7 +543,7 @@ def write_docfx_config(locale: str, locale_work_root: Path) -> None:
                 "dest": "api",
                 "filter": "filterConfig.yml",
                 "properties": {
-                    "TargetFramework": "net8.0",
+                    "TargetFramework": "net10.0",
                     "GoDoIncludeGuideInput": "true",
                     "GoDoIncludePhantomCamera": "true",
                 },
